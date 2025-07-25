@@ -27932,6 +27932,7 @@ body {
   width: 100%;
   pointer-events: none;
   z-index: 2;
+  background: linear-gradient(to bottom, #2f3349, rgba(47, 51, 73, 0));
 }
 @media (min-width: 1200px) {
   .menu-inner-shadow {

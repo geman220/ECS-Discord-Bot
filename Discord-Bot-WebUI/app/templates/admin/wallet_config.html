@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration - Apple Wallet{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold py-3 mb-2">
+                <span class="text-muted fw-light">Admin / Apple Wallet /</span> Configuration
+            </h4>
+            <p class="text-muted">Manage Apple Wallet pass system configuration and certificates</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-secondary" onclick="testConfiguration()">
+                <i class="ti ti-test-pipe me-1"></i>Test Configuration
+            </button>
+            <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Back to Management
+            </a>
+        </div>
+    </div>
+
+    <!-- System Status -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">System Status</h5>
+                    <div id="status-indicator" class="badge badge-{{ 'success' if config_status.configured else 'danger' }}">
+                        {{ 'Configured' if config_status.configured else 'Not Configured' }}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if config_status.configured %}
+                    <div class="alert alert-success d-flex align-items-center">
+                        <i class="ti ti-check-circle me-3 fs-4"></i>
+                        <div>
+                            <strong>System Ready</strong>
+                            <p class="mb-0">Apple Wallet pass system is properly configured and ready to generate passes.</p>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-danger d-flex align-items-center mb-3">
+                        <i class="ti ti-alert-circle me-3 fs-4"></i>
+                        <div>
+                            <strong>Configuration Required</strong>
+                            <p class="mb-0">System configuration issues detected. Please resolve the following issues:</p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        {% for issue in config_status.issues %}
+                        <div class="col-12 mb-2">
+                            <div class="d-flex align-items-center text-danger">
+                                <i class="ti ti-x me-2"></i>
+                                <span>{{ issue }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Details -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="ti ti-settings me-2"></i>Configuration Settings
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Pass Type Identifier</label>
+                        <div class="fw-semibold">{{ config_status.config.pass_type_identifier }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Team Identifier</label>
+                        <div class="fw-semibold">{{ config_status.config.team_identifier }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Organization Name</label>
+                        <div class="fw-semibold">{{ config_status.config.organization_name }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Web Service URL</label>
+                        <div class="fw-semibold">
+                            {% if config_status.config.web_service_url %}
+                            {{ config_status.config.web_service_url }}
+                            {% else %}
+                            <span class="text-muted">Not configured</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="ti ti-certificate me-2"></i>Certificate Status
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% set cert_files = [
+                        ('Certificate', 'app/wallet_pass/certs/certificate.pem'),
+                        ('Private Key', 'app/wallet_pass/certs/key.pem'), 
+                        ('WWDR Certificate', 'app/wallet_pass/certs/wwdr.pem')
+                    ] %}
+                    
+                    {% for name, path in cert_files %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>{{ name }}</span>
+                        {% if path.split('/')[-1] not in config_status.issues|join(' ') %}
+                        <span class="badge bg-success">
+                            <i class="ti ti-check"></i> Present
+                        </span>
+                        {% else %}
+                        <span class="badge bg-danger">
+                            <i class="ti ti-x"></i> Missing
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Required Assets -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <i class="ti ti-photo me-2"></i>Required Image Assets
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% set required_assets = [
+                    ('icon.png', '29×29 pixels', 'Pass icon'),
+                    ('icon@2x.png', '58×58 pixels', 'High-resolution pass icon'),
+                    ('logo.png', 'Max 160×50 pixels', 'Organization logo'),
+                    ('logo@2x.png', 'Max 320×100 pixels', 'High-resolution logo')
+                ] %}
+                
+                {% for filename, size, description in required_assets %}
+                <div class="col-md-6 mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            {% if filename not in config_status.issues|join(' ') %}
+                            <span class="badge bg-success">
+                                <i class="ti ti-check"></i>
+                            </span>
+                            {% else %}
+                            <span class="badge bg-danger">
+                                <i class="ti ti-x"></i>
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <div class="fw-semibold">{{ filename }}</div>
+                            <small class="text-muted">{{ size }} - {{ description }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Setup Instructions -->
+    <div class="card">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <i class="ti ti-book me-2"></i>Setup Instructions
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="accordion" id="setupAccordion">
+                <!-- Certificates -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingCerts">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCerts">
+                            1. Apple Developer Certificates
+                        </button>
+                    </h2>
+                    <div id="collapseCerts" class="accordion-collapse collapse" data-bs-parent="#setupAccordion">
+                        <div class="accordion-body">
+                            <ol>
+                                <li>Create a Pass Type ID in your Apple Developer Portal</li>
+                                <li>Generate a Pass Type ID Certificate</li>
+                                <li>Convert certificates to PEM format:
+                                    <pre class="bg-light p-2 mt-2"><code>openssl pkcs12 -in "Certificates.p12" -clcerts -nokeys -out certificate.pem
+openssl pkcs12 -in "Certificates.p12" -nocerts -out key.pem</code></pre>
+                                </li>
+                                <li>Download Apple WWDR Certificate and convert to PEM</li>
+                                <li>Place all three files in <code>app/wallet_pass/certs/</code></li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Environment Variables -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingEnv">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEnv">
+                            2. Environment Variables
+                        </button>
+                    </h2>
+                    <div id="collapseEnv" class="accordion-collapse collapse" data-bs-parent="#setupAccordion">
+                        <div class="accordion-body">
+                            <p>Add these variables to your environment configuration:</p>
+                            <pre class="bg-light p-2"><code>WALLET_PASS_TYPE_ID=pass.com.ecsfc.membership
+WALLET_TEAM_ID=YOUR_APPLE_TEAM_ID
+WALLET_KEY_PASSWORD=your_certificate_password</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Image Assets -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingAssets">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAssets">
+                            3. Image Assets
+                        </button>
+                    </h2>
+                    <div id="collapseAssets" class="accordion-collapse collapse" data-bs-parent="#setupAccordion">
+                        <div class="accordion-body">
+                            <p>Create and place the following images in <code>app/wallet_pass/assets/</code>:</p>
+                            <ul>
+                                <li><strong>icon.png</strong> - 29×29 pixels (simple logo/symbol)</li>
+                                <li><strong>icon@2x.png</strong> - 58×58 pixels (high-resolution version)</li>
+                                <li><strong>logo.png</strong> - Max 160×50 pixels (full organization logo)</li>
+                                <li><strong>logo@2x.png</strong> - Max 320×100 pixels (high-resolution version)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test Results Modal -->
+<div class="modal fade" id="testResultsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configuration Test Results</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="testResultsBody">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Testing...</span>
+                    </div>
+                    <p class="mt-2">Running configuration tests...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Test configuration
+function testConfiguration() {
+    const modal = new bootstrap.Modal(document.getElementById('testResultsModal'));
+    const modalBody = document.getElementById('testResultsBody');
+    
+    modal.show();
+    
+    fetch(`{{ url_for('wallet_admin.test_wallet_config') }}`)
+        .then(response => response.json())
+        .then(data => {
+            let html = '<div class="mb-3">';
+            
+            // Overall status
+            if (data.configuration.configured) {
+                html += '<div class="alert alert-success"><i class="ti ti-check-circle me-2"></i>Configuration is valid</div>';
+            } else {
+                html += '<div class="alert alert-danger"><i class="ti ti-alert-circle me-2"></i>Configuration has issues</div>';
+            }
+            
+            html += '</div>';
+            
+            // Test results
+            if (data.tests && data.tests.length > 0) {
+                html += '<h6>Test Results:</h6>';
+                data.tests.forEach(test => {
+                    const badgeClass = test.status === 'passed' ? 'success' : test.status === 'warning' ? 'warning' : 'danger';
+                    const icon = test.status === 'passed' ? 'check' : test.status === 'warning' ? 'alert-triangle' : 'x';
+                    
+                    html += `
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="badge bg-${badgeClass} me-2">
+                                <i class="ti ti-${icon}"></i>
+                            </span>
+                            <div>
+                                <strong>${test.name}</strong>
+                                <br><small class="text-muted">${test.message}</small>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Configuration issues
+            if (data.configuration.issues && data.configuration.issues.length > 0) {
+                html += '<h6 class="mt-3">Issues to Resolve:</h6>';
+                data.configuration.issues.forEach(issue => {
+                    html += `<div class="text-danger mb-1"><i class="ti ti-x me-2"></i>${issue}</div>`;
+                });
+            }
+            
+            modalBody.innerHTML = html;
+        })
+        .catch(error => {
+            modalBody.innerHTML = '<div class="alert alert-danger">Error testing configuration</div>';
+        });
+}
+</script>
+</div>
+{% endblock %}

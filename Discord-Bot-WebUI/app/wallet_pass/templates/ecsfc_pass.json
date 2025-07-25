@@ -1,0 +1,71 @@
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.com.ecsfc.membership",
+  "teamIdentifier": "YOUR_TEAM_ID",
+  "organizationName": "ECS FC",
+  "serialNumber": "ecsfc-{{uuid}}",
+  "description": "ECS Pub League Membership",
+  "barcode": {
+    "format": "PKBarcodeFormatQR",
+    "message": "{{barcode_data}}",
+    "messageEncoding": "iso-8859-1"
+  },
+  "generic": {
+    "primaryFields": [
+      {
+        "key": "name",
+        "label": "Name",
+        "value": "{{user_name}}"
+      }
+    ],
+    "secondaryFields": [
+      {
+        "key": "team",
+        "label": "Team",
+        "value": "{{team_name}}"
+      },
+      {
+        "key": "season",
+        "label": "Season",
+        "value": "{{season}}"
+      }
+    ],
+    "auxiliaryFields": [
+      {
+        "key": "player_id",
+        "label": "Player ID",
+        "value": "{{player_id}}"
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "value": "{{status}}"
+      }
+    ],
+    "backFields": [
+      {
+        "key": "league",
+        "label": "League",
+        "value": "{{league_name}}"
+      },
+      {
+        "key": "phone",
+        "label": "Contact",
+        "value": "{{phone}}"
+      },
+      {
+        "key": "issued",
+        "label": "Issued",
+        "value": "{{issue_date}}"
+      }
+    ]
+  },
+  "backgroundColor": "rgb(115, 103, 240)",
+  "foregroundColor": "rgb(255, 255, 255)",
+  "labelColor": "rgb(200, 200, 200)",
+  "logoText": "ECS FC",
+  "webServiceURL": "{{web_service_url}}",
+  "authenticationToken": "{{auth_token}}",
+  "expirationDate": "{{expiration_date}}",
+  "voided": {{voided}}
+}

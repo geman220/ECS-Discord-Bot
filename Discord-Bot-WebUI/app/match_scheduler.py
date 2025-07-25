@@ -17,9 +17,10 @@ from typing import Dict, Any, Optional, List
 
 from flask import g
 from app.models import MLSMatch
-from app.utils.redis_manager import RedisManager
+from app.utils.safe_redis import get_safe_redis
 from app.core import celery as celery_app
 from app.core.helpers import get_match
+from app.core.session_manager import managed_session
 from app.tasks.tasks_live_reporting import start_live_reporting, force_create_mls_thread_task
 
 logger = logging.getLogger(__name__)
@@ -33,8 +34,14 @@ class MatchScheduler:
     REDIS_KEY_PREFIX = "match_scheduler:"
 
     def __init__(self):
-        self.redis_manager = RedisManager()
-        self.redis = self.redis_manager.client
+        self._redis = None
+    
+    @property
+    def redis(self):
+        """Get safe Redis client."""
+        if self._redis is None:
+            self._redis = get_safe_redis()
+        return self._redis
 
     def _get_match(self, match_id: int) -> Optional[MLSMatch]:
         """
@@ -79,13 +86,8 @@ class MatchScheduler:
             Dict[str, Any]: A dictionary with scheduling details and status.
         """
         try:
-            # Test Redis connection
-            try:
-                self.redis.ping()
-                logger.info("Redis connection successful")
-            except Exception as e:
-                logger.error(f"Redis connection failed: {str(e)}")
-                return {'success': False, 'message': f"Redis connection failed: {str(e)}"}
+            # SafeRedisClient will handle unavailability gracefully
+            # No need to pre-check availability since SafeRedisClient provides fallback behavior
 
             match = self._get_match(match_id)
             if not match:
@@ -297,6 +299,81 @@ class MatchScheduler:
         except Exception as e:
             logger.error(f"Failed to schedule reporting task: {str(e)}")
             return {'scheduled': False, 'error': str(e)}
+
+    def unschedule_match_tasks(self, match_id: int) -> Dict[str, Any]:
+        """
+        Unschedule all tasks for a match and clean up Redis/database.
+        
+        Parameters:
+            match_id (int): The identifier of the match.
+            
+        Returns:
+            Dict[str, Any]: Result of the unscheduling operation.
+        """
+        try:
+            results = {
+                'unscheduled_tasks': 0,
+                'cleaned_redis_keys': 0,
+                'database_updated': False,
+                'details': []
+            }
+            
+            # Get Redis keys for this match
+            thread_key = f"{self.REDIS_KEY_PREFIX}{match_id}:thread"
+            reporting_key = f"{self.REDIS_KEY_PREFIX}{match_id}:reporting"
+            
+            # Extract and revoke task IDs
+            for key_name, redis_key in [("thread", thread_key), ("reporting", reporting_key)]:
+                try:
+                    value = self.redis.get(redis_key)
+                    if value:
+                        import json
+                        data = json.loads(value.decode('utf-8') if isinstance(value, bytes) else value)
+                        task_id = data.get('task_id')
+                        
+                        if task_id:
+                            # Revoke the task
+                            from app.core import celery
+                            celery.control.revoke(task_id, terminate=True)
+                            results['unscheduled_tasks'] += 1
+                            results['details'].append(f"Revoked {key_name} task {task_id}")
+                        
+                        # Delete the Redis key
+                        self.redis.delete(redis_key)
+                        results['cleaned_redis_keys'] += 1
+                        results['details'].append(f"Deleted Redis key {redis_key}")
+                        
+                except Exception as e:
+                    results['details'].append(f"Error processing {key_name} task: {str(e)}")
+            
+            # Update database flags
+            try:
+                with managed_session() as session:
+                    match = session.query(MLSMatch).get(match_id)
+                    if match:
+                        match.live_reporting_scheduled = False
+                        match.thread_creation_scheduled = False
+                        match.thread_creation_time = None
+                        session.commit()
+                        results['database_updated'] = True
+                        results['details'].append(f"Reset database flags for match {match_id}")
+            except Exception as e:
+                results['details'].append(f"Database update error: {str(e)}")
+            
+            logger.info(f"Unscheduled tasks for match {match_id}: {results}")
+            return {
+                'success': True,
+                'match_id': match_id,
+                **results
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to unschedule tasks for match {match_id}: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e),
+                'match_id': match_id
+            }
 
     def _get_redis_key(self, match_id: str, task_type: str) -> str:
         """

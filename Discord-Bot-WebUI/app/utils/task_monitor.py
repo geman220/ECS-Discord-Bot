@@ -17,7 +17,7 @@ from celery.states import STARTED, PENDING, RETRY, FAILURE, SUCCESS, REVOKED
 from celery.result import AsyncResult
 
 from app.core import celery
-from app.utils.redis_manager import RedisManager
+from app.utils.safe_redis import get_safe_redis
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,8 @@ class TaskMonitor:
     
     def __init__(self):
         """Initialize the TaskMonitor with Redis-backed storage."""
-        self.redis_manager = RedisManager()
-        self.redis = self.redis_manager.client
+        self._redis = get_safe_redis()
+        self.redis = self._redis
         self.task_prefix = "task_monitor:"
         self.zombie_threshold = 3600  # 1 hour
     
@@ -86,6 +86,11 @@ class TaskMonitor:
         Returns:
             A list of dictionaries containing information about zombie tasks.
         """
+        # Check if Redis is available before proceeding
+        if not self.redis.is_available:
+            logger.warning("Redis is not available - skipping zombie task detection")
+            return []
+            
         current_time = time.time()
         zombie_tasks = []
         
@@ -94,7 +99,11 @@ class TaskMonitor:
         batch_size = 100
         
         while True:
-            cursor, keys = self.redis.scan(cursor, match=f"{self.task_prefix}*", count=batch_size)
+            try:
+                cursor, keys = self.redis.scan(cursor, match=f"{self.task_prefix}*", count=batch_size)
+            except Exception as e:
+                logger.error(f"Error scanning Redis for zombie tasks: {e}")
+                break
             
             if not keys:
                 if cursor == 0:
@@ -102,11 +111,11 @@ class TaskMonitor:
                 continue
             
             # Use pipeline for batch operations
-            pipe = self.redis.pipeline()
-            for key in keys:
-                pipe.hgetall(key)
-            
             try:
+                pipe = self.redis.pipeline()
+                for key in keys:
+                    pipe.hgetall(key)
+                
                 task_infos = pipe.execute()
             except Exception as e:
                 logger.error(f"Error executing Redis pipeline: {e}")
@@ -301,8 +310,7 @@ def get_task_info(task_id: str) -> Dict[str, Any]:
         
         # Try to get additional info from our task monitor
         try:
-            redis_manager = RedisManager()
-            redis = redis_manager.client
+            redis = get_safe_redis()
             monitor_key = f"task_monitor:{task_id}"
             monitor_info = redis.hgetall(monitor_key)
             
@@ -503,8 +511,8 @@ def clean_zombie_tasks():
         
         # Clean up Redis connections
         try:
-            from app.utils.redis_manager import RedisManager
-            redis_manager = RedisManager()
+            from app.utils.redis_manager import get_redis_manager
+            redis_manager = get_redis_manager()
             if hasattr(redis_manager, '_cleanup_idle_connections'):
                 logger.info("Cleaning up idle Redis connections")
                 redis_manager._cleanup_idle_connections()

@@ -54,7 +54,7 @@ class UnifiedRedisManager:
         Initialize a single Redis connection pool that will be shared
         across all Redis operations in the application.
         """
-        max_retries = 3
+        max_retries = 5
         retry_count = 0
         
         while retry_count < max_retries:
@@ -108,9 +108,13 @@ class UnifiedRedisManager:
                 retry_count += 1
                 logger.error(f"Redis connection attempt {retry_count} failed: {e}")
                 if retry_count < max_retries:
-                    time.sleep(0.5)
+                    # Exponential backoff
+                    sleep_time = min(2 ** retry_count, 10)
+                    logger.info(f"Retrying Redis connection in {sleep_time} seconds...")
+                    time.sleep(sleep_time)
                 else:
                     logger.error(f"Failed to initialize Redis after {max_retries} attempts")
+                    logger.error(f"Redis configuration - URL: {redis_url}, Host: {redis_host}, Port: {redis_port}")
                     self._create_fallback_clients()
                     break
 
@@ -129,6 +133,7 @@ class UnifiedRedisManager:
             client.ping = lambda: False
             client.get = lambda key: None
             client.set = lambda key, value, **kwargs: False
+            client.setex = lambda key, seconds, value: False  # Add missing setex method
             client.delete = lambda *keys: 0
             client.exists = lambda key: False
             client.keys = lambda pattern: []
@@ -139,6 +144,8 @@ class UnifiedRedisManager:
             client.ttl = lambda key: -1
             client.scan = lambda cursor=0, match=None, count=None: (0, [])
             client.pipeline = lambda: SimpleNamespace(execute=lambda: [])
+            # Add Redis 'control' attribute for Celery compatibility
+            client.control = SimpleNamespace(revoke=lambda task_id, terminate=True: None)
 
     @property
     def client(self) -> Redis:
@@ -277,11 +284,37 @@ def get_redis_manager() -> UnifiedRedisManager:
     return _redis_manager
 
 
-# Legacy compatibility
+# LEGACY COMPATIBILITY - DEPRECATED
 class RedisManager:
-    """Legacy RedisManager class for backward compatibility."""
+    """
+    DEPRECATED: Legacy RedisManager class for backward compatibility.
+    
+    ⚠️  WARNING: This class is deprecated and will be removed in a future release.
+    Please use get_safe_redis() from app.utils.safe_redis instead.
+    
+    Migration guide:
+    OLD: redis_client = RedisManager().client
+    NEW: redis_client = get_safe_redis()
+    """
     
     def __init__(self):
+        # Log usage for tracking migration
+        import inspect
+        import warnings
+        
+        # Get the calling location
+        frame = inspect.currentframe().f_back
+        filename = frame.f_code.co_filename
+        lineno = frame.f_lineno
+        
+        # Issue deprecation warning
+        warning_msg = (
+            f"RedisManager() is deprecated and will be removed. "
+            f"Use get_safe_redis() instead. Called from {filename}:{lineno}"
+        )
+        warnings.warn(warning_msg, DeprecationWarning, stacklevel=2)
+        logger.warning(f"DEPRECATED: {warning_msg}")
+        
         self._manager = _redis_manager
     
     @property

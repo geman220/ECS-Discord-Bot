@@ -570,9 +570,9 @@ def create_app(config_object='web_config.Config'):
     def teardown_appcontext(exception):
         # Clean up any Redis connection pools on app context teardown
         try:
-            from app.utils.redis_manager import RedisManager
-            redis_manager = RedisManager()
-            redis_manager.shutdown()
+            from app.utils.redis_manager import get_redis_manager
+            redis_manager = get_redis_manager()
+            redis_manager.cleanup()
         except Exception as e:
             # Just log errors but don't propagate them during teardown
             app.logger.error(f"Error in teardown_appcontext: {e}")
@@ -587,9 +587,9 @@ def create_app(config_object='web_config.Config'):
         logger.info("Running worker shutdown cleanup")
         
         # Clean up Redis connections
-        from app.utils.redis_manager import RedisManager
-        redis_manager = RedisManager()
-        redis_manager.shutdown()
+        from app.utils.redis_manager import get_redis_manager
+        redis_manager = get_redis_manager()
+        redis_manager.cleanup()
         
         # Clean up any orphaned database sessions
         from app.db_management import db_manager
@@ -646,6 +646,8 @@ def init_blueprints(app):
     from app.batch_api import batch_bp
     from app.store import store_bp
     from app.draft_predictions_routes import draft_predictions_bp
+    from app.wallet_routes import wallet_bp
+    from app.admin.wallet_admin_routes import wallet_admin_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
@@ -682,6 +684,8 @@ def init_blueprints(app):
     app.register_blueprint(redis_bp)
     app.register_blueprint(store_bp)  # Blueprint has url_prefix='/store'
     app.register_blueprint(draft_predictions_bp)  # Blueprint has url_prefix='/draft-predictions'
+    app.register_blueprint(wallet_bp)  # Blueprint has url_prefix='/wallet'
+    app.register_blueprint(wallet_admin_bp)  # Blueprint has url_prefix='/admin/wallet'
     
     # Import and register playoff management blueprint
     from app.playoff_routes import playoff_bp

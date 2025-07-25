@@ -14,7 +14,7 @@ from typing import Dict, List, Optional, Any
 from celery import current_app as celery_app
 from celery.result import AsyncResult
 from app.core import celery
-from app.utils.redis_manager import RedisManager
+from app.utils.safe_redis import get_safe_redis
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class TaskManager:
     @classmethod
     def _get_redis_client(cls):
         """Get Redis client instance."""
-        return RedisManager().client
+        return get_safe_redis()
     
     @classmethod
     def register_task(cls, task_id: str, task_type: str, user_id: int, 

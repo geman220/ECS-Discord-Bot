@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+
+{% block title %}Apple Wallet Pass Management{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold py-3 mb-2">
+                <span class="text-muted fw-light">Admin /</span> Apple Wallet Pass Management
+            </h4>
+            <p class="text-muted">Manage ECS FC membership passes for Apple Wallet</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-secondary" onclick="refreshConfigStatus()">
+                <i class="ti ti-refresh me-1"></i>Refresh Status
+            </button>
+            {% if 'Global Admin' in user_roles %}
+            <a href="{{ url_for('wallet_admin.wallet_config') }}" class="btn btn-sm btn-primary">
+                <i class="ti ti-settings me-1"></i>Configuration
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Configuration Status Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">System Status</h5>
+                    <div id="status-indicator" class="badge badge-{{ 'success' if config_status.configured else 'danger' }}">
+                        {{ 'Configured' if config_status.configured else 'Not Configured' }}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if config_status.configured %}
+                    <div class="alert alert-success mb-0">
+                        <i class="ti ti-check-circle me-2"></i>
+                        Apple Wallet pass system is properly configured and ready to generate passes.
+                    </div>
+                    {% else %}
+                    <div class="alert alert-danger mb-3">
+                        <i class="ti ti-alert-circle me-2"></i>
+                        System configuration issues detected. Please resolve the following:
+                    </div>
+                    <ul class="list-unstyled mb-0">
+                        {% for issue in config_status.issues %}
+                        <li class="text-danger mb-1">
+                            <i class="ti ti-x me-2"></i>{{ issue }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-icon">
+                            <span class="badge bg-label-primary rounded-pill p-2">
+                                <i class="ti ti-users ti-md"></i>
+                            </span>
+                        </div>
+                        <div class="card-info text-end">
+                            <h5 class="card-title text-nowrap mb-1">{{ stats.total_eligible }}</h5>
+                            <small class="text-success">Eligible Players</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-icon">
+                            <span class="badge bg-label-info rounded-pill p-2">
+                                <i class="ti ti-user-check ti-md"></i>
+                            </span>
+                        </div>
+                        <div class="card-info text-end">
+                            <h5 class="card-title text-nowrap mb-1">{{ stats.total_players }}</h5>
+                            <small class="text-info">Active Players</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-icon">
+                            <span class="badge bg-label-success rounded-pill p-2">
+                                <i class="ti ti-shield-check ti-md"></i>
+                            </span>
+                        </div>
+                        <div class="card-info text-end">
+                            <h5 class="card-title text-nowrap mb-1">{{ stats.players_with_teams }}</h5>
+                            <small class="text-success">With Teams</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-icon">
+                            <span class="badge bg-label-warning rounded-pill p-2">
+                                <i class="ti ti-user-x ti-md"></i>
+                            </span>
+                        </div>
+                        <div class="card-info text-end">
+                            <h5 class="card-title text-nowrap mb-1">{{ stats.players_without_teams }}</h5>
+                            <small class="text-warning">No Teams</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Season Information -->
+    <div class="row mb-4">
+        {% if pub_league_season %}
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="ti ti-ball-football me-1"></i>Current Pub League Season
+                    </h6>
+                    <p class="mb-0">
+                        <strong>{{ pub_league_season.name }}</strong>
+                        {% if pub_league_season.is_current %}
+                        <span class="badge bg-success ms-2">Active</span>
+                        {% endif %}
+                    </p>
+                    <small class="text-muted">Used for player eligibility and pass expiration</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% if ecs_fc_season %}
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="ti ti-shield me-1"></i>Current ECS FC Season
+                    </h6>
+                    <p class="mb-0">
+                        <strong>{{ ecs_fc_season.name }}</strong>
+                        {% if ecs_fc_season.is_current %}
+                        <span class="badge bg-info ms-2">Active</span>
+                        {% endif %}
+                    </p>
+                    <small class="text-muted">{{ ecs_fc_season.league_type }} season tracking</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Eligible Players -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Eligible Players ({{ eligible_players|length }})</h5>
+            <div class="d-flex gap-2">
+                {% if config_status.configured %}
+                <button class="btn btn-sm btn-success" onclick="bulkGeneratePasses()" {% if not eligible_players %}disabled{% endif %}>
+                    <i class="ti ti-download me-1"></i>Bulk Generate
+                </button>
+                {% endif %}
+                <a href="{{ url_for('wallet_admin.wallet_players') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="ti ti-eye me-1"></i>View All Players
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if eligible_players %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>League</th>
+                            <th>Contact</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player in eligible_players[:10] %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-sm me-2">
+                                        <span class="avatar-initial rounded-circle bg-label-primary">
+                                            {{ player.name[0].upper() }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">{{ player.name }}</h6>
+                                        <small class="text-muted">ID: {{ player.id }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if player.primary_team %}
+                                <span class="badge bg-label-info">{{ player.primary_team.name }}</span>
+                                {% else %}
+                                <span class="text-muted">No team</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if player.league %}
+                                {{ player.league.name }}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if player.user %}
+                                <small>{{ player.user.email }}</small>
+                                {% if player.phone %}
+                                <br><small class="text-muted">{{ player.phone }}</small>
+                                {% endif %}
+                                {% else %}
+                                <span class="text-muted">No user</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        {% if config_status.configured %}
+                                        <li>
+                                            <a class="dropdown-item" href="{{ url_for('wallet.get_wallet_pass_by_player', player_id=player.id) }}">
+                                                <i class="ti ti-download me-2"></i>Generate Pass
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        <li>
+                                            <a class="dropdown-item" href="javascript:void(0);" onclick="checkPlayerEligibility({{ player.id }})">
+                                                <i class="ti ti-info-circle me-2"></i>Check Eligibility
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if eligible_players|length > 10 %}
+                        <tr>
+                            <td colspan="5" class="text-center">
+                                <a href="{{ url_for('wallet_admin.wallet_players', status='eligible') }}" class="btn btn-sm btn-outline-primary">
+                                    View All {{ eligible_players|length }} Eligible Players
+                                </a>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="ti ti-user-x text-muted mb-2" style="font-size: 3rem;"></i>
+                <h6 class="text-muted">No Eligible Players</h6>
+                <p class="text-muted mb-3">No players currently meet the requirements for Apple Wallet passes.</p>
+                <a href="{{ url_for('wallet_admin.wallet_players') }}" class="btn btn-sm btn-outline-primary">
+                    View All Players
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Player Eligibility Modal -->
+<div class="modal fade" id="eligibilityModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Player Eligibility Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="eligibilityModalBody">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Check player eligibility
+function checkPlayerEligibility(playerId) {
+    const modal = new bootstrap.Modal(document.getElementById('eligibilityModal'));
+    const modalBody = document.getElementById('eligibilityModalBody');
+    
+    modal.show();
+    
+    fetch(`{{ url_for('wallet_admin.check_player_eligibility', player_id=0) }}`.replace('0', playerId))
+        .then(response => response.json())
+        .then(data => {
+            let html = `
+                <div class="mb-3">
+                    <h6>${data.player_name} (ID: ${data.player_id})</h6>
+                </div>
+                
+                <div class="alert alert-${data.eligible ? 'success' : 'warning'} mb-3">
+                    <i class="ti ti-${data.eligible ? 'check-circle' : 'alert-circle'} me-2"></i>
+                    ${data.eligible ? 'Player is eligible for Apple Wallet pass' : 'Player is not eligible'}
+                </div>
+            `;
+            
+            if (data.issues && data.issues.length > 0) {
+                html += '<h6>Issues:</h6><ul class="list-unstyled">';
+                data.issues.forEach(issue => {
+                    html += `<li class="text-danger mb-1"><i class="ti ti-x me-2"></i>${issue}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            if (data.info) {
+                html += '<h6 class="mt-3">Player Information:</h6>';
+                html += '<div class="row">';
+                html += `<div class="col-6"><small class="text-muted">Active Player:</small><br>${data.info.is_current_player ? 'Yes' : 'No'}</div>`;
+                html += `<div class="col-6"><small class="text-muted">User Account:</small><br>${data.info.has_user_account ? 'Yes' : 'No'}</div>`;
+                html += `<div class="col-6"><small class="text-muted">Primary Team:</small><br>${data.info.primary_team || 'None'}</div>`;
+                html += `<div class="col-6"><small class="text-muted">League:</small><br>${data.info.league || 'None'}</div>`;
+                html += '</div>';
+            }
+            
+            modalBody.innerHTML = html;
+        })
+        .catch(error => {
+            modalBody.innerHTML = '<div class="alert alert-danger">Error checking eligibility</div>';
+        });
+}
+
+// Refresh configuration status
+function refreshConfigStatus() {
+    // You can implement this to refresh the page or update status via AJAX
+    location.reload();
+}
+
+// Bulk generate passes
+function bulkGeneratePasses() {
+    if (!confirm('Generate Apple Wallet passes for all eligible players? This may take a few moments.')) {
+        return;
+    }
+    
+    const eligiblePlayerIds = {{ eligible_players | map(attribute='id') | list | tojson }};
+    
+    fetch(`{{ url_for('wallet_admin.generate_bulk_passes') }}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ player_ids: eligiblePlayerIds })
+    })
+    .then(response => response.json())
+    .then(data => {
+        let message = `Bulk generation completed!\n`;
+        message += `✓ Success: ${data.success.length} passes\n`;
+        message += `✗ Failed: ${data.failed.length} passes`;
+        
+        if (data.failed.length > 0) {
+            message += '\n\nFailed passes:\n';
+            data.failed.forEach(failure => {
+                message += `- ${failure.player_name || failure.player_id}: ${failure.error}\n`;
+            });
+        }
+        
+        alert(message);
+    })
+    .catch(error => {
+        alert('Error during bulk generation: ' + error.message);
+    });
+}
+</script>
+</div>
+{% endblock %}

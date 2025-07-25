@@ -22,8 +22,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/demo.css') }}" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.css') }}" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/libs/perfect-scrollbar/perfect-scrollbar.css') }}" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-components.css') }}?v={{ range(1, 1000000) | random }}" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-utilities.css') }}?v={{ range(1, 1000000) | random }}" media="print" onload="this.media='all'">
+    <!-- Commented out missing CSS files -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-components.css') }}?v={{ range(1, 1000000) | random }}" media="print" onload="this.media='all'"> -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-utilities.css') }}?v={{ range(1, 1000000) | random }}" media="print" onload="this.media='all'"> -->
 
     <!-- Page-specific CSS (conditional loading) -->
     {% block page_css %}

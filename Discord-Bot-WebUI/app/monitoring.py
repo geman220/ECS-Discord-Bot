@@ -25,10 +25,11 @@ from datetime import datetime, timedelta
 from flask import Blueprint, render_template, jsonify, current_app, request
 from flask_login import login_required
 from celery.result import AsyncResult
-from sqlalchemy import text
+from sqlalchemy import text, or_
 
 from app.decorators import role_required
-from app.utils.redis_manager import RedisManager
+from app.utils.redis_manager import get_redis_manager
+from app.utils.safe_redis import get_safe_redis
 from app.utils.session_monitor import get_session_monitor
 from app.db_management import db_manager
 from app.core import celery, db
@@ -47,7 +48,7 @@ class TaskMonitor:
     """Monitor Celery tasks and their statuses via Redis keys."""
 
     def __init__(self):
-        self.redis = RedisManager().client
+        self.redis = get_safe_redis()
 
     def get_task_status(self, task_id: str) -> dict:
         """
@@ -112,20 +113,79 @@ class TaskMonitor:
             thread_task_id = parse_value(self.redis.get(thread_key))
             reporting_task_id = parse_value(self.redis.get(reporting_key))
 
+            # Get detailed task status information
+            thread_status = self.get_task_status(thread_task_id) if thread_task_id else None
+            reporting_status = self.get_task_status(reporting_task_id) if reporting_task_id else None
+            
+            # Get Redis key TTL information
+            thread_ttl = self.redis.ttl(thread_key) if thread_task_id else None
+            reporting_ttl = self.redis.ttl(reporting_key) if reporting_task_id else None
+            
             return {
                 'success': True,
                 'thread_task': {
                     'id': thread_task_id,
-                    'status': self.get_task_status(thread_task_id) if thread_task_id else None
+                    'status': thread_status,
+                    'redis_key': thread_key,
+                    'ttl': thread_ttl,
+                    'is_scheduled': thread_task_id is not None,
+                    'summary': self._get_task_summary(thread_status, 'Thread Creation')
                 },
                 'reporting_task': {
                     'id': reporting_task_id,
-                    'status': self.get_task_status(reporting_task_id) if reporting_task_id else None
+                    'status': reporting_status,
+                    'redis_key': reporting_key,
+                    'ttl': reporting_ttl,
+                    'is_scheduled': reporting_task_id is not None,
+                    'summary': self._get_task_summary(reporting_status, 'Live Reporting')
                 }
             }
         except Exception as e:
             logger.error(f"Error verifying tasks for match {match_id}: {e}", exc_info=True)
             return {'success': False, 'error': str(e)}
+
+    def _get_task_summary(self, task_status: dict, task_type: str) -> str:
+        """
+        Generate a human-readable summary of task status.
+        
+        Parameters:
+            task_status (dict): Task status information
+            task_type (str): Type of task (e.g., 'Thread Creation', 'Live Reporting')
+            
+        Returns:
+            str: Human-readable task summary
+        """
+        if not task_status:
+            return f"{task_type}: Not scheduled"
+        
+        status = task_status.get('status', 'UNKNOWN')
+        
+        # Try to extract ETA from task info for better display
+        eta_info = ""
+        if task_status.get('info') and isinstance(task_status['info'], dict):
+            eta = task_status['info'].get('eta')
+            if eta:
+                try:
+                    eta_date = datetime.fromisoformat(eta.replace('Z', '+00:00'))
+                    eta_info = f" (scheduled for {eta_date.strftime('%Y-%m-%d %H:%M:%S UTC')})"
+                except:
+                    pass
+        
+        if status == 'PENDING':
+            return f"{task_type}: Scheduled and waiting to execute{eta_info}"
+        elif status == 'SUCCESS':
+            return f"{task_type}: Completed successfully"
+        elif status == 'FAILURE':
+            error_info = task_status.get('info', 'Unknown error')
+            return f"{task_type}: Failed - {error_info}"
+        elif status == 'RETRY':
+            return f"{task_type}: Retrying after failure"
+        elif status == 'REVOKED':
+            return f"{task_type}: Task was cancelled"
+        elif status == 'STARTED':
+            return f"{task_type}: Currently executing"
+        else:
+            return f"{task_type}: Status {status}"
 
     def monitor_all_matches(self) -> dict:
         """
@@ -194,16 +254,152 @@ def monitor_dashboard():
 @role_required('Global Admin')
 def get_all_tasks():
     """
-    Retrieve the scheduled tasks for all matches.
+    Retrieve the scheduled tasks for all matches with detailed match information.
     
     Returns:
-        JSON response with scheduled tasks details.
+        JSON response with scheduled tasks details including match names and teams.
     """
     try:
-        result = task_monitor.monitor_all_matches()
-        return jsonify(result)
+        with managed_session() as session:
+            # Get all matches that might have scheduled tasks
+            matches = session.query(MLSMatch).filter(
+                (MLSMatch.live_reporting_scheduled == True) |
+                (MLSMatch.thread_created == True)
+            ).all()
+            
+            result = {'success': True, 'matches': []}
+            for match in matches:
+                tasks_info = task_monitor.verify_scheduled_tasks(str(match.id))
+                
+                match_info = {
+                    'id': match.id,
+                    'match_id': match.match_id,
+                    'home_team': 'Seattle Sounders FC' if match.is_home_game else match.opponent,
+                    'away_team': match.opponent if match.is_home_game else 'Seattle Sounders FC',
+                    'opponent': match.opponent,
+                    'date': match.date_time.isoformat() if match.date_time else None,
+                    'venue': match.venue,
+                    'competition': match.competition,
+                    'is_home_game': match.is_home_game,
+                    'live_reporting_scheduled': match.live_reporting_scheduled,
+                    'live_reporting_started': match.live_reporting_started,
+                    'live_reporting_status': match.live_reporting_status,
+                    'thread_created': match.thread_created,
+                    'thread_creation_scheduled': match.thread_creation_scheduled,
+                    'discord_thread_id': match.discord_thread_id,
+                    'thread_creation_time': match.thread_creation_time.isoformat() if match.thread_creation_time else None,
+                    'last_thread_scheduling_attempt': match.last_thread_scheduling_attempt.isoformat() if match.last_thread_scheduling_attempt else None,
+                    'tasks': tasks_info
+                }
+                result['matches'].append(match_info)
+            
+            return jsonify(result)
     except Exception as e:
         logger.error(f"Error getting all tasks: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@monitoring_bp.route('/tasks/dashboard', endpoint='get_task_dashboard')
+@login_required
+@role_required('Global Admin')
+def get_task_dashboard():
+    """
+    Enhanced task monitoring dashboard with comprehensive match and task details.
+    
+    Returns:
+        JSON response with detailed task monitoring information including:
+        - Match details (teams, venue, competition, dates)
+        - Task status summaries
+        - Redis key information
+        - Task execution times and TTL
+        - Overall system health
+    """
+    try:
+        with managed_session() as session:
+            # Only show matches that are upcoming or recently completed (within 3 hours)
+            cutoff_time = datetime.utcnow() - timedelta(hours=3)
+            
+            matches = session.query(MLSMatch).filter(
+                (MLSMatch.date_time >= cutoff_time) &
+                (
+                    (MLSMatch.live_reporting_scheduled == True) |
+                    (MLSMatch.thread_creation_scheduled == True) |
+                    (MLSMatch.thread_created == True) |
+                    (MLSMatch.live_reporting_started == True)
+                )
+            ).order_by(MLSMatch.date_time.asc()).all()
+            
+            dashboard_data = {
+                'success': True,
+                'summary': {
+                    'total_matches': len(matches),
+                    'live_reporting_scheduled': 0,
+                    'thread_creation_scheduled': 0,
+                    'active_tasks': 0,
+                    'failed_tasks': 0
+                },
+                'matches': []
+            }
+            
+            for match in matches:
+                tasks_info = task_monitor.verify_scheduled_tasks(str(match.id))
+                
+                # Count task statuses for summary
+                if tasks_info.get('success') and tasks_info.get('thread_task', {}).get('is_scheduled'):
+                    dashboard_data['summary']['thread_creation_scheduled'] += 1
+                    thread_status = tasks_info['thread_task']['status']
+                    if thread_status and thread_status.get('status') in ['PENDING', 'STARTED']:
+                        dashboard_data['summary']['active_tasks'] += 1
+                    elif thread_status and thread_status.get('status') == 'FAILURE':
+                        dashboard_data['summary']['failed_tasks'] += 1
+                
+                if tasks_info.get('success') and tasks_info.get('reporting_task', {}).get('is_scheduled'):
+                    dashboard_data['summary']['live_reporting_scheduled'] += 1
+                    reporting_status = tasks_info['reporting_task']['status']
+                    if reporting_status and reporting_status.get('status') in ['PENDING', 'STARTED']:
+                        dashboard_data['summary']['active_tasks'] += 1
+                    elif reporting_status and reporting_status.get('status') == 'FAILURE':
+                        dashboard_data['summary']['failed_tasks'] += 1
+                
+                # Enhanced match information for dashboard
+                match_info = {
+                    'id': match.id,
+                    'match_id': match.match_id,
+                    'display_name': f"{'vs' if not match.is_home_game else ''} {match.opponent}",
+                    'home_team': 'Seattle Sounders FC' if match.is_home_game else match.opponent,
+                    'away_team': match.opponent if match.is_home_game else 'Seattle Sounders FC',
+                    'opponent': match.opponent,
+                    'date': match.date_time.isoformat() if match.date_time else None,
+                    'venue': match.venue,
+                    'competition': match.competition,
+                    'is_home_game': match.is_home_game,
+                    'match_status': {
+                        'live_reporting_scheduled': match.live_reporting_scheduled,
+                        'live_reporting_started': match.live_reporting_started,
+                        'live_reporting_status': match.live_reporting_status,
+                        'thread_created': match.thread_created,
+                        'thread_creation_scheduled': match.thread_creation_scheduled,
+                        'discord_thread_id': match.discord_thread_id
+                    },
+                    'scheduling_info': {
+                        'thread_creation_time': match.thread_creation_time.isoformat() if match.thread_creation_time else None,
+                        'last_thread_scheduling_attempt': match.last_thread_scheduling_attempt.isoformat() if match.last_thread_scheduling_attempt else None,
+                        'live_reporting_task_id': match.live_reporting_task_id,
+                        'thread_creation_task_id': match.thread_creation_task_id
+                    },
+                    'tasks': tasks_info,
+                    'links': {
+                        'summary_link': match.summary_link,
+                        'stats_link': match.stats_link,
+                        'commentary_link': match.commentary_link
+                    }
+                }
+                dashboard_data['matches'].append(match_info)
+            
+            return jsonify(dashboard_data)
+            
+    except Exception as e:
+        logger.error(f"Error generating task dashboard: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -233,20 +429,29 @@ def get_match_tasks(match_id):
 def get_redis_keys():
     """
     Retrieve all Redis keys related to match scheduling.
+    Only shows recent keys (within 24 hours) to reduce clutter.
     
     Returns:
         JSON response with key details including value, TTL, and task status.
     """
     try:
-        # Use Redis manager with persistent connection
-        redis_manager = RedisManager()
-        redis_client = redis_manager.client
+        # Use safe Redis client like the rest of the monitoring system
+        redis_client = get_safe_redis()
         scheduler_keys = redis_client.keys('match_scheduler:*')
         result = {}
+        filtered_count = 0
+        
         for key in scheduler_keys:
             try:
                 key_str = key.decode('utf-8') if isinstance(key, bytes) else str(key)
                 value = redis_client.get(key)
+                ttl = redis_client.ttl(key)
+                
+                # Skip keys that have already expired or will expire very soon (< 60 seconds)
+                if ttl < 60 and ttl != -1:
+                    filtered_count += 1
+                    continue
+                
                 stored_value = None
                 if value is not None:
                     value_str = value.decode('utf-8') if isinstance(value, bytes) else str(value)
@@ -255,7 +460,7 @@ def get_redis_keys():
                         stored_value = stored_obj.get("task_id", value_str)
                     except Exception:
                         stored_value = value_str
-                ttl = redis_client.ttl(key)
+                
                 task_status = None
                 if stored_value and len(stored_value) == 36:
                     try:
@@ -266,8 +471,15 @@ def get_redis_keys():
                             'ready': task.ready(),
                             'successful': task.successful() if task.ready() else None
                         }
+                        
+                        # Skip completed tasks that are old
+                        if task.ready() and task.successful() and ttl > 3600:  # Completed more than 1 hour ago
+                            filtered_count += 1
+                            continue
+                            
                     except Exception as task_error:
                         logger.warning(f"Error getting task status for {stored_value}: {task_error}")
+                
                 result[key_str] = {
                     'value': value.decode('utf-8') if isinstance(value, bytes) else value,
                     'ttl': ttl,
@@ -276,7 +488,14 @@ def get_redis_keys():
             except Exception as key_error:
                 logger.error(f"Error processing Redis key {key}: {key_error}", exc_info=True)
                 result[str(key)] = {'error': str(key_error)}
-        return jsonify({'success': True, 'keys': result, 'total': len(result)})
+        
+        return jsonify({
+            'success': True, 
+            'keys': result, 
+            'total': len(result),
+            'filtered_count': filtered_count,
+            'total_found': len(scheduler_keys)
+        })
     except Exception as e:
         logger.error(f"Error getting Redis keys: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -293,7 +512,7 @@ def test_redis():
         JSON response with ping result, total keys, and detailed key info.
     """
     try:
-        redis_client = RedisManager().client
+        redis_client = get_safe_redis()
         ping_result = redis_client.ping()
         scheduler_keys = redis_client.keys('match_scheduler:*')
         keys_info = {}
@@ -370,7 +589,7 @@ def revoke_task():
             # Mode 1: Revoke Redis-based task
             logger.info(f"Revoking task {task_id} and cleaning up Redis key {key}")
             celery.control.revoke(task_id, terminate=True)
-            redis_client = RedisManager().client
+            redis_client = get_safe_redis()
             redis_client.delete(key)
             with managed_session() as session:
                 if 'thread' in key:
@@ -393,13 +612,19 @@ def revoke_task():
             
             # If we have a task_id, use it directly
             if task_id:
-                celery.control.revoke(task_id, terminate=True)
-                logger.info(f"Directly revoked task {task_id} on worker {worker}")
-                return jsonify({'success': True, 'message': f'Task {task_id} revoked on worker {worker}'})
+                try:
+                    celery.control.revoke(task_id, terminate=True, destination=[worker])
+                    logger.info(f"Directly revoked task {task_id} on worker {worker}")
+                    return jsonify({'success': True, 'message': f'Task {task_id} revoked on worker {worker}'})
+                except Exception as e:
+                    logger.warning(f"Direct revoke failed, trying without destination: {e}")
+                    celery.control.revoke(task_id, terminate=True)
+                    logger.info(f"Revoked task {task_id} globally")
+                    return jsonify({'success': True, 'message': f'Task {task_id} revoked globally'})
             
             # No task_id but we have a worker and maybe task_name - try to find scheduled tasks
             # Add a short timeout to avoid blocking
-            i = celery.control.inspect(timeout=2.0)
+            i = celery.control.inspect(timeout=3.0)
             
             # Get current scheduled tasks with better error handling
             scheduled = {}
@@ -462,21 +687,43 @@ def revoke_task():
                         except Exception as e:
                             logger.warning(f"Error revoking task {task_id}: {e}")
                 
-                # Also try direct revocation by worker name
+                # Also try direct revocation by worker name and queue purging
                 try:
                     logger.info(f"Attempting to revoke all tasks for worker {worker}")
-                    # This will revoke all tasks for this worker
+                    
+                    # First, try to purge all known queues that might be on this worker
+                    queue_names = ['celery', 'live_reporting', 'default', 'high', 'low']
+                    for queue_name in queue_names:
+                        try:
+                            purge_result = celery.control.purge(queue_name)
+                            if purge_result and worker in purge_result:
+                                purged = purge_result[worker]
+                                if purged > 0:
+                                    logger.info(f"Purged {purged} tasks from queue {queue_name} on worker {worker}")
+                                    revoked_count += purged
+                        except Exception as e:
+                            logger.warning(f"Error purging queue {queue_name}: {e}")
+                    
+                    # Then try to revoke all tasks for this worker
                     result = celery.control.revoke(None, destination=[worker], terminate=True)
                     logger.info(f"Revocation by worker result: {result}")
                     # Count this as at least one revoked task
                     revoked_count += 1
+                    
+                    # Finally, restart the worker pool to clear any stuck tasks
+                    try:
+                        celery.control.pool_restart(destination=[worker])
+                        logger.info(f"Restarted worker pool for {worker}")
+                    except Exception as e:
+                        logger.warning(f"Error restarting worker pool: {e}")
+                        
                 except Exception as e:
                     logger.warning(f"Error revoking all tasks for worker {worker}: {e}")
                 
                 # Always try direct task deletion via direct Redis access
                 try:
                     logger.info("Attempting direct Redis task deletion")
-                    redis_client = RedisManager().client
+                    redis_client = get_safe_redis()
                     
                     # Try to find and delete scheduled task entries directly in Redis
                     # Common Celery Redis keys for scheduled tasks
@@ -597,7 +844,7 @@ def revoke_task():
                     # Try direct Celery Beat schedule manipulation
                     try:
                         # Try to clear the beat schedule
-                        redis_client = RedisManager().client
+                        redis_client = get_safe_redis()
                         redis_client.delete('celery-schedule')
                         logger.info("Cleared Celery Beat schedule")
                         revoked_count += 1
@@ -651,46 +898,163 @@ def revoke_task():
 def revoke_all_tasks():
     """
     Revoke all scheduled tasks by cleaning up all Redis keys and updating match records.
+    Uses multiple methods to ensure tasks are properly terminated.
     
     Returns:
         JSON response with the number of revoked tasks and any failures.
     """
     try:
-        redis_client = RedisManager().client
+        redis_client = get_safe_redis()
+        
+        # Step 1: Get all scheduler keys
         keys = redis_client.keys('match_scheduler:*')
         revoked_count = 0
         failed_tasks = []
-        logger.info(f"Attempting to revoke {len(keys)} tasks")
+        task_ids = []
+        
+        logger.info(f"Attempting to revoke {len(keys)} scheduled tasks")
+        
+        # Step 2: Process each key and collect task IDs
         for key in keys:
             try:
                 key_str = key.decode('utf-8') if isinstance(key, bytes) else str(key)
                 value = redis_client.get(key)
                 if value:
-                    task_id = value.decode('utf-8') if isinstance(value, bytes) else str(value)
-                    logger.info(f"Revoking task {task_id} for key {key_str}")
+                    # Parse task ID from value
+                    value_str = value.decode('utf-8') if isinstance(value, bytes) else str(value)
                     try:
-                        celery.control.revoke(task_id, terminate=True)
-                        logger.info(f"Successfully revoked task {task_id}")
-                    except Exception as revoke_error:
-                        logger.error(f"Error revoking task {task_id}: {revoke_error}")
-                        failed_tasks.append({'task_id': task_id, 'error': str(revoke_error)})
+                        # Try to parse as JSON first
+                        task_data = json.loads(value_str)
+                        task_id = task_data.get('task_id', value_str)
+                    except:
+                        # If not JSON, assume it's just the task ID
+                        task_id = value_str
+                    
+                    if task_id and len(task_id) == 36:  # Valid UUID
+                        task_ids.append(task_id)
+                        logger.info(f"Found task {task_id} for key {key_str}")
+                    
+                    # Delete the Redis key regardless
                     redis_client.delete(key)
                     revoked_count += 1
+                else:
+                    # Empty key, just delete it
+                    redis_client.delete(key)
+                    logger.info(f"Deleted empty key: {key_str}")
+                    
             except Exception as key_error:
                 logger.error(f"Error processing key {key}: {key_error}")
                 failed_tasks.append({'key': str(key), 'error': str(key_error)})
-        with managed_session() as session:
-            matches = session.query(MLSMatch).all()
-            for match in matches:
-                match.thread_creation_time = None
-                match.live_reporting_scheduled = False
-                match.live_reporting_started = False
-                match.live_reporting_status = 'not_started'
-        response_data = {'success': True, 'message': f'Revoked {revoked_count} tasks and cleaned up Redis', 'revoked_count': revoked_count}
+        
+        # Step 3: Revoke all collected task IDs
+        successfully_revoked = 0
+        for task_id in task_ids:
+            try:
+                logger.info(f"Revoking task {task_id}")
+                celery.control.revoke(task_id, terminate=True)
+                successfully_revoked += 1
+            except Exception as revoke_error:
+                logger.error(f"Error revoking task {task_id}: {revoke_error}")
+                failed_tasks.append({'task_id': task_id, 'error': str(revoke_error)})
+        
+        # Step 4: Additional cleanup - purge all queues
+        try:
+            logger.info("Purging all Celery queues")
+            purge_result = celery.control.purge()
+            logger.info(f"Queue purge result: {purge_result}")
+        except Exception as purge_error:
+            logger.warning(f"Error purging queues: {purge_error}")
+        
+        # Step 5: Enhanced worker scheduled tasks cleanup
+        try:
+            logger.info("Cleaning up worker scheduled tasks (enhanced)")
+            i = celery.control.inspect(timeout=3.0)
+            scheduled = i.scheduled() or {}
+            
+            # First pass: revoke individual tasks
+            for worker_name, tasks in scheduled.items():
+                if tasks:
+                    logger.info(f"Found {len(tasks)} scheduled tasks on worker {worker_name}")
+                    for task in tasks:
+                        task_id = task.get('id')
+                        if task_id:
+                            try:
+                                celery.control.revoke(task_id, terminate=True, destination=[worker_name])
+                                successfully_revoked += 1
+                                logger.info(f"Revoked task {task_id} on worker {worker_name}")
+                            except Exception as e:
+                                logger.warning(f"Error revoking worker task {task_id}: {e}")
+            
+            # Second pass: purge all known queues
+            queue_names = ['celery', 'live_reporting', 'default', 'high', 'low']
+            for queue_name in queue_names:
+                try:
+                    purge_result = celery.control.purge(queue_name)
+                    if purge_result:
+                        total_purged = sum(count for count in purge_result.values() if count)
+                        if total_purged > 0:
+                            logger.info(f"Purged {total_purged} tasks from queue {queue_name}")
+                            successfully_revoked += total_purged
+                except Exception as e:
+                    logger.warning(f"Error purging queue {queue_name}: {e}")
+            
+            # Third pass: force worker restart to clear any remaining tasks
+            try:
+                stats = i.stats() or {}
+                for worker_name in stats.keys():
+                    try:
+                        celery.control.pool_restart(destination=[worker_name])
+                        logger.info(f"Restarted worker pool for {worker_name}")
+                    except Exception as e:
+                        logger.warning(f"Error restarting worker {worker_name}: {e}")
+            except Exception as restart_error:
+                logger.warning(f"Error during worker restart: {restart_error}")
+                
+        except Exception as worker_error:
+            logger.warning(f"Error cleaning worker tasks: {worker_error}")
+        
+        # Step 6: Reset match statuses in database
+        try:
+            with managed_session() as session:
+                matches = session.query(MLSMatch).all()
+                reset_count = 0
+                for match in matches:
+                    if (match.thread_creation_time or 
+                        match.live_reporting_scheduled or 
+                        match.live_reporting_started or 
+                        match.live_reporting_status != 'not_started'):
+                        
+                        match.thread_creation_time = None
+                        match.thread_creation_scheduled = False
+                        match.live_reporting_scheduled = False
+                        match.live_reporting_started = False
+                        match.live_reporting_status = 'not_started'
+                        reset_count += 1
+                
+                logger.info(f"Reset {reset_count} match statuses")
+        except Exception as db_error:
+            logger.error(f"Error resetting match statuses: {db_error}")
+            failed_tasks.append({'error': f'Database reset failed: {str(db_error)}'})
+        
+        # Prepare response
+        total_revoked = successfully_revoked + revoked_count
+        message = f'Revoked {total_revoked} tasks ({successfully_revoked} task IDs, {revoked_count} Redis keys) and cleaned up Redis'
+        
+        response_data = {
+            'success': True, 
+            'message': message,
+            'revoked_count': total_revoked,
+            'task_ids_revoked': successfully_revoked,
+            'redis_keys_cleaned': revoked_count
+        }
+        
         if failed_tasks:
             response_data['failed_tasks'] = failed_tasks
-            response_data['warning'] = 'Some tasks failed to revoke'
+            response_data['warning'] = f'Some operations failed ({len(failed_tasks)} failures)'
+            
+        logger.info(f"Revoke all completed: {message}")
         return jsonify(response_data)
+        
     except Exception as e:
         logger.error(f"Error revoking all tasks: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -721,7 +1085,7 @@ def reschedule_task():
             if not match:
                 return jsonify({'success': False, 'error': 'Match not found'}), 404
             celery.control.revoke(task_id, terminate=True)
-            redis_client = RedisManager().client
+            redis_client = get_safe_redis()
             redis_client.delete(key)
             if 'thread' in key:
                 thread_time = match.date_time - timedelta(hours=48)
@@ -737,6 +1101,267 @@ def reschedule_task():
     except Exception as e:
         logger.error(f"Error rescheduling task {task_id}: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@monitoring_bp.route('/queue/purge', endpoint='purge_queue', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def purge_queue():
+    """
+    Emergency queue purge - clears all tasks from a specific queue.
+    
+    Expects JSON payload with 'queue' name.
+    
+    Returns:
+        JSON response indicating purge status.
+    """
+    try:
+        data = request.get_json()
+        queue_name = data.get('queue', 'live_reporting')
+        
+        logger.info(f"Emergency purge requested for queue: {queue_name}")
+        
+        # Purge the specific queue - try multiple methods
+        total_purged = 0
+        try:
+            # Method 1: Try direct queue purge
+            result = celery.control.purge(queue_name)
+            logger.info(f"Purge result for queue {queue_name}: {result}")
+            
+            # Count how many tasks were purged across all workers
+            if result:
+                for worker, count in result.items():
+                    if count:
+                        total_purged += count
+                        
+        except Exception as purge_error:
+            logger.warning(f"Error during direct queue purge: {purge_error}")
+            
+            # Method 2: Try using broker management API if available
+            try:
+                from celery.app.control import Inspect
+                inspect = Inspect(app=celery)
+                
+                # Get active queues and try to purge them individually
+                active_queues = inspect.active_queues()
+                if active_queues:
+                    for worker, queues in active_queues.items():
+                        for queue_info in queues:
+                            if queue_info.get('name') == queue_name:
+                                try:
+                                    # Try worker-specific purge
+                                    worker_result = celery.control.purge(queue_name, destination=[worker])
+                                    if worker_result and worker in worker_result:
+                                        total_purged += worker_result[worker] or 0
+                                        logger.info(f"Purged {worker_result[worker]} tasks from {queue_name} on {worker}")
+                                except Exception as worker_purge_error:
+                                    logger.warning(f"Error purging {queue_name} on {worker}: {worker_purge_error}")
+                                    
+            except Exception as inspect_error:
+                logger.warning(f"Error using inspect API: {inspect_error}")
+                
+            # Method 3: If all else fails, try Redis-based cleanup
+            try:
+                redis_client = get_safe_redis()
+                
+                # Look for Celery queue keys in Redis
+                celery_keys = redis_client.keys(f"celery*{queue_name}*") + redis_client.keys(f"*{queue_name}*")
+                
+                for key in celery_keys:
+                    try:
+                        key_str = key.decode('utf-8') if isinstance(key, bytes) else str(key)
+                        # Check if this looks like a queue key
+                        if any(pattern in key_str.lower() for pattern in ['queue', 'task', 'job']):
+                            redis_client.delete(key)
+                            total_purged += 1
+                            logger.info(f"Deleted Redis queue key: {key_str}")
+                    except Exception as key_error:
+                        logger.warning(f"Error deleting Redis key {key}: {key_error}")
+                        
+            except Exception as redis_purge_error:
+                logger.warning(f"Error during Redis-based purge: {redis_purge_error}")
+        
+        # Also try to revoke any scheduled tasks in that queue
+        try:
+            i = celery.control.inspect(timeout=2.0)
+            scheduled = i.scheduled() or {}
+            
+            revoked_scheduled = 0
+            for worker_name, tasks in scheduled.items():
+                for task in tasks:
+                    # Check if task is in the target queue
+                    task_queue = 'default'
+                    if 'request' in task and 'delivery_info' in task['request']:
+                        task_queue = task['request']['delivery_info'].get('routing_key', 'default')
+                    elif 'delivery_info' in task:
+                        task_queue = task['delivery_info'].get('routing_key', 'default')
+                    elif 'queue' in task:
+                        task_queue = task['queue']
+                    
+                    if task_queue == queue_name:
+                        task_id = task.get('id')
+                        if task_id:
+                            try:
+                                celery.control.revoke(task_id, terminate=True)
+                                revoked_scheduled += 1
+                                logger.info(f"Revoked scheduled task {task_id} from queue {queue_name}")
+                            except Exception as e:
+                                logger.warning(f"Error revoking scheduled task {task_id}: {e}")
+                                
+        except Exception as scheduled_error:
+            logger.warning(f"Error revoking scheduled tasks: {scheduled_error}")
+            revoked_scheduled = 0
+        
+        # Clean up any Redis keys related to the queue/tasks if needed
+        redis_cleaned = 0
+        try:
+            redis_client = get_safe_redis()
+            
+            # Clean up any live reporting related keys if purging live_reporting queue
+            if queue_name == 'live_reporting':
+                reporting_keys = redis_client.keys('match_scheduler:*:reporting')
+                for key in reporting_keys:
+                    redis_client.delete(key)
+                    redis_cleaned += 1
+                    logger.info(f"Cleaned up Redis key: {key}")
+                    
+        except Exception as redis_error:
+            logger.warning(f"Error cleaning Redis keys: {redis_error}")
+        
+        message = f"Emergency purge of queue '{queue_name}' completed. "
+        message += f"Purged {total_purged} queued tasks, "
+        message += f"revoked {revoked_scheduled} scheduled tasks, "
+        message += f"cleaned {redis_cleaned} Redis keys."
+        
+        return jsonify({
+            'success': True,
+            'message': message,
+            'queue': queue_name,
+            'purged_tasks': total_purged,
+            'revoked_scheduled': revoked_scheduled,
+            'redis_cleaned': redis_cleaned
+        })
+        
+    except Exception as e:
+        logger.error(f"Error purging queue: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@monitoring_bp.route('/tasks/nuclear_reset', methods=['POST'], endpoint='nuclear_reset')
+@login_required
+@role_required('Global Admin')
+def nuclear_reset():
+    """
+    Nuclear reset - completely restart the task system from scratch.
+    
+    This is the most aggressive approach to clear stuck tasks.
+    """
+    try:
+        logger.warning("NUCLEAR RESET - Restarting entire task system")
+        
+        results = {
+            'containers_restarted': 0,
+            'redis_flushed': False,
+            'details': []
+        }
+        
+        # Step 1: Kill all worker containers
+        try:
+            import docker
+            client = docker.from_env()
+            
+            containers_to_restart = [
+                'celery-worker', 'celery-live-reporting-worker', 
+                'celery-discord-worker', 'celery-player-sync-worker',
+                'celery-beat'  # Also restart the scheduler
+            ]
+            
+            for container in client.containers.list():
+                if any(name in container.name for name in containers_to_restart):
+                    try:
+                        logger.warning(f"KILLING container: {container.name}")
+                        container.kill()  # Force kill, don't restart gracefully
+                        container.start()  # Start fresh
+                        results['containers_restarted'] += 1
+                        results['details'].append(f"Killed and restarted {container.name}")
+                    except Exception as e:
+                        results['details'].append(f"Failed to restart {container.name}: {str(e)}")
+                        
+        except Exception as e:
+            results['details'].append(f"Docker operations failed: {str(e)}")
+        
+        # Step 2: Nuclear Redis cleanup - flush task-related data
+        try:
+            redis_client = get_safe_redis()
+            
+            # Get all keys that could contain tasks
+            patterns = [
+                'match_scheduler:*',
+                'celery-*',
+                '_kombu*',
+                'live_reporting*',
+                'scheduled_*'
+            ]
+            
+            deleted_count = 0
+            for pattern in patterns:
+                try:
+                    keys = redis_client.keys(pattern)
+                    if keys:
+                        redis_client.delete(*keys)
+                        deleted_count += len(keys)
+                        logger.warning(f"Deleted {len(keys)} keys matching {pattern}")
+                except Exception as e:
+                    results['details'].append(f"Pattern {pattern} cleanup failed: {str(e)}")
+            
+            results['redis_flushed'] = deleted_count > 0
+            results['details'].append(f"Deleted {deleted_count} Redis keys")
+            
+        except Exception as e:
+            results['details'].append(f"Redis cleanup failed: {str(e)}")
+        
+        # Step 3: Clear database scheduling flags
+        try:
+            with managed_session() as session:
+                # Reset all scheduling flags in the database
+                matches = session.query(MLSMatch).filter(
+                    or_(
+                        MLSMatch.live_reporting_scheduled == True,
+                        MLSMatch.thread_creation_scheduled == True
+                    )
+                ).all()
+                
+                reset_count = 0
+                for match in matches:
+                    match.live_reporting_scheduled = False
+                    match.thread_creation_scheduled = False
+                    match.thread_creation_time = None
+                    reset_count += 1
+                
+                session.commit()
+                results['details'].append(f"Reset scheduling flags for {reset_count} matches")
+                
+        except Exception as e:
+            results['details'].append(f"Database cleanup failed: {str(e)}")
+        
+        # Step 4: Wait and verify
+        import time
+        time.sleep(3)  # Give containers time to restart
+        
+        logger.warning(f"Nuclear reset completed: {results}")
+        
+        return jsonify({
+            'success': True,
+            'message': f"Nuclear reset completed. Restarted {results['containers_restarted']} containers, cleared Redis",
+            'results': results
+        })
+        
+    except Exception as e:
+        logger.error(f"Nuclear reset failed: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 @monitoring_bp.route('/db', endpoint='db_monitoring')
@@ -988,7 +1613,7 @@ def inspect_task(task_id):
         }
         
         # Try to get additional info from Redis or worker
-        redis_client = RedisManager().client
+        redis_client = get_safe_redis()
         
         # Check if task is in any Redis key
         keys = redis_client.keys('*')
@@ -1054,7 +1679,7 @@ def cleanup_orphaned_tasks():
     """
     try:
         # 1. Check for Redis orphaned scheduler keys
-        redis_client = RedisManager().client
+        redis_client = get_safe_redis()
         scheduler_keys = redis_client.keys('match_scheduler:*')
         cleaned_keys = []
         
@@ -1235,7 +1860,7 @@ def get_workers():
     """
     try:
         # Cache key for workers data (expires after 15 seconds)
-        redis_client = RedisManager().client
+        redis_client = get_safe_redis()
         cache_key = "monitoring:workers_data"
         cache_ttl = 15  # seconds
         
@@ -1283,17 +1908,44 @@ def get_workers():
         for worker_name, tasks in scheduled.items():
             for task in tasks:
                 try:
-                    # Extract task info
-                    task_name = task.get('name', 'Unknown Task')
+                    # Extract task info - try multiple ways to get task name
+                    task_name = None
+                    task_id = task.get('id', '')
+                    
+                    # Try different ways to extract task name
+                    if 'name' in task and task['name']:
+                        task_name = task['name']
+                    elif 'request' in task and task['request'].get('task'):
+                        task_name = task['request']['task']
+                    elif 'request' in task and task['request'].get('name'):
+                        task_name = task['request']['name']
+                    else:
+                        # Try to extract from the task structure
+                        for key in ['task', 'func', 'function']:
+                            if key in task and task[key]:
+                                task_name = task[key]
+                                break
+                    
+                    # Default if still not found
+                    if not task_name:
+                        task_name = 'Unknown Task'
+                        logger.warning(f"Could not determine task name for task: {task}")
+                    
                     args = task.get('args', [])
                     kwargs = task.get('kwargs', {})
                     eta = task.get('eta')
-                    task_id = task.get('id', '')
                     
                     # Extract request details for better task info
                     request = task.get('request', {})
                     delivery_info = request.get('delivery_info', {})
                     queue = delivery_info.get('routing_key', 'Unknown')
+                    
+                    # Also try to get queue from other locations
+                    if queue == 'Unknown':
+                        if 'delivery_info' in task and 'routing_key' in task['delivery_info']:
+                            queue = task['delivery_info']['routing_key']
+                        elif 'queue' in task:
+                            queue = task['queue']
                     
                     # Get full task details
                     full_task = {

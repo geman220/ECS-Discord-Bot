@@ -463,40 +463,56 @@ def update_discord_rsvp_task(self, session, match_id: int, discord_id: str, new_
         # Check 3: Verify current reaction state from Discord if we can
         if not self.request.retries:  # Only on first attempt to avoid API spam
             try:
-                # Get the message ID for this match
+                # Get the message IDs for this match from scheduled messages
                 match = session.query(Match).get(match_id)
-                if match and match.discord_message_id:
-                    # Use a direct API call to check current reactions
-                    import requests
-                    
-                    discord_api_url = "http://discord-bot:5001/api/get_user_reaction"
-                    params = {
-                        "message_id": match.discord_message_id,
-                        "discord_id": discord_id
-                    }
-                    
-                    response = requests.get(discord_api_url, params=params, timeout=3)
-                    if response.status_code == 200:
-                        current_reaction = response.json().get('current_reaction')
+                if match:
+                    # Get the Discord message IDs from the scheduled message
+                    scheduled_message = session.query(ScheduledMessage).filter_by(match_id=match_id).first()
+                    if scheduled_message and (scheduled_message.home_message_id or scheduled_message.away_message_id):
+                        # Try both home and away message IDs (user might be on either team)
+                        message_ids_to_check = []
+                        if scheduled_message.home_message_id:
+                            message_ids_to_check.append(scheduled_message.home_message_id)
+                        if scheduled_message.away_message_id:
+                            message_ids_to_check.append(scheduled_message.away_message_id)
                         
-                        # If current reaction matches desired state, skip update
-                        if current_reaction == new_response:
-                            logger.info(f"Skipping Discord RSVP update - verified reaction already matches")
-                            
-                            # Update availability record to show it's synced
-                            availability = session.query(Availability).filter_by(match_id=match_id, discord_id=discord_id).first()
-                            if availability:
-                                availability.discord_sync_status = 'synced'
-                                availability.last_sync_attempt = datetime.utcnow()
-                                availability.sync_error = None
+                        # Check reactions on the first available message
+                        import requests
+                        for msg_id in message_ids_to_check:
+                            try:
+                                discord_api_url = "http://discord-bot:5001/api/get_user_reaction"
+                                params = {
+                                    "message_id": msg_id,
+                                    "discord_id": discord_id
+                                }
                                 
-                            return {
-                                'success': True,
-                                'message': 'Verified reaction already matches desired state',
-                                'skipped': True,
-                                'current_state': current_reaction,
-                                'sync_timestamp': datetime.utcnow().isoformat()
-                            }
+                                response = requests.get(discord_api_url, params=params, timeout=3)
+                                if response.status_code == 200:
+                                    current_reaction = response.json().get('current_reaction')
+                                    
+                                    # If current reaction matches desired state, skip update
+                                    if current_reaction == new_response:
+                                        logger.info(f"Skipping Discord RSVP update - verified reaction already matches")
+                                        
+                                        # Update availability record to show it's synced
+                                        availability = session.query(Availability).filter_by(match_id=match_id, discord_id=discord_id).first()
+                                        if availability:
+                                            availability.discord_sync_status = 'synced'
+                                            availability.last_sync_attempt = datetime.utcnow()
+                                            availability.sync_error = None
+                                            
+                                        return {
+                                            'success': True,
+                                            'message': 'Discord reaction already matches, skipped update',
+                                            'sync_status': 'verified_skip',
+                                            'sync_timestamp': datetime.utcnow().isoformat()
+                                        }
+                                    break  # Found a working message, don't check others
+                                else:
+                                    logger.debug(f"Failed to check reaction on message {msg_id}: {response.status_code}")
+                            except Exception as e:
+                                logger.debug(f"Error checking reaction on message {msg_id}: {e}")
+                                continue  # Try next message
             except Exception as e:
                 # Just log the error and continue - this is just an optimization
                 logger.warning(f"Error checking current reaction state: {str(e)}")

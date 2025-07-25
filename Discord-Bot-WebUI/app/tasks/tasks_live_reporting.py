@@ -366,14 +366,41 @@ def schedule_live_reporting(self, session) -> Dict[str, Any]:
 
         scheduled_count = 0
         for match in upcoming_matches:
-            time_diff = match.date_time - now
-            start_live_reporting.apply_async(
-                args=[match.match_id],
-                countdown=max(0, int(time_diff.total_seconds())),
+            # Calculate the exact ETA for when live reporting should start
+            reporting_time = match.date_time - timedelta(minutes=5)  # Start 5 minutes before match
+            
+            # Skip if the reporting time is in the past
+            if reporting_time <= now:
+                continue
+                
+            # Check if already scheduled in Redis to prevent duplicates
+            from app.utils.safe_redis import get_safe_redis
+            redis_client = get_safe_redis()
+            redis_key = f"match_scheduler:{match.match_id}:reporting"
+            
+            if redis_client.exists(redis_key):
+                logger.info(f"Match {match.match_id} already has scheduled live reporting task")
+                continue
+            
+            # Schedule with ETA and store task ID
+            task = start_live_reporting.apply_async(
+                args=[str(match.match_id)],
+                eta=reporting_time,
                 queue='live_reporting'
             )
+            
+            # Store task ID in Redis for tracking
+            import json
+            data_to_store = json.dumps({
+                "task_id": task.id,
+                "eta": reporting_time.isoformat()
+            })
+            expiry = int((reporting_time - now).total_seconds()) + 3600  # Task + 1 hour buffer
+            redis_client.setex(redis_key, expiry, data_to_store)
+            
             match.live_reporting_scheduled = True
             scheduled_count += 1
+            logger.info(f"Scheduled live reporting for match {match.match_id} at {reporting_time} with task ID {task.id}")
 
         return {
             'success': True,
@@ -447,8 +474,10 @@ def check_and_create_scheduled_threads(self, session) -> Dict[str, Any]:
         # Get Redis client for the entire function
         redis_client = None
         try:
-            from app.utils.redis_manager import RedisManager
-            redis_client = RedisManager().client
+            from app.utils.safe_redis import get_safe_redis
+            redis_client = get_safe_redis()
+            if not redis_client.is_available:
+                redis_client = None
         except Exception as e:
             logger.warning(f"Redis connection failed: {e}")
         
@@ -600,10 +629,16 @@ def _extract_mls_thread_data(session, match_id: str, force: bool = False):
         'thread_created': match.thread_created,
         'match_data': {
             'id': match.id,
-            'home_team': match.home_team,
-            'away_team': match.away_team,
-            'date': match.date.isoformat() if hasattr(match, 'date') and match.date else None,
-            'time': match.time.isoformat() if hasattr(match, 'time') and match.time else None
+            'home_team': 'Seattle Sounders FC' if match.is_home_game else match.opponent,
+            'away_team': match.opponent if match.is_home_game else 'Seattle Sounders FC',
+            'opponent': match.opponent,
+            'is_home_game': match.is_home_game,
+            'date_time': match.date_time.isoformat() if match.date_time else None,
+            'venue': getattr(match, 'venue', None),
+            'competition': getattr(match, 'competition', None),
+            'summary_link': getattr(match, 'summary_link', None),
+            'stats_link': getattr(match, 'stats_link', None),
+            'commentary_link': getattr(match, 'commentary_link', None)
         }
     }
 
@@ -663,8 +698,8 @@ async def force_create_mls_thread_task(self, session, match_id: str, force: bool
         logger.info(f"Starting thread creation for match {match_id}")
         
         # Use Redis to ensure only one worker processes this match at a time
-        from app.utils.redis_manager import RedisManager
-        redis = RedisManager().client
+        from app.utils.safe_redis import get_safe_redis
+        redis = get_safe_redis()
         lock_key = f"thread_creation_lock:{match_id}"
         lock_value = f"{self.request.id}"  # Use task ID as lock value
         

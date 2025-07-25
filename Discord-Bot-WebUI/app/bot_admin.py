@@ -11,7 +11,7 @@ checking background task and Redis health statuses.
 
 # Standard library imports
 from datetime import datetime
-from app.utils.redis_manager import RedisManager
+from app.utils.safe_redis import get_safe_redis
 import logging
 
 # Third-party imports
@@ -334,7 +334,7 @@ def remove_mls_match(match_id):
         if not match:
             return jsonify(success=False, message="Match not found."), 404
 
-        redis_client = RedisManager().client
+        redis_client = get_safe_redis()
         thread_key = f"match_scheduler:{match_id}:thread"
         reporting_key = f"match_scheduler:{match_id}:reporting"
 
@@ -453,7 +453,7 @@ def check_redis_health():
     Check Redis health by pinging and retrieving scheduler keys and TTLs.
     """
     try:
-        redis_client = RedisManager().client
+        redis_client = get_safe_redis()
         result = redis_client.ping()
         keys = redis_client.keys('match_scheduler:*')
         return jsonify({

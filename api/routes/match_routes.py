@@ -305,7 +305,7 @@ async def send_message_to_thread(thread_id: int, content: str, bot: commands.Bot
         raise HTTPException(status_code=500, detail="Failed to send message to thread")
 
 
-@router.post("/thread/{thread_id}/update")
+@router.post("/api/thread/{thread_id}/update")
 async def update_thread(thread_id: int, request: dict, bot: commands.Bot = Depends(get_bot)):
     """Send live match updates to a Discord thread."""
     logger.info(f"Sending update to thread {thread_id}: {request.get('update_type', 'unknown')}")
@@ -441,6 +441,119 @@ async def update_discord_rsvp(request: dict, bot: commands.Bot = Depends(get_bot
     except Exception as e:
         logger.error(f"Error updating Discord RSVP: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to update Discord RSVP: {str(e)}")
+
+
+@router.get("/api/get_user_reaction")
+async def get_user_reaction(message_id: str, discord_id: str, bot: commands.Bot = Depends(get_bot)):
+    """
+    Get the current reaction of a user on a Discord message for RSVP verification.
+    
+    This route handles pub league RSVP message reactions by finding the channel ID
+    from the WebUI API and checking the user's current reaction state.
+    
+    Args:
+        message_id: The Discord message ID to check (can be just message_id or channel_id-message_id)
+        discord_id: The Discord user ID to check reactions for
+        
+    Returns:
+        {"current_reaction": "yes|no|maybe|none"} or error
+    """
+    logger.debug(f"Checking user reaction - message: {message_id}, user: {discord_id}")
+    
+    try:
+        # Ensure IDs are strings
+        message_id = str(message_id)
+        discord_id = str(discord_id)
+        
+        # Extract channel and message ID if combined format
+        channel_id, actual_message_id = extract_channel_and_message_id(message_id)
+        
+        # If we don't have channel_id, we need to find it by searching through matches
+        if not channel_id:
+            actual_message_id = message_id  # Use the original message_id
+            
+            # Search through recent matches to find which one contains this message ID
+            try:
+                async with aiohttp.ClientSession() as session:
+                    # Try multiple recent match IDs to find the one with this message
+                    # This is a bit inefficient but works for the current structure
+                    for match_id in range(1, 200):  # Check last 200 matches
+                        try:
+                            api_url = f"{WEBUI_API_URL}/get_message_ids/{match_id}"
+                            async with session.get(api_url, timeout=2) as response:
+                                if response.status == 200:
+                                    message_data = await response.json()
+                                    
+                                    # Check if this match has our message ID
+                                    if (message_data.get('home_message_id') == actual_message_id):
+                                        channel_id = message_data.get('home_channel_id')
+                                        logger.debug(f"Found message {actual_message_id} in match {match_id} home channel {channel_id}")
+                                        break
+                                    elif (message_data.get('away_message_id') == actual_message_id):
+                                        channel_id = message_data.get('away_channel_id')
+                                        logger.debug(f"Found message {actual_message_id} in match {match_id} away channel {channel_id}")
+                                        break
+                        except Exception:
+                            continue  # Skip matches that don't exist or have errors
+                        
+                        if channel_id:
+                            break
+                            
+            except Exception as e:
+                logger.debug(f"Could not search for message data: {e}")
+            
+            # If still no channel_id, return error
+            if not channel_id:
+                logger.error(f"Could not determine channel for message {message_id}")
+                return {"error": "Could not determine message channel"}
+        
+        # Get the Discord channel and message
+        channel = bot.get_channel(int(channel_id))
+        if not channel:
+            try:
+                channel = await bot.fetch_channel(int(channel_id))
+            except Exception as e:
+                logger.error(f"Failed to fetch channel {channel_id}: {e}")
+                return {"error": "Channel not found"}
+        
+        try:
+            message = await channel.fetch_message(int(actual_message_id))
+        except discord.NotFound:
+            logger.error(f"Message {actual_message_id} not found in channel {channel_id}")
+            return {"error": "Message not found"}
+        
+        # Check user's reactions on this message
+        user_reaction = "none"
+        reaction_mapping = {
+            '👍': 'yes',
+            '👎': 'no', 
+            '🤷': 'maybe'
+        }
+        
+        try:
+            user = await bot.fetch_user(int(discord_id))
+        except discord.NotFound:
+            logger.error(f"User {discord_id} not found")
+            return {"error": "User not found"}
+        
+        # Check each reaction on the message
+        for reaction in message.reactions:
+            emoji_str = str(reaction.emoji)
+            if emoji_str in reaction_mapping:
+                # Check if this user reacted with this emoji
+                async for reaction_user in reaction.users():
+                    if reaction_user.id == int(discord_id):
+                        user_reaction = reaction_mapping[emoji_str]
+                        break
+                if user_reaction != "none":
+                    break
+        
+        logger.debug(f"User {discord_id} current reaction on message {actual_message_id}: {user_reaction}")
+        return {"current_reaction": user_reaction}
+        
+    except Exception as e:
+        logger.error(f"Error checking user reaction: {e}")
+        return {"error": f"Failed to check reaction: {str(e)}"}
 
 
 @router.post("/api/update_user_reaction")
@@ -711,6 +824,114 @@ async def update_user_reaction(request: dict, bot: commands.Bot = Depends(get_bo
     except Exception as e:
         logger.exception(f"Unexpected error updating user reactions: {e}")
         return {"status": "error", "message": f"Internal error: {str(e)}"}
+
+
+@router.post("/api/create_match_thread")
+async def create_match_thread(request: dict, bot: commands.Bot = Depends(get_bot)):
+    """
+    Create a Discord thread for an MLS match.
+    
+    Expected payload:
+    {
+        "match_id": "match_id",
+        "home_team": "team_name",
+        "away_team": "team_name", 
+        "date": "date_string",
+        "time": "time_string"
+    }
+    
+    Returns:
+        {"thread_id": "thread_id"} on success
+    """
+    logger.info(f"Received request to create match thread: {request}")
+    
+    try:
+        # Extract data from request
+        match_id = request.get('match_id')
+        home_team = request.get('home_team')
+        away_team = request.get('away_team')
+        date = request.get('date')
+        time = request.get('time')
+        
+        if not all([match_id, home_team, away_team]):
+            raise HTTPException(status_code=400, detail="Missing required fields: match_id, home_team, away_team")
+        
+        # Get the match channel ID from environment
+        MATCH_CHANNEL_ID = os.getenv("MATCH_CHANNEL_ID")
+        
+        if not MATCH_CHANNEL_ID:
+            logger.error("MATCH_CHANNEL_ID not configured")
+            raise HTTPException(status_code=500, detail="Match channel not configured")
+        
+        # Get the forum channel
+        channel = bot.get_channel(int(MATCH_CHANNEL_ID))
+        if not channel:
+            logger.error(f"Match channel {MATCH_CHANNEL_ID} not found")
+            raise HTTPException(status_code=404, detail="Match channel not found")
+        
+        if not isinstance(channel, discord.ForumChannel):
+            logger.error(f"Channel {MATCH_CHANNEL_ID} is not a forum channel")
+            raise HTTPException(status_code=400, detail="Channel is not a forum channel")
+        
+        # Create thread name
+        thread_name = f"{home_team} vs {away_team}"
+        if date:
+            thread_name += f" - {date}"
+        
+        # Create thread content
+        content = "Match thread created! Discuss the game here and make your predictions."
+        
+        # Create comprehensive embed (similar to discord_utils.py template)
+        embed = discord.Embed(
+            title=f"Match Thread: {home_team} vs {away_team}",
+            description="**Let's go Sounders!**",
+            color=0x5B9A49  # Sounders green
+        )
+        
+        if date and time:
+            embed.add_field(name="Date and Time", value=f"{date} at {time}", inline=False)
+        
+        embed.add_field(name="Venue", value=request.get('venue', 'TBD'), inline=False)
+        embed.add_field(name="Competition", value=request.get('competition', 'usa.1'), inline=True)
+        embed.add_field(name="Broadcast", value="AppleTV", inline=True)
+        embed.add_field(name="Home/Away", value="Away" if away_team == "Seattle Sounders FC" else "Home", inline=True)
+        
+        # Add match links if provided
+        if request.get('summary_link'):
+            embed.add_field(name="Match Summary", value=f"[Click here]({request.get('summary_link')})", inline=True)
+        if request.get('stats_link'):
+            embed.add_field(name="Match Statistics", value=f"[Click here]({request.get('stats_link')})", inline=True)
+        if request.get('commentary_link'):
+            embed.add_field(name="Live Commentary", value=f"[Click here]({request.get('commentary_link')})", inline=True)
+        
+        # Set Sounders logo
+        embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
+        embed.set_footer(text="Use /predict to participate in match predictions!")
+        
+        # Create the thread
+        thread = await channel.create_thread(
+            name=thread_name,
+            content=content,
+            embed=embed,
+            auto_archive_duration=10080  # 7 days
+        )
+        
+        # Handle ThreadWithMessage object
+        if hasattr(thread, 'thread'):
+            thread = thread.thread
+        
+        logger.info(f"Created match thread '{thread_name}' (ID: {thread.id}) for match {match_id}")
+        return {"thread_id": str(thread.id)}
+        
+    except discord.errors.Forbidden as e:
+        logger.error(f"Permission error creating match thread: {str(e)}")
+        raise HTTPException(status_code=403, detail="Bot doesn't have permission to create threads")
+    except discord.errors.HTTPException as e:
+        logger.error(f"Discord API error creating match thread: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create thread: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error creating match thread: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 
 @router.post("/api/force_rsvp_sync")
