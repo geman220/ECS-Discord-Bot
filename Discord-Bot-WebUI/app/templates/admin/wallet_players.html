@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}Player Eligibility - Apple Wallet{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold py-3 mb-2">
+                <span class="text-muted fw-light">Admin / Apple Wallet /</span> Player Eligibility
+            </h4>
+            <p class="text-muted">Review player eligibility for Apple Wallet membership passes</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="ti ti-arrow-left me-1"></i>Back to Management
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Team Filter</label>
+                    <select name="team" class="form-select">
+                        <option value="all" {{ 'selected' if current_filters.team == 'all' else '' }}>All Teams</option>
+                        {% for team in teams %}
+                        <option value="{{ team.id }}" {{ 'selected' if current_filters.team == team.id|string else '' }}>
+                            {{ team.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status Filter</label>
+                    <select name="status" class="form-select">
+                        <option value="all" {{ 'selected' if current_filters.status == 'all' else '' }}>All Players</option>
+                        <option value="eligible" {{ 'selected' if current_filters.status == 'eligible' else '' }}>Eligible Only</option>
+                        <option value="active" {{ 'selected' if current_filters.status == 'active' else '' }}>Active Players</option>
+                        <option value="inactive" {{ 'selected' if current_filters.status == 'inactive' else '' }}>Inactive Players</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-filter me-1"></i>Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Players Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Players ({{ players.total }} total)</h5>
+        </div>
+        <div class="card-body">
+            {% if players.items %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Status</th>
+                            <th>Team</th>
+                            <th>League</th>
+                            <th>Contact</th>
+                            <th>Eligible</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player in players.items %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-sm me-2">
+                                        <span class="avatar-initial rounded-circle bg-label-primary">
+                                            {{ player.name[0].upper() }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">{{ player.name }}</h6>
+                                        <small class="text-muted">ID: {{ player.id }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if player.is_current_player %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if player.primary_team %}
+                                <span class="badge bg-label-info">{{ player.primary_team.name }}</span>
+                                {% else %}
+                                <span class="text-muted">No team</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if player.league %}
+                                {{ player.league.name }}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if player.user %}
+                                <small>{{ player.user.email }}</small>
+                                {% if player.phone %}
+                                <br><small class="text-muted">{{ player.phone }}</small>
+                                {% endif %}
+                                {% else %}
+                                <span class="text-muted">No user</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if player.is_current_player and player.primary_team %}
+                                <span class="badge bg-success">
+                                    <i class="ti ti-check me-1"></i>Eligible
+                                </span>
+                                {% else %}
+                                <span class="badge bg-warning">
+                                    <i class="ti ti-x me-1"></i>Not Eligible
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        {% if player.is_current_player and player.primary_team %}
+                                        <li>
+                                            <a class="dropdown-item" href="{{ url_for('wallet.get_wallet_pass_by_player', player_id=player.id) }}">
+                                                <i class="ti ti-download me-2"></i>Generate Pass
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        <li>
+                                            <a class="dropdown-item" href="javascript:void(0);" onclick="checkPlayerEligibility({{ player.id }})">
+                                                <i class="ti ti-info-circle me-2"></i>Check Details
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if players.pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if players.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for_other_page(players.prev_num) }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in players.iter_pages() %}
+                    {% if page_num %}
+                    {% if page_num != players.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for_other_page(page_num) }}">{{ page_num }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if players.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for_other_page(players.next_num) }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-4">
+                <i class="ti ti-user-search text-muted mb-2" style="font-size: 3rem;"></i>
+                <h6 class="text-muted">No Players Found</h6>
+                <p class="text-muted mb-3">No players match the current filter criteria.</p>
+                <a href="{{ url_for('wallet_admin.wallet_players') }}" class="btn btn-sm btn-outline-primary">
+                    Clear Filters
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Player Eligibility Modal -->
+<div class="modal fade" id="eligibilityModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Player Eligibility Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="eligibilityModalBody">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Helper function for pagination URLs
+function url_for_other_page(page) {
+    const url = new URL(window.location);
+    url.searchParams.set('page', page);
+    return url.toString();
+}
+
+// Check player eligibility details
+function checkPlayerEligibility(playerId) {
+    const modal = new bootstrap.Modal(document.getElementById('eligibilityModal'));
+    const modalBody = document.getElementById('eligibilityModalBody');
+    
+    modal.show();
+    
+    fetch(`{{ url_for('wallet_admin.check_player_eligibility', player_id=0) }}`.replace('0', playerId))
+        .then(response => response.json())
+        .then(data => {
+            let html = `
+                <div class="mb-3">
+                    <h6>${data.player_name} (ID: ${data.player_id})</h6>
+                </div>
+                
+                <div class="alert alert-${data.eligible ? 'success' : 'warning'} mb-3">
+                    <i class="ti ti-${data.eligible ? 'check-circle' : 'alert-circle'} me-2"></i>
+                    ${data.eligible ? 'Player is eligible for Apple Wallet pass' : 'Player is not eligible'}
+                </div>
+            `;
+            
+            if (data.issues && data.issues.length > 0) {
+                html += '<h6>Issues:</h6><ul class="list-unstyled">';
+                data.issues.forEach(issue => {
+                    html += `<li class="text-danger mb-1"><i class="ti ti-x me-2"></i>${issue}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            if (data.info) {
+                html += '<h6 class="mt-3">Player Information:</h6>';
+                html += '<div class="row">';
+                html += `<div class="col-6"><small class="text-muted">Active Player:</small><br>${data.info.is_current_player ? 'Yes' : 'No'}</div>`;
+                html += `<div class="col-6"><small class="text-muted">User Account:</small><br>${data.info.has_user_account ? 'Yes' : 'No'}</div>`;
+                html += `<div class="col-6"><small class="text-muted">Primary Team:</small><br>${data.info.primary_team || 'None'}</div>`;
+                html += `<div class="col-6"><small class="text-muted">League:</small><br>${data.info.league || 'None'}</div>`;
+                html += '</div>';
+            }
+            
+            modalBody.innerHTML = html;
+        })
+        .catch(error => {
+            modalBody.innerHTML = '<div class="alert alert-danger">Error checking eligibility</div>';
+        });
+}
+</script>
+</div>
+{% endblock %}

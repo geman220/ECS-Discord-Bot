@@ -660,7 +660,12 @@ async def create_match_thread_async_only(match_data: Dict[str, Any]) -> Optional
             'home_team': match_data['home_team'],
             'away_team': match_data['away_team'],
             'date': match_data.get('date'),
-            'time': match_data.get('time')
+            'time': match_data.get('time'),
+            'venue': match_data.get('venue'),
+            'competition': match_data.get('competition'),
+            'summary_link': match_data.get('summary_link'),
+            'stats_link': match_data.get('stats_link'),
+            'commentary_link': match_data.get('commentary_link')
         }
         
         async with aiohttp.ClientSession() as session:

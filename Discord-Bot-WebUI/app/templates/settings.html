@@ -304,6 +304,67 @@
                     {% endif %}
                 </div>
             </div>
+            
+            <!-- Apple Wallet Pass Section -->
+            {% if safe_current_user.player and safe_current_user.player.is_current_player and safe_current_user.player.primary_team %}
+            <div class="card settings-card mb-4">
+                <div class="card-header d-flex align-items-center pb-2 border-bottom">
+                    <div class="settings-icon bg-info bg-opacity-10 text-info me-3">
+                        <i class="ti ti-device-mobile"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Apple Wallet</h5>
+                        <small class="text-muted">Download your ECS FC membership pass</small>
+                    </div>
+                </div>
+                <div class="card-body pt-3">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3">
+                            <i class="ti ti-wallet text-info" style="font-size: 2rem;"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">ECS FC Membership Pass</h6>
+                            <p class="text-muted mb-0 small">
+                                Add your membership card to Apple Wallet for easy access during games and events.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-6">
+                            <small class="text-muted">Player:</small>
+                            <div class="fw-semibold">{{ safe_current_user.player.name }}</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <small class="text-muted">Team:</small>
+                            <div class="fw-semibold">{{ safe_current_user.player.primary_team.name }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('wallet.get_wallet_pass', user_id=safe_current_user.id) }}" 
+                           class="btn btn-primary">
+                            <i class="ti ti-plus me-2"></i>Add to Apple Wallet
+                        </a>
+                        
+                        <!-- Apple Wallet Badge (Official Style) -->
+                        <a href="{{ url_for('wallet.get_wallet_pass', user_id=safe_current_user.id) }}" 
+                           style="display: inline-block;">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTU2IiBoZWlnaHQ9IjQwIiB2aWV3Qm94PSIwIDAgMTU2IDQwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMTU2IiBoZWlnaHQ9IjQwIiByeD0iNCIgZmlsbD0iIzAwMCIvPgo8dGV4dCB4PSI3OCIgeT0iMjQiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QWRkIHRvIEFwcGxlIFdhbGxldDwvdGV4dD4KPHN2Zz4=" 
+                                 alt="Add to Apple Wallet" 
+                                 style="height: 40px; border-radius: 4px;">
+                        </a>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="ti ti-info-circle me-1"></i>
+                            Compatible with iPhone and Apple Watch. Pass will be automatically updated when your team or league information changes.
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

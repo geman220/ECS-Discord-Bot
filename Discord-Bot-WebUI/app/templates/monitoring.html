@@ -100,13 +100,75 @@
                             <i class="ti ti-report fs-3 text-primary"></i>
                         </div>
                     </div>
-                    <div class="mt-3 d-flex gap-2">
+                    <div class="mt-3 d-flex gap-2 flex-wrap">
                         <span class="badge bg-label-success rounded-pill">
                             <i class="ti ti-check me-1"></i>Success: <span id="successfulTasks">0</span>
                         </span>
                         <span class="badge bg-label-danger rounded-pill">
                             <i class="ti ti-x me-1"></i>Failed: <span id="failedTasks">0</span>
                         </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Dashboard Summary -->
+    <div class="row mb-4" id="enhancedSummaryRow" style="display: none;">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="ti ti-dashboard me-2"></i>Match & Task Summary</h5>
+                        <span class="badge bg-label-info" id="summaryTimestamp">Updated now</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-lg-3 col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar avatar-md bg-label-primary me-3">
+                                    <i class="ti ti-soccer-field"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0" id="totalMatches">0</h6>
+                                    <small class="text-muted">Total Matches</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar avatar-md bg-label-warning me-3">
+                                    <i class="ti ti-message-circle"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0" id="threadScheduledCount">0</h6>
+                                    <small class="text-muted">Thread Tasks</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar avatar-md bg-label-info me-3">
+                                    <i class="ti ti-report"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0" id="liveReportingCount">0</h6>
+                                    <small class="text-muted">Live Reporting</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar avatar-md bg-label-danger me-3">
+                                    <i class="ti ti-alert-triangle"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0" id="failedTasksEnhanced">0</h6>
+                                    <small class="text-muted">Failed Tasks</small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -140,6 +202,13 @@
                         <div class="col-xl-3 col-md-6">
                             <button type="button" id="cleanupOrphanedButton" class="btn btn-warning btn-sm w-100">
                                 <i class="ti ti-robot me-1"></i>Clean Orphaned Tasks
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-2">
+                        <div class="col-xl-6 col-md-6">
+                            <button type="button" id="nuclearResetButton" class="btn btn-danger btn-sm w-100">
+                                <i class="ti ti-skull me-1"></i>Nuclear Reset - Kill All Tasks
                             </button>
                         </div>
                     </div>
@@ -621,18 +690,20 @@
                 }
             });
 
-            const [tasksResponse, redisResponse, workersResponse] = await Promise.all([
+            const [tasksResponse, redisResponse, workersResponse, dashboardResponse] = await Promise.all([
                 fetch('{{ url_for("monitoring.get_all_tasks") }}'),
                 fetch('{{ url_for("monitoring.get_redis_keys") }}'),
-                fetch('{{ url_for("monitoring.get_workers") }}')
+                fetch('{{ url_for("monitoring.get_workers") }}'),
+                fetch('{{ url_for("monitoring.get_task_dashboard") }}')
             ]);
 
             const tasksData = await tasksResponse.json();
             const redisKeysData = await redisResponse.json();
             const workersData = await workersResponse.json();
+            const dashboardData = await dashboardResponse.json();
 
-            if (tasksData.success && redisKeysData.success) {
-                updateDashboard(tasksData, redisKeysData, workersData);
+            if (tasksData.success && redisKeysData.success && dashboardData.success) {
+                updateDashboard(tasksData, redisKeysData, workersData, dashboardData);
                 lastUpdatedEl.textContent = new Date().toLocaleTimeString();
             } else {
                 throw new Error('Failed to fetch monitoring data');
@@ -653,22 +724,25 @@
     }
 
     // Update dashboard with new data
-    function updateDashboard(tasks, redis, workers) {
+    function updateDashboard(tasks, redis, workers, dashboard) {
         taskData = tasks;
         redisData = redis;
         
         // Store workers data for cross-referencing
         window.lastWorkerData = workers;
+        
+        // Store enhanced dashboard data
+        window.dashboardData = dashboard;
 
-        // Update summary counts
-        let counts = calculateTaskCounts(tasks);
+        // Update summary counts using enhanced dashboard data
+        let counts = calculateEnhancedTaskCounts(dashboard);
         totalTasksEl.textContent = counts.total;
         pendingTasksEl.textContent = counts.pending;
         successfulTasksEl.textContent = counts.successful;
         failedTasksEl.textContent = counts.failed;
 
-        // Update tasks accordion
-        updateTasksAccordion(tasks);
+        // Update tasks accordion with enhanced data
+        updateEnhancedTasksAccordion(dashboard);
 
         // Update Redis keys table
         updateRedisKeysTable(redis);
@@ -678,6 +752,29 @@
         
         // Update workers information
         updateWorkersInfo(workers);
+        
+        // Update enhanced summary
+        updateEnhancedSummary(dashboard);
+    }
+    
+    // Update enhanced summary section
+    function updateEnhancedSummary(dashboard) {
+        const enhancedSummaryRow = document.getElementById('enhancedSummaryRow');
+        
+        if (!dashboard || !dashboard.success || !dashboard.matches) {
+            enhancedSummaryRow.style.display = 'none';
+            return;
+        }
+        
+        enhancedSummaryRow.style.display = '';
+        
+        // Update summary statistics
+        const summary = dashboard.summary || {};
+        document.getElementById('totalMatches').textContent = summary.total_matches || 0;
+        document.getElementById('threadScheduledCount').textContent = summary.thread_creation_scheduled || 0;
+        document.getElementById('liveReportingCount').textContent = summary.live_reporting_scheduled || 0;
+        document.getElementById('failedTasksEnhanced').textContent = summary.failed_tasks || 0;
+        document.getElementById('summaryTimestamp').textContent = `Updated ${new Date().toLocaleTimeString()}`;
     }
     
     // Update worker information
@@ -713,22 +810,14 @@
         
         // Update scheduled tasks count in the dashboard
         const totalScheduledTasks = workersData.total_scheduled_tasks || 0;
-        const pendingTasksEl = document.getElementById('pendingTasks');
-        const totalTasksEl = document.getElementById('totalTasks');
         const scheduledTasksCountEl = document.getElementById('scheduledTasksCount');
         
-        // Update task counts to reflect what's coming from workers API
-        if (pendingTasksEl && totalTasksEl) {
-            // Only update if there are scheduled tasks but none are shown in UI
-            if (totalScheduledTasks > 0 && pendingTasksEl.textContent === '0') {
-                pendingTasksEl.textContent = totalScheduledTasks;
-                totalTasksEl.textContent = totalScheduledTasks;
-            }
-        }
-        
-        // Update scheduled tasks count in card header
+        // Update scheduled tasks count in card header using enhanced dashboard data
         if (scheduledTasksCountEl) {
-            scheduledTasksCountEl.textContent = `${taskData.matches ? Object.keys(taskData.matches).length : 0} tasks`;
+            const matchCount = window.dashboardData && window.dashboardData.matches ? 
+                window.dashboardData.matches.length : 
+                (taskData.matches ? Object.keys(taskData.matches).length : 0);
+            scheduledTasksCountEl.textContent = `${matchCount} matches`;
         }
         
         // Update worker list in summary card
@@ -867,19 +956,34 @@
         const workerScheduledTasksTable = document.getElementById('workerScheduledTasksTable');
         const workerScheduledTasksCount = document.getElementById('workerScheduledTasksCount');
         
-        // Hide the row if no scheduled tasks
-        if (scheduledTasks.length === 0) {
+        // Filter out old tasks (older than 6 hours)
+        const now = new Date();
+        const cutoffTime = now.getTime() - (6 * 60 * 60 * 1000); // 6 hours ago
+        
+        const recentTasks = scheduledTasks.filter(task => {
+            if (!task.eta) return true; // Keep tasks without ETA
+            
+            try {
+                const etaDate = new Date(task.eta);
+                return etaDate.getTime() > cutoffTime;
+            } catch (e) {
+                return true; // Keep tasks with invalid ETA
+            }
+        });
+        
+        // Hide the row if no relevant scheduled tasks
+        if (recentTasks.length === 0) {
             workerScheduledTasksRow.style.display = 'none';
             return;
         }
         
         // Show the row and update count
         workerScheduledTasksRow.style.display = '';
-        workerScheduledTasksCount.textContent = `${scheduledTasks.length} tasks`;
+        workerScheduledTasksCount.textContent = `${recentTasks.length} tasks`;
         
-        // Build the table
+        // Build the table using filtered tasks
         let scheduledTasksHtml = '';
-        scheduledTasks.forEach(task => {
+        recentTasks.forEach(task => {
             const taskName = task.name || 'Unknown Task';
             const simpleTaskName = taskName.split('.')
                 .pop()
@@ -993,11 +1097,16 @@
                     <td>${etaFormatted}</td>
                     <td>
                         <div class="btn-group">
-                            <button class="btn btn-sm btn-danger" onclick="revokeAllTasksForWorker('${task.worker}')">
-                                <i class="ti ti-trash me-1"></i>Revoke All Tasks
+                            ${task.id ? `
+                            <button class="btn btn-sm btn-danger" onclick="revokeIndividualTask('${task.id}', '${task.worker}')">
+                                <i class="ti ti-trash me-1"></i>Revoke This Task
+                            </button>
+                            ` : ''}
+                            <button class="btn btn-sm btn-warning" onclick="revokeAllTasksForWorker('${task.worker}')">
+                                <i class="ti ti-trash-x me-1"></i>Revoke All
                             </button>
                             ${task.match_id ? `
-                            <button class="btn btn-sm btn-warning" onclick="findMatch('${task.match_id}')">
+                            <button class="btn btn-sm btn-info" onclick="findMatch('${task.match_id}')">
                                 <i class="ti ti-search me-1"></i>Find Match
                             </button>
                             ` : ''}
@@ -1038,6 +1147,374 @@
         }
 
         return counts;
+    }
+
+    // Calculate task counts from enhanced dashboard data
+    function calculateEnhancedTaskCounts(dashboard) {
+        let counts = { total: 0, pending: 0, successful: 0, failed: 0 };
+
+        if (dashboard && dashboard.matches) {
+            dashboard.matches.forEach(match => {
+                if (match.tasks && match.tasks.success) {
+                    // Count thread task
+                    if (match.tasks.thread_task && match.tasks.thread_task.is_scheduled) {
+                        counts.total++;
+                        const status = match.tasks.thread_task.status?.status || 'PENDING';
+                        updateTaskCount(counts, status);
+                    }
+                    
+                    // Count reporting task
+                    if (match.tasks.reporting_task && match.tasks.reporting_task.is_scheduled) {
+                        counts.total++;
+                        const status = match.tasks.reporting_task.status?.status || 'PENDING';
+                        updateTaskCount(counts, status);
+                    }
+                }
+            });
+        }
+        
+        // Fallback to worker data if available
+        if (window.lastWorkerData && window.lastWorkerData.total_scheduled_tasks > 0 && counts.total === 0) {
+            counts.total = window.lastWorkerData.total_scheduled_tasks;
+            counts.pending = window.lastWorkerData.total_scheduled_tasks;
+        }
+
+        return counts;
+    }
+
+    // Update tasks accordion with enhanced dashboard data
+    function updateEnhancedTasksAccordion(dashboard) {
+        tasksAccordion.innerHTML = '';
+
+        if (!dashboard || !dashboard.matches || dashboard.matches.length === 0) {
+            tasksAccordion.innerHTML = `
+            <div class="empty-state py-5">
+                <div class="empty-state-icon">
+                    <i class="ti ti-calendar-off"></i>
+                </div>
+                <h6 class="mt-1">No Scheduled Tasks</h6>
+                <p class="text-muted">There are currently no tasks scheduled in the system.</p>
+            </div>`;
+            return;
+        }
+
+        dashboard.matches.forEach(match => {
+            const accordionItem = createEnhancedAccordionItem(match);
+            tasksAccordion.appendChild(accordionItem);
+        });
+    }
+
+    // Create enhanced accordion item for a match
+    function createEnhancedAccordionItem(match) {
+        const headerText = `${match.display_name} - ${match.competition || 'Match'}`;
+        const matchDate = match.date ? new Date(match.date).toLocaleDateString() : 'Date TBD';
+        
+        const div = document.createElement('div');
+        div.className = 'accordion-item';
+        div.innerHTML = `
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#match-${match.id}">
+                <div class="d-flex align-items-center flex-grow-1">
+                    <div class="avatar avatar-sm bg-label-primary me-2">
+                        <i class="ti ti-soccer-field"></i>
+                    </div>
+                    <div>
+                        <span class="fw-medium">${headerText}</span>
+                        <div class="d-flex align-items-center gap-1 mt-1">
+                            <small class="text-muted">${matchDate}</small>
+                            ${getEnhancedStatusBadges(match)}
+                        </div>
+                    </div>
+                </div>
+            </button>
+        </h2>
+        <div id="match-${match.id}" class="accordion-collapse collapse">
+            <div class="accordion-body">
+                <div class="row">
+                    <div class="col-xl-6 col-lg-12 mb-4">
+                        ${createEnhancedTaskDetails(match)}
+                    </div>
+                    <div class="col-xl-6 col-lg-12">
+                        ${createEnhancedMatchDetails(match)}
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        return div;
+    }
+
+    // Create enhanced status badges for tasks
+    function getEnhancedStatusBadges(match) {
+        if (!match.tasks || !match.tasks.success) return '';
+        let badges = '';
+
+        // Thread task badge
+        if (match.tasks.thread_task && match.tasks.thread_task.is_scheduled) {
+            const status = match.tasks.thread_task.status?.status || 'PENDING';
+            badges += `<span class="badge bg-label-${getStatusColor(status)} ms-1">
+                <i class="ti ti-message-circle me-1"></i>Thread: ${status}
+            </span>`;
+        }
+
+        // Reporting task badge  
+        if (match.tasks.reporting_task && match.tasks.reporting_task.is_scheduled) {
+            const status = match.tasks.reporting_task.status?.status || 'PENDING';
+            let statusText = status;
+            
+            // Show better status for Live Reporting
+            if (status === 'PENDING') {
+                // Calculate time until execution based on match date (usually 5 minutes before)
+                if (match.date) {
+                    const matchDate = new Date(match.date);
+                    const now = new Date();
+                    const timeDiff = matchDate - now;
+                    
+                    if (timeDiff > 0) {
+                        const minutesUntil = Math.floor(timeDiff / (1000 * 60));
+                        if (minutesUntil > 60) {
+                            statusText = `Scheduled (${Math.floor(minutesUntil / 60)}h ${minutesUntil % 60}m)`;
+                        } else {
+                            statusText = `Scheduled (${minutesUntil}m)`;
+                        }
+                    } else {
+                        statusText = 'Should be running';
+                    }
+                } else {
+                    statusText = 'Scheduled';
+                }
+            }
+            
+            badges += `<span class="badge bg-label-${getStatusColor(status)} ms-1">
+                <i class="ti ti-report me-1"></i>Live: ${statusText}
+            </span>`;
+        }
+
+        return badges;
+    }
+
+    // Create enhanced task details
+    function createEnhancedTaskDetails(match) {
+        if (!match.tasks || !match.tasks.success) {
+            return '<div class="card"><div class="card-body">No task details available</div></div>';
+        }
+        
+        let html = '<div class="match-timeline">';
+
+        if (match.tasks.thread_task && match.tasks.thread_task.is_scheduled) {
+            html += createEnhancedTaskSection('Thread Creation Task', match.tasks.thread_task, 'message-circle', match);
+        }
+
+        if (match.tasks.reporting_task && match.tasks.reporting_task.is_scheduled) {
+            html += createEnhancedTaskSection('Live Reporting Task', match.tasks.reporting_task, 'report', match);
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    // Create enhanced task section
+    function createEnhancedTaskSection(title, task, icon, match) {
+        const status = task.status?.status || 'PENDING';
+        const statusIconMap = {
+            'PENDING': 'clock',
+            'SUCCESS': 'check', 
+            'FAILURE': 'x',
+            'STARTED': 'loader',
+            'UNKNOWN': 'help'
+        };
+        
+        const statusIcon = statusIconMap[status.toUpperCase()] || 'clock';
+        const statusClass = status.toLowerCase();
+        
+        // Format task summary with better scheduling info
+        let summary = task.summary || `${title}: ${status}`;
+        
+        // Enhance summary for pending tasks
+        if (status === 'PENDING' && match.date) {
+            const matchDate = new Date(match.date);
+            const now = new Date();
+            
+            if (title.includes('Live Reporting')) {
+                // Live reporting typically starts 5 minutes before match time
+                const reportingStart = new Date(matchDate.getTime() - 5 * 60 * 1000);
+                const reportingDiff = reportingStart - now;
+                
+                if (reportingDiff > 0) {
+                    const hoursUntil = Math.floor(reportingDiff / (1000 * 60 * 60));
+                    const minutesUntil = Math.floor((reportingDiff % (1000 * 60 * 60)) / (1000 * 60));
+                    
+                    if (hoursUntil > 0) {
+                        summary = `${title}: Scheduled to start in ${hoursUntil}h ${minutesUntil}m (${reportingStart.toLocaleString()})`;
+                    } else {
+                        summary = `${title}: Scheduled to start in ${minutesUntil} minutes (${reportingStart.toLocaleTimeString()})`;
+                    }
+                } else {
+                    summary = `${title}: Should have started (was scheduled for ${reportingStart.toLocaleString()})`;
+                }
+            } else if (title.includes('Thread Creation')) {
+                // Thread creation typically happens 48 hours before match
+                const threadStart = new Date(matchDate.getTime() - 48 * 60 * 60 * 1000);
+                const threadDiff = threadStart - now;
+                
+                if (threadDiff > 0) {
+                    const hoursUntil = Math.floor(threadDiff / (1000 * 60 * 60));
+                    
+                    if (hoursUntil > 24) {
+                        const daysUntil = Math.floor(hoursUntil / 24);
+                        summary = `${title}: Scheduled to run in ${daysUntil}d ${hoursUntil % 24}h (${threadStart.toLocaleString()})`;
+                    } else {
+                        summary = `${title}: Scheduled to run in ${hoursUntil} hours (${threadStart.toLocaleString()})`;
+                    }
+                } else {
+                    summary = `${title}: Should have run (was scheduled for ${threadStart.toLocaleString()})`;
+                }
+            }
+        }
+        
+        return `
+        <div class="match-timeline-item">
+            <div class="timeline-point status-${statusClass}">
+                <i class="ti ti-${statusIcon} text-white"></i>
+            </div>
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="ti ti-${icon} me-1"></i>${title}
+                    </h6>
+                    <span class="badge bg-${getStatusColor(status)}">
+                        ${status}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <div class="alert alert-info">
+                                <small>${summary}</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">Task ID</small>
+                            <span class="d-block text-truncate" style="max-width: 200px;">${task.id || 'N/A'}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">TTL</small>
+                            <span>${task.ttl !== null && task.ttl !== undefined ? secondsToHMS(task.ttl) : 'N/A'}</span>
+                        </div>
+                        <div class="col-md-12">
+                            <small class="text-muted d-block">Redis Key</small>
+                            <span class="d-block text-truncate" style="max-width: 100%;">${task.redis_key || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-3">
+                        <button class="btn btn-sm btn-danger" onclick="revokeTask('${task.id || ''}', '${task.redis_key || ''}')">
+                            <i class="ti ti-trash me-1"></i>Revoke
+                        </button>
+                        <button class="btn btn-sm btn-warning" onclick="rescheduleTask('${task.id || ''}', '${task.redis_key || ''}')">
+                            <i class="ti ti-refresh me-1"></i>Reschedule
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    // Create enhanced match details
+    function createEnhancedMatchDetails(match) {
+        return `
+        <div class="card mb-3">
+            <div class="card-header border-bottom">
+                <h6 class="card-title mb-0">
+                    <i class="ti ti-soccer-field me-1"></i>Match Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar avatar-sm bg-label-primary me-2">
+                                <i class="ti ti-users"></i>
+                            </div>
+                            <div>
+                                <span class="fw-medium">Teams</span>
+                                <p class="text-muted mb-0">${match.home_team} vs ${match.away_team}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar avatar-sm bg-label-info me-2">
+                                <i class="ti ti-calendar"></i>
+                            </div>
+                            <div>
+                                <span class="fw-medium">Match Date</span>
+                                <p class="text-muted mb-0">${formatLocalDate(match.date)}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar avatar-sm bg-label-success me-2">
+                                <i class="ti ti-map-pin"></i>
+                            </div>
+                            <div>
+                                <span class="fw-medium">Venue</span>
+                                <p class="text-muted mb-0">${match.venue || 'TBD'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar avatar-sm bg-label-warning me-2">
+                                <i class="ti ti-trophy"></i>
+                            </div>
+                            <div>
+                                <span class="fw-medium">Competition</span>
+                                <p class="text-muted mb-0">${match.competition || 'League Match'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <h6>Task Status Overview</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-label-${match.match_status.thread_created ? 'success' : 'secondary'} me-2">
+                                    <i class="ti ti-message-circle me-1"></i>
+                                    Thread ${match.match_status.thread_created ? 'Created' : 'Pending'}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-label-${match.match_status.live_reporting_started ? 'success' : 'secondary'} me-2">
+                                    <i class="ti ti-report me-1"></i>
+                                    Live Reporting ${match.match_status.live_reporting_started ? 'Active' : 'Standby'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    ${match.match_status.discord_thread_id ? `
+                    <div class="mt-2">
+                        <small class="text-muted">Discord Thread ID: ${match.match_status.discord_thread_id}</small>
+                    </div>
+                    ` : ''}
+                </div>
+                
+                ${match.links && (match.links.summary_link || match.links.stats_link) ? `
+                <div class="mt-3">
+                    <h6>External Links</h6>
+                    <div class="d-flex gap-2 flex-wrap">
+                        ${match.links.summary_link ? `<a href="${match.links.summary_link}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="ti ti-external-link me-1"></i>Summary</a>` : ''}
+                        ${match.links.stats_link ? `<a href="${match.links.stats_link}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="ti ti-chart-bar me-1"></i>Stats</a>` : ''}
+                        ${match.links.commentary_link ? `<a href="${match.links.commentary_link}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="ti ti-message me-1"></i>Commentary</a>` : ''}
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        </div>`;
     }
 
     function updateTaskCount(counts, status) {
@@ -1548,9 +2025,19 @@
         errorAlert.style.display = 'block';
     }
 
-    // Task actions
+    // Task actions with SweetAlert integration
     async function revokeTask(taskId, key) {
-        if (!confirm('Are you sure you want to revoke this task?')) return;
+        const result = await Swal.fire({
+            title: 'Revoke Task',
+            text: 'Are you sure you want to revoke this task? This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, revoke it!'
+        });
+        
+        if (!result.isConfirmed) return;
         
         // Check if we have either taskId or key
         if (!taskId && !key) {
@@ -1578,17 +2065,39 @@
             const result = await response.json();
 
             if (response.ok && result.success) {
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Task has been revoked successfully.',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
                 await fetchData();  // Refresh data
             } else {
                 throw new Error(result.error || 'Failed to revoke task');
             }
         } catch (err) {
-            showError(err.message);
+            Swal.fire({
+                title: 'Error!',
+                text: err.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
         }
     }
 
     async function rescheduleTask(taskId, key) {
-        if (!confirm('Are you sure you want to reschedule this task?')) return;
+        const result = await Swal.fire({
+            title: 'Reschedule Task',
+            text: 'Are you sure you want to reschedule this task?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, reschedule it!'
+        });
+        
+        if (!result.isConfirmed) return;
 
         // Check if we have either taskId or key
         if (!taskId && !key) {
@@ -1616,18 +2125,47 @@
             const result = await response.json();
 
             if (response.ok && result.success) {
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Task has been rescheduled successfully.',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
                 await fetchData();  // Refresh data
             } else {
                 throw new Error(result.error || 'Failed to reschedule task');
             }
         } catch (err) {
-            showError(err.message);
+            Swal.fire({
+                title: 'Error!',
+                text: err.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
         }
     }
 
     // Revoke All Tasks
     revokeAllButton.addEventListener('click', async () => {
-        if (!confirm('Are you sure you want to revoke all tasks? This action cannot be undone.')) return;
+        const result = await Swal.fire({
+            title: 'Revoke All Tasks',
+            text: 'Are you sure you want to revoke ALL tasks? This action cannot be undone and will remove all scheduled tasks!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, revoke all!',
+            input: 'text',
+            inputPlaceholder: 'Type "CONFIRM" to proceed',
+            inputValidator: (value) => {
+                if (value !== 'CONFIRM') {
+                    return 'You must type "CONFIRM" to proceed';
+                }
+            }
+        });
+        
+        if (!result.isConfirmed) return;
 
         try {
             const response = await fetch('{{ url_for("monitoring.revoke_all_tasks") }}', {
@@ -1641,13 +2179,23 @@
             const result = await response.json();
 
             if (response.ok && result.success) {
+                Swal.fire({
+                    title: 'Success!',
+                    text: result.message || 'All tasks have been revoked successfully.',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                });
                 await fetchData();  // Refresh data
-                alert(result.message);
             } else {
                 throw new Error(result.error || 'Failed to revoke all tasks');
             }
         } catch (err) {
-            showError(err.message);
+            Swal.fire({
+                title: 'Error!',
+                text: err.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
         }
     });
     
@@ -1694,6 +2242,109 @@
                 cleanupOrphanedButton.innerHTML = '<i class="ti ti-robot me-1"></i>Clean Orphaned Tasks';
             }
         });
+    }
+    
+    // Nuclear reset button
+    const nuclearResetButton = document.getElementById('nuclearResetButton');
+    if (nuclearResetButton) {
+        nuclearResetButton.addEventListener('click', async () => {
+            const result = await Swal.fire({
+                title: 'NUCLEAR RESET',
+                html: '<strong>⚠️ WARNING ⚠️</strong><br>This will:<br>• KILL all worker containers<br>• FLUSH all task data from Redis<br>• RESET database scheduling flags<br><br>This is the nuclear option!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '☢️ NUKE IT',
+                input: 'text',
+                inputPlaceholder: 'Type "NUKE" to confirm',
+                inputValidator: (value) => {
+                    if (value !== 'NUKE') {
+                        return 'You must type "NUKE" to proceed';
+                    }
+                }
+            });
+            
+            if (!result.isConfirmed) return;
+            
+            try {
+                nuclearResetButton.disabled = true;
+                nuclearResetButton.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i>NUKING...';
+                
+                const response = await fetch('{{ url_for("monitoring.nuclear_reset") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    let detailsText = result.message;
+                    if (result.results && result.results.details && result.results.details.length > 0) {
+                        detailsText += '\n\nDetails:\n' + result.results.details.join('\n');
+                    }
+                    
+                    Swal.fire({
+                        title: '☢️ NUCLEAR RESET COMPLETE',
+                        text: detailsText,
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+                    
+                    // Wait a bit longer for containers to restart, then refresh
+                    setTimeout(async () => {
+                        await fetchData();
+                    }, 5000);
+                } else {
+                    throw new Error(result.error || 'Nuclear reset failed');
+                }
+            } catch (err) {
+                Swal.fire({
+                    title: 'Nuclear Reset Failed!',
+                    text: err.message,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            } finally {
+                nuclearResetButton.disabled = false;
+                nuclearResetButton.innerHTML = '<i class="ti ti-skull me-1"></i>Nuclear Reset - Kill All Tasks';
+            }
+        });
+    }
+    
+    // Function to revoke individual task
+    async function revokeIndividualTask(taskId, workerName) {
+        if (!confirm(`Are you sure you want to revoke task "${taskId}"?`)) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('{{ url_for("monitoring.revoke_task") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    task_id: taskId,
+                    worker: workerName
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                alert(result.message || `Task "${taskId}" has been revoked.`);
+                await fetchData();  // Refresh data
+            } else {
+                throw new Error(result.error || 'Failed to revoke task');
+            }
+        } catch (err) {
+            showError(err.message);
+        }
     }
     
     // Function to revoke all tasks for a specific worker

@@ -198,10 +198,10 @@ def redis_pool_status():
     Get detailed Redis connection pool status and metrics.
     """
     try:
-        from app.utils.redis_manager import RedisManager
+        from app.utils.redis_manager import get_redis_manager
         from app.utils.redis_monitor import get_monitor
         
-        redis_manager = RedisManager()
+        redis_manager = get_redis_manager()
         main_pool_stats = redis_manager.get_connection_stats()
         
         # Get session pool stats if available
@@ -274,8 +274,8 @@ def check_system_health(session):
         
         # Redis health check with connection pool monitoring
         try:
-            from app.utils.redis_manager import RedisManager
-            redis_manager = RedisManager()
+            from app.utils.redis_manager import get_redis_manager
+            redis_manager = get_redis_manager()
             redis_client = redis_manager.client
             redis_client.ping()
             

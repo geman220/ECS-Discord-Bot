@@ -12,7 +12,7 @@ from functools import wraps
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from app.utils.redis_manager import RedisManager
+from app.utils.safe_redis import get_safe_redis
 from app.models import Season, League, Team
 from sqlalchemy.orm import Session
 
@@ -42,7 +42,7 @@ class CacheManager:
     """Manages Redis caching for frequently accessed reference data"""
     
     def __init__(self, redis_client=None):
-        self.redis = redis_client or RedisManager().client
+        self.redis = redis_client or get_safe_redis()
         
     def _serialize(self, data: Any) -> str:
         """Serialize data for Redis storage"""

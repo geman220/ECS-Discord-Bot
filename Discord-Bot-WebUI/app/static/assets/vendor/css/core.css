@@ -24415,6 +24415,7 @@ body {
   width: 100%;
   pointer-events: none;
   z-index: 2;
+  background: linear-gradient(to bottom, #fff, rgba(255, 255, 255, 0));
 }
 @media (min-width: 1200px) {
   .menu-inner-shadow {

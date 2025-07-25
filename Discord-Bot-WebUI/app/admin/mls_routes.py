@@ -73,10 +73,10 @@ def get_status_display(status):
 def get_match_task_details(match_id):
     """Get task details for a specific match from Redis scheduler keys."""
     try:
-        from app.utils.redis_manager import RedisManager
+        from app.utils.safe_redis import get_safe_redis
         import json
         
-        redis_client = RedisManager().client
+        redis_client = get_safe_redis()
         
         # Check Redis keys for scheduled tasks (this is more reliable than Celery inspect)
         thread_key = f"match_scheduler:{match_id}:thread"
@@ -139,16 +139,33 @@ def get_match_task_details(match_id):
                 'ttl_seconds': None
             })
         
+        # Format the response with active and scheduled tasks for the frontend
+        active_tasks = []
+        scheduled_tasks = []
+        
+        for task in task_details:
+            if task.get('ttl_seconds', 0) > 0:  # Task is still scheduled
+                scheduled_tasks.append({
+                    'task_id': task.get('task_id'),
+                    'name': task.get('type'),
+                    'eta': task.get('eta'),
+                    'ttl': task.get('ttl_seconds')
+                })
+        
         if task_details:
             return {
                 'status': 'SCHEDULED',
                 'message': f'{len(task_details)} scheduled task(s) found',
-                'tasks': task_details
+                'active_tasks': active_tasks,
+                'scheduled_tasks': scheduled_tasks,
+                'tasks': task_details  # Keep backward compatibility
             }
         else:
             return {
                 'status': 'NOT_FOUND',
-                'message': 'No scheduled tasks found'
+                'message': 'No scheduled tasks found',
+                'active_tasks': [],
+                'scheduled_tasks': []
             }
             
     except Exception as e:
@@ -370,7 +387,7 @@ def stop_match_reporting(match_id):
         return jsonify({'success': False, 'error': 'Match not found'}), 404
     
     try:
-        from app.utils.redis_manager import RedisManager
+        from app.utils.safe_redis import get_safe_redis
         from app.core import celery
         import json
         
@@ -386,7 +403,7 @@ def stop_match_reporting(match_id):
                 logger.warning(f"Could not revoke active task {match.live_reporting_task_id}: {str(e)}")
         
         # Stop scheduled live reporting task from Redis
-        redis_client = RedisManager().client
+        redis_client = get_safe_redis()
         reporting_key = f"match_scheduler:{match.id}:reporting"
         
         if redis_client.exists(reporting_key):
@@ -723,7 +740,7 @@ def remove_specific_match(match_id):
         return jsonify({'success': False, 'error': 'Match not found'}), 404
     
     try:
-        from app.utils.redis_manager import RedisManager
+        from app.utils.safe_redis import get_safe_redis
         from app.core import celery
         import json
         
@@ -743,7 +760,7 @@ def remove_specific_match(match_id):
                 logger.warning(f"Could not revoke active task {match.live_reporting_task_id}: {str(e)}")
         
         # Clean up Redis scheduled tasks
-        redis_client = RedisManager().client
+        redis_client = get_safe_redis()
         thread_key = f"match_scheduler:{match.id}:thread"
         reporting_key = f"match_scheduler:{match.id}:reporting"
         
@@ -796,11 +813,11 @@ def get_queue_status():
     """Get comprehensive Celery queue status with match integration."""
     try:
         from app.core import celery
-        from app.utils.redis_manager import RedisManager
+        from app.utils.safe_redis import get_safe_redis
         import json
         
         inspect = celery.control.inspect()
-        redis_client = RedisManager().client
+        redis_client = get_safe_redis()
         
         # Get active and scheduled tasks from Celery
         active = inspect.active() or {}
@@ -911,11 +928,11 @@ def debug_match_tasks(match_id):
         return jsonify({'success': False, 'error': 'Match not found'}), 404
     
     try:
-        from app.utils.redis_manager import RedisManager
+        from app.utils.safe_redis import get_safe_redis
         from app.core import celery
         import json
         
-        redis_client = RedisManager().client
+        redis_client = get_safe_redis()
         debug_info = {
             'match_info': {
                 'id': match.id,

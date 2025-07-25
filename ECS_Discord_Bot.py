@@ -2364,28 +2364,66 @@ async def start_rest_api():
     """
     Starts the FastAPI server using Uvicorn with improved retry logic and error handling.
     """
-    # Try a wider range of ports starting from 5001
-    base_port = 5001
-    max_retries = 10  # Increased from 3 to have more ports to try
+    # Always use port 5001 - kill any existing processes on this port
+    port = 5001
+    max_retries = 3
     
-    # Add a delay before trying to bind to any port to allow socket cleanup
+    # Add a delay before trying to bind to allow socket cleanup
     await asyncio.sleep(5)
     
     for attempt in range(max_retries):
-        port = base_port + attempt
         try:
             logger.info(f"Attempting to start REST API server on port {port}")
             
-            # First check if the port is available without actually binding
+            # Check if port is in use and try to free it using system commands
             import socket
+            import subprocess
+            import os
+            
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(2)
             result = sock.connect_ex(('0.0.0.0', port))
             sock.close()
             
             if result == 0:  # Port is in use
-                logger.warning(f"Port {port} is already in use (pre-check). Trying next port.")
-                continue
+                logger.warning(f"Port {port} is already in use. Attempting to free it.")
+                
+                try:
+                    # Use lsof to find process using the port and kill it
+                    cmd = f"lsof -ti:{port}"
+                    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+                    if result.returncode == 0 and result.stdout.strip():
+                        pids = result.stdout.strip().split('\n')
+                        for pid in pids:
+                            if pid.strip():
+                                logger.info(f"Killing process {pid} using port {port}")
+                                try:
+                                    subprocess.run(f"kill -TERM {pid}", shell=True, timeout=5)
+                                except subprocess.TimeoutExpired:
+                                    logger.warning(f"Timeout killing process {pid}")
+                                except Exception as e:
+                                    logger.warning(f"Error killing process {pid}: {e}")
+                        
+                        # Wait for processes to clean up
+                        await asyncio.sleep(3)
+                        
+                except Exception as e:
+                    logger.warning(f"Error finding/killing processes on port {port}: {e}")
+                
+                # Check if port is now free
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(2)
+                result = sock.connect_ex(('0.0.0.0', port))
+                sock.close()
+                
+                if result == 0:  # Still in use after cleanup attempt
+                    if attempt < max_retries - 1:
+                        logger.warning(f"Port {port} still in use after cleanup. Retrying in 5 seconds...")
+                        await asyncio.sleep(5)
+                        continue
+                    else:
+                        logger.error(f"Unable to free port {port} after {max_retries} attempts")
+                        return
                 
             config = uvicorn.Config(
                 app,
@@ -2397,75 +2435,57 @@ async def start_rest_api():
             )
             server = uvicorn.Server(config)
             
-            # Update the URL for update_discord_embed if we're using a non-default port
-            if port != 5001:
-                global update_discord_embed
-                # Save the original function
-                original_update_discord_embed = update_discord_embed
-                # Create a new function that uses the current port
-                async def updated_update_discord_embed(match_id: int):
-                    """Updated function using the current port"""
-                    # Try multiple URLs for resiliency
-                    api_urls = [
-                        f"http://localhost:{port}/api/update_availability_embed/{match_id}",
-                        f"http://127.0.0.1:{port}/api/update_availability_embed/{match_id}",
-                        f"http://discord-bot:{port}/api/update_availability_embed/{match_id}"
-                    ]
-                    
-                    for api_url in api_urls:
-                        try:
-                            async with aiohttp.ClientSession() as session:
-                                async with session.post(api_url, timeout=10) as response:
-                                    if response.status == 200:
-                                        logger.info(f"Discord embed updated for match {match_id}")
-                                        return True
-                                    else:
-                                        logger.warning(f"Failed to update Discord embed using {api_url}. Status: {response.status}")
-                        except aiohttp.ClientError as e:
-                            logger.warning(f"Connection error updating Discord embed using {api_url}: {str(e)}")
-                        except Exception as e:
-                            logger.warning(f"Unexpected error while updating Discord embed using {api_url}: {str(e)}")
-                    
-                    # If we got here, all attempts failed
-                    logger.error(f"All attempts to update Discord embed for match {match_id} failed")
-                    return False
-                
-                # Replace the function
-                update_discord_embed = updated_update_discord_embed
-                logger.info(f"Updated update_discord_embed function to use port {port}")
-            
             # Store the port so other parts of the application can reference it
             bot.api_port = port
             
             # Try to start the server
             try:
                 await server.serve()
+                logger.info(f"REST API server successfully started on port {port}")
                 return  # If successful, exit the function
             except SystemExit:
                 # Uvicorn calls sys.exit() on certain failures, which we want to catch
                 logger.error(f"Uvicorn server exited unexpectedly while binding to port {port}")
-                # Continue to the next port
-                continue
+                if attempt < max_retries - 1:
+                    logger.info(f"Retrying in 5 seconds... (attempt {attempt + 1}/{max_retries})")
+                    await asyncio.sleep(5)
+                    continue
+                else:
+                    logger.error(f"Failed to start REST API server after {max_retries} attempts")
+                    return
                 
         except OSError as e:
             if e.errno == 98:  # Address already in use
-                logger.warning(f"Port {port} is already in use. Trying next port.")
-                # Add a small delay before trying the next port
-                await asyncio.sleep(1)
-                continue
+                logger.warning(f"Port {port} is already in use despite cleanup.")
+                if attempt < max_retries - 1:
+                    logger.info(f"Retrying in 5 seconds... (attempt {attempt + 1}/{max_retries})")
+                    await asyncio.sleep(5)
+                    continue
+                else:
+                    logger.error(f"Failed to bind to port {port} after {max_retries} attempts")
+                    return
             else:
                 logger.error(f"Failed to start REST API server with unexpected error: {e}")
-                # Try next port instead of returning
-                continue
+                if attempt < max_retries - 1:
+                    logger.info(f"Retrying in 5 seconds... (attempt {attempt + 1}/{max_retries})")
+                    await asyncio.sleep(5)
+                    continue
+                else:
+                    logger.error(f"Failed to start REST API server after {max_retries} attempts")
+                    return
         except Exception as e:
             logger.error(f"Unexpected error when starting API server on port {port}: {e}")
-            # Try next port instead of returning
-            continue
+            if attempt < max_retries - 1:
+                logger.info(f"Retrying in 5 seconds... (attempt {attempt + 1}/{max_retries})")
+                await asyncio.sleep(5)
+                continue
+            else:
+                logger.error(f"Failed to start REST API server after {max_retries} attempts")
+                return
     
-    # If we get here, we've tried all ports and failed
-    logger.error(f"Failed to bind to any port between {base_port} and {base_port + max_retries - 1}. API server will not start.")
+    # If we get here, we've tried all attempts and failed
+    logger.error(f"Failed to start REST API server on port {port} after {max_retries} attempts. API server will not start.")
     logger.warning("Bot will continue running without the API server, which may affect some functionality.")
-    # We'll continue running the bot without the API server
     return
 
 async def cleanup():

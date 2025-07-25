@@ -17,6 +17,7 @@ import gc
 from flask import current_app
 from celery.signals import worker_process_init, worker_process_shutdown, task_prerun, task_postrun
 from app.core import db, celery
+from app.db_management import db_manager
 
 logger = logging.getLogger(__name__)
 
@@ -109,10 +110,10 @@ def cleanup_worker_process(**kwargs):
         
     # Clean up Redis connections
     try:
-        from app.utils.redis_manager import RedisManager
-        redis_manager = RedisManager()
-        if hasattr(redis_manager, 'shutdown'):
-            redis_manager.shutdown()
+        from app.utils.redis_manager import get_redis_manager
+        redis_manager = get_redis_manager()
+        if hasattr(redis_manager, 'cleanup'):
+            redis_manager.cleanup()
     except Exception as e:
         logger.error(f"Error cleaning up Redis connections: {e}")
         

@@ -143,8 +143,8 @@ def handle_live_connect():
     try:
         # Only enable rate limiting in production
         if not current_app.config.get('DEBUG', False):
-            from app.utils.redis_manager import RedisManager
-            redis_client = RedisManager().client
+            from app.utils.safe_redis import get_safe_redis
+            redis_client = get_safe_redis()
             rate_limit_key = f"socket_rate_limit:{client_ip}"
             
             # Get current count
