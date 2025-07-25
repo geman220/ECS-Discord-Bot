@@ -540,3 +540,55 @@ def validate_shot_submission(
     result['target_count'] = len(target_discord_ids)
     
     return result
+
+
+def get_user_cooldowns(discord_id: str) -> List[Dict]:
+    """Get all active cooldowns for a Discord user."""
+    try:
+        with managed_session() as session:
+            # Get all active cooldowns for this user
+            cooldowns = session.query(ISpyCooldown).filter(
+                ISpyCooldown.target_discord_id == discord_id,
+                ISpyCooldown.expires_at > datetime.utcnow()
+            ).all()
+            
+            result = []
+            for cooldown in cooldowns:
+                cooldown_data = {
+                    'type': 'global' if cooldown.category_id is None else 'venue',
+                    'expires_at': cooldown.expires_at.isoformat(),
+                    'created_at': cooldown.created_at.isoformat()
+                }
+                
+                if cooldown.category_id:
+                    category = session.query(ISpyCategory).get(cooldown.category_id)
+                    cooldown_data['category_name'] = category.display_name if category else 'Unknown'
+                    cooldown_data['category_key'] = category.key if category else 'unknown'
+                
+                result.append(cooldown_data)
+            
+            return result
+            
+    except Exception as e:
+        logger.error(f"Error getting cooldowns for user {discord_id}: {str(e)}")
+        return []
+
+
+def reset_user_cooldowns(target_discord_id: str, moderator_discord_id: str, reason: str) -> bool:
+    """Reset all active cooldowns for a user (admin function)."""
+    try:
+        with managed_session() as session:
+            # Delete all active cooldowns for this user
+            deleted_count = session.query(ISpyCooldown).filter(
+                ISpyCooldown.target_discord_id == target_discord_id,
+                ISpyCooldown.expires_at > datetime.utcnow()
+            ).delete()
+            
+            session.commit()
+            
+            logger.info(f"Reset {deleted_count} cooldowns for user {target_discord_id} by moderator {moderator_discord_id}. Reason: {reason}")
+            return True
+            
+    except Exception as e:
+        logger.error(f"Error resetting cooldowns for user {target_discord_id}: {str(e)}")
+        return False

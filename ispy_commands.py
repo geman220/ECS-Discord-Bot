@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 WEBUI_API_URL = os.getenv("WEBUI_API_URL", "http://localhost:5000/api")
 
 # Channel restriction
-PL_NONSENSE_CHANNEL_ID = 1234567890  # Replace with actual #pl-nonsense channel ID
+PL_NONSENSE_CHANNEL_NAME = "pl-nonsense"
 
 # Role requirements for I-Spy usage
 ALLOWED_ROLES = [
@@ -38,7 +38,7 @@ def has_moderator_role(interaction: discord.Interaction) -> bool:
 
 def is_pl_nonsense_channel(interaction: discord.Interaction) -> bool:
     """Check if command is used in #pl-nonsense channel."""
-    return interaction.channel_id == PL_NONSENSE_CHANNEL_ID
+    return interaction.channel.name == PL_NONSENSE_CHANNEL_NAME
 
 class ISpyCategorySelect(discord.ui.Select):
     """Dropdown for selecting I-Spy venue category."""
@@ -148,13 +148,47 @@ class ISpySubmissionView(discord.ui.View):
                         
                     else:
                         data = await resp.json()
-                        error_msg = "\n".join(data.get('errors', ['Unknown error']))
+                        errors = data.get('errors', ['Unknown error'])
                         
-                        embed = discord.Embed(
-                            title="❌ I-Spy Submission Failed",
-                            color=discord.Color.red(),
-                            description=error_msg
-                        )
+                        # Check if it's a cooldown error
+                        if any('cooldown' in error.lower() for error in errors):
+                            embed = discord.Embed(
+                                title="⏰ Target on Cooldown",
+                                color=discord.Color.orange(),
+                                description="One or more targets are currently on cooldown:"
+                            )
+                            
+                            for i, error in enumerate(errors, 1):
+                                if 'cooldown' in error.lower():
+                                    # Format cooldown messages more nicely
+                                    if '48 hours' in error:
+                                        embed.add_field(
+                                            name="🌍 Global Cooldown",
+                                            value=error.replace('Target', 'This target'),
+                                            inline=False
+                                        )
+                                    elif '14 days' in error:
+                                        embed.add_field(
+                                            name="📍 Venue Cooldown", 
+                                            value=error.replace('Target', 'This target'),
+                                            inline=False
+                                        )
+                                    else:
+                                        embed.add_field(
+                                            name=f"⏱️ Cooldown {i}",
+                                            value=error,
+                                            inline=False
+                                        )
+                            
+                            embed.set_footer(text="💡 Try targeting different people or wait for cooldowns to expire")
+                        else:
+                            # Regular error
+                            error_msg = "\n".join(errors)
+                            embed = discord.Embed(
+                                title="❌ I-Spy Submission Failed",
+                                color=discord.Color.red(),
+                                description=error_msg
+                            )
                         
                         await interaction.response.edit_message(
                             embed=embed,
@@ -195,129 +229,146 @@ async def ispy_submit(
 ):
     """Submit an I-Spy shot with targets, location, and image."""
     
-    # Check channel restriction
-    if not is_pl_nonsense_channel(interaction):
-        await interaction.response.send_message(
-            "❌ I-Spy commands can only be used in #pl-nonsense channel!",
-            ephemeral=True
-        )
-        return
+    # Defer the response immediately to avoid timeout
+    await interaction.response.defer(ephemeral=True)
     
-    # Check role requirement
-    if not has_pl_role(interaction):
-        await interaction.response.send_message(
-            "❌ You need a pub league role (ECS-FC-PL-CLASSIC or ECS-FC-PL-PREMIER) to use I-Spy!",
-            ephemeral=True
-        )
-        return
-    
-    # Validate image
-    if not image.content_type or not image.content_type.startswith('image/'):
-        await interaction.response.send_message(
-            "❌ Please attach a valid image file!",
-            ephemeral=True
-        )
-        return
-    
-    # Parse targets from mentions
-    target_members = []
-    words = targets.split()
-    
-    for word in words:
-        if word.startswith('<@') and word.endswith('>'):
-            try:
-                user_id = int(word[2:-1].replace('!', ''))
-                member = interaction.guild.get_member(user_id)
-                if member:
-                    target_members.append(member)
-            except ValueError:
-                continue
-    
-    if not target_members:
-        await interaction.response.send_message(
-            "❌ Please mention 1-3 valid Discord users as targets!",
-            ephemeral=True
-        )
-        return
-    
-    if len(target_members) > 3:
-        await interaction.response.send_message(
-            "❌ Maximum 3 targets allowed per shot!",
-            ephemeral=True
-        )
-        return
-    
-    # Validate location length
-    if len(location) > 40:
-        await interaction.response.send_message(
-            "❌ Location description must be 40 characters or less!",
-            ephemeral=True
-        )
-        return
-    
-    # Get categories from API
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.get(
-                f"{WEBUI_API_URL}/ispy/categories",
-                headers={"X-Discord-User": str(interaction.user.id)}
-            ) as resp:
-                if resp.status != 200:
-                    await interaction.response.send_message(
-                        "❌ Error loading venue categories. Please try again later.",
-                        ephemeral=True
-                    )
-                    return
-                
-                data = await resp.json()
-                categories = data['categories']
-                
-        except Exception as e:
-            logger.error(f"Error getting categories: {str(e)}")
-            await interaction.response.send_message(
-                "❌ Error connecting to API. Please try again later.",
+    try:
+        # Check channel restriction
+        if not is_pl_nonsense_channel(interaction):
+            await interaction.followup.send(
+                "❌ I-Spy commands can only be used in #pl-nonsense channel!",
                 ephemeral=True
             )
             return
-    
-    # Create submission view
-    view = ISpySubmissionView(target_members, location, image.url, categories)
-    
-    embed = discord.Embed(
-        title="📸 I-Spy Shot Preview",
-        color=discord.Color.blue(),
-        description=f"**Location:** {location}"
-    )
-    
-    embed.add_field(
-        name="🎯 Targets",
-        value=", ".join([target.mention for target in target_members]),
-        inline=False
-    )
-    
-    embed.add_field(
-        name="📋 Next Steps",
-        value="1. Select a venue category from the dropdown\n2. Click 'Submit Shot' to complete",
-        inline=False
-    )
-    
-    embed.set_image(url=image.url)
-    embed.set_footer(text="Select category and submit to earn points!")
-    
-    await interaction.response.send_message(
-        embed=embed,
-        view=view,
-        ephemeral=True
-    )
+        
+        # Check role requirement
+        if not has_pl_role(interaction):
+            await interaction.followup.send(
+                "❌ You need a pub league role (ECS-FC-PL-CLASSIC or ECS-FC-PL-PREMIER) to use I-Spy!",
+                ephemeral=True
+            )
+            return
+        
+        # Validate image
+        if not image.content_type or not image.content_type.startswith('image/'):
+            await interaction.followup.send(
+                "❌ Please attach a valid image file!",
+                ephemeral=True
+            )
+            return
+        
+        # Parse targets from mentions
+        target_members = []
+        words = targets.split()
+        
+        for word in words:
+            if word.startswith('<@') and word.endswith('>'):
+                try:
+                    user_id = int(word[2:-1].replace('!', ''))
+                    member = interaction.guild.get_member(user_id)
+                    if member:
+                        target_members.append(member)
+                except ValueError:
+                    continue
+        
+        if not target_members:
+            await interaction.followup.send(
+                "❌ Please mention 1-3 valid Discord users as targets!",
+                ephemeral=True
+            )
+            return
+        
+        if len(target_members) > 3:
+            await interaction.followup.send(
+                "❌ Maximum 3 targets allowed per shot!",
+                ephemeral=True
+            )
+            return
+        
+        # Validate location length
+        if len(location) > 40:
+            await interaction.followup.send(
+                "❌ Location description must be 40 characters or less!",
+                ephemeral=True
+            )
+            return
+        
+        # Get categories from API
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(
+                    f"{WEBUI_API_URL}/ispy/categories",
+                    headers={"X-Discord-User": str(interaction.user.id)}
+                ) as resp:
+                    if resp.status != 200:
+                        await interaction.followup.send(
+                            "❌ Error loading venue categories. Please try again later.",
+                            ephemeral=True
+                        )
+                        return
+                    
+                    data = await resp.json()
+                    categories = data['categories']
+                    
+            except Exception as e:
+                logger.error(f"Error getting categories: {str(e)}")
+                await interaction.followup.send(
+                    "❌ Error connecting to API. Please try again later.",
+                    ephemeral=True
+                )
+                return
+        
+        # Create submission view
+        view = ISpySubmissionView(target_members, location, image.url, categories)
+        
+        embed = discord.Embed(
+            title="📸 I-Spy Shot Preview",
+            color=discord.Color.blue(),
+            description=f"**Location:** {location}"
+        )
+        
+        embed.add_field(
+            name="🎯 Targets",
+            value=", ".join([target.mention for target in target_members]),
+            inline=False
+        )
+        
+        embed.add_field(
+            name="📋 Next Steps",
+            value="1. Select a venue category from the dropdown\n2. Click 'Submit Shot' to complete",
+            inline=False
+        )
+        
+        embed.set_image(url=image.url)
+        embed.set_footer(text="Select category and submit to earn points!")
+        
+        await interaction.followup.send(
+            embed=embed,
+            view=view,
+            ephemeral=True
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in ispy_submit: {str(e)}")
+        try:
+            await interaction.followup.send(
+                "❌ An unexpected error occurred. Please try again later.",
+                ephemeral=True
+            )
+        except:
+            pass  # If followup also fails, there's nothing more we can do
 
 @app_commands.command(name="ispy-top", description="View the I-Spy leaderboard")
 @app_commands.describe(limit="Number of top players to show (default: 10, max: 25)")
 async def ispy_leaderboard(interaction: discord.Interaction, limit: Optional[int] = 10):
     """Display the current I-Spy leaderboard."""
     
+    # Defer the response immediately
+    await interaction.response.defer()
+    
     # Check channel restriction
     if not is_pl_nonsense_channel(interaction):
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ I-Spy commands can only be used in #pl-nonsense channel!",
             ephemeral=True
         )
@@ -325,7 +376,7 @@ async def ispy_leaderboard(interaction: discord.Interaction, limit: Optional[int
     
     # Check role requirement
     if not has_pl_role(interaction):
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ You need a pub league role to view I-Spy stats!",
             ephemeral=True
         )
@@ -340,7 +391,7 @@ async def ispy_leaderboard(interaction: discord.Interaction, limit: Optional[int
                 headers={"X-Discord-User": str(interaction.user.id)}
             ) as resp:
                 if resp.status != 200:
-                    await interaction.response.send_message(
+                    await interaction.followup.send(
                         "❌ Error loading leaderboard. Please try again later.",
                         ephemeral=True
                     )
@@ -356,7 +407,7 @@ async def ispy_leaderboard(interaction: discord.Interaction, limit: Optional[int
                         color=discord.Color.blue(),
                         description="No shots recorded yet this season!"
                     )
-                    await interaction.response.send_message(embed=embed)
+                    await interaction.followup.send(embed=embed)
                     return
                 
                 embed = discord.Embed(
@@ -387,11 +438,11 @@ async def ispy_leaderboard(interaction: discord.Interaction, limit: Optional[int
                 
                 embed.description += f"\n\n{leaderboard_text}"
                 
-                await interaction.response.send_message(embed=embed)
+                await interaction.followup.send(embed=embed)
                 
         except Exception as e:
             logger.error(f"Error getting leaderboard: {str(e)}")
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "❌ Error connecting to API. Please try again later.",
                 ephemeral=True
             )
@@ -400,9 +451,12 @@ async def ispy_leaderboard(interaction: discord.Interaction, limit: Optional[int
 async def ispy_personal_stats(interaction: discord.Interaction):
     """Display personal I-Spy statistics for the user."""
     
+    # Defer the response immediately
+    await interaction.response.defer(ephemeral=True)
+    
     # Check channel restriction
     if not is_pl_nonsense_channel(interaction):
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ I-Spy commands can only be used in #pl-nonsense channel!",
             ephemeral=True
         )
@@ -410,7 +464,7 @@ async def ispy_personal_stats(interaction: discord.Interaction):
     
     # Check role requirement
     if not has_pl_role(interaction):
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ You need a pub league role to view I-Spy stats!",
             ephemeral=True
         )
@@ -423,7 +477,7 @@ async def ispy_personal_stats(interaction: discord.Interaction):
                 headers={"X-Discord-User": str(interaction.user.id)}
             ) as resp:
                 if resp.status != 200:
-                    await interaction.response.send_message(
+                    await interaction.followup.send(
                         "❌ Error loading your stats. Please try again later.",
                         ephemeral=True
                     )
@@ -473,11 +527,11 @@ async def ispy_personal_stats(interaction: discord.Interaction):
                 if stats['first_shot_at']:
                     embed.set_footer(text=f"First shot: {stats['first_shot_at'][:10]}")
                 
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=True)
                 
         except Exception as e:
             logger.error(f"Error getting personal stats: {str(e)}")
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "❌ Error connecting to API. Please try again later.",
                 ephemeral=True
             )
@@ -487,9 +541,12 @@ async def ispy_personal_stats(interaction: discord.Interaction):
 async def ispy_category_stats(interaction: discord.Interaction, category: str):
     """Display leaderboard for a specific venue category."""
     
+    # Defer the response immediately
+    await interaction.response.defer()
+    
     # Check channel restriction
     if not is_pl_nonsense_channel(interaction):
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ I-Spy commands can only be used in #pl-nonsense channel!",
             ephemeral=True
         )
@@ -497,7 +554,7 @@ async def ispy_category_stats(interaction: discord.Interaction, category: str):
     
     # Check role requirement
     if not has_pl_role(interaction):
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ You need a pub league role to view I-Spy stats!",
             ephemeral=True
         )
@@ -510,13 +567,13 @@ async def ispy_category_stats(interaction: discord.Interaction, category: str):
                 headers={"X-Discord-User": str(interaction.user.id)}
             ) as resp:
                 if resp.status == 404:
-                    await interaction.response.send_message(
+                    await interaction.followup.send(
                         f"❌ Category '{category}' not found or no data available.",
                         ephemeral=True
                     )
                     return
                 elif resp.status != 200:
-                    await interaction.response.send_message(
+                    await interaction.followup.send(
                         "❌ Error loading category stats. Please try again later.",
                         ephemeral=True
                     )
@@ -532,7 +589,7 @@ async def ispy_category_stats(interaction: discord.Interaction, category: str):
                         color=discord.Color.blue(),
                         description="No shots recorded for this category yet!"
                     )
-                    await interaction.response.send_message(embed=embed)
+                    await interaction.followup.send(embed=embed)
                     return
                 
                 category_name = leaderboard[0]['category_name']
@@ -564,11 +621,11 @@ async def ispy_category_stats(interaction: discord.Interaction, category: str):
                 
                 embed.description += f"\n\n{leaderboard_text}"
                 
-                await interaction.response.send_message(embed=embed)
+                await interaction.followup.send(embed=embed)
                 
         except Exception as e:
             logger.error(f"Error getting category stats: {str(e)}")
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "❌ Error connecting to API. Please try again later.",
                 ephemeral=True
             )
@@ -588,9 +645,12 @@ async def ispy_admin_disallow(
 ):
     """Admin command to disallow a shot."""
     
+    # Defer the response immediately
+    await interaction.response.defer(ephemeral=True)
+    
     # Check moderator role
     if not has_moderator_role(interaction):
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ You don't have permission to use admin I-Spy commands!",
             ephemeral=True
         )
@@ -614,21 +674,21 @@ async def ispy_admin_disallow(
                         color=discord.Color.green(),
                         description=f"Shot ID {shot_id} has been disallowed.\n\n**Reason:** {reason}\n**Penalty:** -{penalty} points"
                     )
-                    await interaction.response.send_message(embed=embed, ephemeral=True)
+                    await interaction.followup.send(embed=embed, ephemeral=True)
                 elif resp.status == 404:
-                    await interaction.response.send_message(
+                    await interaction.followup.send(
                         "❌ Shot not found or already disallowed.",
                         ephemeral=True
                     )
                 else:
-                    await interaction.response.send_message(
+                    await interaction.followup.send(
                         "❌ Error disallowing shot. Please try again later.",
                         ephemeral=True
                     )
                     
         except Exception as e:
             logger.error(f"Error disallowing shot: {str(e)}")
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "❌ Error connecting to API. Please try again later.",
                 ephemeral=True
             )
@@ -645,9 +705,12 @@ async def ispy_admin_recategorize(
 ):
     """Admin command to recategorize a shot."""
     
+    # Defer the response immediately
+    await interaction.response.defer(ephemeral=True)
+    
     # Check moderator role
     if not has_moderator_role(interaction):
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ You don't have permission to use admin I-Spy commands!",
             ephemeral=True
         )
@@ -668,26 +731,26 @@ async def ispy_admin_recategorize(
                         color=discord.Color.green(),
                         description=f"Shot ID {shot_id} moved to category: {new_category}"
                     )
-                    await interaction.response.send_message(embed=embed, ephemeral=True)
+                    await interaction.followup.send(embed=embed, ephemeral=True)
                 elif resp.status == 404:
-                    await interaction.response.send_message(
+                    await interaction.followup.send(
                         "❌ Shot not found.",
                         ephemeral=True
                     )
                 elif resp.status == 400:
-                    await interaction.response.send_message(
+                    await interaction.followup.send(
                         f"❌ Invalid category: {new_category}",
                         ephemeral=True
                     )
                 else:
-                    await interaction.response.send_message(
+                    await interaction.followup.send(
                         "❌ Error recategorizing shot. Please try again later.",
                         ephemeral=True
                     )
                     
         except Exception as e:
             logger.error(f"Error recategorizing shot: {str(e)}")
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "❌ Error connecting to API. Please try again later.",
                 ephemeral=True
             )
@@ -706,9 +769,12 @@ async def ispy_admin_jail(
 ):
     """Admin command to jail a user."""
     
+    # Defer the response immediately
+    await interaction.response.defer(ephemeral=True)
+    
     # Check moderator role
     if not has_moderator_role(interaction):
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "❌ You don't have permission to use admin I-Spy commands!",
             ephemeral=True
         )
@@ -733,19 +799,151 @@ async def ispy_admin_jail(
                         color=discord.Color.orange(),
                         description=f"{user.mention} has been blocked from I-Spy for {hours} hours.\n\n**Reason:** {reason}"
                     )
-                    await interaction.response.send_message(embed=embed, ephemeral=True)
+                    await interaction.followup.send(embed=embed, ephemeral=True)
                 else:
-                    await interaction.response.send_message(
+                    await interaction.followup.send(
                         "❌ Error jailing user. Please try again later.",
                         ephemeral=True
                     )
                     
         except Exception as e:
             logger.error(f"Error jailing user: {str(e)}")
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "❌ Error connecting to API. Please try again later.",
                 ephemeral=True
             )
+
+@app_commands.command(name="ispy-cooldowns", description="View active cooldowns for a user")
+@app_commands.describe(user="Discord user to check cooldowns for")
+async def ispy_check_cooldowns(interaction: discord.Interaction, user: discord.Member):
+    """Check active cooldowns for a user."""
+    
+    # Defer the response immediately
+    await interaction.response.defer(ephemeral=True)
+    
+    # Check channel restriction
+    if not is_pl_nonsense_channel(interaction):
+        await interaction.followup.send(
+            "❌ I-Spy commands can only be used in #pl-nonsense channel!",
+            ephemeral=True
+        )
+        return
+    
+    # Check role requirement (allow both regular users and moderators)
+    if not (has_pl_role(interaction) or has_moderator_role(interaction)):
+        await interaction.followup.send(
+            "❌ You need a pub league role to check I-Spy cooldowns!",
+            ephemeral=True
+        )
+        return
+    
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(
+                f"{WEBUI_API_URL}/ispy/cooldowns/{user.id}",
+                headers={"X-Discord-User": str(interaction.user.id)}
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    cooldowns = data.get('cooldowns', [])
+                    
+                    if not cooldowns:
+                        embed = discord.Embed(
+                            title="✅ No Active Cooldowns",
+                            color=discord.Color.green(),
+                            description=f"{user.mention} has no active cooldowns and can be targeted!"
+                        )
+                    else:
+                        embed = discord.Embed(
+                            title="⏰ Active Cooldowns",
+                            color=discord.Color.orange(),
+                            description=f"Current cooldowns for {user.mention}:"
+                        )
+                        
+                        for cooldown in cooldowns:
+                            cooldown_type = "🌍 Global" if cooldown['type'] == 'global' else f"📍 {cooldown['category_name']}"
+                            embed.add_field(
+                                name=cooldown_type,
+                                value=f"Expires: {cooldown['expires_at'][:19].replace('T', ' ')}",
+                                inline=False
+                            )
+                    
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+                    
+                elif resp.status == 404:
+                    await interaction.followup.send(
+                        f"❌ No cooldown data found for {user.mention}.",
+                        ephemeral=True
+                    )
+                else:
+                    await interaction.followup.send(
+                        "❌ Error loading cooldown data. Please try again later.",
+                        ephemeral=True
+                    )
+                    
+        except Exception as e:
+            logger.error(f"Error checking cooldowns: {str(e)}")
+            await interaction.followup.send(
+                "❌ Error connecting to API. Please try again later.",
+                ephemeral=True
+            )
+
+
+@app_commands.command(name="ispy-reset-cooldowns", description="[ADMIN] Reset all cooldowns for a user")
+@app_commands.describe(
+    user="Discord user to reset cooldowns for",
+    reason="Reason for resetting cooldowns"
+)
+async def ispy_admin_reset_cooldowns(
+    interaction: discord.Interaction,
+    user: discord.Member,
+    reason: Optional[str] = "No reason provided"
+):
+    """Admin command to reset cooldowns for a user."""
+    
+    # Defer the response immediately
+    await interaction.response.defer(ephemeral=True)
+    
+    # Check moderator role
+    if not has_moderator_role(interaction):
+        await interaction.followup.send(
+            "❌ You don't have permission to use admin I-Spy commands!",
+            ephemeral=True
+        )
+        return
+    
+    payload = {
+        "target_discord_id": str(user.id),
+        "reason": reason
+    }
+    
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.post(
+                f"{WEBUI_API_URL}/ispy/admin/reset-cooldowns",
+                json=payload,
+                headers={"X-Discord-User": str(interaction.user.id)}
+            ) as resp:
+                if resp.status == 200:
+                    embed = discord.Embed(
+                        title="✅ Cooldowns Reset",
+                        color=discord.Color.green(),
+                        description=f"All cooldowns for {user.mention} have been reset.\n\n**Reason:** {reason}"
+                    )
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+                else:
+                    await interaction.followup.send(
+                        "❌ Error resetting cooldowns. Please try again later.",
+                        ephemeral=True
+                    )
+                    
+        except Exception as e:
+            logger.error(f"Error resetting cooldowns: {str(e)}")
+            await interaction.followup.send(
+                "❌ Error connecting to API. Please try again later.",
+                ephemeral=True
+            )
+
 
 async def setup(bot):
     """Setup function for the cog."""
@@ -753,6 +951,8 @@ async def setup(bot):
     bot.tree.add_command(ispy_leaderboard, guild=discord.Object(id=server_id))
     bot.tree.add_command(ispy_personal_stats, guild=discord.Object(id=server_id))
     bot.tree.add_command(ispy_category_stats, guild=discord.Object(id=server_id))
+    bot.tree.add_command(ispy_check_cooldowns, guild=discord.Object(id=server_id))
     bot.tree.add_command(ispy_admin_disallow, guild=discord.Object(id=server_id))
     bot.tree.add_command(ispy_admin_recategorize, guild=discord.Object(id=server_id))
     bot.tree.add_command(ispy_admin_jail, guild=discord.Object(id=server_id))
+    bot.tree.add_command(ispy_admin_reset_cooldowns, guild=discord.Object(id=server_id))

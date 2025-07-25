@@ -40,7 +40,7 @@ from .stats import (
 
 from .communication import (
     Notification, Announcement, ScheduledMessage, Feedback,
-    FeedbackReply, Note
+    FeedbackReply, Note, DeviceToken
 )
 
 from .store import (
@@ -108,7 +108,7 @@ __all__ = [
     
     # Communication models
     'Notification', 'Announcement', 'ScheduledMessage', 'Feedback',
-    'FeedbackReply', 'Note',
+    'FeedbackReply', 'Note', 'DeviceToken',
     
     # Store models
     'StoreItem', 'StoreOrder',

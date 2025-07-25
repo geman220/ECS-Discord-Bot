@@ -58,6 +58,40 @@ logger = logging.getLogger(__name__)
 mobile_api = Blueprint('mobile_api', __name__)
 csrf.exempt(mobile_api)
 
+def jwt_or_discord_auth_required(f):
+    """
+    Decorator that allows either JWT authentication or Discord bot authentication.
+    For Discord bot requests, expects X-Discord-User header with Discord user ID.
+    """
+    from functools import wraps
+    from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
+    from flask import g
+    
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Check for Discord bot authentication first
+        discord_user_id = request.headers.get('X-Discord-User')
+        if discord_user_id:
+            # This is a Discord bot request
+            try:
+                # Set the current user ID for the request
+                g.current_user_id = discord_user_id
+                return f(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"Error in Discord bot authentication: {str(e)}")
+                return jsonify({'error': 'Authentication error'}), 401
+        else:
+            # Use standard JWT authentication
+            try:
+                verify_jwt_in_request()
+                g.current_user_id = get_jwt_identity()
+                return f(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"JWT authentication failed: {str(e)}")
+                return jsonify({'error': 'Authentication required'}), 401
+    
+    return decorated_function
+
 
 @mobile_api.before_request
 def limit_remote_addr():
@@ -1851,7 +1885,7 @@ def bulk_availability_update():
 # I-Spy API Endpoints
 
 @mobile_api.route('/ispy/submit', methods=['POST'])
-@jwt_required()
+@jwt_or_discord_auth_required
 def ispy_submit_shot():
     """
     Submit a new I-Spy shot.
@@ -1866,7 +1900,7 @@ def ispy_submit_shot():
     """
     try:
         data = request.get_json()
-        current_user_id = get_jwt_identity()
+        current_user_id = g.current_user_id
         
         # Validate required fields
         required_fields = ['targets', 'category', 'location', 'image_url']
@@ -1926,7 +1960,7 @@ def ispy_submit_shot():
 
 
 @mobile_api.route('/ispy/leaderboard')
-@jwt_required()
+@jwt_or_discord_auth_required
 def ispy_leaderboard():
     """Get current season leaderboard."""
     try:
@@ -1955,13 +1989,13 @@ def ispy_leaderboard():
 
 
 @mobile_api.route('/ispy/me')
-@jwt_required() 
+@jwt_or_discord_auth_required
 def ispy_personal_stats():
     """Get personal I-Spy statistics for current user."""
     try:
         from app.ispy_helpers import get_active_season
         
-        current_user_id = get_jwt_identity()
+        current_user_id = g.current_user_id
         season = get_active_season()
         
         if not season:
@@ -1997,7 +2031,7 @@ def ispy_personal_stats():
 
 
 @mobile_api.route('/ispy/categories')
-@jwt_required()
+@jwt_or_discord_auth_required
 def ispy_categories():
     """Get all available venue categories."""
     try:
@@ -2010,7 +2044,7 @@ def ispy_categories():
 
 
 @mobile_api.route('/ispy/stats/category/<category_key>')
-@jwt_required()
+@jwt_or_discord_auth_required
 def ispy_category_stats(category_key):
     """Get leaderboard for a specific category."""
     try:
@@ -2045,11 +2079,11 @@ def ispy_category_stats(category_key):
 # Admin I-Spy endpoints (for moderators)
 
 @mobile_api.route('/ispy/admin/disallow/<int:shot_id>', methods=['POST'])
-@jwt_required()
+@jwt_or_discord_auth_required
 def ispy_admin_disallow(shot_id):
     """Disallow a shot (admin only)."""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = g.current_user_id
         
         # TODO: Add role check for admin/moderator
         # For now, assuming API access implies admin rights
@@ -2071,11 +2105,11 @@ def ispy_admin_disallow(shot_id):
 
 
 @mobile_api.route('/ispy/admin/recategorize/<int:shot_id>', methods=['POST'])
-@jwt_required()
+@jwt_or_discord_auth_required
 def ispy_admin_recategorize(shot_id):
     """Recategorize a shot (admin only)."""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = g.current_user_id
         data = request.get_json()
         
         if not data or 'new_category' not in data:
@@ -2100,11 +2134,11 @@ def ispy_admin_recategorize(shot_id):
 
 
 @mobile_api.route('/ispy/admin/jail', methods=['POST'])
-@jwt_required()
+@jwt_or_discord_auth_required
 def ispy_admin_jail():
     """Jail a user (admin only)."""
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = g.current_user_id
         data = request.get_json()
         
         required_fields = ['discord_id', 'hours']

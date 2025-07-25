@@ -405,3 +405,336 @@ def get_player_by_discord(discord_id: str):
     except Exception as e:
         logger.exception(f"🔴 [USER_API] Error in get_player_by_discord for discord_id: {discord_id}: {e}")
         return jsonify({"error": "Internal server error"}), 500
+
+
+# I-Spy API endpoints for Discord bot
+@user_bp.route('/ispy/categories', methods=['GET'])
+def ispy_categories():
+    """Get all available I-Spy venue categories for Discord bot."""
+    try:
+        from app.ispy_helpers import get_all_categories
+        categories = get_all_categories()
+        return jsonify({'categories': categories}), 200
+        
+    except Exception as e:
+        logger.error(f"Error getting I-Spy categories: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@user_bp.route('/ispy/submit', methods=['POST'])
+def ispy_submit_shot():
+    """Submit a new I-Spy shot from Discord bot."""
+    try:
+        from app.ispy_helpers import (
+            validate_shot_submission, create_shot_with_targets
+        )
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid JSON data'}), 400
+        
+        required_fields = ['targets', 'category', 'location', 'image_url']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        # Get Discord user ID from request headers
+        author_discord_id = request.headers.get('X-Discord-User')
+        if not author_discord_id:
+            return jsonify({'error': 'Missing X-Discord-User header'}), 400
+        
+        # For Discord images, use URL as hash (simplified approach)
+        image_data = data['image_url'].encode('utf-8')
+        
+        # Validate submission
+        validation = validate_shot_submission(
+            author_discord_id=author_discord_id,
+            target_discord_ids=data['targets'],
+            category_key=data['category'],
+            location=data['location'],
+            image_data=image_data
+        )
+        
+        if not validation['valid']:
+            return jsonify({'errors': validation['errors']}), 400
+        
+        # Get active season
+        from app.ispy_helpers import get_active_season
+        season = get_active_season()
+        if not season:
+            return jsonify({'error': 'No active I-Spy season'}), 404
+        
+        # Create the shot
+        shot = create_shot_with_targets(
+            author_discord_id=author_discord_id,
+            target_discord_ids=data['targets'],
+            category_id=validation['category_id'],
+            location=data['location'],
+            image_url=data['image_url'],
+            image_hash=validation.get('image_hash'),
+            season_id=season.id
+        )
+        
+        return jsonify({
+            'success': True,
+            'shot_id': shot.id,
+            'points_awarded': shot.total_points,
+            'breakdown': {
+                'base_points': shot.base_points,
+                'bonus_points': shot.bonus_points,
+                'streak_bonus': shot.streak_bonus
+            }
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error submitting I-Spy shot: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@user_bp.route('/ispy/leaderboard', methods=['GET'])
+def ispy_leaderboard():
+    """Get current season I-Spy leaderboard for Discord bot."""
+    try:
+        from app.ispy_helpers import get_active_season, get_leaderboard
+        
+        limit = int(request.args.get('limit', 10))
+        limit = min(limit, 25)  # Cap at 25
+        
+        season = get_active_season()
+        if not season:
+            return jsonify({'error': 'No active I-Spy season'}), 404
+        
+        leaderboard = get_leaderboard(season.id, limit=limit)
+        
+        return jsonify({
+            'season': {
+                'id': season.id,
+                'name': season.name
+            },
+            'leaderboard': leaderboard
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error getting I-Spy leaderboard: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@user_bp.route('/ispy/me', methods=['GET'])
+def ispy_personal_stats():
+    """Get personal I-Spy statistics for Discord bot user."""
+    try:
+        from app.ispy_helpers import get_active_season, get_user_personal_stats
+        
+        # Get Discord user ID from request headers
+        discord_user_id = request.headers.get('X-Discord-User')
+        if not discord_user_id:
+            return jsonify({'error': 'Missing X-Discord-User header'}), 400
+        
+        season = get_active_season()
+        if not season:
+            return jsonify({'error': 'No active I-Spy season'}), 404
+        
+        stats = get_user_personal_stats(discord_user_id, season.id)
+        
+        return jsonify({
+            'season': {
+                'id': season.id,
+                'name': season.name
+            },
+            'stats': stats
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error getting personal I-Spy stats: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@user_bp.route('/ispy/stats/category/<category_key>', methods=['GET'])
+def ispy_category_stats(category_key):
+    """Get leaderboard for a specific I-Spy category for Discord bot."""
+    try:
+        from app.ispy_helpers import get_active_season, get_category_leaderboard
+        
+        season = get_active_season()
+        if not season:
+            return jsonify({'error': 'No active I-Spy season'}), 404
+        
+        leaderboard = get_category_leaderboard(season.id, category_key, limit=10)
+        
+        if not leaderboard:
+            return jsonify({'error': f'Category {category_key} not found or no data'}), 404
+        
+        return jsonify({
+            'season': {
+                'id': season.id,
+                'name': season.name
+            },
+            'leaderboard': leaderboard
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error getting category stats: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+# Admin I-Spy endpoints for Discord bot
+@user_bp.route('/ispy/admin/disallow/<int:shot_id>', methods=['POST'])
+def ispy_admin_disallow(shot_id):
+    """Disallow an I-Spy shot (admin only) for Discord bot."""
+    try:
+        from app.ispy_helpers import disallow_shot
+        
+        # Get Discord user ID from request headers
+        moderator_discord_id = request.headers.get('X-Discord-User')
+        if not moderator_discord_id:
+            return jsonify({'error': 'Missing X-Discord-User header'}), 400
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid JSON data'}), 400
+        
+        reason = data.get('reason', 'No reason provided')
+        penalty = data.get('penalty', 5)
+        
+        success = disallow_shot(
+            shot_id=shot_id,
+            moderator_discord_id=moderator_discord_id,
+            reason=reason,
+            penalty=penalty
+        )
+        
+        if success:
+            return jsonify({'success': True}), 200
+        else:
+            return jsonify({'error': 'Shot not found or already disallowed'}), 404
+        
+    except Exception as e:
+        logger.error(f"Error disallowing shot: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@user_bp.route('/ispy/admin/recategorize/<int:shot_id>', methods=['POST'])
+def ispy_admin_recategorize(shot_id):
+    """Recategorize an I-Spy shot (admin only) for Discord bot."""
+    try:
+        from app.ispy_helpers import recategorize_shot
+        
+        # Get Discord user ID from request headers
+        moderator_discord_id = request.headers.get('X-Discord-User')
+        if not moderator_discord_id:
+            return jsonify({'error': 'Missing X-Discord-User header'}), 400
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid JSON data'}), 400
+        
+        new_category = data.get('new_category')
+        if not new_category:
+            return jsonify({'error': 'Missing new_category field'}), 400
+        
+        success = recategorize_shot(
+            shot_id=shot_id,
+            new_category_key=new_category,
+            moderator_discord_id=moderator_discord_id
+        )
+        
+        if success:
+            return jsonify({'success': True}), 200
+        else:
+            return jsonify({'error': 'Shot not found or invalid category'}), 400
+        
+    except Exception as e:
+        logger.error(f"Error recategorizing shot: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@user_bp.route('/ispy/admin/jail', methods=['POST'])
+def ispy_admin_jail():
+    """Jail an I-Spy user (admin only) for Discord bot."""
+    try:
+        from app.ispy_helpers import jail_user
+        
+        # Get Discord user ID from request headers
+        moderator_discord_id = request.headers.get('X-Discord-User')
+        if not moderator_discord_id:
+            return jsonify({'error': 'Missing X-Discord-User header'}), 400
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid JSON data'}), 400
+        
+        required_fields = ['discord_id', 'hours']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        success = jail_user(
+            discord_id=data['discord_id'],
+            hours=data['hours'],
+            moderator_discord_id=moderator_discord_id,
+            reason=data.get('reason', 'No reason provided')
+        )
+        
+        if success:
+            return jsonify({'success': True}), 200
+        else:
+            return jsonify({'error': 'Failed to jail user'}), 500
+        
+    except Exception as e:
+        logger.error(f"Error jailing user: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@user_bp.route('/ispy/cooldowns/<discord_id>', methods=['GET'])
+def ispy_get_cooldowns(discord_id):
+    """Get active cooldowns for a Discord user."""
+    try:
+        from app.ispy_helpers import get_user_cooldowns
+        
+        cooldowns = get_user_cooldowns(discord_id)
+        
+        return jsonify({
+            'discord_id': discord_id,
+            'cooldowns': cooldowns
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error getting user cooldowns: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@user_bp.route('/ispy/admin/reset-cooldowns', methods=['POST'])
+def ispy_admin_reset_cooldowns():
+    """Reset all cooldowns for a user (admin only)."""
+    try:
+        from app.ispy_helpers import reset_user_cooldowns
+        
+        # Get Discord user ID from request headers
+        moderator_discord_id = request.headers.get('X-Discord-User')
+        if not moderator_discord_id:
+            return jsonify({'error': 'Missing X-Discord-User header'}), 400
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid JSON data'}), 400
+        
+        target_discord_id = data.get('target_discord_id')
+        reason = data.get('reason', 'No reason provided')
+        
+        if not target_discord_id:
+            return jsonify({'error': 'Missing target_discord_id field'}), 400
+        
+        success = reset_user_cooldowns(
+            target_discord_id=target_discord_id,
+            moderator_discord_id=moderator_discord_id,
+            reason=reason
+        )
+        
+        if success:
+            return jsonify({'success': True}), 200
+        else:
+            return jsonify({'error': 'Failed to reset cooldowns'}), 500
+        
+    except Exception as e:
+        logger.error(f"Error resetting cooldowns: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
