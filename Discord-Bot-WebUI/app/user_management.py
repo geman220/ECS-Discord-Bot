@@ -818,6 +818,15 @@ def delete_user(user_id):
         # Clear roles
         user.roles = []
         
+        # Delete device tokens if the table exists
+        try:
+            from app.models import DeviceToken
+            device_tokens = session.query(DeviceToken).filter_by(user_id=user_id).all()
+            for token in device_tokens:
+                session.delete(token)
+        except Exception as device_token_error:
+            logger.warning(f"Could not delete device tokens for user {user_id}: {str(device_token_error)}")
+        
         # Delete any user-specific data from other tables
         from app.models import Feedback
         feedbacks = session.query(Feedback).filter_by(user_id=user_id).all()

@@ -1183,6 +1183,7 @@ async def load_cogs():
         'match_commands',
         'easter_egg_commands',
         'publeague_commands',
+        'ispy_commands',
         'match_dates_commands',
         'help_commands',
         'clearchat_commands'
