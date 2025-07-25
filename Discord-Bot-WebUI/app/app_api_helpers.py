@@ -442,7 +442,12 @@ def build_matches_query(team_id: Optional[int], player: Optional[Player],
     if session is None:
         session = g.db_session
 
-    query = session.query(Match)
+    # Use eager loading to prevent N+1 queries
+    from sqlalchemy.orm import joinedload
+    query = session.query(Match).options(
+        joinedload(Match.home_team),
+        joinedload(Match.away_team)
+    )
     
     if team_id:
         # Filter by specific team ID provided
@@ -504,6 +509,16 @@ def process_matches_data(matches: List[Match], player: Optional[Player],
     if session is None:
         session = g.db_session
 
+    # Bulk load availability data to prevent N+1 queries
+    availability_dict = {}
+    if include_availability and player and matches:
+        match_ids = [match.id for match in matches]
+        availabilities = session.query(Availability).filter(
+            Availability.match_id.in_(match_ids),
+            Availability.player_id == player.id
+        ).all()
+        availability_dict = {av.match_id: av for av in availabilities}
+
     matches_data = []
     for match in matches:
         match_data = match.to_dict(include_teams=True)
@@ -512,10 +527,7 @@ def process_matches_data(matches: List[Match], player: Optional[Player],
             match_data['events'] = [event.to_dict() for event in match.events]
 
         if include_availability and player:
-            availability = session.query(Availability).filter_by(
-                match_id=match.id, 
-                player_id=player.id
-            ).first()
+            availability = availability_dict.get(match.id)
             match_data['availability'] = availability.to_dict() if availability else None
 
         matches_data.append(match_data)

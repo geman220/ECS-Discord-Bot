@@ -47,6 +47,7 @@ from app.app_api_helpers import (
     update_match_details, add_match_events, update_player_availability,
     notify_availability_update, update_player_match_availability, get_team_upcoming_matches
 )
+from app.etag_utils import make_etag_response, CACHE_DURATIONS
 
 logger = logging.getLogger(__name__)
 mobile_api = Blueprint('mobile_api', __name__)
@@ -339,13 +340,21 @@ def get_user_profile():
     logger.debug(f"🔵 [MOBILE_API] Request args: {dict(request.args)}")
     
     with managed_session() as session_db:
-        user = session_db.query(User).get(current_user_id)
+        # Query user with eager loading for roles to prevent N+1 queries
+        from sqlalchemy.orm import joinedload
+        user = session_db.query(User).options(
+            joinedload(User.roles)
+        ).filter(User.id == current_user_id).first()
         if not user:
             logger.error(f"🔴 [MOBILE_API] User not found for ID: {current_user_id}")
             return jsonify({"error": "User not found"}), 404
 
         logger.debug(f"🔵 [MOBILE_API] Found user: {user.username} (ID: {user.id})")
-        player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+        # Query player with eager loading for related data
+        player = session_db.query(Player).options(
+            joinedload(Player.primary_team),
+            joinedload(Player.league)
+        ).filter_by(user_id=current_user_id).first()
         logger.debug(f"🔵 [MOBILE_API] Player found: {player.name if player else 'None'} (ID: {player.id if player else 'None'})")
         base_url = request.host_url.rstrip('/')
 
@@ -412,7 +421,9 @@ def get_user_profile():
                 response_data.update(get_player_stats(player, current_season, session=session_db))
 
         logger.info(f"🟢 [MOBILE_API] get_user_profile successful for user {user.username} - returning {len(response_data)} fields")
-        return jsonify(response_data), 200
+        
+        # Return with ETag support - user profiles can change more frequently
+        return make_etag_response(response_data, 'user_profile', CACHE_DURATIONS['user_profile'])
 
 
 @mobile_api.route('/player/update', endpoint='update_player_profile', methods=['PUT'])
@@ -457,8 +468,17 @@ def get_player(player_id: int):
     """
     with managed_session() as session_db:
         current_user_id = get_jwt_identity()
-        safe_current_user = session_db.query(User).get(current_user_id)
-        player = session_db.query(Player).get(player_id)
+        # Query user and player with eager loading to prevent N+1 queries
+        from sqlalchemy.orm import joinedload, selectinload
+        safe_current_user = session_db.query(User).options(
+            joinedload(User.roles)
+        ).filter(User.id == current_user_id).first()
+        
+        player = session_db.query(Player).options(
+            joinedload(Player.primary_team),
+            joinedload(Player.league),
+            selectinload(Player.teams)
+        ).filter(Player.id == player_id).first()
 
         if not player:
             return jsonify({"msg": "Player not found"}), 404
@@ -501,8 +521,11 @@ def get_teams():
         if current_ecs_season:
             conditions.append(League.season_id == current_ecs_season.id)
 
-        # Query teams by joining with League and applying the conditions.
-        teams_query = session_db.query(Team).join(League, Team.league_id == League.id)
+        # Query teams with eager loading to prevent N+1 queries
+        from sqlalchemy.orm import joinedload
+        teams_query = session_db.query(Team).join(League, Team.league_id == League.id).options(
+            joinedload(Team.league)
+        )
         if len(conditions) == 1:
             teams_query = teams_query.filter(conditions[0])
         elif len(conditions) == 2:
@@ -538,7 +561,9 @@ def get_teams():
             
             # Cache the results for 10 minutes
             set_match_results_cache(teams_data, league_id=f"teams_{cache_hash}", ttl=600)
-        return jsonify(teams_data), 200
+        
+        # Return with ETag support for mobile app caching
+        return make_etag_response(teams_data, 'team_list', CACHE_DURATIONS['team_list'])
 
 
 @mobile_api.route('/teams/<int:team_id>', endpoint='get_team_details', methods=['GET'])
@@ -577,24 +602,19 @@ def get_team_players(team_id: int):
         if not team:
             return jsonify({"msg": "Team not found"}), 404
 
-        # Fetch players for this team
-        players = (session_db.query(Player)
-                  .join(player_teams)
-                  .filter(player_teams.c.team_id == team_id)
-                  .order_by(Player.name)
-                  .all())
+        # Fetch players for this team with coach status in single query (prevents N+1)
+        players_with_coach_status = (session_db.query(Player, player_teams.c.is_coach)
+                                    .join(player_teams)
+                                    .filter(player_teams.c.team_id == team_id)
+                                    .order_by(Player.name)
+                                    .all())
         
         base_url = request.host_url.rstrip('/')
         default_image = f"{base_url}/static/img/default_player.png"
         
         # Build detailed player list with role information
         detailed_players = []
-        for player in players:
-            # Get coach status for this specific team - this is the correct way to determine coach status
-            is_coach = session_db.query(player_teams.c.is_coach).filter(
-                player_teams.c.player_id == player.id,
-                player_teams.c.team_id == team_id
-            ).scalar() or False  # Use the team-specific coach relationship
+        for player, is_coach in players_with_coach_status:
             
             profile_picture_url = player.profile_picture_url
             if profile_picture_url:
@@ -609,7 +629,7 @@ def get_team_players(team_id: int):
                 "id": player.id,
                 "name": player.name,
                 "jersey_number": player.jersey_number,
-                "is_coach": is_coach,  # This is from the team-specific relationship
+                "is_coach": bool(is_coach),  # Convert to boolean (was already loaded in single query)
                 "is_ref": player.is_ref,
                 "is_current_player": player.is_current_player,
                 "favorite_position": player.favorite_position,
@@ -651,8 +671,12 @@ def get_team_matches(team_id: int):
         if limit and limit.isdigit():
             limit = int(limit)
         
-        # Build match query
-        query = session_db.query(Match).filter(
+        # Build match query with eager loading to prevent N+1 queries
+        from sqlalchemy.orm import joinedload
+        query = session_db.query(Match).options(
+            joinedload(Match.home_team),
+            joinedload(Match.away_team)
+        ).filter(
             or_(Match.home_team_id == team_id, Match.away_team_id == team_id)
         )
         
@@ -665,9 +689,10 @@ def get_team_matches(team_id: int):
         # Order by date
         query = query.order_by(Match.date)
         
-        # Apply limit if specified
-        if limit:
-            query = query.limit(limit)
+        # Apply reasonable limit for mobile performance
+        if not limit:
+            limit = 15 if upcoming else 10  # Smaller default limits for mobile
+        query = query.limit(min(limit, 25))  # Cap at 25 for performance
             
         matches = query.all()
         
@@ -693,8 +718,16 @@ def get_match_availability(match_id: int):
     """
     with managed_session() as session_db:
         current_user_id = get_jwt_identity()
-        safe_current_user = session_db.query(User).get(current_user_id)
-        match = session_db.query(Match).get(match_id)
+        # Query user and match with eager loading to prevent N+1 queries
+        from sqlalchemy.orm import joinedload, selectinload
+        safe_current_user = session_db.query(User).options(
+            joinedload(User.roles)
+        ).filter(User.id == current_user_id).first()
+        
+        match = session_db.query(Match).options(
+            joinedload(Match.home_team),
+            joinedload(Match.away_team)
+        ).filter(Match.id == match_id).first()
         
         if not match:
             return jsonify({"msg": "Match not found"}), 404
@@ -703,7 +736,9 @@ def get_match_availability(match_id: int):
         user_roles = [r.name for r in safe_current_user.roles]
         is_admin_or_coach = any(r in ['Coach', 'Admin'] for r in user_roles)
         
-        player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+        player = session_db.query(Player).options(
+            selectinload(Player.teams)
+        ).filter_by(user_id=current_user_id).first()
         is_on_team = False
         
         if player:
@@ -839,21 +874,21 @@ def get_team_stats(team_id: int):
         
         stats["total_goals"] = total_goals
         
-        # Get player statistics for this team
+        # Get player statistics for this team (bulk load to prevent N+1)
         players_stats = []
-        team_players = session_db.query(Player).join(
-            player_teams
-        ).filter(
-            player_teams.c.team_id == team_id
-        ).all()
-        
-        for player in team_players:
-            if current_season:
-                player_stats = session_db.query(PlayerSeasonStats).filter_by(
-                    player_id=player.id,
-                    season_id=current_season.id
-                ).first()
-                
+        if current_season:
+            # Single query to get all player stats for the team
+            player_stats_query = session_db.query(Player, PlayerSeasonStats).join(
+                player_teams, Player.id == player_teams.c.player_id
+            ).outerjoin(
+                PlayerSeasonStats, 
+                (PlayerSeasonStats.player_id == Player.id) & 
+                (PlayerSeasonStats.season_id == current_season.id)
+            ).filter(
+                player_teams.c.team_id == team_id
+            ).all()
+            
+            for player, player_stats in player_stats_query:
                 if player_stats and (player_stats.goals > 0 or player_stats.assists > 0):
                     players_stats.append({
                         "id": player.id,
@@ -868,7 +903,8 @@ def get_team_stats(team_id: int):
         players_stats.sort(key=lambda x: (x.get("goals", 0), x.get("assists", 0)), reverse=True)
         stats["players_stats"] = players_stats
         
-        return jsonify(stats), 200
+        # Return with ETag support for mobile app caching
+        return make_etag_response(stats, 'team_stats', CACHE_DURATIONS['team_stats'])
 
 
 @mobile_api.route('/teams/my_team', endpoint='get_my_team', methods=['GET'])
@@ -979,30 +1015,69 @@ def get_all_matches():
     logger.debug(f"🔵 [MOBILE_API] Request args: {dict(request.args)}")
     
     with managed_session() as session_db:
-        player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+        # Get user with roles for access level determination
+        from sqlalchemy.orm import joinedload
+        user = session_db.query(User).options(
+            joinedload(User.roles)
+        ).filter(User.id == current_user_id).first()
+        
+        player = session_db.query(Player).options(
+            joinedload(Player.primary_team),
+            joinedload(Player.league)
+        ).filter_by(user_id=current_user_id).first()
         logger.debug(f"🔵 [MOBILE_API] Player found: {player.name if player else 'None'}")
 
         # Get query parameters with performance defaults
         upcoming = request.args.get('upcoming', 'false').lower() == 'true'
         completed = request.args.get('completed', 'false').lower() == 'true'
         all_teams = request.args.get('all_teams', 'false').lower() == 'true'
+        team_id = request.args.get('team_id', type=int)
         
-        # Set reasonable default limits for performance
+        # Determine user access level for smart limits
+        user_roles = [r.name for r in user.roles] if user.roles else []
+        is_admin = any(r in ['Global Admin', 'Admin'] for r in user_roles)
+        is_league_admin = any('admin' in r.lower() for r in user_roles)
+        is_coach = 'Coach' in user_roles or (player and player.is_coach)
+        
+        # Set reasonable default limits for performance based on role and context
         limit = request.args.get('limit')
         if limit and limit.isdigit():
-            limit = int(limit)
+            limit = min(int(limit), 200 if is_admin else 100)  # Cap based on role
         else:
-            # Performance-based defaults
-            if completed:
-                limit = 50  # Limit match history to prevent 15s queries
-            elif upcoming:
-                limit = 25  # Upcoming matches should be fewer
-            elif all_teams:
-                limit = 50  # All teams can be many matches
+            # Smart defaults based on role and query type
+            if team_id:
+                # Viewing specific team - allow more matches
+                limit = 50
+            elif is_admin:
+                if completed:
+                    limit = 50  # Admins need more history for management
+                elif upcoming:
+                    limit = 40
+                elif all_teams:
+                    limit = 60
+                else:
+                    limit = 45
+            elif is_league_admin or is_coach:
+                if completed:
+                    limit = 30  # Coaches need match history for their oversight
+                elif upcoming:
+                    limit = 25
+                elif all_teams:
+                    limit = 35
+                else:
+                    limit = 25
             else:
-                limit = 75  # General default
+                # Regular players - focused on their relevant matches
+                if completed:
+                    limit = 15
+                elif upcoming:
+                    limit = 10
+                elif all_teams:
+                    limit = 20
+                else:
+                    limit = 15
 
-        logger.debug(f"🔵 [MOBILE_API] Building matches query with limit: {limit}")
+        logger.debug(f"🔵 [MOBILE_API] User roles: {user_roles}, query type: {('upcoming' if upcoming else 'completed' if completed else 'all')}, limit: {limit}")
         
         query = build_matches_query(
             team_id=request.args.get('team_id'),
@@ -1032,7 +1107,10 @@ def get_all_matches():
         )
 
         logger.info(f"🟢 [MOBILE_API] get_all_matches successful - returning {len(matches_data)} matches")
-        return jsonify(matches_data), 200
+        
+        # Return with ETag support - use shorter cache for match lists that might update
+        cache_duration = CACHE_DURATIONS['match_list'] if not include_availability else 3600  # 1 hour if personalized
+        return make_etag_response(matches_data, 'match_list', cache_duration)
 
 
 @mobile_api.route('/matches/schedule', endpoint='get_match_schedule', methods=['GET'])
@@ -1046,19 +1124,82 @@ def get_match_schedule():
     logger.debug(f"🔵 [MOBILE_API] Request args: {dict(request.args)}")
     
     with managed_session() as session_db:
-        player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+        # Get user with roles for access level determination
+        from sqlalchemy.orm import joinedload
+        user = session_db.query(User).options(
+            joinedload(User.roles)
+        ).filter(User.id == current_user_id).first()
+        
+        player = session_db.query(Player).options(
+            joinedload(Player.primary_team),
+            joinedload(Player.league)
+        ).filter_by(user_id=current_user_id).first()
         logger.debug(f"🔵 [MOBILE_API] Player found: {player.name if player else 'None'}")
+        
+        # Determine user access level and appropriate limits
+        user_roles = [r.name for r in user.roles] if user.roles else []
+        is_admin = any(r in ['Global Admin', 'Admin'] for r in user_roles)
+        is_league_admin = any('admin' in r.lower() for r in user_roles)
+        is_coach = 'Coach' in user_roles or (player and player.is_coach)
+        
+        # Smart limits based on user role and request context
+        team_id = request.args.get('team_id', type=int)
+        requested_limit = request.args.get('limit', type=int)
+        
+        if requested_limit:
+            # User explicitly requested a limit - respect it but cap for performance
+            limit = min(requested_limit, 200 if is_admin else 100)
+        elif team_id:
+            # Viewing specific team - allow more matches for that team
+            limit = 50
+        elif is_admin:
+            # Global admin default - more matches for management
+            limit = 75
+        elif is_league_admin or is_coach:
+            # League admin/coach - moderate amount for their oversight duties
+            limit = 50
+        else:
+            # Regular player - focused on their relevant matches
+            limit = 25
+        
+        logger.debug(f"🔵 [MOBILE_API] User roles: {user_roles}, using limit: {limit}")
+        
+        # Check cache first for non-personalized queries
+        cache_key = None
+        cached_matches = None
+        if not (player and request.args.get('include_availability', 'true').lower() == 'true'):
+            # Only cache if not including personal availability data
+            from app.performance_cache import cache_match_results
+            import hashlib
+            cache_params = f"schedule_{team_id or 'all'}_{limit}_{request.args.get('upcoming', 'true')}"
+            cache_key = hashlib.md5(cache_params.encode()).hexdigest()
+            cached_matches = cache_match_results(league_id=f"schedule_{cache_key}")
+            
+            if cached_matches:
+                logger.debug(f"🔵 [MOBILE_API] Returning cached schedule data")
+                return jsonify(cached_matches), 200
         
         # Build query for upcoming matches
         query = build_matches_query(
-            team_id=request.args.get('team_id'),
+            team_id=team_id,
             player=player,
             upcoming=True,
             session=session_db
         )
         
-        # Order by date and get matches
-        matches = query.order_by(Match.date).all()
+        # Order by date and apply limit
+        matches = query.order_by(Match.date).limit(limit).all()
+        logger.debug(f"🔵 [MOBILE_API] Found {len(matches)} matches (limit: {limit})")
+        
+        # Bulk load availability data to prevent N+1 queries
+        availability_dict = {}
+        if player and request.args.get('include_availability', 'true').lower() == 'true' and matches:
+            match_ids = [match.id for match in matches]
+            availabilities = session_db.query(Availability).filter(
+                Availability.match_id.in_(match_ids),
+                Availability.player_id == player.id
+            ).all()
+            availability_dict = {av.match_id: av for av in availabilities}
         
         # Group matches by date
         schedule = {}
@@ -1070,10 +1211,7 @@ def get_match_schedule():
             match_data = match.to_dict(include_teams=True)
             # Add availability if requested and player exists
             if player and request.args.get('include_availability', 'true').lower() == 'true':
-                availability = session_db.query(Availability).filter_by(
-                    match_id=match.id, 
-                    player_id=player.id
-                ).first()
+                availability = availability_dict.get(match.id)
                 match_data['availability'] = availability.to_dict() if availability else None
             
             schedule[match_date].append(match_data)
@@ -1090,8 +1228,17 @@ def get_match_schedule():
         # Sort by date
         schedule_list.sort(key=lambda x: x['date'])
         
-        logger.info(f"🟢 [MOBILE_API] get_match_schedule successful - returning {len(schedule_list)} dates with matches")
-        return jsonify(schedule_list), 200
+        # Cache the result if it's not personalized (no availability data)
+        # Use long cache since match schedules rarely change (maybe once per season)
+        if cache_key and not (player and request.args.get('include_availability', 'true').lower() == 'true'):
+            from app.performance_cache import set_match_results_cache
+            set_match_results_cache(league_id=f"schedule_{cache_key}", results=schedule_list, ttl_minutes=10080)  # 7 days
+            logger.debug(f"🔵 [MOBILE_API] Cached schedule data for {cache_key} (7 day TTL)")
+        
+        logger.info(f"🟢 [MOBILE_API] get_match_schedule successful - returning {len(schedule_list)} dates with matches (limit: {limit})")
+        
+        # Return with ETag support for mobile app caching
+        return make_etag_response(schedule_list, 'match_schedule', CACHE_DURATIONS['match_schedule'])
 
 
 @mobile_api.route('/matches/<int:match_id>', endpoint='get_single_match_details', methods=['GET'])
@@ -1101,7 +1248,13 @@ def get_single_match_details(match_id: int):
     Retrieve detailed information for a single match.
     """
     with managed_session() as session_db:
-        match = session_db.query(Match).get(match_id)
+        # Query match with eager loading to prevent N+1 queries
+        from sqlalchemy.orm import joinedload, selectinload
+        match = session_db.query(Match).options(
+            joinedload(Match.home_team),
+            joinedload(Match.away_team),
+            selectinload(Match.events)
+        ).filter(Match.id == match_id).first()
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
@@ -1117,7 +1270,8 @@ def get_single_match_details(match_id: int):
             session=session_db
         )
 
-        return jsonify(match_data), 200
+        # Return with ETag support for mobile app caching
+        return make_etag_response(match_data, 'match_details', CACHE_DURATIONS['match_details'])
 
 
 @mobile_api.route('/update_availability', endpoint='update_availability', methods=['POST'])
@@ -1228,11 +1382,18 @@ def get_players():
     """
     with managed_session() as session_db:
         search_query = request.args.get('search', '').lower()
+        limit = request.args.get('limit', 25, type=int)  # Default limit for mobile performance
+        limit = min(limit, 50)  # Cap at 50 for performance
 
-        players_query = session_db.query(Player).join(Team, isouter=True).filter(
+        # Query with eager loading and performance limits
+        from sqlalchemy.orm import joinedload
+        players_query = session_db.query(Player).options(
+            joinedload(Player.primary_team),
+            joinedload(Player.league)
+        ).join(Team, isouter=True).filter(
             (Player.name.ilike(f"%{search_query}%")) |
             (Team.name.ilike(f"%{search_query}%"))
-        )
+        ).limit(limit)
 
         players_data = [build_player_response(player) for player in players_query.all()]
         return jsonify(players_data), 200
