@@ -170,10 +170,18 @@ class ISpySubmissionView(discord.ui.View):
                         public_embed.set_image(url=self.image_url)
                         public_embed.set_footer(text=f"Shot #{data['shot_id']} • Use /ispy-top to see leaderboards!")
                         
-                        # Send public message to channel
+                        # Send public message to channel (not ephemeral!)
+                        await interaction.channel.send(embed=public_embed)
+                        
+                        # Edit the original ephemeral message to show success
+                        success_embed = discord.Embed(
+                            title="✅ I-Spy Shot Posted!",
+                            color=discord.Color.green(),
+                            description="Your shot has been posted publicly to the channel!"
+                        )
                         await interaction.response.edit_message(
                             content=None,
-                            embed=public_embed,
+                            embed=success_embed,
                             view=None
                         )
                         
