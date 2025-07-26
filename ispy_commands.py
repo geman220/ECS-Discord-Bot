@@ -112,11 +112,32 @@ class ISpySubmissionView(discord.ui.View):
                     if resp.status == 200:
                         data = await resp.json()
                         
+                        # Filter targets that were actually included (in case some were on cooldown)
+                        valid_targets = self.targets
+                        filtered_info = ""
+                        
+                        if 'filtered_targets' in data:
+                            # Some targets were filtered out due to cooldowns
+                            filtered_target_ids = [str(t['discord_id']) for t in data['filtered_targets']]
+                            valid_targets = [t for t in self.targets if str(t.id) not in filtered_target_ids]
+                            
+                            filtered_mentions = []
+                            for filtered_target in data['filtered_targets']:
+                                target_id = filtered_target['discord_id']
+                                target_member = discord.utils.get(self.targets, id=int(target_id))
+                                if target_member:
+                                    cooldown_type = "🌍 Global" if filtered_target['type'] == 'global' else f"📍 {filtered_target.get('category_name', 'Venue')}"
+                                    expires_readable = filtered_target['expires_at'][:10]  # Just the date part
+                                    filtered_mentions.append(f"{target_member.mention} ({cooldown_type} cooldown until {expires_readable})")
+                            
+                            if filtered_mentions:
+                                filtered_info = f"\n\n⚠️ **Excluded from shot:** {', '.join(filtered_mentions)}"
+                        
                         # Public success message - make it engaging for the community
                         public_embed = discord.Embed(
                             title="📸 I-Spy Shot Spotted!",
                             color=discord.Color.green(),
-                            description=f"**{interaction.user.mention} has Spied {', '.join([target.mention for target in self.targets])} at {self.location}!**"
+                            description=f"**{interaction.user.mention} has Spied {', '.join([target.mention for target in valid_targets])} at {self.location}!**{filtered_info}"
                         )
                         
                         public_embed.add_field(
@@ -130,6 +151,14 @@ class ISpySubmissionView(discord.ui.View):
                             value=f"**{data['points_awarded']}** points",
                             inline=True
                         )
+                        
+                        # Add cooldown explanation if targets were filtered
+                        if 'filtered_targets' in data:
+                            public_embed.add_field(
+                                name="ℹ️ About Cooldowns",
+                                value="Players have cooldowns after being spotted:\n• 48 hours at any venue (Global)\n• 14 days at the same venue type",
+                                inline=False
+                            )
                         
                         # Add promotional message to encourage participation
                         public_embed.add_field(
@@ -162,6 +191,14 @@ class ISpySubmissionView(discord.ui.View):
                                 value=f"Base Points: {breakdown['base_points']}\nBonus Points: {breakdown['bonus_points']}\nStreak Bonus: {breakdown['streak_bonus']}\n**Total: {data['points_awarded']} points**",
                                 inline=False
                             )
+                            
+                            # Add information about filtered targets in private message
+                            if 'filtered_targets' in data:
+                                private_embed.add_field(
+                                    name="⚠️ Filtered Targets",
+                                    value=f"{len(data['filtered_targets'])} target(s) were excluded due to cooldowns. Check the public message for details.",
+                                    inline=False
+                                )
                             
                             await interaction.followup.send(embed=private_embed, ephemeral=True)
                         except:
@@ -238,7 +275,7 @@ class ISpySubmissionView(discord.ui.View):
 
 @app_commands.command(name="ispy", description="Submit an I-Spy shot of fellow pub leaguers")
 @app_commands.describe(
-    targets="1-3 Discord users you spotted (use @mentions)",
+    targets="Discord users you spotted (use @mentions, more targets = more points!)",
     location="Short description of location (max 40 chars)",
     image="Photo of the targets"
 )
@@ -294,17 +331,13 @@ async def ispy_submit(
         
         if not target_members:
             await interaction.followup.send(
-                "❌ Please mention 1-3 valid Discord users as targets!",
+                "❌ Please mention at least one valid Discord user as a target!",
                 ephemeral=True
             )
             return
         
-        if len(target_members) > 3:
-            await interaction.followup.send(
-                "❌ Maximum 3 targets allowed per shot!",
-                ephemeral=True
-            )
-            return
+        # No maximum limit - more targets = more points!
+        # The bonus points kick in at 3+ targets
         
         # Validate location length
         if len(location) > 40:
@@ -363,6 +396,18 @@ async def ispy_submit(
         embed.add_field(
             name="📢 Public Features",
             value="• Everyone will see the photo and tags\n• Promotes community engagement\n• Encourages others to play I-Spy",
+            inline=False
+        )
+        
+        # Show scoring info to encourage more targets
+        target_count = len(target_members)
+        points_preview = f"{target_count} base point{'s' if target_count != 1 else ''}"
+        if target_count >= 3:
+            points_preview += f" + 1 bonus = {target_count + 1} points"
+        
+        embed.add_field(
+            name="🏆 Points Preview",
+            value=f"{points_preview} (+ possible streak bonus)",
             inline=False
         )
         
