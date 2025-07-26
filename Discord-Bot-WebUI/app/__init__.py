@@ -317,6 +317,18 @@ def create_app(config_object='web_config.Config'):
 
     # CRITICAL: Import handlers AFTER socketio.init_app() so they register on the correct instance
     from . import socket_handlers
+    # Import live reporting handlers to register /live namespace
+    from app.sockets import live_reporting
+    
+    # Debug: Check if /live namespace handlers are registered
+    try:
+        if hasattr(socketio.server, 'handlers'):
+            live_handlers = socketio.server.handlers.get('/live', {})
+            logger.info(f"🔥 Handlers in /live namespace: {list(live_handlers.keys())}")
+        else:
+            logger.warning("🚫 No server.handlers attribute found for /live namespace")
+    except Exception as e:
+        logger.error(f"🚫 Error checking /live handlers: {e}")
     
     # Register blueprints, context processors, and error handlers
     init_blueprints(app)
