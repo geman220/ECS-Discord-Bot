@@ -77,11 +77,9 @@ def validate_targets(author_discord_id: str, target_discord_ids: List[str]) -> D
     """
     errors = []
     
-    # Check target count (1-3 targets)
+    # Check target count (minimum 1 target, no maximum - more targets = more points!)
     if len(target_discord_ids) < 1:
         errors.append("At least one target is required")
-    elif len(target_discord_ids) > 3:
-        errors.append("Maximum 3 targets allowed per shot")
     
     # Check for self-targeting
     if author_discord_id in target_discord_ids:
@@ -518,13 +516,25 @@ def validate_shot_submission(
         result['errors'].append("You have already submitted this image within the last 7 days")
         return result
     
-    # Check cooldown violations
+    # Check cooldown violations and filter out blocked targets
     cooldown_check = check_cooldown_violations(target_discord_ids, category.id)
-    if cooldown_check['has_violations']:
+    blocked_discord_ids = [v['discord_id'] for v in cooldown_check['blocked_targets']]
+    
+    # Filter out targets that are on cooldown
+    valid_target_discord_ids = [tid for tid in target_discord_ids if tid not in blocked_discord_ids]
+    
+    # If no valid targets remain after filtering, fail the submission
+    if not valid_target_discord_ids:
         result['valid'] = False
+        result['errors'].append("All targets are currently on cooldown")
         for violation in cooldown_check['blocked_targets']:
             result['errors'].append(f"Target {violation['discord_id']} is on cooldown until {violation['expires_at']} ({violation['reason']})")
         return result
+    
+    # If some targets were filtered out, add them to warnings for later display
+    if blocked_discord_ids:
+        result['filtered_targets'] = cooldown_check['blocked_targets']
+        result['warnings'].append(f"{len(blocked_discord_ids)} target(s) excluded due to cooldowns")
     
     # Get active season
     season = get_active_season()
@@ -533,11 +543,12 @@ def validate_shot_submission(
         result['errors'].append("No active I-Spy season found")
         return result
     
-    # Add success data
+    # Add success data (use filtered target list)
     result['category_id'] = category.id
     result['season_id'] = season.id
     result['image_hash'] = image_hash
-    result['target_count'] = len(target_discord_ids)
+    result['target_count'] = len(valid_target_discord_ids)
+    result['valid_target_discord_ids'] = valid_target_discord_ids
     
     return result
 

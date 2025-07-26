@@ -1999,10 +1999,10 @@ def ispy_submit_shot():
                 'warnings': validation.get('warnings', [])
             }), 400
         
-        # Create the shot
+        # Create the shot using filtered targets
         shot = create_shot_with_targets(
             author_discord_id=current_user_id,
-            target_discord_ids=data['targets'],
+            target_discord_ids=validation['valid_target_discord_ids'],
             category_id=validation['category_id'],
             location=data['location'],
             image_url=image_url,
@@ -2010,7 +2010,7 @@ def ispy_submit_shot():
             season_id=validation['season_id']
         )
         
-        return jsonify({
+        response_data = {
             'success': True,
             'shot_id': shot.id,
             'points_awarded': shot.total_points,
@@ -2019,7 +2019,14 @@ def ispy_submit_shot():
                 'bonus_points': shot.bonus_points,
                 'streak_bonus': shot.streak_bonus
             }
-        })
+        }
+        
+        # Include information about filtered targets if any
+        if 'filtered_targets' in validation:
+            response_data['filtered_targets'] = validation['filtered_targets']
+            response_data['warnings'] = validation.get('warnings', [])
+        
+        return jsonify(response_data)
         
     except Exception as e:
         logger.error(f"Error submitting I-Spy shot: {str(e)}")
