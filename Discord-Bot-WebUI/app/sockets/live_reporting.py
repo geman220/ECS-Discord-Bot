@@ -30,6 +30,9 @@ from app.models import Match, Team, Player, User, PlayerEventType
 
 logger = logging.getLogger(__name__)
 
+print("🔥 LIVE REPORTING SOCKET HANDLERS MODULE LOADED")
+logger.info("🔥 LIVE REPORTING SOCKET HANDLERS MODULE LOADED")
+
 def get_socket_current_user(session):
     """
     Get the current user from the Socket.IO session
@@ -643,7 +646,7 @@ def on_timer_update(data):
     and broadcasts the change to all connected reporters.
     
     Args:
-        data: Dictionary containing match_id, elapsed_seconds, is_running, and period.
+        data: Dictionary containing Flutter app timer data format.
     """
     with socket_session(db.engine) as session:
         # Get authenticated user
@@ -654,16 +657,24 @@ def on_timer_update(data):
             return
             
         match_id = data.get('match_id')
-        elapsed_seconds = data.get('elapsed_seconds')
-        is_running = data.get('is_running')
-        period = data.get('period')
         user_id = user.id
         
-        if not all([match_id is not None, 
-                    elapsed_seconds is not None, 
-                    is_running is not None]):
-            emit('error', {'message': 'Match ID, elapsed seconds, and running status are required'})
+        if not match_id:
+            emit('error', {'message': 'Match ID is required'})
             return
+        
+        # Extract timer data from Flutter format
+        action = data.get('action')
+        status = data.get('status')
+        is_running = data.get('is_running', False)
+        is_paused = data.get('is_paused', False)
+        is_stopped = data.get('is_stopped', False)
+        elapsed_time_ms = data.get('elapsed_time_ms', 0)
+        elapsed_seconds = int(elapsed_time_ms / 1000) if elapsed_time_ms else 0
+        formatted_time = data.get('formatted_time', '00:00')
+        match_minute = data.get('match_minute', '0')
+        period = data.get('period', 'first_half')
+        timestamp = data.get('timestamp')
         
         try:
             # Update timer in live match
@@ -672,6 +683,7 @@ def on_timer_update(data):
                 emit('error', {'message': f'No live match found with ID {match_id}'})
                 return
                 
+            # Update database with Flutter format
             live_match.elapsed_seconds = elapsed_seconds
             live_match.timer_running = is_running
             if period:
@@ -680,16 +692,28 @@ def on_timer_update(data):
             
             session.commit()
             
-            # Broadcast to all in the room
-            emit('timer_updated', {
-                'elapsed_seconds': elapsed_seconds,
+            # Broadcast to all in the room with Flutter-compatible format
+            broadcast_data = {
+                'match_id': match_id,
+                'action': action,
+                'status': status,
                 'is_running': is_running,
+                'is_paused': is_paused,
+                'is_stopped': is_stopped,
+                'formatted_time': formatted_time,
+                'match_minute': match_minute,
+                'elapsed_time_ms': elapsed_time_ms,
+                'elapsed_seconds': elapsed_seconds,  # Keep for backward compatibility
                 'period': period,
+                'timestamp': timestamp or datetime.utcnow().isoformat(),
                 'updated_by': user_id,
                 'updated_by_name': user.username
-            }, room=f"match_{match_id}")
+            }
             
-            logger.info(f"Timer updated for match {match_id}: {elapsed_seconds}s, running: {is_running}, period: {period} by user {user_id}")
+            # Broadcast to all other coaches in the room (exclude sender)
+            emit('timer_updated', broadcast_data, room=f"match_{match_id}", include_self=False)
+            
+            logger.info(f"Timer updated for match {match_id}: {action} - {formatted_time} ({elapsed_seconds}s) by user {user_id}")
             
         except Exception as e:
             logger.error(f"Error updating timer: {str(e)}", exc_info=True)
@@ -1010,6 +1034,14 @@ def get_match_state(session, match_id):
             
         events.append(event_dict)
     
+    # Calculate Flutter-compatible timer fields
+    elapsed_seconds = live_match.elapsed_seconds or 0
+    elapsed_time_ms = elapsed_seconds * 1000
+    minutes = elapsed_seconds // 60
+    seconds = elapsed_seconds % 60
+    formatted_time = f"{minutes:02d}:{seconds:02d}"
+    match_minute = str(minutes)
+    
     return {
         "match_id": match_id,
         "home_team_id": match.home_team_id if match else None,
@@ -1018,10 +1050,17 @@ def get_match_state(session, match_id):
         "away_team_name": match.away_team.name if match and match.away_team else "Away Team",
         "status": live_match.status,
         "period": live_match.current_period,
-        "elapsed_seconds": live_match.elapsed_seconds,
+        "elapsed_seconds": elapsed_seconds,
+        # Flutter-compatible timer fields
+        "elapsed_time_ms": elapsed_time_ms,
+        "formatted_time": formatted_time,
+        "match_minute": match_minute,
+        "is_running": live_match.timer_running,
+        "is_paused": not live_match.timer_running,
+        "is_stopped": live_match.status == 'completed',
+        "timer_running": live_match.timer_running,  # Keep for backward compatibility
         "home_score": live_match.home_score,
         "away_score": live_match.away_score,
-        "timer_running": live_match.timer_running,
         "report_submitted": live_match.report_submitted,
         "report_submitted_by": live_match.report_submitted_by,
         "events": events

@@ -1018,24 +1018,29 @@ def _extract_failed_rsvp_records(session):
     """Extract data for failed RSVP records from database (Phase 1)."""
     week_ago = datetime.utcnow().date() - timedelta(days=7)
     
-    # OPTIMIZED: Use EXISTS and only select IDs, not full objects
-    from sqlalchemy import exists
-    
-    # FIXED: Use proper JOIN instead of exists() for better compatibility
-    failed_record_ids = session.query(Availability.id).join(
-        Match, Match.id == Availability.match_id
-    ).filter(
-        Availability.discord_sync_status == 'failed',
-        Match.date >= week_ago
-    ).limit(200).all()  # Process max 200 at a time
-    
-    # Extract just the ID values from the result tuples
-    failed_ids = [record_id for (record_id,) in failed_record_ids]
-    
-    return {
-        'failed_record_ids': failed_ids,
-        'total_found': len(failed_ids)
-    }
+    try:
+        # FIXED: Use proper JOIN and handle potential empty results
+        failed_record_ids = session.query(Availability.id).join(
+            Match, Match.id == Availability.match_id
+        ).filter(
+            Availability.discord_sync_status == 'failed',
+            Match.date >= week_ago
+        ).limit(200).all()  # Process max 200 at a time
+        
+        # Extract just the ID values from the result tuples
+        failed_ids = [record_id for (record_id,) in failed_record_ids] if failed_record_ids else []
+        
+        return {
+            'failed_record_ids': failed_ids,
+            'total_found': len(failed_ids)
+        }
+    except Exception as e:
+        logger.error(f"Error extracting failed RSVP records: {str(e)}", exc_info=True)
+        # Return empty results on error to prevent crash
+        return {
+            'failed_record_ids': [],
+            'total_found': 0
+        }
 
 
 async def _execute_discord_sync_async(data):

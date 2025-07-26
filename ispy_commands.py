@@ -112,39 +112,60 @@ class ISpySubmissionView(discord.ui.View):
                     if resp.status == 200:
                         data = await resp.json()
                         
-                        # Success response
-                        embed = discord.Embed(
-                            title="📸 I-Spy Shot Submitted!",
+                        # Public success message - make it engaging for the community
+                        public_embed = discord.Embed(
+                            title="📸 I-Spy Shot Spotted!",
                             color=discord.Color.green(),
-                            description=f"**Location:** {self.location}\n**Category:** {self.selected_category}"
+                            description=f"**{interaction.user.mention} has Spied {', '.join([target.mention for target in self.targets])} at {self.location}!**"
                         )
                         
-                        embed.add_field(
-                            name="🎯 Targets",
-                            value=", ".join([target.mention for target in self.targets]),
+                        public_embed.add_field(
+                            name="📍 Location & Category",
+                            value=f"**{self.location}** ({self.selected_category})",
+                            inline=True
+                        )
+                        
+                        public_embed.add_field(
+                            name="🏆 Points Earned",
+                            value=f"**{data['points_awarded']}** points",
+                            inline=True
+                        )
+                        
+                        # Add promotional message to encourage participation
+                        public_embed.add_field(
+                            name="🎮 Join the Fun!",
+                            value="Use `/ispy` when you spot pub leaguers in the wild! Tag them, snap a pic, and earn points!",
                             inline=False
                         )
                         
-                        embed.add_field(
-                            name="🏆 Points Awarded",
-                            value=f"**{data['points_awarded']}** points total",
-                            inline=True
-                        )
+                        public_embed.set_image(url=self.image_url)
+                        public_embed.set_footer(text=f"Shot #{data['shot_id']} • Use /ispy-top to see leaderboards!")
                         
-                        breakdown = data['breakdown']
-                        embed.add_field(
-                            name="📊 Breakdown",
-                            value=f"Base: {breakdown['base_points']}\nBonus: {breakdown['bonus_points']}\nStreak: {breakdown['streak_bonus']}",
-                            inline=True
-                        )
-                        
-                        embed.set_footer(text=f"Shot ID: {data['shot_id']}")
-                        
+                        # Send public message to channel
                         await interaction.response.edit_message(
                             content=None,
-                            embed=embed,
+                            embed=public_embed,
                             view=None
                         )
+                        
+                        # Also send a private confirmation with detailed breakdown
+                        try:
+                            breakdown = data['breakdown']
+                            private_embed = discord.Embed(
+                                title="✅ Shot Submitted Successfully!",
+                                color=discord.Color.blue(),
+                                description="Here's your detailed scoring breakdown:"
+                            )
+                            
+                            private_embed.add_field(
+                                name="📊 Points Breakdown",
+                                value=f"Base Points: {breakdown['base_points']}\nBonus Points: {breakdown['bonus_points']}\nStreak Bonus: {breakdown['streak_bonus']}\n**Total: {data['points_awarded']} points**",
+                                inline=False
+                            )
+                            
+                            await interaction.followup.send(embed=private_embed, ephemeral=True)
+                        except:
+                            pass  # If private message fails, that's okay
                         
                     else:
                         data = await resp.json()
@@ -324,7 +345,7 @@ async def ispy_submit(
         embed = discord.Embed(
             title="📸 I-Spy Shot Preview",
             color=discord.Color.blue(),
-            description=f"**Location:** {location}"
+            description=f"**Location:** {location}\n\n⚠️ **This will be posted publicly when submitted!**"
         )
         
         embed.add_field(
@@ -335,12 +356,18 @@ async def ispy_submit(
         
         embed.add_field(
             name="📋 Next Steps",
-            value="1. Select a venue category from the dropdown\n2. Click 'Submit Shot' to complete",
+            value="1. Select a venue category from the dropdown\n2. Click 'Submit Shot' to post publicly and earn points",
+            inline=False
+        )
+        
+        embed.add_field(
+            name="📢 Public Features",
+            value="• Everyone will see the photo and tags\n• Promotes community engagement\n• Encourages others to play I-Spy",
             inline=False
         )
         
         embed.set_image(url=image.url)
-        embed.set_footer(text="Select category and submit to earn points!")
+        embed.set_footer(text="This shot will be shared publicly to promote the I-Spy game!")
         
         await interaction.followup.send(
             embed=embed,
@@ -363,7 +390,7 @@ async def ispy_submit(
 async def ispy_leaderboard(interaction: discord.Interaction, limit: Optional[int] = 10):
     """Display the current I-Spy leaderboard."""
     
-    # Defer the response immediately
+    # Defer the response immediately - public to encourage engagement
     await interaction.response.defer()
     
     # Check channel restriction
@@ -413,7 +440,7 @@ async def ispy_leaderboard(interaction: discord.Interaction, limit: Optional[int
                 embed = discord.Embed(
                     title="🏆 I-Spy Leaderboard",
                     color=discord.Color.gold(),
-                    description=f"**Season:** {season['name']}"
+                    description=f"**Season:** {season['name']}\n\nWho's been spotting the most pub leaguers? 👀"
                 )
                 
                 leaderboard_text = ""
@@ -437,6 +464,13 @@ async def ispy_leaderboard(interaction: discord.Interaction, limit: Optional[int
                     leaderboard_text += f"   📸 {shots} shots • 🏆 {points} pts • 🔥 {streak} streak\n\n"
                 
                 embed.description += f"\n\n{leaderboard_text}"
+                
+                # Add promotional footer to encourage participation
+                embed.add_field(
+                    name="🎮 Want to Join the Fun?",
+                    value="Use `/ispy @someone location` with a photo when you spot pub leaguers out and about!\nEarn points, build streaks, and climb the leaderboard! 📈",
+                    inline=False
+                )
                 
                 await interaction.followup.send(embed=embed)
                 
@@ -597,7 +631,7 @@ async def ispy_category_stats(interaction: discord.Interaction, category: str):
                 embed = discord.Embed(
                     title=f"📊 {category_name} Leaderboard",
                     color=discord.Color.purple(),
-                    description=f"**Season:** {season['name']}"
+                    description=f"**Season:** {season['name']}\n\nTop spotters at {category_name.lower()} venues! 🎯"
                 )
                 
                 leaderboard_text = ""
@@ -620,6 +654,13 @@ async def ispy_category_stats(interaction: discord.Interaction, category: str):
                     leaderboard_text += f"   📸 {shots} shots • 🏆 {points} pts\n\n"
                 
                 embed.description += f"\n\n{leaderboard_text}"
+                
+                # Add category-specific promotion
+                embed.add_field(
+                    name="🏃‍♂️ Ready to Hunt?",
+                    value=f"Next time you're at a {category_name.lower()}, keep an eye out for fellow pub leaguers!\nUse `/ispy` to tag them and claim your spot on this leaderboard! 📸",
+                    inline=False
+                )
                 
                 await interaction.followup.send(embed=embed)
                 
