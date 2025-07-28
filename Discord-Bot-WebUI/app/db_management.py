@@ -403,5 +403,86 @@ class DatabaseManager:
     def get_transaction_details(self, pid):
         return get_transaction_details(pid)
 
+    def get_detailed_stats(self):
+        """
+        Collect detailed database statistics including pool stats, active connections,
+        long-running transactions, recent events, and session monitoring data.
+        
+        Returns:
+            dict: Comprehensive database statistics
+        """
+        try:
+            # Get current pool stats
+            pool_stats = self.get_pool_stats().copy()
+            
+            # Add engine pool information if available
+            if self._engine and hasattr(self._engine.pool, 'size'):
+                pool_stats.update({
+                    'pool_size': self._engine.pool.size(),
+                    'checked_in': self._engine.pool.checkedin(),
+                    'checked_out': self._engine.pool.checkedout(),
+                })
+            
+            # Get active connections count
+            active_connections = len(self._active_connections)
+            
+            # Get long-running transactions from metadata
+            current_time = datetime.utcnow()
+            long_running_transactions = []
+            
+            for pid, metadata in transaction_metadata.items():
+                start_time = metadata.get('start_time', current_time)
+                duration = (current_time - start_time).total_seconds()
+                
+                if duration > 30:  # Transactions running longer than 30 seconds
+                    long_running_transactions.append({
+                        'pid': pid,
+                        'duration_seconds': duration,
+                        'start_time': start_time.isoformat(),
+                        'stack_trace': metadata.get('stack_trace', 'No stack trace'),
+                        'request_info': metadata.get('request_info', 'No request context')
+                    })
+            
+            # Get recent connection events (last 10)
+            recent_events = list(self.connection_history)[-10:] if self.connection_history else []
+            
+            # Session monitoring data
+            session_monitor = {
+                'active_sessions': len(transaction_metadata),
+                'connection_history_size': len(self.connection_history),
+                'oldest_transaction': None
+            }
+            
+            # Find oldest active transaction
+            if transaction_metadata:
+                oldest_pid = min(transaction_metadata.keys(), 
+                               key=lambda pid: transaction_metadata[pid].get('start_time', current_time))
+                oldest_meta = transaction_metadata[oldest_pid]
+                oldest_duration = (current_time - oldest_meta.get('start_time', current_time)).total_seconds()
+                session_monitor['oldest_transaction'] = {
+                    'pid': oldest_pid,
+                    'duration_seconds': oldest_duration,
+                    'start_time': oldest_meta.get('start_time', current_time).isoformat()
+                }
+            
+            return {
+                'pool_stats': pool_stats,
+                'active_connections': active_connections,
+                'long_running_transactions': long_running_transactions,
+                'recent_events': recent_events,
+                'session_monitor': session_monitor
+            }
+            
+        except Exception as e:
+            logger.error(f"Error collecting detailed stats: {e}", exc_info=True)
+            # Return basic fallback stats
+            return {
+                'pool_stats': self.get_pool_stats(),
+                'active_connections': len(self._active_connections),
+                'long_running_transactions': [],
+                'recent_events': [],
+                'session_monitor': {'error': str(e)}
+            }
+
 # Create a global DatabaseManager instance
 db_manager = DatabaseManager(db)

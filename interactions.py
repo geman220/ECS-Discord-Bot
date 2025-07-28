@@ -61,6 +61,20 @@ class VerifyModal(discord.ui.Modal):
         order_date_str = order_data.get("date_created")
         membership_prefix = "ECS Membership 20"
 
+        # Check if this is a pub league order first
+        pub_league_found = any(
+            "ECS Pub League" in item.get("name", "")
+            for item in order_data.get("line_items", [])
+        )
+        if pub_league_found:
+            return await interaction.response.send_message(
+                "This appears to be a **Pub League** order, not an ECS membership order.\n\n"
+                "For Pub League registration, please log into the **Player Portal** at "
+                "https://portal.ecsfc.com with your same Discord account.\n\n"
+                "The `/verify` command is only for **ECS Membership** verification.",
+                ephemeral=True
+            )
+
         # Verify that the order contains the required membership item
         membership_found = any(
             membership_prefix in item.get("name", "")

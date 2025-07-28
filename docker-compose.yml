@@ -296,7 +296,7 @@ services:
       - ./Discord-Bot-WebUI:/app
       - /var/run/docker.sock:/var/run/docker.sock
       - ./predictions.db:/app/predictions.db
-      - ./Discord-Bot-WebUI/service-account-key.json:/app/service-account-key.json
+      - ./Discord-Bot-WebUI/instance/firebase-service-account.json:/app/instance/firebase-service-account.json
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.webui.rule=Host(`portal.ecsfc.com`)"

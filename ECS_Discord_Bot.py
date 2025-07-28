@@ -393,7 +393,7 @@ async def full_rsvp_sync(force_sync=False):
                         get_message_channel_from_web_ui(message_id),
                         timeout=10.0
                     )
-                    if not match_data:
+                    if not match_data or not isinstance(match_data, dict):
                         logger.warning(f"Could not find message info for message {message_id}")
                         return
                     
@@ -1029,7 +1029,7 @@ async def update_user_rsvp(match_id: int, discord_id: int, response: str):
                 
                 # Find the message and channel
                 message_info = await get_message_channel_from_web_ui(match_id)
-                if message_info and 'channel_id' in message_info:
+                if message_info and isinstance(message_info, dict) and 'channel_id' in message_info:
                     channel_id = int(message_info['channel_id'])
                     message_id = int(message_info.get('message_id', 0))
                     
@@ -1076,7 +1076,7 @@ async def update_user_rsvp(match_id: int, discord_id: int, response: str):
                     
                     # Get the message info
                     message_info = await get_message_channel_from_web_ui(match_id)
-                    if message_info and 'channel_id' in message_info:
+                    if message_info and isinstance(message_info, dict) and 'channel_id' in message_info:
                         channel_id = int(message_info['channel_id'])
                         message_id = int(message_info.get('message_id', 0))
                         
@@ -1111,7 +1111,7 @@ async def get_user_team_id(discord_id: str, match_id: int) -> int:
     try:
         # Get match data to determine teams
         match_data = await get_message_channel_from_web_ui(match_id)
-        if not match_data or 'home_team_id' not in match_data or 'away_team_id' not in match_data:
+        if not match_data or not isinstance(match_data, dict) or 'home_team_id' not in match_data or 'away_team_id' not in match_data:
             logger.warning(f"Could not fetch match data for match {match_id}")
             return None
         

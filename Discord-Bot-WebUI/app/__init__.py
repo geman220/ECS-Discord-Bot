@@ -393,6 +393,20 @@ def create_app(config_object='web_config.Config'):
     # Initialize JWT for API authentication.
     from flask_jwt_extended import JWTManager
     JWTManager(app)
+    
+    # Initialize notification service
+    from app.services.notification_service import notification_service
+    import os
+    
+    service_account_path = os.path.join(app.instance_path, 'firebase-service-account.json')
+    if os.path.exists(service_account_path):
+        try:
+            notification_service.initialize(service_account_path)
+            logger.info("Firebase notification service initialized successfully")
+        except Exception as e:
+            logger.warning(f"Firebase service account file found but initialization failed: {e}")
+    else:
+        logger.warning("Firebase service account file not found at expected path")
 
     @app.errorhandler(Exception)
     def handle_unexpected_error(error):
@@ -660,6 +674,8 @@ def init_blueprints(app):
     from app.draft_predictions_routes import draft_predictions_bp
     from app.wallet_routes import wallet_bp
     from app.admin.wallet_admin_routes import wallet_admin_bp
+    from app.admin.notification_admin_routes import notification_admin_bp
+    from app.routes.notifications import notifications_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
@@ -698,6 +714,8 @@ def init_blueprints(app):
     app.register_blueprint(draft_predictions_bp)  # Blueprint has url_prefix='/draft-predictions'
     app.register_blueprint(wallet_bp)  # Blueprint has url_prefix='/wallet'
     app.register_blueprint(wallet_admin_bp)  # Blueprint has url_prefix='/admin/wallet'
+    app.register_blueprint(notification_admin_bp)  # Blueprint has url_prefix='/admin/notifications'
+    app.register_blueprint(notifications_bp)  # Blueprint has url_prefix='/api/v1/notifications'
     
     # Import and register playoff management blueprint
     from app.playoff_routes import playoff_bp
@@ -706,6 +724,10 @@ def init_blueprints(app):
     # Register cache admin routes
     from app.cache_admin_routes import cache_admin_bp
     app.register_blueprint(cache_admin_bp)
+    
+    # Register duplicate management routes
+    from app.admin.duplicate_management_routes import duplicate_management
+    app.register_blueprint(duplicate_management)
 
 def init_context_processors(app):
     """

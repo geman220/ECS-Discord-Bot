@@ -142,3 +142,4 @@ qrcode==7.4.2
 pandas==2.2.2
 openpyxl==3.1.5
 wallet-py3k==0.0.4
+firebase-admin==6.5.0

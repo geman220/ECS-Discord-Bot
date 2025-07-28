@@ -14,6 +14,7 @@ from app.core import db
 from app.models import Player, User
 from app.players_helpers import standardize_phone
 from difflib import SequenceMatcher
+from sqlalchemy.orm import joinedload
 
 logger = logging.getLogger(__name__)
 
@@ -180,6 +181,131 @@ def find_potential_duplicates(user_data, league_id=None):
             unique_duplicates.append((player, reason, confidence))
     
     return unique_duplicates[:3]  # Return top 3 matches
+
+
+def check_phone_duplicate_registration(phone_number, exclude_player_id=None):
+    """
+    Check if a phone number is already registered to prevent duplicates.
+    
+    Args:
+        phone_number (str): Phone number to check
+        exclude_player_id (int): Optional player ID to exclude from search
+        
+    Returns:
+        list: List of existing players with this phone number
+    """
+    if not phone_number:
+        return []
+    
+    standardized_phone = standardize_phone(phone_number)
+    if not standardized_phone or len(standardized_phone) < 10:
+        return []
+    
+    query = Player.query.options(joinedload(Player.user)).filter_by(phone=standardized_phone)
+    
+    if exclude_player_id:
+        query = query.filter(Player.id != exclude_player_id)
+    
+    return query.all()
+
+
+def check_pre_registration_duplicates(discord_email, discord_username):
+    """
+    Check for potential duplicates before showing registration form.
+    
+    Args:
+        discord_email (str): Discord email address
+        discord_username (str): Discord username
+        
+    Returns:
+        list: List of potential duplicate matches with details
+    """
+    potential_matches = []
+    
+    # Look for existing players with similar names
+    name_matches = Player.query.options(joinedload(Player.user)).filter(
+        func.lower(Player.name).like(f'%{discord_username.lower()}%')
+    ).all()
+    
+    # Look for players with similar email patterns
+    email_domain = discord_email.split('@')[1] if '@' in discord_email else None
+    domain_matches = []
+    if email_domain:
+        domain_matches = Player.query.options(joinedload(Player.user)).filter(
+            or_(
+                Player.email.like(f'%@{email_domain}'),
+                Player.user.has(User.email.like(f'%@{email_domain}'))
+            )
+        ).all()
+    
+    # Check name similarity
+    for player in name_matches:
+        similarity = SequenceMatcher(None, discord_username.lower(), player.name.lower()).ratio()
+        if similarity > 0.8:
+            potential_matches.append({
+                'player': player,
+                'reason': f'Similar name ({int(similarity*100)}% match)',
+                'confidence': similarity,
+                'match_type': 'name'
+            })
+    
+    # Check email domain + name pattern
+    for player in domain_matches:
+        if player not in [m['player'] for m in potential_matches]:
+            name_similarity = SequenceMatcher(None, discord_username.lower(), player.name.lower()).ratio()
+            if name_similarity > 0.7:
+                potential_matches.append({
+                    'player': player,
+                    'reason': f'Same email domain + similar name ({int(name_similarity*100)}% match)',
+                    'confidence': name_similarity * 0.8,
+                    'match_type': 'email_domain_name'
+                })
+    
+    return sorted(potential_matches, key=lambda x: -x['confidence'])[:3]
+
+
+def log_potential_duplicate_registration(duplicate_info):
+    """
+    Log potential duplicate registration for admin review.
+    
+    Args:
+        duplicate_info (dict): Information about the potential duplicate
+    """
+    try:
+        logger.warning(
+            f"Potential duplicate registration detected: "
+            f"New user: {duplicate_info.get('new_discord_email')} "
+            f"({duplicate_info.get('new_name')}) "
+            f"matches existing player ID {duplicate_info.get('existing_player_id')} "
+            f"({duplicate_info.get('existing_player_name')}) "
+            f"via {duplicate_info.get('match_type', 'unknown')}"
+        )
+        
+        # Store in database for admin review
+        from app.models import DuplicateRegistrationAlert
+        try:
+            alert = DuplicateRegistrationAlert(
+                new_discord_email=duplicate_info.get('new_discord_email'),
+                new_discord_username=duplicate_info.get('new_discord_username'),
+                new_name=duplicate_info.get('new_name'),
+                new_phone=duplicate_info.get('new_phone'),
+                existing_player_id=duplicate_info.get('existing_player_id'),
+                existing_player_name=duplicate_info.get('existing_player_name'),
+                match_type=duplicate_info.get('match_type'),
+                confidence_score=duplicate_info.get('confidence', 0.0),
+                details=json.dumps(duplicate_info),
+                created_at=datetime.utcnow(),
+                status='pending'
+            )
+            db.session.add(alert)
+            db.session.commit()
+            logger.info(f"Created duplicate registration alert ID {alert.id}")
+        except Exception as db_error:
+            logger.error(f"Failed to create duplicate alert in database: {db_error}")
+            db.session.rollback()
+        
+    except Exception as e:
+        logger.error(f"Failed to log potential duplicate: {e}")
 
 
 def create_merge_request(existing_player_id, new_user_data, verification_method='email'):
