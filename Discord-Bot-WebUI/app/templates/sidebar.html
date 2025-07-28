@@ -243,7 +243,7 @@
         
         <!-- Player Management - Pub League Admin / Global Admin Only -->
         {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'open' if request.endpoint == 'admin.user_approvals' or request.endpoint == 'admin.user_waitlist' or request.endpoint == 'user_management.manage_users' or 'user_management' in request.path or 'players' in request.path }}">
+        <li class="menu-item {{ 'open' if request.endpoint == 'admin.user_approvals' or request.endpoint == 'admin.user_waitlist' or request.endpoint == 'user_management.manage_users' or 'user_management' in request.path or 'players' in request.path or 'duplicate_management' in request.path or request.endpoint.startswith('duplicate_management.') }}">
             <a class="menu-link menu-toggle" href="javascript:void(0);">
                 <i class="ti ti-users menu-icon"></i>
                 <div>Player Management</div>
@@ -257,11 +257,6 @@
                 <li class="menu-item {{ 'active' if request.endpoint == 'admin.user_waitlist' }}">
                     <a class="menu-link" href="{{ url_for('admin.user_waitlist') }}">
                         <div>User Waitlist</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'admin.discord_onboarding.admin_test_onboarding' }}">
-                    <a class="menu-link" href="{{ url_for('admin.test_onboarding') }}">
-                        <div>🧪 Test Onboarding</div>
                     </a>
                 </li>
                 <li class="menu-item {{ 'active' if request.endpoint == 'user_management.manage_users' or 'user_management' in request.path }}">
@@ -453,6 +448,16 @@
             <a class="menu-link" href="{{ url_for('design.design_guide') }}">
                 <i data-feather="layout" class="menu-icon"></i>
                 <div>Design System</div>
+            </a>
+        </li>
+        {% endif %}
+
+        <!-- Test Onboarding - Only Global Admins -->
+        {% if 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if request.endpoint == 'admin.discord_onboarding.admin_test_onboarding' }}">
+            <a class="menu-link" href="{{ url_for('admin.test_onboarding') }}">
+                <i class="ti ti-flask menu-icon"></i>
+                <div>🧪 Test Onboarding</div>
             </a>
         </li>
         {% endif %}
