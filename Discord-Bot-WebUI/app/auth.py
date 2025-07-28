@@ -51,7 +51,10 @@ from app.duplicate_prevention import (
     handle_email_change,
     find_potential_duplicates,
     create_merge_request,
-    verify_and_merge_accounts
+    verify_and_merge_accounts,
+    check_pre_registration_duplicates,
+    check_phone_duplicate_registration,
+    log_potential_duplicate_registration
 )
 from app.merge_email_helpers import (
     send_merge_verification_email,
@@ -1354,10 +1357,28 @@ def waitlist_register_with_discord():
         return redirect(url_for('auth.waitlist_register'))
     
     if request.method == 'GET':
+        # Check for potential duplicates before showing the form
+        potential_duplicates = check_pre_registration_duplicates(discord_email, discord_username)
+        
+        if potential_duplicates:
+            logger.info(f"Found {len(potential_duplicates)} potential duplicates for {discord_email}")
+            # Log this as a potential duplicate registration attempt
+            for match in potential_duplicates:
+                log_potential_duplicate_registration({
+                    'new_discord_email': discord_email,
+                    'new_discord_username': discord_username,
+                    'new_name': discord_username,
+                    'existing_player_id': match['player'].id,
+                    'existing_player_name': match['player'].name,
+                    'match_type': match['match_type'],
+                    'confidence': match['confidence']
+                })
+        
         return render_template('waitlist_register_discord.html', 
                               title='Complete Waitlist Registration',
                               discord_email=discord_email,
-                              discord_username=discord_username)
+                              discord_username=discord_username,
+                              potential_duplicates=potential_duplicates)
     
     try:
         # Check if user already exists
@@ -1394,6 +1415,29 @@ def waitlist_register_with_discord():
             # Personal information
             name = request.form.get('name', discord_username).strip()
             phone = request.form.get('phone', '')
+            
+            # Check for phone number duplicates (exclude current user)
+            phone_duplicate_players = check_phone_duplicate_registration(phone, exclude_player_id=existing_user.player.id if existing_user.player else None)
+            if phone_duplicate_players:
+                # Log the potential phone duplicate
+                log_potential_duplicate_registration({
+                    'new_discord_email': discord_email,
+                    'new_discord_username': discord_username,
+                    'new_name': name,
+                    'new_phone': phone,
+                    'existing_player_id': phone_duplicate_players[0].id,
+                    'existing_player_name': phone_duplicate_players[0].name,
+                    'match_type': 'phone',
+                    'confidence': 0.9
+                })
+                
+                # Show warning but allow registration to continue with admin review
+                session['sweet_alert'] = {
+                    'title': 'Phone Number Already Registered',
+                    'text': f'This phone number is already associated with {phone_duplicate_players[0].name}. Your registration will proceed but will be flagged for admin review.',
+                    'icon': 'warning'
+                }
+            
             pronouns = request.form.get('pronouns', '')
             jersey_size = request.form.get('jersey_size', '')
             jersey_number = request.form.get('jersey_number')
@@ -1603,6 +1647,29 @@ def waitlist_register_with_discord():
         import string
         temp_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
         phone = request.form.get('phone', '')
+        
+        # Check for phone number duplicates
+        phone_duplicate_players = check_phone_duplicate_registration(phone)
+        if phone_duplicate_players:
+            # Log the potential phone duplicate
+            log_potential_duplicate_registration({
+                'new_discord_email': discord_email,
+                'new_discord_username': discord_username,
+                'new_name': name,
+                'new_phone': phone,
+                'existing_player_id': phone_duplicate_players[0].id,
+                'existing_player_name': phone_duplicate_players[0].name,
+                'match_type': 'phone',
+                'confidence': 0.9
+            })
+            
+            # Show warning but allow registration to continue with admin review
+            session['sweet_alert'] = {
+                'title': 'Phone Number Already Registered',
+                'text': f'This phone number is already associated with {phone_duplicate_players[0].name}. Your registration will proceed but will be flagged for admin review.',
+                'icon': 'warning'
+            }
+        
         pronouns = request.form.get('pronouns', '')
         jersey_size = request.form.get('jersey_size', '')
         jersey_number = request.form.get('jersey_number')

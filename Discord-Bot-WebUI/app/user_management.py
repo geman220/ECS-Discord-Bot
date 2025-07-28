@@ -812,6 +812,12 @@ def delete_user(user_id):
             for stat in career_stats:
                 session.delete(stat)
             
+            # Remove draft order history records
+            from app.models.league_features import DraftOrderHistory
+            draft_orders = session.query(DraftOrderHistory).filter_by(player_id=player_id).all()
+            for draft_order in draft_orders:
+                session.delete(draft_order)
+            
             # Finally, delete the player record
             session.delete(user.player)
         

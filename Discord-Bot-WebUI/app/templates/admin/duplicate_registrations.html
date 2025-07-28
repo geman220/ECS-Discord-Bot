@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Duplicate Registration Management{% endblock %}
+
+{% block custom_css %}
+<style>
+    .confidence-high { color: #ea5455; font-weight: bold; }
+    .confidence-medium { color: #ff9f43; font-weight: bold; }
+    .confidence-low { color: #28c76f; font-weight: bold; }
+    
+    .match-type-phone { background-color: rgba(234, 84, 85, 0.16); color: #ea5455; }
+    .match-type-name { background-color: rgba(255, 159, 67, 0.16); color: #ff9f43; }
+    .match-type-email { background-color: rgba(105, 108, 255, 0.16); color: #696cff; }
+    
+    .duplicate-card {
+        transition: all 0.2s ease;
+        border-left: 4px solid transparent;
+    }
+    
+    .duplicate-card.high-confidence {
+        border-left-color: #ea5455;
+    }
+    
+    .duplicate-card.medium-confidence {
+        border-left-color: #ff9f43;
+    }
+    
+    .duplicate-card.low-confidence {
+        border-left-color: #28c76f;
+    }
+    
+    .duplicate-card:hover {
+        box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45);
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4 class="fw-bold py-3 mb-2">
+                        <span class="text-muted fw-light">Admin /</span> Duplicate Registration Management
+                    </h4>
+                    <p class="text-muted mb-0">Review and resolve potential duplicate player registrations</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('duplicate_management.duplicate_registration_stats') }}" class="btn btn-outline-primary">
+                        <i class="ti ti-chart-bar me-2"></i>View Statistics
+                    </a>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div class="avatar avatar-md mx-auto mb-2">
+                                <span class="avatar-initial rounded bg-label-warning">
+                                    <i class="ti ti-alert-triangle ti-md"></i>
+                                </span>
+                            </div>
+                            <span class="d-block mb-1 text-nowrap">Pending Alerts</span>
+                            <h3 class="card-title mb-0">{{ pending_alerts|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div class="avatar avatar-md mx-auto mb-2">
+                                <span class="avatar-initial rounded bg-label-danger">
+                                    <i class="ti ti-phone ti-md"></i>
+                                </span>
+                            </div>
+                            <span class="d-block mb-1 text-nowrap">Phone Matches</span>
+                            <h3 class="card-title mb-0">{{ pending_alerts|selectattr('match_type', 'equalto', 'phone')|list|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div class="avatar avatar-md mx-auto mb-2">
+                                <span class="avatar-initial rounded bg-label-warning">
+                                    <i class="ti ti-user ti-md"></i>
+                                </span>
+                            </div>
+                            <span class="d-block mb-1 text-nowrap">Name Matches</span>
+                            <h3 class="card-title mb-0">{{ pending_alerts|selectattr('match_type', 'equalto', 'name')|list|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div class="avatar avatar-md mx-auto mb-2">
+                                <span class="avatar-initial rounded bg-label-info">
+                                    <i class="ti ti-mail ti-md"></i>
+                                </span>
+                            </div>
+                            <span class="d-block mb-1 text-nowrap">Email Domain</span>
+                            <h3 class="card-title mb-0">{{ pending_alerts|selectattr('match_type', 'equalto', 'email_domain_name')|list|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Alerts -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Pending Duplicate Alerts</h5>
+                    <small class="text-muted">{{ pending_alerts|length }} alerts require review</small>
+                </div>
+                <div class="card-body">
+                    {% if pending_alerts %}
+                        <div class="row">
+                            {% for alert in pending_alerts %}
+                            <div class="col-lg-6 mb-4">
+                                <div class="card duplicate-card {% if alert.confidence_score >= 0.8 %}high-confidence{% elif alert.confidence_score >= 0.6 %}medium-confidence{% else %}low-confidence{% endif %}">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div>
+                                                <h6 class="card-title mb-1">Alert #{{ alert.id }}</h6>
+                                                <small class="text-muted">{{ alert.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="badge match-type-{{ alert.match_type }} mb-1">{{ alert.match_type.replace('_', ' ').title() }}</span><br>
+                                                <span class="{% if alert.confidence_score >= 0.8 %}confidence-high{% elif alert.confidence_score >= 0.6 %}confidence-medium{% else %}confidence-low{% endif %}">
+                                                    {{ (alert.confidence_score * 100)|round|int }}% match
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <h6 class="text-primary mb-2">New Registration</h6>
+                                                <p class="mb-1"><strong>{{ alert.new_name or 'N/A' }}</strong></p>
+                                                <p class="mb-1 small">{{ alert.new_discord_email }}</p>
+                                                {% if alert.new_phone %}
+                                                <p class="mb-0 small text-muted">📞 {{ alert.new_phone }}</p>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-6">
+                                                <h6 class="text-success mb-2">Existing Player</h6>
+                                                <p class="mb-1"><strong>{{ alert.existing_player.name }}</strong></p>
+                                                <p class="mb-1 small">{{ alert.existing_player.user.email if alert.existing_player.user else alert.existing_player.email }}</p>
+                                                {% if alert.existing_player.phone %}
+                                                <p class="mb-0 small text-muted">📞 {{ alert.existing_player.phone }}</p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+
+                                        <div class="d-grid gap-2 mt-3">
+                                            <a href="{{ url_for('duplicate_management.duplicate_registration_detail', alert_id=alert.id) }}" class="btn btn-primary btn-sm">
+                                                <i class="ti ti-eye me-1"></i>Review & Resolve
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="ti ti-check-circle text-success" style="font-size: 4rem;"></i>
+                            <h5 class="mt-3">No Pending Alerts</h5>
+                            <p class="text-muted">All duplicate registration alerts have been resolved.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recently Resolved -->
+            {% if resolved_alerts %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Recently Resolved</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Alert #</th>
+                                    <th>New User</th>
+                                    <th>Existing Player</th>
+                                    <th>Match Type</th>
+                                    <th>Resolution</th>
+                                    <th>Resolved By</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alert in resolved_alerts %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('duplicate_management.duplicate_registration_detail', alert_id=alert.id) }}">#{{ alert.id }}</a>
+                                    </td>
+                                    <td>{{ alert.new_name or 'N/A' }}</td>
+                                    <td>{{ alert.existing_player.name }}</td>
+                                    <td>
+                                        <span class="badge match-type-{{ alert.match_type }}">{{ alert.match_type.replace('_', ' ').title() }}</span>
+                                    </td>
+                                    <td>
+                                        {% if alert.resolution_action == 'merged' %}
+                                        <span class="badge bg-success">Merged</span>
+                                        {% elif alert.resolution_action == 'allowed' %}
+                                        <span class="badge bg-info">Allowed</span>
+                                        {% elif alert.resolution_action == 'blocked' %}
+                                        <span class="badge bg-warning">Blocked</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ alert.resolution_action or 'N/A' }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ alert.resolved_by.username if alert.resolved_by else 'System' }}</td>
+                                    <td>{{ alert.resolved_at.strftime('%m/%d %H:%M') if alert.resolved_at else 'N/A' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

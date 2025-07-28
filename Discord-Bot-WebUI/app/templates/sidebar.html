@@ -269,6 +269,11 @@
                         <div>Manage Players</div>
                     </a>
                 </li>
+                <li class="menu-item {{ 'active' if 'duplicate_management' in request.path or request.endpoint.startswith('duplicate_management.') }}">
+                    <a class="menu-link" href="{{ url_for('duplicate_management.duplicate_registrations') }}">
+                        <div>Duplicate Management</div>
+                    </a>
+                </li>
             </ul>
         </li>
         {% endif %}
@@ -327,6 +332,16 @@
         </li>
         {% endif %}
         
+        <!-- Push Notifications - Pub League Admin / Global Admin Only -->
+        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if 'notifications' in request.path and 'admin' in request.path }}">
+            <a class="menu-link" href="{{ url_for('notification_admin.notification_dashboard') }}">
+                <i class="ti ti-bell menu-icon"></i>
+                <div>Push Notifications</div>
+            </a>
+        </li>
+        {% endif %}
+        
         <!-- Apple Wallet Pass Management - Pub League Admin / Global Admin Only -->
         {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
         <li class="menu-item {{ 'open' if 'wallet' in request.path and 'admin' in request.path }}">
@@ -340,7 +355,7 @@
                         <div>Pass Management</div>
                     </a>
                 </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'wallet_admin.wallet_players' }}">
+                <li class="menu-item {{ 'active' if request.endpoint == 'wallet_players' }}">
                     <a class="menu-link" href="{{ url_for('wallet_admin.wallet_players') }}">
                         <div>Player Eligibility</div>
                     </a>

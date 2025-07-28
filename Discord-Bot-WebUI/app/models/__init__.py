@@ -17,7 +17,7 @@ from app.core import db
 
 # Import all models from their respective modules
 from .core import (
-    League, User, Role, Permission, Season,
+    League, User, Role, Permission, Season, DuplicateRegistrationAlert,
     user_roles, role_permissions
 )
 
@@ -41,6 +41,10 @@ from .stats import (
 from .communication import (
     Notification, Announcement, ScheduledMessage, Feedback,
     FeedbackReply, Note, DeviceToken
+)
+
+from .notifications import (
+    UserFCMToken
 )
 
 from .store import (
@@ -88,7 +92,7 @@ __all__ = [
     'db',
     
     # Core models
-    'League', 'User', 'Role', 'Permission', 'Season',
+    'League', 'User', 'Role', 'Permission', 'Season', 'DuplicateRegistrationAlert',
     'user_roles', 'role_permissions',
     
     # Player and team models
@@ -109,6 +113,9 @@ __all__ = [
     # Communication models
     'Notification', 'Announcement', 'ScheduledMessage', 'Feedback',
     'FeedbackReply', 'Note', 'DeviceToken',
+    
+    # Push notification models
+    'UserFCMToken',
     
     # Store models
     'StoreItem', 'StoreOrder',

@@ -232,3 +232,58 @@ class Season(db.Model):
 
     def __repr__(self):
         return f'<Season {self.name} ({self.league_type})>'
+
+
+class DuplicateRegistrationAlert(db.Model):
+    """Model for tracking potential duplicate registrations for admin review."""
+    __tablename__ = 'duplicate_registration_alerts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # New registration information
+    new_discord_email = db.Column(db.String(255), nullable=False)
+    new_discord_username = db.Column(db.String(100), nullable=True)
+    new_name = db.Column(db.String(255), nullable=True)
+    new_phone = db.Column(db.String(20), nullable=True)
+    
+    # Existing player information
+    existing_player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
+    existing_player_name = db.Column(db.String(255), nullable=True)
+    
+    # Match details
+    match_type = db.Column(db.String(50), nullable=False)  # 'phone', 'name', 'email_domain_name'
+    confidence_score = db.Column(db.Float, nullable=False, default=0.0)
+    details = db.Column(db.Text, nullable=True)  # JSON string with additional details
+    
+    # Status and timestamps
+    status = db.Column(db.String(20), nullable=False, default='pending')  # 'pending', 'resolved', 'ignored'
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    resolved_at = db.Column(db.DateTime, nullable=True)
+    resolved_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    resolution_action = db.Column(db.String(50), nullable=True)  # 'merged', 'allowed', 'blocked'
+    resolution_notes = db.Column(db.Text, nullable=True)
+    
+    # Relationships
+    existing_player = db.relationship('Player', foreign_keys=[existing_player_id], backref='duplicate_alerts')
+    resolved_by = db.relationship('User', foreign_keys=[resolved_by_user_id])
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'new_discord_email': self.new_discord_email,
+            'new_discord_username': self.new_discord_username,
+            'new_name': self.new_name,
+            'new_phone': self.new_phone,
+            'existing_player_id': self.existing_player_id,
+            'existing_player_name': self.existing_player_name,
+            'match_type': self.match_type,
+            'confidence_score': self.confidence_score,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'resolved_at': self.resolved_at.isoformat() if self.resolved_at else None,
+            'resolution_action': self.resolution_action,
+            'resolution_notes': self.resolution_notes
+        }
+    
+    def __repr__(self):
+        return f'<DuplicateRegistrationAlert {self.id}: {self.new_name} -> Player {self.existing_player_id}>'

@@ -1,0 +1,652 @@
+{% extends "base.html" %}
+
+{% block title %}Push Notification Management{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold py-3 mb-2">
+                <span class="text-muted fw-light">Admin /</span> Push Notification Management
+            </h4>
+            <p class="text-muted">Manage push notifications for mobile apps</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-secondary" onclick="refreshNotificationStatus()">
+                <i class="ti ti-refresh me-1"></i>Refresh Status
+            </button>
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#broadcastModal">
+                <i class="ti ti-send me-1"></i>Send Broadcast
+            </button>
+        </div>
+    </div>
+
+    <!-- System Status Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Firebase System Status</h5>
+                    <div id="firebase-status-indicator" class="badge bg-secondary">
+                        <i class="ti ti-loader-2 spin me-1"></i>Checking...
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="firebase-status-content">
+                        <div class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm me-2" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            Checking Firebase configuration...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-start justify-content-between">
+                        <div class="content-left">
+                            <span class="text-heading">Total Devices</span>
+                            <div class="d-flex align-items-center my-1">
+                                <h4 class="mb-0 me-2" id="total-devices">-</h4>
+                            </div>
+                            <small class="text-muted">Registered FCM tokens</small>
+                        </div>
+                        <div class="avatar">
+                            <span class="avatar-initial rounded bg-label-primary">
+                                <i class="ti ti-device-mobile ti-26px"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-start justify-content-between">
+                        <div class="content-left">
+                            <span class="text-heading">iOS Devices</span>
+                            <div class="d-flex align-items-center my-1">
+                                <h4 class="mb-0 me-2" id="ios-devices">-</h4>
+                            </div>
+                            <small class="text-muted">Active iOS tokens</small>
+                        </div>
+                        <div class="avatar">
+                            <span class="avatar-initial rounded bg-label-info">
+                                <i class="ti ti-brand-apple ti-26px"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-start justify-content-between">
+                        <div class="content-left">
+                            <span class="text-heading">Android Devices</span>
+                            <div class="d-flex align-items-center my-1">
+                                <h4 class="mb-0 me-2" id="android-devices">-</h4>
+                            </div>
+                            <small class="text-muted">Active Android tokens</small>
+                        </div>
+                        <div class="avatar">
+                            <span class="avatar-initial rounded bg-label-success">
+                                <i class="ti ti-brand-android ti-26px"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-start justify-content-between">
+                        <div class="content-left">
+                            <span class="text-heading">Notifications Sent</span>
+                            <div class="d-flex align-items-center my-1">
+                                <h4 class="mb-0 me-2" id="notifications-sent">-</h4>
+                            </div>
+                            <small class="text-muted">Last 24 hours</small>
+                        </div>
+                        <div class="avatar">
+                            <span class="avatar-initial rounded bg-label-warning">
+                                <i class="ti ti-bell ti-26px"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6 col-lg-4">
+                            <button class="btn btn-outline-primary w-100" onclick="sendTestNotification()">
+                                <i class="ti ti-test-pipe me-2"></i>
+                                Send Test Notification
+                            </button>
+                        </div>
+                        <div class="col-md-6 col-lg-4">
+                            <button class="btn btn-outline-success w-100" onclick="sendMatchReminder()">
+                                <i class="ti ti-calendar-event me-2"></i>
+                                Send Match Reminder
+                            </button>
+                        </div>
+                        <div class="col-md-6 col-lg-4">
+                            <button class="btn btn-outline-warning w-100" onclick="sendRSVPReminder()">
+                                <i class="ti ti-clipboard-check me-2"></i>
+                                Send RSVP Reminder
+                            </button>
+                        </div>
+                        <div class="col-md-6 col-lg-4">
+                            <button class="btn btn-outline-info w-100" onclick="viewNotificationLogs()">
+                                <i class="ti ti-file-text me-2"></i>
+                                View Notification Logs
+                            </button>
+                        </div>
+                        <div class="col-md-6 col-lg-4">
+                            <button class="btn btn-outline-secondary w-100" onclick="manageTokens()">
+                                <i class="ti ti-settings me-2"></i>
+                                Manage FCM Tokens
+                            </button>
+                        </div>
+                        <div class="col-md-6 col-lg-4">
+                            <button class="btn btn-outline-danger w-100" onclick="cleanupInvalidTokens()">
+                                <i class="ti ti-trash me-2"></i>
+                                Cleanup Invalid Tokens
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Notification Activity</h5>
+                    <small class="text-muted">Last 10 notifications</small>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="notification-activity-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Type</th>
+                                    <th>Title</th>
+                                    <th>Recipients</th>
+                                    <th>Success Rate</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">
+                                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        Loading recent activity...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Broadcast Notification Modal -->
+<div class="modal fade" id="broadcastModal" tabindex="-1" aria-labelledby="broadcastModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="broadcastModalLabel">
+                    <i class="ti ti-send me-2"></i>Send Broadcast Notification
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="broadcastForm">
+                    <div class="mb-3">
+                        <label for="broadcast-title" class="form-label">Notification Title</label>
+                        <input type="text" class="form-control" id="broadcast-title" placeholder="Enter notification title" maxlength="100" required>
+                        <div class="form-text">Maximum 100 characters</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="broadcast-message" class="form-label">Message</label>
+                        <textarea class="form-control" id="broadcast-message" rows="4" placeholder="Enter your message" maxlength="300" required></textarea>
+                        <div class="form-text">Maximum 300 characters</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="broadcast-target" class="form-label">Send To</label>
+                        <select class="form-select" id="broadcast-target" required>
+                            <option value="">Select recipients</option>
+                            <option value="all">All Users</option>
+                            <option value="ios">iOS Users Only</option>
+                            <option value="android">Android Users Only</option>
+                            <option value="coaches">Coaches Only</option>
+                            <option value="admins">Admins Only</option>
+                        </select>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="ti ti-alert-triangle me-2"></i>
+                        <strong>Warning:</strong> This will send a notification to all selected users. Please double-check your message before sending.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="sendBroadcast()">
+                    <i class="ti ti-send me-1"></i>Send Notification
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test Notification Modal -->
+<div class="modal fade" id="testNotificationModal" tabindex="-1" aria-labelledby="testNotificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="testNotificationModalLabel">
+                    <i class="ti ti-test-pipe me-2"></i>Send Test Notification
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>This will send a test notification to your own device to verify the system is working properly.</p>
+                <div class="alert alert-info">
+                    <i class="ti ti-info-circle me-2"></i>
+                    Make sure you have the ECS Soccer mobile app installed and are logged in to receive the test notification.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="confirmSendTest()">
+                    <i class="ti ti-send me-1"></i>Send Test
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+    .spin {
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    .card {
+        transition: all 0.2s ease;
+    }
+    
+    .card:hover {
+        box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+    }
+    
+    .avatar {
+        width: 38px;
+        height: 38px;
+    }
+    
+    .avatar-initial {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .table-responsive {
+        border-radius: 0.375rem;
+    }
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize the page
+    refreshNotificationStatus();
+    loadRecentActivity();
+});
+
+function refreshNotificationStatus() {
+    const statusIndicator = document.getElementById('firebase-status-indicator');
+    const statusContent = document.getElementById('firebase-status-content');
+    
+    // Show loading state
+    statusIndicator.className = 'badge bg-secondary';
+    statusIndicator.innerHTML = '<i class="ti ti-loader-2 spin me-1"></i>Checking...';
+    
+    // API call to check Firebase status using Flask session auth
+    fetch('/admin/notifications/status', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        updateFirebaseStatus(data);
+        updateStatistics(data);
+    })
+    .catch(error => {
+        console.error('Error checking notification status:', error);
+        statusIndicator.className = 'badge bg-danger';
+        statusIndicator.innerHTML = '<i class="ti ti-x me-1"></i>Error';
+        statusContent.innerHTML = `
+            <div class="alert alert-danger mb-0">
+                <i class="ti ti-alert-circle me-2"></i>
+                Failed to check Firebase status. Please check your connection and try again.
+            </div>
+        `;
+    });
+}
+
+function updateFirebaseStatus(data) {
+    const statusIndicator = document.getElementById('firebase-status-indicator');
+    const statusContent = document.getElementById('firebase-status-content');
+    
+    if (data.firebase_configured) {
+        statusIndicator.className = 'badge bg-success';
+        statusIndicator.innerHTML = '<i class="ti ti-check me-1"></i>Online';
+        statusContent.innerHTML = `
+            <div class="alert alert-success mb-0">
+                <i class="ti ti-check-circle me-2"></i>
+                Firebase Cloud Messaging is properly configured and ready to send notifications.
+            </div>
+        `;
+    } else {
+        statusIndicator.className = 'badge bg-danger';
+        statusIndicator.innerHTML = '<i class="ti ti-x me-1"></i>Not Configured';
+        statusContent.innerHTML = `
+            <div class="alert alert-danger mb-3">
+                <i class="ti ti-alert-circle me-2"></i>
+                Firebase is not properly configured. Please check your service account configuration.
+            </div>
+            <ul class="list-unstyled mb-0">
+                <li class="text-danger mb-1">
+                    <i class="ti ti-arrow-right me-1"></i>
+                    Ensure firebase-service-account.json is in your instance folder
+                </li>
+                <li class="text-danger mb-1">
+                    <i class="ti ti-arrow-right me-1"></i>
+                    Verify Firebase project settings and permissions
+                </li>
+            </ul>
+        `;
+    }
+}
+
+function updateStatistics(data) {
+    document.getElementById('total-devices').textContent = data.stats?.total_devices || '0';
+    document.getElementById('ios-devices').textContent = data.stats?.ios_devices || '0';
+    document.getElementById('android-devices').textContent = data.stats?.android_devices || '0';
+    document.getElementById('notifications-sent').textContent = data.stats?.notifications_sent_24h || '0';
+}
+
+function loadRecentActivity() {
+    const tableBody = document.querySelector('#notification-activity-table tbody');
+    
+    // Load recent activity using Flask session auth
+    fetch('/admin/notifications/recent-activity', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.activities && data.activities.length > 0) {
+            tableBody.innerHTML = data.activities.map(activity => `
+                <tr>
+                    <td>${new Date(activity.timestamp).toLocaleString()}</td>
+                    <td><span class="badge bg-${activity.type === 'broadcast' ? 'primary' : 'info'}">${activity.type}</span></td>
+                    <td>${activity.title}</td>
+                    <td>${activity.recipients}</td>
+                    <td>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar" role="progressbar" style="width: ${activity.success_rate}%"></div>
+                        </div>
+                        <small class="text-muted">${activity.success_rate}%</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-${activity.status === 'success' ? 'success' : 'danger'}">
+                            ${activity.status}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">
+                        <i class="ti ti-bell-off me-2"></i>
+                        No recent notification activity
+                    </td>
+                </tr>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Error loading recent activity:', error);
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4 text-danger">
+                    <i class="ti ti-alert-circle me-2"></i>
+                    Failed to load recent activity
+                </td>
+            </tr>
+        `;
+    });
+}
+
+function sendTestNotification() {
+    const modal = new bootstrap.Modal(document.getElementById('testNotificationModal'));
+    modal.show();
+}
+
+function confirmSendTest() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('testNotificationModal'));
+    
+    fetch('/admin/notifications/test-notification', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        modal.hide();
+        if (data.result && data.result.success > 0) {
+            Swal.fire({
+                title: 'Success!',
+                text: 'Test notification sent successfully',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+        } else {
+            Swal.fire({
+                title: 'Failed',
+                text: data.msg || 'Failed to send test notification',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+        loadRecentActivity(); // Refresh activity
+    })
+    .catch(error => {
+        modal.hide();
+        console.error('Error sending test notification:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to send test notification',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    });
+}
+
+function sendBroadcast() {
+    const title = document.getElementById('broadcast-title').value;
+    const message = document.getElementById('broadcast-message').value;
+    const target = document.getElementById('broadcast-target').value;
+    
+    if (!title || !message || !target) {
+        Swal.fire({
+            title: 'Validation Error',
+            text: 'Please fill in all required fields',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+    
+    const modal = bootstrap.Modal.getInstance(document.getElementById('broadcastModal'));
+    
+    fetch('/admin/notifications/broadcast', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            title: title,
+            message: message,
+            target: target
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        modal.hide();
+        document.getElementById('broadcastForm').reset();
+        
+        if (data.result && data.result.success > 0) {
+            Swal.fire({
+                title: 'Broadcast Sent!',
+                text: `Notification sent to ${data.result.success} devices`,
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+        } else {
+            Swal.fire({
+                title: 'Failed',
+                text: data.msg || 'Failed to send broadcast notification',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+        loadRecentActivity(); // Refresh activity
+    })
+    .catch(error => {
+        modal.hide();
+        console.error('Error sending broadcast:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to send broadcast notification',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    });
+}
+
+function sendMatchReminder() {
+    // This would open a modal to select which match to send reminders for
+    Swal.fire({
+        title: 'Feature Coming Soon',
+        text: 'Match reminder functionality will be available soon',
+        icon: 'info',
+        confirmButtonText: 'OK'
+    });
+}
+
+function sendRSVPReminder() {
+    // This would open a modal to select which match to send RSVP reminders for
+    Swal.fire({
+        title: 'Feature Coming Soon',
+        text: 'RSVP reminder functionality will be available soon',
+        icon: 'info',
+        confirmButtonText: 'OK'
+    });
+}
+
+function viewNotificationLogs() {
+    // This would navigate to a detailed logs page
+    Swal.fire({
+        title: 'Feature Coming Soon',
+        text: 'Detailed notification logs will be available soon',
+        icon: 'info',
+        confirmButtonText: 'OK'
+    });
+}
+
+function manageTokens() {
+    // This would navigate to a token management page
+    Swal.fire({
+        title: 'Feature Coming Soon',
+        text: 'FCM token management will be available soon',
+        icon: 'info',
+        confirmButtonText: 'OK'
+    });
+}
+
+function cleanupInvalidTokens() {
+    Swal.fire({
+        title: 'Cleanup Invalid Tokens',
+        text: 'This will remove all inactive and invalid FCM tokens. Continue?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, cleanup',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Implement token cleanup
+            Swal.fire({
+                title: 'Feature Coming Soon',
+                text: 'Token cleanup functionality will be available soon',
+                icon: 'info',
+                confirmButtonText: 'OK'
+            });
+        }
+    });
+}
+</script>
+{% endblock %}
