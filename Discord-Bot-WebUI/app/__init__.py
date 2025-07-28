@@ -266,28 +266,6 @@ def create_app(config_object='web_config.Config'):
             
         return None
     
-    # Exempt specific admin routes from CSRF protection since they're protected by authentication and role requirements
-    @app.after_request
-    def csrf_exempt_admin_routes(response):
-        # Get current request path
-        path = request.path
-        
-        # List of routes to exempt from CSRF protection
-        exempt_routes = [
-            '/admin/force_send/',  # Route handling force sending of scheduled messages
-            '/admin/delete_message/',  # Route handling message deletion
-            '/admin/update_rsvp'  # Route handling RSVP updates
-        ]
-        
-        # Check if the current request path starts with any of the exempt routes
-        for route in exempt_routes:
-            if path.startswith(route):
-                # This is a protected admin route, exempt it from CSRF protection
-                logger.info(f"Exempting admin route from CSRF: {path}")
-                request.csrf_exempt = True
-                break
-                
-        return response
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -444,6 +422,23 @@ def create_app(config_object='web_config.Config'):
 
     @app.before_request
     def before_request():
+        # Check for CSRF exemption first
+        path = request.path
+        exempt_routes = [
+            '/admin/force_send/',  # Route handling force sending of scheduled messages
+            '/admin/delete_message/',  # Route handling message deletion
+            '/admin/update_rsvp',  # Route handling RSVP updates
+            '/api/v1/'  # All API v1 routes (mobile app endpoints)
+        ]
+        
+        # Check if the current request path starts with any of the exempt routes
+        for route in exempt_routes:
+            if path.startswith(route):
+                # This is a protected admin route, exempt it from CSRF protection
+                logger.info(f"Exempting route from CSRF: {path}")
+                request.csrf_exempt = True
+                break
+        
         # Create a new database session for each request (excluding static assets).
         if not request.path.startswith('/static/'):
             g.db_session = app.SessionLocal()
