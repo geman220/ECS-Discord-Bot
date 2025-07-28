@@ -487,9 +487,17 @@ async def get_message_channel_from_web_ui(message_id):
         logger.info(f"Fetching message info from: {api_url}")
         async with session.get(api_url) as response:
             if response.status == 200:
-                data = await response.json()
-                logger.info(f"Got message info: {data}")
-                return data
+                try:
+                    data = await response.json()
+                    if data is not None and isinstance(data, dict):
+                        logger.info(f"Got message info: {data}")
+                        return data
+                    else:
+                        logger.warning(f"Invalid message info format: {data}")
+                        return None
+                except (ValueError, TypeError) as json_error:
+                    logger.error(f"Failed to parse JSON response: {json_error}")
+                    return None
             else:
                 logger.error(f"Failed to get message info: {await response.text()}")
                 return None

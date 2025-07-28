@@ -9,6 +9,10 @@ logger = logging.getLogger(__name__)
 
 notifications_bp = Blueprint('notifications', __name__, url_prefix='/api/v1/notifications')
 
+# Exempt this entire blueprint from CSRF protection for mobile API usage
+from app import csrf
+csrf.exempt(notifications_bp)
+
 @notifications_bp.route('/register-token', methods=['POST'])
 @jwt_required()
 def register_fcm_token():
