@@ -416,6 +416,24 @@ def player_profile(player_id):
             five_months_ago = datetime.utcnow() - timedelta(days=150)  # Approximately 5 months
             profile_expired = player.profile_last_updated < five_months_ago
 
+        # Determine if user can view draft history (admins only)
+        can_view_draft_history = is_admin
+        
+        # Get draft history for admins
+        draft_history = {}
+        if can_view_draft_history:
+            from app.models import DraftOrderHistory
+            draft_picks = session.query(DraftOrderHistory).filter_by(
+                player_id=player_id
+            ).join(Season).join(League).order_by(
+                Season.name.desc(), DraftOrderHistory.draft_position
+            ).all()
+            
+            # Group draft picks by season for easier lookup
+            for pick in draft_picks:
+                season_key = f"{pick.season.name}_league_{pick.league.id}"
+                draft_history[season_key] = pick.draft_position
+
         # Commit the session before rendering the template to avoid holding
         # the transaction open during template rendering, which can be slow
         # and cause idle-in-transaction timeouts
@@ -439,12 +457,14 @@ def player_profile(player_id):
             audit_logs=audit_logs,
             team_history=player.season_assignments,
             current_season_teams=current_season_teams,
+            draft_history=draft_history,
             # Permission-based access variables
             can_edit_stats=can_edit_stats,
             can_view_contact_info=can_view_contact_info,
             can_view_admin_notes=can_view_admin_notes,
             can_edit_admin_notes=can_edit_admin_notes,
             can_edit_profile=can_edit_profile,
+            can_view_draft_history=can_view_draft_history,
             profile_expired=profile_expired
         )
     except Exception as e:
