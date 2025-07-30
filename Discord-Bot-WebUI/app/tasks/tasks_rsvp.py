@@ -103,6 +103,31 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
 
         # Note: Database changes are automatically committed by @celery_task decorator
         # This ensures proper transaction handling without holding locks during external calls
+        
+        # Emit WebSocket event for real-time updates to mobile/web clients
+        try:
+            from app.sockets.rsvp import emit_rsvp_update
+            
+            # Get match to determine team_id
+            match = session.query(Match).get(match_id)
+            team_id = None
+            if match and player:
+                if player in match.home_team.players:
+                    team_id = match.home_team_id
+                elif player in match.away_team.players:
+                    team_id = match.away_team_id
+            
+            emit_rsvp_update(
+                match_id=match_id,
+                player_id=player_id,
+                availability=new_response,
+                source='system',  # This is from a background task
+                player_name=player.name if player else None,
+                team_id=team_id
+            )
+        except Exception as e:
+            logger.error(f"Error emitting WebSocket event: {str(e)}")
+            # Don't fail the task if WebSocket emission fails
 
         # Schedule Discord RSVP update if discord_id is available
         if discord_id:
@@ -596,8 +621,8 @@ def notify_discord_of_rsvp_change_task(self, session, match_id: int) -> Dict[str
             now = datetime.utcnow()
             time_since_last_notification = now - match.last_discord_notification
             
-            # Don't send notifications more than once per minute unless previous one failed
-            if time_since_last_notification.total_seconds() < 60 and match.notification_status == 'success':
+            # Don't send notifications more than once per 10 seconds unless previous one failed
+            if time_since_last_notification.total_seconds() < 10 and match.notification_status == 'success':
                 logger.info(f"Skipping notification for match {match_id} - last notification was {time_since_last_notification.total_seconds()} seconds ago")
                 return {
                     'success': True,
@@ -610,7 +635,6 @@ def notify_discord_of_rsvp_change_task(self, session, match_id: int) -> Dict[str
         # Idempotency check #2: RSVP state check - get current RSVPs
         # OPTIMIZATION: Only process RSVPs for recent matches
         from app.utils.rsvp_filters import filter_availability_discord_relevant, should_sync_rsvp_to_discord
-        from app.models import Match
         
         # Check if we should still care about this match's RSVPs
         match = session.query(Match).get(match_id)

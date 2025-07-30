@@ -14,6 +14,7 @@ All endpoints are protected by JWT where applicable.
 from urllib.parse import urlencode
 import logging
 import ipaddress
+import uuid
 
 # Third-party imports
 import requests
@@ -697,6 +698,9 @@ def get_team_matches(team_id: int):
     """
     Retrieve matches for a specific team.
     """
+    current_user_id = get_jwt_identity()
+    logger.info(f"🔵 [MOBILE_API] get_team_matches called for team_id: {team_id}, user_id: {current_user_id}")
+    
     with managed_session() as session_db:
         team = session_db.query(Team).get(team_id)
         if not team:
@@ -706,9 +710,17 @@ def get_team_matches(team_id: int):
         upcoming = request.args.get('upcoming', 'false').lower() == 'true'
         completed = request.args.get('completed', 'false').lower() == 'true'
         include_events = request.args.get('include_events', 'false').lower() == 'true'
+        include_availability = request.args.get('include_availability', 'false').lower() == 'true'
         limit = request.args.get('limit')
         if limit and limit.isdigit():
             limit = int(limit)
+        
+        logger.debug(f"🔵 [MOBILE_API] Team matches params - upcoming: {upcoming}, include_availability: {include_availability}")
+        
+        # Get player for availability data
+        player = None
+        if include_availability and current_user_id:
+            player = session_db.query(Player).filter_by(user_id=current_user_id).first()
         
         # Build match query with eager loading to prevent N+1 queries
         from sqlalchemy.orm import joinedload
@@ -735,18 +747,100 @@ def get_team_matches(team_id: int):
             
         matches = query.all()
         
-        # Build response with match details
-        matches_data = []
-        for match in matches:
-            match_data = match.to_dict(include_teams=True)
-            
-            # Add event data if requested
-            if include_events:
-                match_data['events'] = [event.to_dict(include_player=True) for event in match.events]
-                
-            matches_data.append(match_data)
+        logger.info(f"🔵 [MOBILE_API] Found {len(matches)} matches for team {team_id}")
         
+        # Use the helper function to process matches with availability
+        matches_data = process_matches_data(
+            matches=matches,
+            player=player,
+            include_events=include_events,
+            include_availability=include_availability,
+            session=session_db
+        )
+        
+        logger.info(f"🟢 [MOBILE_API] get_team_matches successful - returning {len(matches_data)} matches")
         return jsonify(matches_data), 200
+
+
+@mobile_api.route('/debug/availability', endpoint='debug_availability', methods=['GET'])
+@jwt_required()
+def debug_availability():
+    """Debug endpoint to check availability data."""
+    current_user_id = get_jwt_identity()
+    
+    with managed_session() as session:
+        # Check current user
+        user = session.query(User).get(current_user_id) if current_user_id else None
+        player = session.query(Player).filter_by(user_id=current_user_id).first() if user else None
+        
+        # Check player 908 specifically
+        player_908 = session.query(Player).get(908)
+        rsvps_908 = session.query(Availability).filter_by(player_id=908).all() if player_908 else []
+        
+        # Check match 5316 specifically
+        match_5316 = session.query(Match).get(5316)
+        rsvp_5316 = session.query(Availability).filter_by(match_id=5316, player_id=908).first()
+        
+        return jsonify({
+            'current_user_id': current_user_id,
+            'current_user': user.username if user else None,
+            'current_player': {'id': player.id, 'name': player.name} if player else None,
+            'player_908': {'id': player_908.id, 'name': player_908.name} if player_908 else None,
+            'player_908_rsvp_count': len(rsvps_908),
+            'match_5316_exists': bool(match_5316),
+            'match_5316_rsvp': {
+                'response': rsvp_5316.response,
+                'responded_at': rsvp_5316.responded_at.isoformat()
+            } if rsvp_5316 else None
+        })
+
+
+@mobile_api.route('/debug/create_test_rsvp', endpoint='create_test_rsvp', methods=['GET'])
+@jwt_required()
+def create_test_rsvp():
+    """Create a test RSVP for match 5316 and player 908."""
+    from datetime import datetime
+    
+    with managed_session() as session:
+        # Check if RSVP already exists
+        existing = session.query(Availability).filter_by(
+            match_id=5316,
+            player_id=908
+        ).first()
+        
+        if existing:
+            return jsonify({
+                'message': 'RSVP already exists',
+                'existing_rsvp': {
+                    'id': existing.id,
+                    'response': existing.response,
+                    'responded_at': existing.responded_at.isoformat() if existing.responded_at else None
+                }
+            })
+        
+        # Create test RSVP
+        test_rsvp = Availability(
+            match_id=5316,
+            player_id=908,
+            discord_id="129059682257076224",
+            response='yes',
+            responded_at=datetime.utcnow()
+        )
+        
+        session.add(test_rsvp)
+        session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Test RSVP created successfully',
+            'test_rsvp': {
+                'id': test_rsvp.id,
+                'match_id': 5316,
+                'player_id': 908,
+                'response': 'yes',
+                'responded_at': test_rsvp.responded_at.isoformat()
+            }
+        })
 
 
 @mobile_api.route('/matches/<int:match_id>/events', endpoint='get_match_events', methods=['GET'])
@@ -1384,8 +1478,74 @@ def get_single_match_details(match_id: int):
 @jwt_required()
 def update_availability():
     """
-    Update a player's availability status for a specific match.
+    DEPRECATED: Legacy mobile API endpoint - redirects to Enterprise RSVP v2
+    
+    This endpoint now internally calls the Enterprise RSVP v2 system to ensure
+    all mobile app users get enterprise reliability features regardless of 
+    their app version.
     """
+    try:
+        # Get the current user for the redirect
+        current_user_id = get_jwt_identity()
+        
+        # Extract data from the v1 request format
+        data = request.json
+        match_id = data.get('match_id')
+        availability = data.get('availability')
+        
+        if not match_id or not availability:
+            return jsonify({"msg": "Missing required fields"}), 400
+        
+        # Import Enterprise RSVP function
+        from app.api_enterprise_rsvp import update_rsvp_enterprise_from_discord
+        
+        # Transform v1 request to v2 enterprise format
+        enterprise_request_data = {
+            'match_id': match_id,
+            'availability': availability,
+            'source': 'mobile_legacy_v1',
+            'operation_id': str(uuid.uuid4())  # Generate operation ID for enterprise features
+        }
+        
+        # Temporarily replace request.json with enterprise format
+        original_json = request.json
+        request.json = enterprise_request_data
+        
+        try:
+            # Call the enterprise endpoint internally
+            logger.info(f"🔄 Redirecting legacy mobile API call to Enterprise RSVP v2: user={current_user_id}, match={match_id}")
+            response = update_rsvp_enterprise_from_discord()
+            
+            # Transform enterprise response back to v1 format for compatibility
+            if response[1] == 200:  # Success response
+                enterprise_data = response[0].get_json()
+                legacy_response = {
+                    "msg": "Availability updated successfully",
+                    "match_id": enterprise_data.get('match_id'),
+                    "updated_at": enterprise_data.get('updated_at'),
+                    # Include enterprise metadata for debugging
+                    "_enterprise": {
+                        "trace_id": enterprise_data.get('trace_id'),
+                        "operation_id": enterprise_data.get('operation_id'),
+                        "via_v2": True
+                    }
+                }
+                return jsonify(legacy_response), 200
+            else:
+                # Enterprise endpoint failed, return the error
+                return response
+                
+        finally:
+            # Restore original request data
+            request.json = original_json
+            
+    except Exception as e:
+        logger.error(f"❌ Legacy mobile API redirect to enterprise failed: {str(e)}", exc_info=True)
+        # Fallback to original legacy implementation if enterprise redirect fails
+        pass
+    
+    # FALLBACK: Original legacy implementation (only if enterprise redirect fails)
+    logger.warning("⚠️ Using legacy RSVP implementation - enterprise redirect failed")
     with managed_session() as session_db:
         current_user_id = get_jwt_identity()
         player = session_db.query(Player).filter_by(user_id=current_user_id).first()
@@ -1414,6 +1574,30 @@ def update_availability():
                 response=availability_status,
                 session=session_db
             )
+            
+            # Emit WebSocket event for real-time updates
+            from app.sockets.rsvp import emit_rsvp_update
+            
+            # Determine team_id
+            team_id = None
+            if player in match.home_team.players:
+                team_id = match.home_team_id
+            elif player in match.away_team.players:
+                team_id = match.away_team_id
+            
+            emit_rsvp_update(
+                match_id=match_id,
+                player_id=player.id,
+                availability=availability_status,
+                source='mobile',
+                player_name=player.name,
+                team_id=team_id
+            )
+            
+            # Trigger Discord notification if needed
+            from app.tasks.tasks_rsvp import notify_discord_of_rsvp_change_task
+            notify_discord_of_rsvp_change_task.delay(match_id)
+            
             return jsonify({"msg": "Availability updated successfully"}), 200
         except Exception as e:
             logger.error(f"Error updating availability: {str(e)}")
@@ -1454,8 +1638,11 @@ def report_match(match_id: int):
 @jwt_required()
 def update_availability_web():
     """
-    Update a player's match availability via a web interface and send a notification.
+    DEPRECATED: Legacy mobile web API endpoint
+    
+    This endpoint should no longer be used. Use Enterprise RSVP v2 instead.
     """
+    logger.warning("⚠️ [MOBILE_API] DEPRECATED web endpoint called - should use Enterprise RSVP v2")
     with managed_session() as session_db:
         data = request.json
         logger.info(f"Received web update data: {data}")

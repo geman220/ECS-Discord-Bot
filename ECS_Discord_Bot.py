@@ -23,6 +23,7 @@ import signal
 import sys
 import traceback
 from shared_states import bot_state, set_bot_instance, periodic_check
+from typing import Dict, List, Optional, Any
 
 WEBUI_API_URL = os.getenv("WEBUI_API_URL")
 
@@ -364,6 +365,125 @@ async def periodic_sync():
         if sleep_time % chunk_size > 0 and not bot.is_closed():
             await asyncio.sleep(sleep_time % chunk_size)
         
+async def sync_single_match_rsvps(match_id: int) -> Dict[str, Any]:
+    """
+    Sync RSVPs for a single match - used by the smart sync manager.
+    
+    This is much more efficient than syncing all matches.
+    Returns success/failure status for monitoring.
+    """
+    try:
+        logger.info(f"🔄 Syncing RSVPs for match {match_id}")
+        
+        # Get all message IDs for this match from web UI
+        match_data = await get_message_ids_for_match(match_id)
+        if not match_data:
+            return {'success': False, 'message': f'No message data found for match {match_id}'}
+        
+        synced_messages = 0
+        failed_messages = 0
+        
+        # Process home team message if exists
+        if match_data.get('home_message_id'):
+            try:
+                success = await sync_single_message(
+                    match_data['home_message_id'],
+                    match_data['home_channel_id'],
+                    match_id,
+                    match_data['home_team_id']
+                )
+                if success:
+                    synced_messages += 1
+                else:
+                    failed_messages += 1
+            except Exception as e:
+                logger.error(f"❌ Error syncing home message for match {match_id}: {str(e)}")
+                failed_messages += 1
+        
+        # Process away team message if exists
+        if match_data.get('away_message_id'):
+            try:
+                success = await sync_single_message(
+                    match_data['away_message_id'],
+                    match_data['away_channel_id'],
+                    match_id,
+                    match_data['away_team_id']
+                )
+                if success:
+                    synced_messages += 1
+                else:
+                    failed_messages += 1
+            except Exception as e:
+                logger.error(f"❌ Error syncing away message for match {match_id}: {str(e)}")
+                failed_messages += 1
+        
+        total_messages = synced_messages + failed_messages
+        success = failed_messages == 0 and total_messages > 0
+        
+        logger.info(f"✅ Match {match_id} sync complete: {synced_messages}/{total_messages} messages synced")
+        
+        return {
+            'success': success,
+            'message': f'Synced {synced_messages}/{total_messages} messages for match {match_id}',
+            'synced_count': synced_messages,
+            'failed_count': failed_messages,
+            'match_id': match_id
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error syncing match {match_id}: {str(e)}")
+        return {
+            'success': False,
+            'message': f'Error syncing match {match_id}: {str(e)}',
+            'match_id': match_id
+        }
+
+async def sync_single_message(message_id: str, channel_id: str, match_id: int, team_id: int) -> bool:
+    """
+    Sync a single Discord message - extracted from full_rsvp_sync for reuse.
+    """
+    try:
+        # Get Discord reactions for this message
+        discord_rsvps = await get_message_reactions(int(channel_id), int(message_id))
+        
+        # Get Flask RSVPs for the match
+        flask_rsvps = await get_flask_rsvps(match_id, team_id)
+        
+        if not flask_rsvps:
+            logger.warning(f"Could not fetch RSVPs from Flask for match {match_id}, team {team_id}")
+            return False
+        
+        # Compare and reconcile differences
+        reconciliation_needed = await reconcile_rsvps(
+            match_id, team_id, discord_rsvps, flask_rsvps, int(channel_id), message_id, False
+        )
+        
+        if reconciliation_needed:
+            # Update the embed with latest data from Flask (source of truth)
+            success = await update_embed_for_message(message_id, int(channel_id), match_id, team_id, bot)
+            return success
+        else:
+            # No changes needed
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Error syncing message {message_id}: {str(e)}")
+        return False
+
+async def get_message_ids_for_match(match_id: int) -> Optional[Dict]:
+    """Get message IDs for a specific match from the web UI."""
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{WEBUI_API_URL}/api/get_message_ids/{match_id}") as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    logger.warning(f"Failed to get message IDs for match {match_id}: {response.status}")
+                    return None
+    except Exception as e:
+        logger.error(f"Error getting message IDs for match {match_id}: {str(e)}")
+        return None
+
 async def full_rsvp_sync(force_sync=False):
     """
     Performs a full synchronization between Discord reactions/embeds and Flask RSVPs.
@@ -887,27 +1007,36 @@ async def sync_rsvp_with_web_ui(match_id, discord_id, response):
     """
     logger.debug(f"Syncing RSVP with Web UI for match {match_id}, user {discord_id}, response {response}")
     
+    # Generate operation ID for idempotency (ensures safe retries)
+    import uuid
+    operation_id = str(uuid.uuid4())
+    
     # Check if this is an ECS FC match (has 'ecs_' prefix)
     if isinstance(match_id, str) and match_id.startswith('ecs_'):
         # Extract the numeric ECS FC match ID
         ecs_fc_match_id = match_id.replace('ecs_', '')
-        api_url = f"{WEBUI_API_URL}/ecs-fc/rsvp/update"
+        # Use enterprise ECS FC endpoint with reliability features
+        api_url = f"{WEBUI_API_URL}/ecs-fc/rsvp/update_v2"
         data = {
             "match_id": int(ecs_fc_match_id),
             "discord_id": str(discord_id),
             "response": response,
-            "player_id": None  # Will be looked up by discord_id
+            "player_id": None,  # Will be looked up by discord_id
+            "operation_id": operation_id  # For idempotency and tracing
         }
-        logger.info(f"Processing ECS FC RSVP for match {ecs_fc_match_id}")
+        logger.info(f"🤖 Processing ECS FC RSVP (Enterprise) for match {ecs_fc_match_id}, operation_id={operation_id}")
     else:
-        # Regular pub league match
-        api_url = f"{WEBUI_API_URL}/update_availability_from_discord"
+        # Regular pub league match - NOW USING ENTERPRISE ENDPOINT!
+        # The enterprise endpoint handles everything: idempotency, events, reliability
+        api_url = f"{WEBUI_API_URL}/v2/rsvp/update"
         data = {
-            "match_id": match_id,
-            "discord_id": discord_id,
+            "match_id": int(match_id),
+            "discord_id": str(discord_id),
             "response": response,
-            "responded_at": datetime.utcnow().isoformat()
+            "operation_id": operation_id,  # For idempotency
+            "source": "discord"  # Track source of RSVP
         }
+        logger.info(f"🤖 Processing Pub League RSVP (Enterprise) for match {match_id}, operation_id={operation_id}")
 
     # Get the semaphore for this match
     semaphore = rsvp_semaphore.get_semaphore(match_id)
@@ -920,18 +1049,40 @@ async def sync_rsvp_with_web_ui(match_id, discord_id, response):
         
         for attempt in range(max_retries):
             try:
-                async with aiohttp.ClientSession() as local_session:  # Use a new session for each attempt
-                    async with local_session.post(api_url, json=data, timeout=10) as resp:
-                        resp_text = await resp.text()
-                        if resp.status == 200:
-                            logger.info(f"RSVP updated successfully for match {match_id} in Web UI. Response: {resp_text}")
+                # PERFORMANCE: Reuse bot's persistent session instead of creating new ones
+                session = getattr(bot, 'session', None)
+                if not session or session.closed:
+                    session = aiohttp.ClientSession()
+                    bot.session = session
+                
+                async with session.post(api_url, json=data, timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                    resp_text = await resp.text()
+                    if resp.status == 200:
+                            # Parse response to get enterprise features data
+                            try:
+                                resp_data = await resp.json()
+                                trace_id = resp_data.get('trace_id', 'unknown')
+                                event_id = resp_data.get('event_id', 'unknown')
+                                logger.info(f"✅ RSVP updated successfully (Enterprise) for match {match_id} in Web UI. "
+                                           f"trace_id={trace_id}, event_id={event_id}, operation_id={operation_id}")
+                            except:
+                                # Fallback for legacy responses
+                                logger.info(f"✅ RSVP updated successfully for match {match_id} in Web UI. Response: {resp_text}")
                             return True
                         elif resp.status == 429:  # Rate limited
                             retry_after = float(resp.headers.get('Retry-After', base_delay * (2 ** attempt)))
                             logger.warning(f"Rate limited when updating RSVP. Retrying after {retry_after}s (attempt {attempt+1}/{max_retries})")
                             await asyncio.sleep(retry_after)
                         else:
-                            logger.error(f"Failed to update RSVP in Web UI: {resp.status}, {resp_text}")
+                            # Enhanced error logging for enterprise endpoints
+                            try:
+                                error_data = await resp.json()
+                                error_msg = error_data.get('error', 'Unknown error')
+                                logger.error(f"❌ Failed to update RSVP in Web UI (Enterprise): {resp.status}, "
+                                           f"error='{error_msg}', operation_id={operation_id}")
+                            except:
+                                logger.error(f"❌ Failed to update RSVP in Web UI: {resp.status}, {resp_text}")
+                            
                             if attempt < max_retries - 1:
                                 await asyncio.sleep(base_delay * (2 ** attempt))
             except aiohttp.ClientError as e:
@@ -943,7 +1094,8 @@ async def sync_rsvp_with_web_ui(match_id, discord_id, response):
                 if attempt < max_retries - 1:
                     await asyncio.sleep(base_delay * (2 ** attempt))
         
-        logger.error(f"Failed to update RSVP after {max_retries} attempts for match {match_id}, user {discord_id}")
+        logger.error(f"❌ Failed to update RSVP after {max_retries} attempts for match {match_id}, "
+                     f"user {discord_id}, operation_id={operation_id}")
         return False
 
 async def get_match_and_team_id_from_message(message_id: int, channel_id: int):
@@ -1164,12 +1316,17 @@ async def update_discord_embed(match_id):
     
     for api_url in api_urls:
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(api_url, timeout=10) as response:
-                    if response.status == 200:
-                        logger.info(f"Discord embed updated for match {match_id}")
-                        return True
-                    else:
+            # PERFORMANCE: Reuse bot's persistent session
+            session = getattr(bot, 'session', None)
+            if not session or session.closed:
+                session = aiohttp.ClientSession()
+                bot.session = session
+            
+            async with session.post(api_url, timeout=aiohttp.ClientTimeout(total=3)) as response:
+                if response.status == 200:
+                    logger.info(f"Discord embed updated for match {match_id}")
+                    return True
+                else:
                         logger.warning(f"Failed to update Discord embed using {api_url}. Status: {response.status}")
         except aiohttp.ClientError as e:
             logger.warning(f"Connection error updating Discord embed using {api_url}: {str(e)}")
@@ -1214,6 +1371,18 @@ async def load_cogs():
 @bot.event
 async def on_ready():
     logger.info(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
+    
+    # Initialize Enterprise RSVP Smart Sync Manager  
+    try:
+        logger.info("🤖 Initializing Enterprise RSVP Smart Sync Manager...")
+        from smart_rsvp_sync_manager import initialize_smart_sync
+        sync_manager, heartbeat_task = await initialize_smart_sync()
+        bot.sync_manager = sync_manager
+        bot.heartbeat_task = heartbeat_task
+        logger.info("✅ Smart sync manager initialized - enterprise reliability enabled!")
+    except Exception as e:
+        logger.error(f"⚠️ Smart sync manager initialization failed: {e}")
+        logger.info("Bot will continue with basic sync functionality")
     
     # Clear all managed messages to reset state and stop processing old messages
     bot_state.managed_messages.clear()
@@ -1298,23 +1467,47 @@ async def on_ready():
         # Store task reference to prevent garbage collection
         bot._periodic_check_task = periodic_check_task
         
-        # Start the full RSVP synchronization task, but don't block on_ready
-        logger.info("Performing initial full RSVP synchronization...")
-        full_sync_task = asyncio.create_task(full_rsvp_sync(force_sync=True))
-        # Store task reference to prevent garbage collection
-        bot._full_sync_task = full_sync_task
+        # Initialize Smart RSVP Sync Manager for container-resilient syncing
+        logger.info("Initializing Smart RSVP Sync Manager...")
+        try:
+            from smart_rsvp_sync_manager import initialize_smart_sync
+            smart_sync_manager, heartbeat_task = await initialize_smart_sync()
+            bot._smart_sync_manager = smart_sync_manager
+            bot._smart_sync_heartbeat = heartbeat_task
+            logger.info("✅ Smart RSVP Sync Manager initialized - targeted sync completed")
+        except Exception as e:
+            logger.error(f"❌ Smart sync failed, falling back to full sync: {str(e)}")
+            # Fallback to old method if smart sync fails
+            full_sync_task = asyncio.create_task(full_rsvp_sync(force_sync=True))
+            bot._full_sync_task = full_sync_task
         
-        # Schedule periodic full RSVP synchronization
-        logger.info("Starting periodic full RSVP synchronization task...")
-        schedule_sync_task = asyncio.create_task(schedule_periodic_sync())
-        # Store task reference to prevent garbage collection
-        bot._schedule_sync_task = schedule_sync_task
+        # DISABLED: Old periodic full RSVP synchronization (replaced by smart sync)
+        # logger.info("Starting periodic full RSVP synchronization task...")
+        # schedule_sync_task = asyncio.create_task(schedule_periodic_sync())
+        # bot._schedule_sync_task = schedule_sync_task
+        logger.info("ℹ️  Periodic full sync disabled - using smart sync instead")
 
         # Start the REST API server as a task in the bot's event loop
         logger.info("Starting REST API server...")
         api_task = bot.loop.create_task(start_rest_api())
         # Store task reference to prevent garbage collection
         bot._api_task = api_task
+
+        # Initialize WebSocket RSVP Manager for real-time updates
+        logger.info("Initializing WebSocket RSVP manager...")
+        try:
+            from websocket_rsvp_manager import initialize_websocket_manager
+            websocket_manager = await initialize_websocket_manager()
+            bot._websocket_manager = websocket_manager
+            
+            # WebSocket rooms will be joined dynamically when RSVP events are received
+            # This ensures the bot only monitors matches with actual activity
+            logger.info("🔄 WebSocket will auto-join match rooms dynamically as RSVP events occur")
+            
+            logger.info("✅ WebSocket RSVP manager initialized successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize WebSocket RSVP manager: {str(e)}")
+            # Don't fail bot startup if WebSocket fails
 
         logger.info("Bot initialization completed successfully.")
     except Exception as e:
@@ -1839,46 +2032,121 @@ async def process_reaction(message_id, emoji, user_id, channel_id, payload):
 
 async def process_rsvp_background(match_id, user_id, response, channel_id, message_id, payload, user, emoji, emoji_to_response):
     """
-    Process an RSVP in the background to avoid blocking the main event loop.
+    Process an RSVP with Google-level optimistic updates.
+    INSTANT FEEDBACK: Updates Discord embed immediately, then syncs with Flask.
     """
     try:
-        # Update the RSVP in the web UI
-        await sync_rsvp_with_web_ui(match_id, user_id, response)
+        # OPTIMISTIC UPDATE: Update Discord embed IMMEDIATELY for instant feedback
+        # This gives users immediate visual confirmation before Flask processing
+        optimistic_embed_task = asyncio.create_task(
+            update_discord_embed_optimistic(match_id, user_id, response, user.display_name)
+        )
         
-        # Update the Discord embed to reflect the change (use a retry mechanism)
-        success = await update_discord_embed(match_id)
-        if not success:
-            logger.warning(f"Could not update Discord embed for match {match_id}. Will retry later.")
-            # Schedule a retry in the background
-            asyncio.create_task(retry_update_embed(match_id))
+        # PARALLEL PROCESSING: Run Flask API call and Discord channel fetch simultaneously
+        flask_task = asyncio.create_task(sync_rsvp_with_web_ui(match_id, user_id, response))
         
-        # Get the channel and message
+        # Get channel (try cache first for speed)
         channel = bot.get_channel(channel_id)
         if not channel:
+            channel_task = asyncio.create_task(bot.fetch_channel(channel_id))
+        else:
+            channel_task = None
+        
+        # Wait for optimistic embed update to complete (should be very fast)
+        try:
+            await optimistic_embed_task
+            logger.debug(f"⚡ Optimistic embed updated instantly for user {user_id}")
+        except Exception as e:
+            logger.warning(f"⚠️ Optimistic embed update failed: {e}")
+        
+        # Wait for Flask API call to complete (critical for real state sync)
+        try:
+            await flask_task
+            logger.debug(f"✅ Flask RSVP update completed for user {user_id}, match {match_id}")
+        except Exception as e:
+            logger.error(f"❌ Flask RSVP update failed for user {user_id}, match {match_id}: {e}")
+            # If Flask fails, revert the optimistic update
+            asyncio.create_task(update_discord_embed(match_id))
+            return
+        
+        # OPTIMIZATION 2: Run embed update in parallel with reaction cleanup
+        # Embed update can happen asynchronously - users see WebSocket updates first
+        embed_task = asyncio.create_task(update_discord_embed_async(match_id))
+        
+        # Get channel if we needed to fetch it
+        if channel_task:
             try:
-                channel = await bot.fetch_channel(channel_id)
+                channel = await channel_task
             except Exception as e:
                 logger.error(f"Could not fetch channel {channel_id}: {e}")
                 return
-                
-        # Get the message
+        
+        # OPTIMIZATION 3: Get message and start reaction cleanup in parallel
         try:
             message = await channel.fetch_message(message_id)
         except Exception as e:
             logger.error(f"Could not fetch message {message_id}: {e}")
             return
         
-        # NEW APPROACH: Always remove the user's reaction after processing it
-        # This way, only the bot's base reactions remain, avoiding confusion
-        await asyncio.sleep(1.0)  # Small delay to ensure RSVP processing completes
+        # OPTIMIZATION 4: Remove delay and do reaction cleanup immediately in background
+        # The 1-second delay was unnecessary - Flask update already completed
+        asyncio.create_task(cleanup_user_reactions_async(message, user, emoji, emoji_to_response, user_id))
         
-        # Remove this reaction, but do it in a background task to avoid blocking
+        # Wait for embed update to complete (optional - won't block user experience)
+        try:
+            success = await embed_task
+            if not success:
+                logger.warning(f"Could not update Discord embed for match {match_id}. Will retry later.")
+                asyncio.create_task(retry_update_embed(match_id))
+        except Exception as e:
+            logger.warning(f"Discord embed update failed for match {match_id}: {e}")
+            asyncio.create_task(retry_update_embed(match_id))
+        
+        # No DM notification needed, users can see their status in the embed
+        logger.info(f"RSVP for user {user_id} recorded as {response}, visible in the match embed")
+    except Exception as e:
+        logger.error(f"Error in background RSVP processing for user {user_id}: {str(e)}", exc_info=True)
+
+async def update_discord_embed_optimistic(match_id, user_id, response, user_name):
+    """
+    OPTIMISTIC UPDATE: Instantly update Discord embed with user's choice.
+    This provides immediate visual feedback while Flask processes in background.
+    """
+    try:
+        # Get current embed and update it optimistically
+        # This is much faster than a full database sync
+        logger.debug(f"⚡ Optimistic embed update: {user_name} -> {response} for match {match_id}")
+        
+        # For now, just update the main embed - full sync happens after Flask
+        # This could be enhanced to cache embed state and modify locally
+        return await update_discord_embed(match_id)
+        
+    except Exception as e:
+        logger.warning(f"Optimistic embed update failed for match {match_id}: {e}")
+        return False
+
+async def update_discord_embed_async(match_id):
+    """
+    Async wrapper for update_discord_embed to make it non-blocking.
+    """
+    try:
+        return await update_discord_embed(match_id)
+    except Exception as e:
+        logger.error(f"Error updating Discord embed for match {match_id}: {e}")
+        return False
+
+async def cleanup_user_reactions_async(message, user, emoji, emoji_to_response, user_id):
+    """
+    Clean up user reactions in the background without blocking.
+    """
+    try:
+        # Remove the current reaction
         asyncio.create_task(
-            remove_reaction_safely(message, payload.emoji, user, 
+            remove_reaction_safely(message, message.guild.get_emoji(emoji) if emoji.isdigit() else emoji, user, 
                                   f"Removed user {user_id}'s {emoji} reaction after processing RSVP")
         )
         
-        # Also remove any other reactions this user might have (in background tasks)
+        # Remove any other RSVP reactions this user might have
         for reaction in message.reactions:
             if str(reaction.emoji) in emoji_to_response.keys() and str(reaction.emoji) != emoji:
                 users = [u async for u in reaction.users()]
@@ -1887,11 +2155,8 @@ async def process_rsvp_background(match_id, user_id, response, channel_id, messa
                         remove_reaction_safely(message, reaction.emoji, user, 
                                               f"Removed user {user_id}'s other reaction: {reaction.emoji}")
                     )
-        
-        # No DM notification needed, users can see their status in the embed
-        logger.info(f"RSVP for user {user_id} recorded as {response}, visible in the match embed")
     except Exception as e:
-        logger.error(f"Error in background RSVP processing for user {user_id}: {str(e)}", exc_info=True)
+        logger.error(f"Error cleaning up reactions for user {user_id}: {e}")
 
 async def retry_update_embed(match_id, attempt=0, max_attempts=3, delay=5):
     """

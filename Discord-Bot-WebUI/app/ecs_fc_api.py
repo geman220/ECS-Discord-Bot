@@ -669,6 +669,32 @@ def update_rsvp():
                     session_db.add(availability)
             
             session_db.commit()
+            
+            # Emit WebSocket update for real-time sync
+            try:
+                from app.sockets.rsvp import emit_rsvp_update
+                
+                # Get player details for WebSocket emission
+                player = session_db.query(Player).get(player_id)
+                
+                if player:
+                    # For ECS FC matches, use the match_id as team_id
+                    # Note: ECS FC matches use a different format than regular matches
+                    emit_rsvp_update(
+                        match_id=f"ecs_{match_id}",  # Use ECS FC match format
+                        player_id=player_id,
+                        availability=response,
+                        source='ecs_fc',
+                        player_name=player.name,
+                        team_id=match_id  # For ECS FC, match_id serves as team identifier
+                    )
+                    
+                    logger.info(f"📤 WebSocket RSVP update emitted from ECS FC: match=ecs_{match_id}, player={player.name}, response={response}")
+                    
+            except Exception as e:
+                logger.error(f"⚠️ Failed to emit WebSocket RSVP update from ECS FC: {e}")
+                # Don't fail the ECS FC RSVP - database update was successful
+            
             logger.info(f"🔵 [ECS_FC_API] Successfully updated RSVP for player {player_id}, match {match_id}, response: {response}")
             
             return create_api_response(True, "RSVP updated successfully", {
@@ -679,6 +705,122 @@ def update_rsvp():
         
     except Exception as e:
         logger.error(f"🔵 [ECS_FC_API] Error updating RSVP: {str(e)}", exc_info=True)
+        return create_api_response(False, f"Internal server error: {str(e)}", status_code=500)
+
+
+@ecs_fc_api.route('/rsvp/update_v2', methods=['POST'])
+def update_rsvp_enterprise():
+    """
+    Enterprise RSVP update endpoint for Discord bot with full reliability.
+    
+    Provides the same interface as the legacy endpoint but uses the enterprise
+    RSVP service with idempotency, event publishing, and circuit breaker protection.
+    """
+    import asyncio
+    from app.events.rsvp_events import RSVPSource
+    from app.services.rsvp_service import create_rsvp_service
+    
+    try:
+        logger.info("🔵 [ECS_FC_API_V2] Processing enterprise RSVP update request")
+        
+        data = validate_json_request(request)
+        if not data:
+            logger.warning("🔵 [ECS_FC_API_V2] Invalid JSON data received")
+            return create_api_response(False, "Invalid JSON data", status_code=400)
+        
+        required_fields = ['match_id', 'response']
+        for field in required_fields:
+            if field not in data:
+                logger.warning(f"🔵 [ECS_FC_API_V2] Missing required field: {field}")
+                return create_api_response(False, f"Missing required field: {field}", status_code=400)
+        
+        match_id = data['match_id']
+        response = data['response']
+        discord_id = data.get('discord_id')
+        player_id = data.get('player_id')
+        operation_id = data.get('operation_id')  # For idempotency
+        
+        logger.info(f"🔵 [ECS_FC_API_V2] Enterprise RSVP update: match={match_id}, response={response}, "
+                   f"discord_id={discord_id}, player_id={player_id}, operation_id={operation_id}")
+        
+        with managed_session() as session_db:
+            # If no player_id provided, look up by discord_id
+            if not player_id and discord_id:
+                from app.models import Player
+                player = session_db.query(Player).filter(Player.discord_id == str(discord_id)).first()
+                if not player:
+                    logger.warning(f"🔵 [ECS_FC_API_V2] No player found with Discord ID {discord_id}")
+                    return create_api_response(False, f"No player found with Discord ID {discord_id}", status_code=404)
+                player_id = player.id
+                logger.info(f"🔵 [ECS_FC_API_V2] Found player {player_id} for Discord ID {discord_id}")
+            elif not player_id:
+                logger.warning("🔵 [ECS_FC_API_V2] Neither player_id nor discord_id provided")
+                return create_api_response(False, "Either player_id or discord_id must be provided", status_code=400)
+            
+            # Validate response value
+            if response not in ['yes', 'no', 'maybe', 'no_response']:
+                logger.warning(f"🔵 [ECS_FC_API_V2] Invalid response value: {response}")
+                return create_api_response(False, "Invalid response value", status_code=400)
+            
+            # Verify match exists (for regular Match table, not ECS FC specific)
+            from app.models import Match
+            match = session_db.query(Match).get(match_id)
+            if not match:
+                logger.warning(f"🔵 [ECS_FC_API_V2] Match {match_id} not found")
+                return create_api_response(False, "Match not found", status_code=404)
+            
+            # Collect context for audit trail
+            user_context = {
+                'ip_address': request.remote_addr,
+                'user_agent': request.headers.get('User-Agent'),
+                'source_endpoint': 'ecs_fc_api_v2',
+                'discord_id': discord_id
+            }
+            
+            # Use enterprise RSVP service (run in thread for Flask compatibility)
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            try:
+                rsvp_service = loop.run_until_complete(create_rsvp_service(session_db))
+                
+                success, message, event = loop.run_until_complete(rsvp_service.update_rsvp(
+                match_id=match_id,
+                player_id=player_id,
+                new_response=response,
+                source=RSVPSource.DISCORD,
+                operation_id=operation_id,
+                user_context=user_context
+                ))
+            finally:
+                loop.close()
+            
+            if success:
+                response_data = {
+                    'match_id': match_id,
+                    'player_id': player_id,
+                    'response': response
+                }
+                
+                # Include enterprise metadata
+                if event:
+                    response_data.update({
+                        'trace_id': event.trace_id,
+                        'operation_id': event.operation_id,
+                        'event_id': event.event_id
+                    })
+                
+                logger.info(f"✅ [ECS_FC_API_V2] Enterprise RSVP update successful: {message}, "
+                           f"trace_id={event.trace_id if event else 'none'}")
+                
+                return create_api_response(True, message, response_data)
+            else:
+                logger.warning(f"⚠️ [ECS_FC_API_V2] Enterprise RSVP update failed: {message}")
+                return create_api_response(False, message, status_code=400)
+        
+    except Exception as e:
+        logger.error(f"❌ [ECS_FC_API_V2] Error in enterprise RSVP update: {str(e)}", exc_info=True)
         return create_api_response(False, f"Internal server error: {str(e)}", status_code=500)
 
 

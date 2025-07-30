@@ -477,7 +477,10 @@ def debug_rsvp(match_id):
 
 def local_update_rsvp(match_id, player_id, response, discord_id=None):
     """
-    Local implementation of update_rsvp that doesn't use Celery.
+    Enterprise RSVP implementation that uses the same reliable system as Discord bot and SMS.
+    
+    This function now uses the enterprise-grade RSVP service providing idempotent operations,
+    event-driven updates, and full audit trail for maximum reliability.
     
     Args:
         match_id: The match ID.
@@ -498,48 +501,47 @@ def local_update_rsvp(match_id, player_id, response, discord_id=None):
                 'message': f"Invalid response: {response}. Must be 'yes', 'no', 'maybe', or 'no_response'."
             }
         
-        # Verify match and player exist
-        match = session.query(Match).get(match_id)
-        if not match:
-            return {'success': False, 'message': f"Match {match_id} not found"}
-            
-        player = session.query(Player).get(player_id)
-        if not player:
-            return {'success': False, 'message': f"Player {player_id} not found"}
+        # Use the enterprise RSVP service for reliability and real-time sync
+        from app.services.rsvp_service import create_rsvp_service_sync
+        from app.events.rsvp_events import RSVPSource
+        from flask import request
+        import uuid
         
-        # Find existing availability record
-        availability = session.query(Availability).filter_by(
-            match_id=match_id, player_id=player_id
-        ).first()
+        # Generate operation ID for idempotency and audit trail
+        operation_id = str(uuid.uuid4())
         
-        if availability:
-            # Update existing record
-            if response == 'no_response':
-                session.delete(availability)
-                message = "RSVP removed"
-            else:
-                availability.response = response
-                availability.responded_at = datetime.utcnow()
-                message = f"RSVP updated to {response}"
+        # Collect user context for audit trail
+        user_context = {
+            'ip_address': request.remote_addr if request else None,
+            'user_agent': request.headers.get('User-Agent') if request else 'Web Interface',
+            'source_endpoint': 'web_rsvp_interface',
+            'request_id': f'web_{operation_id}'
+        }
+        
+        # Create enterprise RSVP service
+        rsvp_service = create_rsvp_service_sync(session)
+        
+        # Process RSVP update with enterprise reliability
+        success, message, event = rsvp_service.update_rsvp_sync(
+            match_id=match_id,
+            player_id=player_id,
+            new_response=response,
+            source=RSVPSource.WEB,  # Web interface updates
+            operation_id=operation_id,
+            user_context=user_context
+        )
+        
+        if success:
+            logger.info(f"✅ Enterprise Web RSVP update successful: player={player_id}, match={match_id}, "
+                       f"response={response}, operation_id={operation_id}")
+            return {'success': True, 'message': message}
         else:
-            # Create new record
-            if response != 'no_response':
-                availability = Availability(
-                    match_id=match_id,
-                    player_id=player_id,
-                    response=response,
-                    discord_id=discord_id or '',
-                    responded_at=datetime.utcnow()
-                )
-                session.add(availability)
-                message = f"RSVP set to {response}"
-            else:
-                message = "No action needed"
+            logger.warning(f"⚠️ Enterprise Web RSVP update failed: {message}, operation_id={operation_id}")
+            return {'success': False, 'message': message}
         
-        return {'success': True, 'message': message}
     except Exception as e:
-        logger.exception(f"Error in local_update_rsvp: {str(e)}")
-        return {'success': False, 'message': str(e)}
+        logger.exception(f"Error in enterprise web RSVP update: {str(e)}")
+        return {'success': False, 'message': f"Update failed: {str(e)}"}
 
 
 @match_pages.route('/rsvp/<int:match_id>', methods=['POST'])
@@ -594,13 +596,35 @@ def rsvp(match_id):
         message = result.get('message', 'RSVP updated')
         
         if success:
+            # Emit WebSocket event for real-time updates
+            from app.sockets.rsvp import emit_rsvp_update
+            session = g.db_session
+            player = session.query(Player).get(player_id)
+            if player:
+                # Determine team_id
+                match = session.query(Match).get(match_id)
+                team_id = None
+                if match:
+                    if player in match.home_team.players:
+                        team_id = match.home_team_id
+                    elif player in match.away_team.players:
+                        team_id = match.away_team_id
+                
+                emit_rsvp_update(
+                    match_id=match_id,
+                    player_id=player.id,
+                    availability=new_response,
+                    source='web',
+                    player_name=player.name,
+                    team_id=team_id
+                )
+                logger.info(f"📤 Emitted WebSocket RSVP update: {player.name} -> {new_response} for match {match_id}")
+            
             # Then trigger the API call to notify Discord
             from app.tasks.tasks_rsvp import notify_discord_of_rsvp_change_task
             from app.tasks.tasks_rsvp import update_discord_rsvp_task
             
             # Get the player to get discord_id if available
-            session = g.db_session
-            player = session.query(Player).get(player_id)
             if player and player.discord_id:
                 discord_id = player.discord_id
             

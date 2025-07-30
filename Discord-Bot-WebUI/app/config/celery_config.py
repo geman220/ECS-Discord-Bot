@@ -50,7 +50,8 @@ class CeleryConfig:
         'app.tasks.player_sync',
         'app.tasks.tasks_substitute_pools',
         'app.tasks.tasks_image_optimization',
-        'app.tasks.tasks_ecs_fc_subs'
+        'app.tasks.tasks_ecs_fc_subs',
+        'app.tasks.mobile_analytics_cleanup'
     )
 
     # Task Settings
@@ -112,6 +113,7 @@ class CeleryConfig:
         'app.tasks.tasks_substitute_pools.*': {'queue': 'celery'},
         'app.tasks.tasks_image_optimization.*': {'queue': 'celery'},
         'app.tasks.tasks_ecs_fc_subs.*': {'queue': 'celery'},
+        'app.tasks.mobile_analytics_cleanup.*': {'queue': 'celery'},
     }
 
     # Beat Schedule: periodic tasks and their schedules
@@ -205,12 +207,20 @@ class CeleryConfig:
                 'expires': 1740  # Task expires after 29 minutes
             }
         },
-        'force-discord-rsvp-sync': {
-            'task': 'app.tasks.tasks_rsvp.force_discord_rsvp_sync',
-            'schedule': crontab(hour='*/4'),  # Run every 4 hours
+        # 'force-discord-rsvp-sync': {
+        #     'task': 'app.tasks.tasks_rsvp.force_discord_rsvp_sync',
+        #     'schedule': crontab(hour='*/4'),  # Run every 4 hours
+        #     'options': {
+        #         'queue': 'discord',
+        #         'expires': 14340  # Task expires after 3 hours 59 minutes
+        #     }
+        # }  # DISABLED: Replaced by smart sync system
+        'mobile-analytics-cleanup': {
+            'task': 'app.tasks.mobile_analytics_cleanup.cleanup_mobile_analytics_task',
+            'schedule': crontab(hour=2, minute=0),  # Daily at 2 AM PST
             'options': {
-                'queue': 'discord',
-                'expires': 14340  # Task expires after 3 hours 59 minutes
+                'queue': 'celery',
+                'expires': 3540  # Task expires after 59 minutes
             }
         }
     }

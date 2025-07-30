@@ -12,16 +12,27 @@ document.addEventListener('DOMContentLoaded', function () {
     const discordId = rsvpDataElement.getAttribute('data-discord-id');
     const csrfToken = rsvpDataElement.getAttribute('data-csrf-token');
 
-    function submitRSVP(matchId, response) {
-        fetch(`/rsvp/${matchId}`, {
+    // Generate unique operation ID for idempotency
+    function generateOperationId() {
+        return 'web_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    function submitRSVP(matchId, response, retryCount = 0) {
+        // Use same operation ID for retries to ensure idempotency
+        const operationId = this.currentOperationId || generateOperationId();
+        this.currentOperationId = operationId;
+        
+        fetch(`/api/v2/rsvp/update`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken  // Include CSRF token
             },
             body: JSON.stringify({
-                response: response,
-                player_id: playerId,
+                match_id: parseInt(matchId),
+                availability: response,  // Changed from 'response' to 'availability'
+                operation_id: operationId,
+                source: 'web',
                 discord_id: discordId
             })
         })
@@ -43,13 +54,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             })
             .then(data => {
-                if (data.success) {
-                    // console.log('RSVP updated successfully');
+                // Clear operation ID on success
+                this.currentOperationId = null;
+                
+                // Enterprise endpoint returns success with message, no 'success' field
+                if (data.message && data.match_id) {
+                    // console.log('RSVP updated successfully with enterprise system');
                     // Show success message
                     Swal.fire({
                         icon: 'success',
                         title: 'RSVP Updated',
-                        text: 'Your RSVP status has been updated!',
+                        text: data.message || 'Your RSVP status has been updated!',
                         toast: true,
                         position: 'top-end',
                         showConfirmButton: false,
@@ -60,30 +75,66 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (window.location.pathname.includes('/matches/')) {
                         setTimeout(() => window.location.reload(), 1000);
                     }
+                } else if (data.error) {
+                    // Handle enterprise API error format
+                    throw new Error(data.error);
                 } else {
-                    // console.error('Failed to update RSVP:', data.message);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message || 'Failed to update RSVP',
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 3000
-                    });
+                    // Fallback for legacy success format
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'RSVP Updated',
+                            text: 'Your RSVP status has been updated!',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000
+                        });
+                        
+                        if (window.location.pathname.includes('/matches/')) {
+                            setTimeout(() => window.location.reload(), 1000);
+                        }
+                    } else {
+                        throw new Error(data.message || 'Failed to update RSVP');
+                    }
                 }
             })
             .catch(error => {
                 // console.error('Error updating RSVP:', error);
-                // Show error message to user
+                
+                // Implement simple retry logic for network errors
+                const maxRetries = 2;
+                if (retryCount < maxRetries && 
+                    (error.message.includes('HTTP error 5') || error.message.includes('NetworkError'))) {
+                    
+                    // Retry with exponential backoff
+                    setTimeout(() => {
+                        console.log(`Retrying RSVP update (attempt ${retryCount + 1}/${maxRetries})`);
+                        submitRSVP(matchId, response, retryCount + 1);
+                    }, Math.pow(2, retryCount) * 1000);
+                    
+                    return;
+                }
+                
+                // Clear operation ID on final failure
+                this.currentOperationId = null;
+                
+                // Show error message to user with retry option
                 Swal.fire({
                     icon: 'error',
                     title: 'RSVP Error',
                     text: `Could not update your RSVP: ${error.message}`,
                     toast: true,
                     position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 5000
+                    showConfirmButton: true,
+                    confirmButtonText: 'Retry',
+                    timer: 8000
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // User clicked retry - start fresh
+                        this.currentOperationId = null;
+                        submitRSVP(matchId, response, 0);
+                    }
                 });
             });
     }

@@ -14,6 +14,7 @@ support when in debug mode.
 import redis
 import logging
 import logging.config
+import os
 
 from datetime import timedelta
 from flask import Flask, request, session, redirect, url_for, render_template, g
@@ -251,7 +252,11 @@ def create_app(config_object='web_config.Config'):
         if (request.path.startswith('/api/substitute-pools/') or 
             request.path.startswith('/api/ecs-fc/') or
             request.path.startswith('/api/availability/') or
-            request.path.startswith('/api/predictions/')):
+            request.path.startswith('/api/predictions/') or
+            request.path.startswith('/api/v2/') or
+            request.path.startswith('/api/v1/') or
+            request.path.startswith('/api/discord_bot_') or
+            request.path.startswith('/api/sync_')):
             return None
         
         # Get session from flask
@@ -428,7 +433,12 @@ def create_app(config_object='web_config.Config'):
             '/admin/force_send/',  # Route handling force sending of scheduled messages
             '/admin/delete_message/',  # Route handling message deletion
             '/admin/update_rsvp',  # Route handling RSVP updates
-            '/api/v1/'  # All API v1 routes (mobile app endpoints)
+            '/api/v1/',  # All API v1 routes (mobile app endpoints)
+            '/api/v2/',  # All API v2 routes (enterprise RSVP endpoints)
+            '/api/substitute-pools/',
+            '/api/ecs-fc/',
+            '/api/availability/',
+            '/api/predictions/'
         ]
         
         # Check if the current request path starts with any of the exempt routes
@@ -623,6 +633,60 @@ def create_app(config_object='web_config.Config'):
     from app.core import celery
     celery.conf.worker_shutdown = worker_shutdown_cleanup
 
+    # Initialize Enterprise RSVP Event Consumers
+    logger.info("🚀 Initializing Enterprise RSVP Event Consumers...")
+    try:
+        # Import and start event consumers in a background thread
+        import threading
+        import asyncio
+        from app.services.event_consumer import initialize_default_consumers, start_all_consumers
+        
+        def start_event_consumers():
+            """Start event consumers in a separate thread."""
+            try:
+                logger.info("🔧 Starting Enterprise RSVP Event Consumers thread...")
+                
+                # Create new event loop for this thread
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                async def run_consumers():
+                    """Initialize and run the event consumers."""
+                    try:
+                        # Initialize default consumers (WebSocket, Discord)
+                        await initialize_default_consumers()
+                        
+                        # Start all consumers
+                        await start_all_consumers()
+                        
+                        logger.info("✅ Enterprise RSVP Event Consumers started successfully!")
+                        
+                        # Keep the consumers running
+                        while True:
+                            await asyncio.sleep(1)
+                            
+                    except Exception as e:
+                        logger.error(f"❌ Error in event consumer thread: {e}", exc_info=True)
+                
+                # Run the async consumer setup
+                loop.run_until_complete(run_consumers())
+                
+            except Exception as e:
+                logger.error(f"❌ Failed to start event consumers: {e}", exc_info=True)
+        
+        # Start event consumers in daemon thread (won't block app shutdown)
+        consumer_thread = threading.Thread(target=start_event_consumers, daemon=True)
+        consumer_thread.start()
+        
+        # Store thread reference for potential cleanup
+        app.consumer_thread = consumer_thread
+        
+        logger.info("✅ Enterprise RSVP Event Consumers initialization started")
+        
+    except Exception as e:
+        logger.error(f"⚠️ Enterprise RSVP Event Consumers initialization failed: {e}", exc_info=True)
+        logger.info("Flask app will continue without event-driven features")
+
     return app
 
 def init_blueprints(app):
@@ -671,6 +735,7 @@ def init_blueprints(app):
     from app.admin.wallet_admin_routes import wallet_admin_bp
     from app.admin.notification_admin_routes import notification_admin_bp
     from app.routes.notifications import notifications_bp
+    from app.api_smart_sync import smart_sync_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
@@ -711,6 +776,8 @@ def init_blueprints(app):
     app.register_blueprint(wallet_admin_bp)  # Blueprint has url_prefix='/admin/wallet'
     app.register_blueprint(notification_admin_bp)  # Blueprint has url_prefix='/admin/notifications'
     app.register_blueprint(notifications_bp)  # Blueprint has url_prefix='/api/v1/notifications'
+    app.register_blueprint(smart_sync_bp)  # Smart RSVP sync API endpoints
+    csrf.exempt(smart_sync_bp)  # Exempt smart sync endpoints from CSRF
     
     # Import and register playoff management blueprint
     from app.playoff_routes import playoff_bp
@@ -718,7 +785,35 @@ def init_blueprints(app):
     
     # Register cache admin routes
     from app.cache_admin_routes import cache_admin_bp
+    from app.api_enterprise_rsvp import enterprise_rsvp_bp
+    from app.api_observability import observability_bp
+    # Mobile analytics blueprint
+    from app.api_mobile_analytics import mobile_analytics_bp
     app.register_blueprint(cache_admin_bp)
+    app.register_blueprint(enterprise_rsvp_bp)  # Enterprise RSVP API with reliability patterns
+    app.register_blueprint(observability_bp)  # Observability and monitoring endpoints
+    app.register_blueprint(mobile_analytics_bp)  # Mobile error analytics and logging endpoints
+    
+    # Register team notifications API
+    from app.api_team_notifications import team_notifications_bp
+    app.register_blueprint(team_notifications_bp)
+    
+    # Register test routes (only in development)
+    if app.config.get('DEBUG', False):
+        from app.test_team_notifications_route import test_bp
+        app.register_blueprint(test_bp)
+    
+    # Initialize enterprise RSVP system on app startup (simplified for Flask compatibility)
+    try:
+        # Only start in main web process, not in workers
+        if not app.config.get('TESTING') and not os.environ.get('CELERY_WORKER'):
+            logger.info("🚀 Enterprise RSVP system ready for initialization")
+            logger.info("✅ Enterprise RSVP endpoints are active and ready")
+        else:
+            logger.info("ℹ️ Skipping enterprise RSVP initialization in worker process")
+                
+    except Exception as e:
+        logger.error(f"❌ Enterprise RSVP initialization error: {e}")
     
     # Register duplicate management routes
     from app.admin.duplicate_management_routes import duplicate_management

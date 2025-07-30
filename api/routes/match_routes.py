@@ -96,6 +96,21 @@ async def post_availability(request: AvailabilityRequest, bot: commands.Bot = De
         )
         logger.info(f"Stored IDs: Home msg={home_message.id}, Away msg={away_message.id}")
         
+        # Join WebSocket room for real-time RSVP updates
+        try:
+            from websocket_rsvp_manager import get_websocket_manager
+            websocket_manager = get_websocket_manager()
+            
+            if websocket_manager:
+                await websocket_manager.join_match_on_rsvp_post(request.match_id)
+                logger.info(f"✅ [MATCH {request.match_id}] Joined WebSocket room after posting RSVP message")
+            else:
+                logger.warning(f"⚠️ [MATCH {request.match_id}] WebSocket manager not available - skipping room join")
+                
+        except Exception as ws_error:
+            # Don't fail the entire request if WebSocket joining fails
+            logger.error(f"❌ [MATCH {request.match_id}] Failed to join WebSocket room: {str(ws_error)}")
+        
         logger.info(f"Successfully posted availability for match {request.match_id}")
         return {"home_message_id": home_message.id, "away_message_id": away_message.id}
     except Exception as e:

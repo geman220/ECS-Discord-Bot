@@ -163,7 +163,9 @@ def get_match_statistics():
 @role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
 def update_rsvp():
     """
-    Update a player's RSVP status for a match.
+    ENTERPRISE: Admin RSVP update endpoint using Enterprise RSVP v2 system
+    
+    Update a player's RSVP status for a match with enterprise reliability features.
     
     Expects:
     - player_id: ID of the player
