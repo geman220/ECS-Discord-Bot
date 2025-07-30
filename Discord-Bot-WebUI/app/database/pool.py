@@ -34,7 +34,7 @@ class RateLimitedPool(QueuePool):
     def __init__(self, *args, **kwargs):
         # Track the last checkout time to enforce a minimum interval between checkouts.
         self._last_checkout = 0
-        self._min_checkout_interval = 0.1  # in seconds
+        self._min_checkout_interval = 0.01  # Reduced from 0.1 to 0.01 for faster RSVP updates
 
         # Dictionary to track active connections:
         # { connection_id: (checkout_time, stack_trace, route) }
@@ -290,12 +290,12 @@ def _get_connect_args():
 
 ENGINE_OPTIONS = {
     'pool_pre_ping': True,
-    'pool_size': int(os.getenv('SQLALCHEMY_POOL_SIZE', 5)),
-    'max_overflow': int(os.getenv('SQLALCHEMY_MAX_OVERFLOW', 10)),
+    'pool_size': int(os.getenv('SQLALCHEMY_POOL_SIZE', 8)),  # Increased from 5 for better concurrency
+    'max_overflow': int(os.getenv('SQLALCHEMY_MAX_OVERFLOW', 15)),  # Increased from 10 for burst capacity
     'pool_recycle': int(os.getenv('SQLALCHEMY_POOL_RECYCLE', 1800)),
-    'pool_timeout': int(os.getenv('SQLALCHEMY_POOL_TIMEOUT', 20)),
+    'pool_timeout': int(os.getenv('SQLALCHEMY_POOL_TIMEOUT', 10)),  # Reduced from 20 for faster failure detection
     'poolclass': RateLimitedPool,
-    'pool_use_lifo': True,
+    'pool_use_lifo': True,  # LIFO for better cache locality
     'pool_reset_on_return': 'rollback',  # Important for PgBouncer - always rollback on return
     'connect_args': _get_connect_args(),
     'echo': False,

@@ -48,3 +48,9 @@ class SocketSessionManager:
             import logging
             logging.getLogger(__name__).error(f"Error clearing Socket.IO session data: {e}")
             return False
+
+# Import socket handler modules to register their events after class definition
+# The import order matters - base functionality first
+from . import session  # Session management
+from . import rsvp  # RSVP handlers  
+from . import live_reporting  # Live match reporting

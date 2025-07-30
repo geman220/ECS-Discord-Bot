@@ -22,12 +22,16 @@ from app.core.session_manager import managed_session
 from app.sockets.session import socket_session
 from app.tasks.tasks_discord import fetch_role_status, update_player_discord_roles
 from app.utils.user_helpers import safe_current_user
-from app.models.players import Player, Team
+from app.models import Player, Team, Match
+from app.models.players import player_teams
 
 logger = logging.getLogger(__name__)
 
 print("🎯 SINGLE SOCKET HANDLERS MODULE LOADED")
 logger.info("🎯 SINGLE SOCKET HANDLERS MODULE LOADED")
+
+# Import RSVP socket handlers to register them
+from app.sockets import rsvp
 
 # Global locks for preventing race conditions in draft operations
 _draft_locks = {}  # Dictionary of player_id -> lock
@@ -73,6 +77,18 @@ def authenticate_socket_connection(auth=None):
     try:
         # 1. Check auth object first (Socket.IO client auth parameter)
         if auth and isinstance(auth, dict):
+            # Special handling for Discord bot connections
+            if auth.get('type') == 'discord-bot' and auth.get('api_key'):
+                logger.info(f"🔌 [AUTH] Discord bot authentication detected")
+                # For Discord bot, we can skip JWT validation
+                # Return authenticated with a special system user ID
+                return {
+                    'authenticated': True,
+                    'user_id': -1,  # Special system user ID for Discord bot
+                    'username': 'Discord Bot',
+                    'auth_type': 'discord-bot'
+                }
+            
             token = auth.get('token')
             if token:
                 token_source = "auth_object"
@@ -598,20 +614,31 @@ def handle_task_status(data):
 # =============================================================================
 
 @socketio.on('join_match', namespace='/')
-@login_required
 def handle_join_match(data):
-    """Handle client joining a match room - alternative handler for join_match event."""
+    """Handle client joining a match room - supports both web (Flask-Login) and mobile (JWT) authentication."""
     try:
-        from flask_login import current_user
-        from app.models import Player, Team, Match, player_teams
+        # Try JWT authentication first (for mobile apps)
+        auth_result = authenticate_socket_connection(data.get('auth'))
+        
+        if not auth_result['authenticated']:
+            # Fall back to Flask-Login (for web users)
+            from flask_login import current_user
+            if not current_user.is_authenticated:
+                emit('error', {'message': 'Authentication required'})
+                return
+            user_id = current_user.id
+            username = current_user.username
+        else:
+            user_id = auth_result['user_id']
+            username = auth_result.get('username', f'User_{user_id}')
         
         match_id = data.get('match_id')
-        team_id = data.get('team_id')  # Optional team_id parameter
+        team_id = data.get('team_id')
         
         if not match_id:
-            emit('error', {'message': 'Match ID is required'})
+            emit('error', {'message': 'Match ID required'})
             return
-        
+            
         try:
             match_id = int(match_id)
         except ValueError:
@@ -619,46 +646,40 @@ def handle_join_match(data):
             return
         
         with managed_session() as session:
-            # Get the match
-            match = session.query(Match).filter(Match.id == match_id).first()
+            # Verify match exists
+            match = session.query(Match).get(match_id)
             if not match:
                 emit('error', {'message': 'Match not found'})
                 return
             
-            # Get user's player record
-            player = session.query(Player).filter(Player.user_id == current_user.id).first()
-            if not player:
-                emit('error', {'message': 'Player profile not found'})
-                return
+            # Get player info
+            player = session.query(Player).filter(Player.user_id == user_id).first()
+            player_name = player.name if player else username
+            player_id = player.id if player else None
             
-            # Check if user is a coach for either team in this match
-            user_teams = session.query(player_teams).filter(
-                and_(
-                    player_teams.c.player_id == player.id,
-                    player_teams.c.is_coach == True,
-                    player_teams.c.team_id.in_([match.home_team_id, match.away_team_id])
-                )
-            ).all()
+            # Join both room formats for compatibility  
+            room_with_underscore = f'match_{match_id}'
+            room_without_underscore = f'match{match_id}'
+            join_room(room_with_underscore)
+            join_room(room_without_underscore)
             
-            if not user_teams:
-                emit('error', {'message': 'You are not authorized to join this match'})
-                return
+            # Send success response (compatible with RSVP expectations)
+            emit('joined_match_rsvp', {
+                'match_id': match_id,
+                'room': room_without_underscore,  # Flutter expects this format
+                'team_id': team_id,
+                'match_info': {
+                    'home_team_id': match.home_team_id,
+                    'home_team_name': match.home_team.name,
+                    'away_team_id': match.away_team_id,
+                    'away_team_name': match.away_team.name,
+                    'date': match.date.isoformat(),
+                    'time': match.time.isoformat() if match.time else None
+                },
+                'message': 'Successfully joined match room for RSVP updates'
+            })
             
-            # Join the match room
-            room = f'match_{match_id}'
-            join_room(room)
-            
-            # Get match state
-            match_state = match.to_dict(include_teams=True, include_events=True)
-            
-            # Emit match state
-            emit('match_state', match_state)
-            
-            # Get active reporters for this match
-            active_reporters = get_match_room_coaches(match_id, session)
-            emit('active_reporters', active_reporters)
-            
-            logger.info(f"User {current_user.username} joined match {match_id} via join_match")
+            logger.info(f"👥 User {username} (player: {player_name}) joined match {match_id} room via join_match")
             
     except Exception as e:
         logger.error(f"Error joining match: {str(e)}", exc_info=True)

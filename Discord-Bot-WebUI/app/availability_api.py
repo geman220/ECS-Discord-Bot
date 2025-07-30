@@ -168,15 +168,19 @@ def get_match_availability(match_id):
 @availability_bp.route('/update_availability', methods=['POST'], endpoint='update_availability')
 def update_availability():
     """
-    Update availability based on data received from Discord.
+    DEPRECATED: Legacy availability endpoint - redirects to Enterprise RSVP v2
+    
+    This endpoint now internally calls the Enterprise RSVP v2 system.
 
     Expects JSON with:
         - match_id
         - discord_id
         - response
     """
-    data = request.json
-    logger.info(f"🔵 [AVAILABILITY_API] update_availability called: match_id={data.get('match_id')}, discord_id={data.get('discord_id')}, response={data.get('response')}")
+    logger.warning("⚠️ [AVAILABILITY_API] DEPRECATED endpoint called - redirecting to Enterprise RSVP v2")
+    
+    # Redirect to the Discord legacy handler which already redirects to enterprise
+    return update_availability_from_discord()
 
     required_fields = ['match_id', 'discord_id', 'response']
     if not all(data.get(field) for field in required_fields):
@@ -200,6 +204,16 @@ def update_availability():
         logger.debug(f"🔵 [AVAILABILITY_API] Triggering notifications for match {data['match_id']}, player {player.id}")
         notify_discord_of_rsvp_change_task.delay(data['match_id'])
         notify_frontend_of_rsvp_change_task.delay(data['match_id'], player.id, data['response'])
+        
+        # Emit WebSocket event for real-time updates
+        from app.sockets.rsvp import emit_rsvp_update
+        emit_rsvp_update(
+            match_id=data['match_id'],
+            player_id=player.id,
+            availability=data['response'],
+            source='discord',
+            player_name=player.name
+        )
 
         logger.info(f"🟢 [AVAILABILITY_API] Availability updated successfully for {player.name} on match {data['match_id']}")
         return jsonify({"message": "Availability updated successfully"}), 200
@@ -280,13 +294,17 @@ def get_match_id_from_message(message_id):
 @login_required
 def update_availability_web():
     """
-    Update a player's availability via the web interface.
+    DEPRECATED: Legacy web availability endpoint
+    
+    This endpoint should no longer be used. The web interface should use
+    the Enterprise RSVP v2 system directly via JavaScript.
     
     Expects JSON with:
         - match_id
         - player_id
         - response
     """
+    logger.warning("⚠️ [AVAILABILITY_API] DEPRECATED web endpoint called - this should be migrated to use Enterprise RSVP v2")
     data = request.json
     logger.info(f"Received web update data: {data}")
 
@@ -321,6 +339,16 @@ def update_availability_web():
     
     # Always notify Discord of the change to update embeds
     notify_discord_of_rsvp_change_task.delay(data['match_id'])
+    
+    # Emit WebSocket event for real-time updates
+    from app.sockets.rsvp import emit_rsvp_update
+    emit_rsvp_update(
+        match_id=data['match_id'],
+        player_id=data['player_id'],
+        availability=data['response'],
+        source='web',
+        player_name=player.name if player else None
+    )
     
     # If we have a discord_id, also update the reaction
     if discord_id:
@@ -493,7 +521,10 @@ def get_match_rsvps(match_id):
 @availability_bp.route('/update_availability_from_discord', methods=['POST'], endpoint='update_availability_from_discord')
 def update_availability_from_discord():
     """
-    Update availability data based on information received from Discord.
+    DEPRECATED: Legacy Discord API endpoint - redirects to Enterprise RSVP v2
+    
+    This endpoint now internally calls the Enterprise RSVP v2 system to ensure
+    all Discord bot requests get enterprise reliability features.
 
     Expects JSON with:
         - match_id
@@ -501,6 +532,72 @@ def update_availability_from_discord():
         - response
         - optionally, responded_at
     """
+    logger.info(f"🔄 [AVAILABILITY_API] Legacy Discord endpoint redirecting to Enterprise RSVP v2")
+    
+    try:
+        data = request.json
+        
+        # Validate required fields
+        required_fields = ['match_id', 'discord_id', 'response']
+        if not all(field in data for field in required_fields):
+            logger.error(f"🔴 [AVAILABILITY_API] Missing required fields: {data}")
+            return jsonify({
+                'status': 'error',
+                'error': 'Missing required fields'
+            }), 400
+        
+        # Import Enterprise RSVP function
+        from app.api_enterprise_rsvp import update_rsvp_enterprise_from_discord
+        
+        # Transform legacy request to enterprise format
+        enterprise_request_data = {
+            'match_id': data['match_id'],
+            'discord_id': str(data['discord_id']),
+            'response': data['response'],  # Enterprise uses 'response' for Discord
+            'source': 'discord_legacy',
+            'operation_id': str(__import__('uuid').uuid4())  # Generate operation ID
+        }
+        
+        # Temporarily replace request.json with enterprise format
+        original_json = request.json
+        request.json = enterprise_request_data
+        
+        try:
+            # Call the enterprise endpoint internally
+            logger.info(f"🔄 Redirecting legacy Discord API call to Enterprise RSVP v2: match={data['match_id']}, discord_id={data['discord_id']}")
+            response = update_rsvp_enterprise_from_discord()
+            
+            # Transform enterprise response back to legacy format for compatibility
+            if response[1] == 200:  # Success response
+                enterprise_data = response[0].get_json()
+                legacy_response = {
+                    'status': 'success',
+                    'message': enterprise_data.get('message', 'RSVP updated successfully'),
+                    'match_id': enterprise_data.get('match_id'),
+                    'player_id': enterprise_data.get('player_id'),
+                    # Include enterprise metadata for debugging
+                    '_enterprise': {
+                        'trace_id': enterprise_data.get('trace_id'),
+                        'operation_id': enterprise_data.get('operation_id'),
+                        'via_v2': True
+                    }
+                }
+                return jsonify(legacy_response), 200
+            else:
+                # Enterprise endpoint failed, return the error
+                return response
+                
+        finally:
+            # Restore original request data
+            request.json = original_json
+            
+    except Exception as e:
+        logger.error(f"❌ Legacy Discord API redirect to enterprise failed: {str(e)}", exc_info=True)
+        # Fallback to original legacy implementation if enterprise redirect fails
+        pass
+    
+    # FALLBACK: Original legacy implementation (only if enterprise redirect fails)
+    logger.warning("⚠️ Using legacy Discord RSVP implementation - enterprise redirect failed")
     logger.info(f"🔵 [AVAILABILITY_API] update_availability_from_discord called")
     
     try:
@@ -536,6 +633,23 @@ def update_availability_from_discord():
                 logger.debug(f"🔵 [AVAILABILITY_API] Triggering notifications for match {data['match_id']}, player {player_id}")
                 notify_discord_of_rsvp_change_task.delay(data['match_id'])
                 notify_frontend_of_rsvp_change_task.delay(data['match_id'], player_id, data['response'])
+                
+                # Emit WebSocket event for real-time updates
+                from app.sockets.rsvp import emit_rsvp_update
+                # Get player name from result
+                player_name = None
+                if player_id:
+                    p = session_db.query(Player).get(player_id)
+                    if p:
+                        player_name = p.name
+                
+                emit_rsvp_update(
+                    match_id=data['match_id'],
+                    player_id=player_id,
+                    availability=data['response'],
+                    source='discord',
+                    player_name=player_name
+                )
 
             logger.info(f"🟢 [AVAILABILITY_API] Availability updated successfully from Discord for match {data['match_id']}")
             return jsonify({

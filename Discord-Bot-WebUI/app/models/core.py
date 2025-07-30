@@ -287,3 +287,26 @@ class DuplicateRegistrationAlert(db.Model):
     
     def __repr__(self):
         return f'<DuplicateRegistrationAlert {self.id}: {self.new_name} -> Player {self.existing_player_id}>'
+
+
+class DiscordBotStatus(db.Model):
+    """Model for tracking Discord bot online status for smart sync."""
+    __tablename__ = 'discord_bot_status'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    instance_type = db.Column(db.String(50), nullable=False, unique=True)  # 'main', 'backup', etc.
+    instance_id = db.Column(db.String(100), nullable=False)  # Unique instance identifier
+    last_online = db.Column(db.DateTime, nullable=False)  # When bot was last known online
+    last_updated = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # When this record was updated
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'instance_type': self.instance_type,
+            'instance_id': self.instance_id,
+            'last_online': self.last_online.isoformat() if self.last_online else None,
+            'last_updated': self.last_updated.isoformat() if self.last_updated else None
+        }
+    
+    def __repr__(self):
+        return f'<DiscordBotStatus {self.instance_type}: {self.instance_id}>'

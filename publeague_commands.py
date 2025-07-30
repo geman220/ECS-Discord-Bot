@@ -191,6 +191,9 @@ class TeamRoleSelect(discord.ui.Select):
             return
         allowed_mentions = discord.AllowedMentions(roles=[selected_role])
         
+        # Send push notification to team members
+        await self._send_team_push_notification(selected_role.name, self.message_text, self.original_interaction.user.id)
+        
         # Check Discord message length limit and split if necessary
         discord_max_length = 2000
         role_mention_text = f"{selected_role.mention} "
@@ -234,6 +237,31 @@ class TeamRoleSelect(discord.ui.Select):
                 await self.original_interaction.channel.send(chunk)
         await interaction.response.send_message("Team message sent.", ephemeral=True)
         self.view.stop()
+    
+    async def _send_team_push_notification(self, team_role_name: str, message: str, coach_discord_id: int):
+        """Send push notification to team members via Flask API"""
+        try:
+            payload = {
+                'team_name': team_role_name,
+                'message': message,
+                'coach_discord_id': str(coach_discord_id),
+                'title': '⚽ Team Message'
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{WEBUI_API_URL}/api/team-notifications/send",
+                    json=payload,
+                    headers={'Content-Type': 'application/json'}
+                ) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        logger.info(f"Push notification sent successfully: {result}")
+                    else:
+                        error_text = await response.text()
+                        logger.warning(f"Failed to send push notification: {response.status} - {error_text}")
+        except Exception as e:
+            logger.error(f"Error sending team push notification: {e}")
 
 class TeamRoleSelectView(discord.ui.View):
     def __init__(self, team_roles: list[discord.Role], message_text: str, original_interaction: discord.Interaction):
@@ -278,6 +306,9 @@ class PubLeagueCommands(commands.Cog):
             role_mention_text = f"{team_role.mention} "
             role_mention_length = len(role_mention_text)
             
+            # Send push notification to team members
+            await self._send_team_push_notification(team_role.name, message, interaction.user.id)
+            
             # If the first message with role mention fits
             if len(role_mention_text + message) <= discord_max_length:
                 output = f"{role_mention_text}{message}"
@@ -317,6 +348,31 @@ class PubLeagueCommands(commands.Cog):
         else:
             view = TeamRoleSelectView(team_roles, message, interaction)
             await interaction.response.send_message("Multiple team roles found. Please select the team you wish to message:", ephemeral=True, view=view)
+    
+    async def _send_team_push_notification(self, team_role_name: str, message: str, coach_discord_id: int):
+        """Send push notification to team members via Flask API"""
+        try:
+            payload = {
+                'team_name': team_role_name,
+                'message': message,
+                'coach_discord_id': str(coach_discord_id),
+                'title': '⚽ Team Message'
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{WEBUI_API_URL}/api/team-notifications/send",
+                    json=payload,
+                    headers={'Content-Type': 'application/json'}
+                ) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        logger.info(f"Push notification sent successfully: {result}")
+                    else:
+                        error_text = await response.text()
+                        logger.warning(f"Failed to send push notification: {response.status} - {error_text}")
+        except Exception as e:
+            logger.error(f"Error sending team push notification: {e}")
 
     @app_commands.command(
         name="checkmyteam",

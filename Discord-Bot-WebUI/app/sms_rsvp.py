@@ -25,12 +25,15 @@ sms_rsvp_bp = Blueprint('sms_rsvp', __name__)
 
 def update_rsvp(match_id, player_id, response, discord_id=None):
     """
-    Update or create an RSVP record for a given match and player.
+    Update or create an RSVP record for a given match and player using the Enterprise RSVP System.
+    
+    This function now uses the same enterprise-grade RSVP service that powers the Discord bot,
+    providing idempotent operations, event-driven updates, and full audit trail.
 
     Args:
         match_id (int): ID of the match.
         player_id (int): ID of the player.
-        response (str): Player's response ('yes', 'no', or 'maybe').
+        response (str): Player's response ('yes', 'no', 'maybe', or 'no_response').
         discord_id (optional): Discord ID, if available.
 
     Returns:
@@ -41,43 +44,81 @@ def update_rsvp(match_id, player_id, response, discord_id=None):
 
     session = g.db_session
     try:
-        # First verify match exists
-        match = session.query(Match).get(match_id)
-        if not match:
-            logger.error(f"Match {match_id} not found")
-            return False, f"Match {match_id} not found"
+        # Use the enterprise RSVP service for reliability and real-time sync
+        from app.services.rsvp_service import create_rsvp_service_sync
+        from app.events.rsvp_events import RSVPSource
+        from flask import request
+        import uuid
+        
+        # Generate operation ID for idempotency and audit trail
+        operation_id = str(uuid.uuid4())
+        
+        # Collect user context for audit trail
+        user_context = {
+            'ip_address': getattr(request, 'remote_addr', None) if request else None,
+            'user_agent': getattr(request, 'headers', {}).get('User-Agent') if request else 'SMS System',
+            'source_endpoint': 'sms_rsvp_system',
+            'request_id': f'sms_{operation_id}'
+        }
+        
+        # Create enterprise RSVP service
+        rsvp_service = create_rsvp_service_sync(session)
+        
+        # Process RSVP update with enterprise reliability
+        success, message, event = rsvp_service.update_rsvp_sync(
+            match_id=match_id,
+            player_id=player_id,
+            new_response=response,
+            source=RSVPSource.SYSTEM,  # SMS updates are system-generated
+            operation_id=operation_id,
+            user_context=user_context
+        )
+        
+        if success:
+            # Emit WebSocket update for real-time sync
+            try:
+                from app.sockets.rsvp import emit_rsvp_update
+                from app.models import Player, Match
+                
+                # Get player and match details for WebSocket emission
+                player = session.query(Player).get(player_id)
+                match = session.query(Match).get(match_id)
+                
+                if player and match:
+                    # Determine team_id for the player
+                    team_id = None
+                    if hasattr(match, 'home_team') and match.home_team:
+                        if player in match.home_team.players:
+                            team_id = match.home_team_id
+                    if not team_id and hasattr(match, 'away_team') and match.away_team:
+                        if player in match.away_team.players:
+                            team_id = match.away_team_id
+                    
+                    # Emit the RSVP update to WebSocket clients
+                    emit_rsvp_update(
+                        match_id=match_id,
+                        player_id=player_id,
+                        availability=response,
+                        source='sms',
+                        player_name=player.name,
+                        team_id=team_id
+                    )
+                    
+                    logger.info(f"📤 WebSocket RSVP update emitted from SMS: match={match_id}, player={player.name}, response={response}")
+                    
+            except Exception as e:
+                logger.error(f"⚠️ Failed to emit WebSocket RSVP update from SMS: {e}")
+                # Don't fail the SMS RSVP - database update was successful
             
-        # Then verify player exists
-        player = session.query(Player).get(player_id)
-        if not player:
-            logger.error(f"Player {player_id} not found")
-            return False, f"Player {player_id} not found"
-        
-        # Update or create availability record
-        availability = session.query(Availability).filter_by(
-            match_id=match_id, player_id=player_id
-        ).first()
-        
-        if availability:
-            # Update existing RSVP.
-            availability.response = response
-            availability.responded_at = datetime.utcnow()
-            logger.info(f"Updated RSVP for player {player_id} to {response} for match {match_id}")
-            return True, f"RSVP updated to {response}"
+            logger.info(f"✅ Enterprise SMS RSVP update successful: player={player_id}, match={match_id}, "
+                       f"response={response}, operation_id={operation_id}")
+            return True, message
         else:
-            # Create new RSVP.
-            availability = Availability(
-                match_id=match_id,
-                player_id=player_id,
-                response=response,
-                discord_id=discord_id,
-                responded_at=datetime.utcnow()
-            )
-            session.add(availability)
-            logger.info(f"Created new RSVP for player {player_id} with response {response} for match {match_id}")
-            return True, f"RSVP set to {response}"
+            logger.warning(f"⚠️ Enterprise SMS RSVP update failed: {message}, operation_id={operation_id}")
+            return False, message
+            
     except Exception as e:
-        error_msg = f"Error updating RSVP for player {player_id}: {str(e)}"
+        error_msg = f"Error in enterprise SMS RSVP update for player {player_id}: {str(e)}"
         logger.error(error_msg, exc_info=True)
         return False, error_msg
 

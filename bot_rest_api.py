@@ -28,6 +28,7 @@ from api.routes.league_routes import router as league_router
 from api.routes.communication_routes import router as communication_router
 from api.routes.ecs_fc_sub_routes import router as ecs_fc_sub_router
 from api.routes.onboarding_routes import router as onboarding_router
+from api.routes.websocket_routes import router as websocket_router
 
 app.include_router(server_router)
 app.include_router(match_router)  # Routes already have /api prefix where needed
@@ -35,6 +36,7 @@ app.include_router(league_router)
 app.include_router(communication_router)
 app.include_router(ecs_fc_sub_router)
 app.include_router(onboarding_router, prefix="/onboarding")
+app.include_router(websocket_router)
 
 # Startup and shutdown events
 app.add_event_handler("startup", startup_event)
