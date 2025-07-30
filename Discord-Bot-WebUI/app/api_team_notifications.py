@@ -4,12 +4,14 @@ from app.models import User, UserFCMToken, Team, Player
 from app.models.players import player_teams
 from app.services.notification_service import notification_service
 from app.core import db
+from app import csrf
 import logging
 from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
 team_notifications_bp = Blueprint('team_notifications', __name__, url_prefix='/api/team-notifications')
+csrf.exempt(team_notifications_bp)
 
 def find_team_by_discord_role(team_name):
     """
