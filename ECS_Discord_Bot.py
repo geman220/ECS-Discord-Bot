@@ -1058,30 +1058,30 @@ async def sync_rsvp_with_web_ui(match_id, discord_id, response):
                 async with session.post(api_url, json=data, timeout=aiohttp.ClientTimeout(total=5)) as resp:
                     resp_text = await resp.text()
                     if resp.status == 200:
-                            # Parse response to get enterprise features data
-                            try:
-                                resp_data = await resp.json()
-                                trace_id = resp_data.get('trace_id', 'unknown')
-                                event_id = resp_data.get('event_id', 'unknown')
-                                logger.info(f"✅ RSVP updated successfully (Enterprise) for match {match_id} in Web UI. "
-                                           f"trace_id={trace_id}, event_id={event_id}, operation_id={operation_id}")
-                            except:
-                                # Fallback for legacy responses
-                                logger.info(f"✅ RSVP updated successfully for match {match_id} in Web UI. Response: {resp_text}")
-                            return True
-                        elif resp.status == 429:  # Rate limited
-                            retry_after = float(resp.headers.get('Retry-After', base_delay * (2 ** attempt)))
-                            logger.warning(f"Rate limited when updating RSVP. Retrying after {retry_after}s (attempt {attempt+1}/{max_retries})")
-                            await asyncio.sleep(retry_after)
-                        else:
-                            # Enhanced error logging for enterprise endpoints
-                            try:
-                                error_data = await resp.json()
-                                error_msg = error_data.get('error', 'Unknown error')
-                                logger.error(f"❌ Failed to update RSVP in Web UI (Enterprise): {resp.status}, "
-                                           f"error='{error_msg}', operation_id={operation_id}")
-                            except:
-                                logger.error(f"❌ Failed to update RSVP in Web UI: {resp.status}, {resp_text}")
+                        # Parse response to get enterprise features data
+                        try:
+                            resp_data = await resp.json()
+                            trace_id = resp_data.get('trace_id', 'unknown')
+                            event_id = resp_data.get('event_id', 'unknown')
+                            logger.info(f"✅ RSVP updated successfully (Enterprise) for match {match_id} in Web UI. "
+                                       f"trace_id={trace_id}, event_id={event_id}, operation_id={operation_id}")
+                        except:
+                            # Fallback for legacy responses
+                            logger.info(f"✅ RSVP updated successfully for match {match_id} in Web UI. Response: {resp_text}")
+                        return True
+                    elif resp.status == 429:  # Rate limited
+                        retry_after = float(resp.headers.get('Retry-After', base_delay * (2 ** attempt)))
+                        logger.warning(f"Rate limited when updating RSVP. Retrying after {retry_after}s (attempt {attempt+1}/{max_retries})")
+                        await asyncio.sleep(retry_after)
+                    else:
+                        # Enhanced error logging for enterprise endpoints
+                        try:
+                            error_data = await resp.json()
+                            error_msg = error_data.get('error', 'Unknown error')
+                            logger.error(f"❌ Failed to update RSVP in Web UI (Enterprise): {resp.status}, "
+                                       f"error='{error_msg}', operation_id={operation_id}")
+                        except:
+                            logger.error(f"❌ Failed to update RSVP in Web UI: {resp.status}, {resp_text}")
                             
                             if attempt < max_retries - 1:
                                 await asyncio.sleep(base_delay * (2 ** attempt))
