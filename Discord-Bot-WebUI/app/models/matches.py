@@ -51,6 +51,8 @@ class Match(db.Model):
     away_team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
     home_team_message_id = db.Column(db.String(100), nullable=True)
     away_team_message_id = db.Column(db.String(100), nullable=True)
+    home_team_channel_id = db.Column(db.String(100), nullable=True)
+    away_team_channel_id = db.Column(db.String(100), nullable=True)
     home_team_score = db.Column(db.Integer, nullable=True)
     away_team_score = db.Column(db.Integer, nullable=True)
     notes = db.Column(db.Text, nullable=True)
