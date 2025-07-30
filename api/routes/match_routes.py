@@ -20,7 +20,7 @@ WEBUI_API_URL = os.getenv("WEBUI_API_URL")
 from discord.ext import commands
 from datetime import datetime
 
-from api.models.schemas import AvailabilityRequest, ThreadRequest, MessageContent
+from api.models.schemas import AvailabilityRequest, ThreadRequest, MessageContent, DiscordEmbedUpdateRequest
 from api.utils.discord_utils import get_bot, get_team_id_for_message, poll_task_result
 from api.utils.api_client import get_session, retry_api_call
 from api.utils.rsvp_utils import fetch_team_rsvp_data, update_embed_for_message, fetch_match_data
@@ -1026,3 +1026,83 @@ async def store_message_ids_in_web_ui(match_id, home_channel_id=None, home_messa
     except Exception as e:
         logger.exception(f"Error storing message IDs in Web UI: {str(e)}")
         return {"success": False, "message": f"Exception occurred: {str(e)}"}
+
+
+@router.post("/api/update_embed")
+async def update_discord_embed(
+    request: DiscordEmbedUpdateRequest,
+    bot: commands.Bot = Depends(get_bot)
+):
+    """
+    Update Discord embed when RSVP changes from other platforms.
+    
+    This endpoint provides true cross-platform real-time sync by updating Discord embeds
+    immediately when someone changes their RSVP on mobile/web.
+    
+    Args:
+        match_id: ID of the match
+        channel_id: Discord channel ID containing the message
+        message_id: Discord message ID to update
+        trigger_source: Source that triggered the update ('flask_websocket', etc.)
+        player_change: Optional dict with player change info
+        
+    Returns:
+        dict: Status of the embed update operation
+    """
+    try:
+        logger.info(f"🔄 Updating Discord embed for match {request.match_id} (triggered by {request.trigger_source})")
+        
+        # Get the Discord channel and message
+        channel = bot.get_channel(request.channel_id)
+        if not channel:
+            logger.error(f"Discord channel {request.channel_id} not found")
+            return {"success": False, "error": f"Channel {request.channel_id} not found"}
+        
+        try:
+            message = await channel.fetch_message(request.message_id)
+        except discord.NotFound:
+            logger.error(f"Discord message {request.message_id} not found in channel {request.channel_id}")
+            return {"success": False, "error": f"Message {request.message_id} not found"}
+        except discord.Forbidden:
+            logger.error(f"No permission to access message {request.message_id} in channel {request.channel_id}")
+            return {"success": False, "error": "No permission to access message"}
+        
+        # Determine team ID from the channel or message context
+        team_id = await get_team_id_for_message(request.channel_id, request.message_id)
+        if not team_id:
+            logger.warning(f"Could not determine team ID for channel {request.channel_id}")
+            return {"success": False, "error": "Could not determine team ID"}
+        
+        # Update the embed with fresh RSVP data
+        success = await update_embed_for_message(
+            channel_id=request.channel_id,
+            message_id=request.message_id,
+            team_id=team_id,
+            match_id=request.match_id,
+            source=f"cross_platform_sync_{request.trigger_source}"
+        )
+        
+        if success:
+            player_info = ""
+            if request.player_change:
+                player_name = request.player_change.player_name
+                availability = request.player_change.new_availability
+                player_info = f" (player: {player_name} -> {availability})"
+            
+            logger.info(f"✅ Successfully updated Discord embed for match {request.match_id} in channel {request.channel_id}{player_info}")
+            return {
+                "success": True, 
+                "message": f"Discord embed updated for match {request.match_id}",
+                "match_id": request.match_id,
+                "channel_id": request.channel_id,
+                "message_id": request.message_id,
+                "trigger_source": request.trigger_source,
+                "updated_at": datetime.utcnow().isoformat()
+            }
+        else:
+            logger.error(f"❌ Failed to update Discord embed for match {request.match_id}")
+            return {"success": False, "error": "Embed update failed"}
+            
+    except Exception as e:
+        logger.exception(f"❌ Error updating Discord embed for match {request.match_id}: {str(e)}")
+        return {"success": False, "error": f"Exception occurred: {str(e)}"}

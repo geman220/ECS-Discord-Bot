@@ -28,6 +28,88 @@ logger = logging.getLogger(__name__)
 match_room_users = {}  # {match_id: {user_id: {username, player_name, team_id}}}
 
 
+def update_discord_embed_async(match_id, player_id, availability, player_name):
+    """
+    Background task to update Discord embed when RSVP changes from other platforms.
+    
+    This provides true cross-platform real-time sync by updating Discord embeds
+    immediately when someone changes their RSVP on mobile/web.
+    """
+    try:
+        import requests
+        import os
+        from datetime import datetime
+        
+        # Find the Discord messages to update (both home and away teams)
+        with managed_session() as session:
+            match = session.query(Match).get(match_id)
+            if not match:
+                logger.debug(f"Match {match_id} not found - skipping embed update")
+                return
+            
+            # Check if we have Discord message info for this match
+            updates_to_make = []
+            
+            if match.home_team_message_id and match.home_team_channel_id:
+                updates_to_make.append({
+                    'message_id': match.home_team_message_id,
+                    'channel_id': match.home_team_channel_id,
+                    'team_type': 'home'
+                })
+            
+            if match.away_team_message_id and match.away_team_channel_id:
+                updates_to_make.append({
+                    'message_id': match.away_team_message_id,
+                    'channel_id': match.away_team_channel_id,
+                    'team_type': 'away'
+                })
+            
+            if not updates_to_make:
+                logger.debug(f"No Discord message/channel info for match {match_id} - skipping embed update")
+                return
+        
+        # Call Discord bot's embed update endpoint for each team
+        bot_base_url = os.getenv('DISCORD_BOT_BASE_URL', 'http://localhost:5001')
+        update_url = f"{bot_base_url}/api/update_embed"
+        
+        success_count = 0
+        for update_info in updates_to_make:
+            try:
+                payload = {
+                    'match_id': match_id,
+                    'channel_id': int(update_info['channel_id']),
+                    'message_id': int(update_info['message_id']),
+                    'trigger_source': 'flask_websocket',
+                    'player_change': {
+                        'player_id': player_id,
+                        'player_name': player_name,
+                        'new_availability': availability,
+                        'timestamp': datetime.utcnow().isoformat()
+                    }
+                }
+                
+                # Make call to Discord bot (with short timeout to avoid blocking)
+                response = requests.post(update_url, json=payload, timeout=2)
+                
+                if response.status_code == 200:
+                    success_count += 1
+                    logger.debug(f"✅ Discord embed updated for {update_info['team_type']} team (match {match_id})")
+                else:
+                    logger.warning(f"Discord embed update failed for {update_info['team_type']} team: {response.status_code}")
+                    
+            except Exception as embed_error:
+                logger.warning(f"Error updating Discord embed for {update_info['team_type']} team: {embed_error}")
+        
+        if success_count > 0:
+            logger.info(f"✅ Updated {success_count}/{len(updates_to_make)} Discord embeds for match {match_id} (player: {player_name} -> {availability})")
+        else:
+            logger.warning(f"❌ Failed to update any Discord embeds for match {match_id}")
+            
+    except Exception as e:
+        # Don't fail the WebSocket emission if Discord update fails
+        logger.warning(f"Discord embed update failed for match {match_id}: {e}")
+
+
 def emit_rsvp_update(match_id, player_id, availability, source='system', player_name=None, team_id=None):
     """
     Emit an RSVP update to all clients in a match room.
@@ -81,6 +163,15 @@ def emit_rsvp_update(match_id, player_id, availability, source='system', player_
         socketio.emit('rsvp_update', event_data, room=room_without_underscore, namespace='/')
         
         logger.debug(f"📤 Emitted RSVP update to rooms {room_with_underscore} & {room_without_underscore}: {player_name} -> {availability} (source: {source})")
+        
+        # CROSS-PLATFORM SYNC: Trigger Discord embed update for non-Discord sources
+        if source != 'discord':
+            try:
+                # Use background task to avoid blocking WebSocket emission
+                socketio.start_background_task(update_discord_embed_async, match_id, player_id, availability, player_name)
+                logger.debug(f"🔄 Triggered Discord embed update for match {match_id} (source: {source})")
+            except Exception as e:
+                logger.warning(f"Failed to trigger Discord embed update: {e}")
         
         # Skip summary emission for real-time performance - clients can calculate locally
         # emit_rsvp_summary(match_id)  # Commented out for speed

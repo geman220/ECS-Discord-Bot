@@ -87,3 +87,18 @@ class PollResponseRequest(BaseModel):
     poll_id: int
     discord_id: str
     response: str  # 'yes', 'no', 'maybe'
+
+
+class PlayerChange(BaseModel):
+    player_id: int
+    player_name: str
+    new_availability: str
+    timestamp: str
+
+
+class DiscordEmbedUpdateRequest(BaseModel):
+    match_id: int
+    channel_id: int
+    message_id: int
+    trigger_source: str
+    player_change: Optional[PlayerChange] = None

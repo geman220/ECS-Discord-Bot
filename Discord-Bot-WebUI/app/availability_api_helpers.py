@@ -116,6 +116,12 @@ def store_message_ids_for_match(match_id, home_channel_id, home_message_id,
         scheduled_message.away_channel_id = away_channel_id
         scheduled_message.away_message_id = away_message_id
 
+        # CROSS-PLATFORM SYNC: Also store Discord message info in Match model for real-time updates
+        match.home_team_message_id = home_message_id
+        match.away_team_message_id = away_message_id
+        match.home_team_channel_id = str(home_channel_id)
+        match.away_team_channel_id = str(away_channel_id)
+
         return scheduled_message, "Message IDs stored successfully"
 
     except Exception as e:
