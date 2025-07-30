@@ -301,12 +301,20 @@
                                     <a href="{{ url_for('teams.team_details', team_id=pts.team.id) }}" class="text-decoration-none fw-semibold">
                                         {{ pts.team.name }}
                                     </a>
+                                    {% if can_view_draft_history %}
+                                        {% set draft_key = pts.season.name + '_league_' + pts.team.league_id|string %}
+                                        {% if draft_history and draft_history.get(draft_key) %}
+                                            <span class="badge bg-info ms-2" title="Draft Pick #{{ draft_history[draft_key] }}">#{{ draft_history[draft_key] }}</span>
+                                        {% endif %}
+                                    {% endif %}
                                 </div>
                                 <small class="text-muted d-block"><i class="ti ti-calendar me-1"></i>{{ pts.season.name }}</small>
                             </div>
-                            {% if pts.season.is_current %}
-                            <span class="badge bg-success">Current</span>
-                            {% endif %}
+                            <div class="d-flex align-items-center">
+                                {% if pts.season.is_current %}
+                                <span class="badge bg-success">Current</span>
+                                {% endif %}
+                            </div>
                         </li>
                         {% endfor %}
                         {% else %}
