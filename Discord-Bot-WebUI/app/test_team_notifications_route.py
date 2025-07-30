@@ -1,10 +1,12 @@
 from flask import Blueprint, render_template_string, request, jsonify
 import requests
 import json
+from app.decorators import role_required
 
 test_bp = Blueprint('test_notifications', __name__, url_prefix='/test')
 
 @test_bp.route('/team-notifications')
+@role_required('Global Admin')
 def test_team_notifications():
     """Test page for team notifications - accessible via browser"""
     
