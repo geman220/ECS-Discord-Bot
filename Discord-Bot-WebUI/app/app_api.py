@@ -146,6 +146,7 @@ def limit_remote_addr():
 
 
 @mobile_api.route('/test-connection', endpoint='test_connection', methods=['GET'])
+@jwt_role_required('Global Admin')
 def test_connection():
     """
     Simple endpoint to test mobile app connection to the API.
@@ -796,7 +797,7 @@ def debug_availability():
 
 
 @mobile_api.route('/debug/create_test_rsvp', endpoint='create_test_rsvp', methods=['GET'])
-@jwt_required()
+@jwt_role_required('Global Admin')
 def create_test_rsvp():
     """Create a test RSVP for match 5316 and player 908."""
     from datetime import datetime
