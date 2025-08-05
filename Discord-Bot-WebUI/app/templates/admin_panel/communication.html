@@ -1,0 +1,305 @@
+{% extends "admin_panel/base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Communication Hub - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">Communication Hub</li>
+{% endblock %}
+
+{% block panel_content %}
+
+    <!-- Communication Overview -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ stats.total_templates or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Message Templates</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-template" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ stats.scheduled_messages or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Scheduled Messages</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ stats.push_notifications or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Push Notifications</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-bell" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ stats.active_channels or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Active Channels</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-brand-hipchat" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Communication Management -->
+    <div class="row mb-4">
+        <!-- Message Templates -->
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-template me-2"></i>Message Templates
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Manage automated message templates and categories</p>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin_panel.message_templates') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-folder me-2"></i>Template Categories
+                                </div>
+                                <span class="badge bg-primary">{{ stats.total_categories or 0 }}</span>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.message_templates') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-edit me-2"></i>Message Templates
+                                </div>
+                                <span class="badge bg-info">{{ stats.total_templates or 0 }}</span>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.message_templates') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-plus me-2"></i>Manage All Templates
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.announcements') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-speakerphone me-2"></i>Announcements
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scheduled Messages -->
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-clock me-2"></i>Scheduled Messages
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Schedule and manage messages across Discord, SMS, push notifications, and Discord DMs</p>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-calendar me-2"></i>View Queue
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.schedule_new_message') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-plus me-2"></i>Schedule New Message
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.scheduled_messages_history') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-history me-2"></i>Message History
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Push Notifications & Advanced Features -->
+    <div class="row">
+        <!-- Push Notifications -->
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-bell me-2"></i>Push Notifications
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Send and configure notifications across push, SMS, Discord channels, and direct messages</p>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin_panel.push_notifications_dashboard') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-dashboard me-2"></i>Notification Dashboard
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.send_push_notification_form') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-send me-2"></i>Send Push Notification
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.push_notifications_settings') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-settings me-2"></i>Notification Settings
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Communication Settings -->
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-settings me-2"></i>Communication Settings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Configure communication system settings</p>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin_panel.feature_toggles') }}#communication" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-toggle-left me-2"></i>Enable/Disable Features
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-bell me-2"></i>Push Notifications
+                                </div>
+                                <span class="badge bg-{% if push_notifications_enabled %}success{% else %}danger{% endif %}">
+                                    {% if push_notifications_enabled %}Enabled{% else %}Disabled{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-mail me-2"></i>Email Notifications
+                                </div>
+                                <span class="badge bg-info">Active</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <div class="d-flex align-items-center">
+                    <i class="ti ti-info-circle me-2"></i>
+                    <div>
+                        <strong>Communication Hub:</strong> 
+                        Comprehensive communication management across Discord channels, SMS, mobile push notifications, and Discord DMs. 
+                        Schedule messages, send instant notifications, and configure delivery settings for all communication channels.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ensure all text and icons in list group items are white in dark mode */
+[data-bs-theme="dark"] .list-group-item-action {
+    color: #ffffff !important;
+}
+
+[data-bs-theme="dark"] .list-group-item-action:hover {
+    color: #ffffff !important;
+}
+
+[data-bs-theme="dark"] .list-group-item-action i {
+    color: #ffffff !important;
+}
+
+[data-bs-theme="dark"] .list-group-item-action * {
+    color: #ffffff !important;
+}
+
+@media (max-width: 768px) {
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .d-flex.justify-content-between > div:last-child {
+        margin-top: 0.25rem;
+    }
+}
+</style>
+{% endblock %}

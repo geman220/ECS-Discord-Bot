@@ -1,0 +1,506 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Statistics Management - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">Statistics Management</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Statistics Overview Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ "{:,}".format(stats.total_players) }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Players</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.total_teams }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Teams</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-shield" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ "{:,}".format(stats.total_matches) }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Matches</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-trophy" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.data_quality }}%</h5>
+                        <p class="card-text small opacity-75 mb-0">Data Quality</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-chart-line" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-rocket me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('admin_panel.player_statistics') }}" class="btn btn-primary">
+                                <i class="ti ti-user me-2"></i>Player Statistics
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('admin_panel.team_statistics') }}" class="btn btn-success">
+                                <i class="ti ti-shield me-2"></i>Team Statistics
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('admin_panel.league_statistics') }}" class="btn btn-info">
+                                <i class="ti ti-trophy me-2"></i>League Statistics
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-warning" onclick="recalculateStatistics()">
+                                <i class="ti ti-refresh me-2"></i>Recalculate All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-gauge me-2"></i>System Health
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small">Data Quality</span>
+                        <span class="small fw-bold">{{ stats.data_quality }}%</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-{% if stats.data_quality > 80 %}success{% elif stats.data_quality > 60 %}warning{% else %}danger{% endif %}" 
+                             style="width: {{ stats.data_quality }}%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small">Active Players</span>
+                        <span class="small fw-bold">{{ stats.active_players }}</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-primary" 
+                             style="width: {% if stats.total_players > 0 %}{{ (stats.active_players / stats.total_players * 100) }}%{% else %}0%{% endif %}"></div>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <span class="badge bg-{% if stats.recent_updates > 10 %}success{% elif stats.recent_updates > 5 %}warning{% else %}secondary{% endif %}">
+                        {{ stats.recent_updates }} updates this week
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Performers -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-target me-2"></i>Top Goal Scorers
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if top_performers.goals %}
+                {% for performer in top_performers.goals %}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <strong>{{ performer.player_name }}</strong>
+                        <br><small class="text-muted">{{ performer.team }} • {{ performer.season }}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-primary">{{ performer.value }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted mb-0">No goal scoring data available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-hand me-2"></i>Top Assists
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if top_performers.assists %}
+                {% for performer in top_performers.assists %}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <strong>{{ performer.player_name }}</strong>
+                        <br><small class="text-muted">{{ performer.team }} • {{ performer.season }}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-success">{{ performer.value }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted mb-0">No assist data available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-calendar me-2"></i>Most Appearances
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if top_performers.appearances %}
+                {% for performer in top_performers.appearances %}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <strong>{{ performer.player_name }}</strong>
+                        <br><small class="text-muted">{{ performer.team }} • {{ performer.season }}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-info">{{ performer.value }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted mb-0">No appearance data available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- League Comparison -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-trophy me-2"></i>League Performance Comparison
+                </h5>
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="exportStatistics('leagues', 'csv')">
+                    <i class="ti ti-download me-1"></i>Export
+                </button>
+            </div>
+            <div class="card-body">
+                {% if league_comparison %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>League</th>
+                                <th>Teams</th>
+                                <th>Players</th>
+                                <th>Matches</th>
+                                <th>Avg Goals/Match</th>
+                                <th>Competitiveness</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for league in league_comparison %}
+                            <tr>
+                                <td><strong>{{ league.league_name }}</strong></td>
+                                <td>{{ league.total_teams }}</td>
+                                <td>{{ league.total_players }}</td>
+                                <td>{{ league.total_matches }}</td>
+                                <td>{{ league.avg_goals_per_match }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress me-2" style="width: 60px; height: 8px;">
+                                            <div class="progress-bar bg-primary" style="width: {{ league.competitiveness_score }}%"></div>
+                                        </div>
+                                        <small>{{ league.competitiveness_score }}%</small>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No league comparison data available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Updates -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-activity me-2"></i>Recent Statistical Updates
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_updates %}
+                <div class="timeline">
+                    {% for update in recent_updates %}
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-primary"></div>
+                        <div class="timeline-content">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <p class="mb-1 small">{{ update.description }}</p>
+                                    <small class="text-muted">{{ update.user }} • {{ update.timestamp.strftime('%H:%M') }}</small>
+                                </div>
+                                <span class="badge bg-info ms-2">Stats</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No recent statistical updates</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--bs-border-color);
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -24px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 2px solid var(--bs-body-bg);
+    top: 5px;
+}
+
+.timeline-content {
+    background: var(--bs-light);
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function recalculateStatistics() {
+    Swal.fire({
+        title: 'Recalculate Statistics',
+        text: 'Choose the scope for statistics recalculation:',
+        input: 'select',
+        inputOptions: {
+            'all': 'All Statistics',
+            'season': 'Current Season Only',
+            'league': 'Specific League',
+            'team': 'Specific Team'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Recalculate',
+        preConfirm: (scope) => {
+            if (!scope) {
+                Swal.showValidationMessage('Please select a scope');
+                return false;
+            }
+            return scope;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            performRecalculation(result.value);
+        }
+    });
+}
+
+function performRecalculation(scope) {
+    // Show loading
+    Swal.fire({
+        title: 'Recalculating Statistics',
+        text: 'This may take a few moments...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    fetch('/admin-panel/statistics/recalculate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            scope: scope,
+            target_id: null  // Would be set for specific league/team
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                title: 'Success!',
+                text: data.message,
+                icon: 'success',
+                confirmButtonText: 'Refresh Page'
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire('Error', data.error || 'Recalculation failed', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire('Error', 'Could not recalculate statistics', 'error');
+    });
+}
+
+function exportStatistics(type, format) {
+    fetch('/admin-panel/statistics/export', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            type: type,
+            format: format,
+            filters: {}
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                title: 'Export Ready',
+                text: 'Your statistics export is ready for download.',
+                icon: 'success',
+                showCancelButton: true,
+                confirmButtonText: 'Download',
+                cancelButtonText: 'Close'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // In a real implementation, this would trigger a download
+                    window.open(data.download_url, '_blank');
+                }
+            });
+        } else {
+            Swal.fire('Error', data.error || 'Export failed', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire('Error', 'Could not export statistics', 'error');
+    });
+}
+
+// Auto-refresh statistics every 5 minutes
+setInterval(() => {
+    // Refresh key statistics without full page reload
+    fetch(window.location.href, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            console.log('Statistics refreshed');
+        }
+    })
+    .catch(error => {
+        console.error('Auto-refresh failed:', error);
+    });
+}, 300000); // 5 minutes
+</script>
+{% endblock %}

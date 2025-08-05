@@ -38,6 +38,9 @@
     
     // Ensure the ECS CSS architecture is loaded
     ensureStylesheetLoaded: function() {
+      // DISABLED: These CSS files don't exist in the project
+      // Commenting out to prevent 404 errors
+      /*
       // Load core CSS if not already present
       if (!document.getElementById('ecs-core-stylesheet')) {
         const coreLink = document.createElement('link');
@@ -64,6 +67,7 @@
         utilitiesLink.href = '/static/css/ecs-utilities.css';
         document.head.appendChild(utilitiesLink);
       }
+      */
     },
     
     // Add consistent styling to buttons
@@ -324,24 +328,29 @@
     
     // Set up dark mode
     setupDarkMode: function() {
-      // Watch for changes to the data-style attribute on the html element
+      // Watch for changes to BOTH data-style and data-bs-theme attributes on the html element
       const htmlElement = document.documentElement;
       
-      // Create an observer to monitor changes to the data-style attribute
+      // Create an observer to monitor changes to theme attributes
       const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
-          if (mutation.type === 'attributes' && mutation.attributeName === 'data-style') {
-            const isDark = htmlElement.getAttribute('data-style') === 'dark';
+          if (mutation.type === 'attributes' && 
+              (mutation.attributeName === 'data-style' || mutation.attributeName === 'data-bs-theme')) {
+            const isDarkStyle = htmlElement.getAttribute('data-style') === 'dark';
+            const isDarkBsTheme = htmlElement.getAttribute('data-bs-theme') === 'dark';
+            const isDark = isDarkStyle || isDarkBsTheme;
             this.applyDarkModeToContent(isDark);
           }
         });
       });
       
-      // Start observing the html element for changes to the data-style attribute
+      // Start observing the html element for changes to theme attributes
       observer.observe(htmlElement, { attributes: true });
       
       // Initial application based on current state
-      const isDark = htmlElement.getAttribute('data-style') === 'dark';
+      const isDarkStyle = htmlElement.getAttribute('data-style') === 'dark';
+      const isDarkBsTheme = htmlElement.getAttribute('data-bs-theme') === 'dark';
+      const isDark = isDarkStyle || isDarkBsTheme;
       this.applyDarkModeToContent(isDark);
       
       // Add dark mode toggle functionality if it doesn't exist
@@ -371,13 +380,14 @@
           if (isDark) {
             element.classList.add('dark-mode-applied');
             
-            // Apply dark mode styles directly
+            // Apply dark mode background styles
             element.style.backgroundColor = element.classList.contains('card') ? 
               'var(--ecs-neutral-100)' : 
               (selector === '.content-wrapper' || selector === '.layout-page' || selector === '.container-fluid' || selector === '.container-p-y') ? 
                 'var(--ecs-background)' : '';
             
-            element.style.color = 'var(--ecs-neutral-30)';
+            // FIXED: Use white text instead of grey in dark mode - force override
+            element.style.color = '#ffffff !important';
             
             // Add border color adjustments for dark mode
             if (element.style.borderColor) {

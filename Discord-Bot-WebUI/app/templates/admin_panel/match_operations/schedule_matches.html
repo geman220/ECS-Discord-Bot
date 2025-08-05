@@ -1,0 +1,84 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Schedule Matches - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="admin-panel-content">
+    <div class="row">
+        <div class="large-12 columns">
+            <h2>Schedule Matches</h2>
+            
+            {% if active_season %}
+            <div class="row">
+                <div class="large-12 columns">
+                    <h4>Current Season: {{ active_season.name }}</h4>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="row">
+                <div class="large-6 columns">
+                    <h5>Unscheduled Matches</h5>
+                    {% if unscheduled_matches %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Home Team</th>
+                                <th>Away Team</th>
+                                <th>League</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for match in unscheduled_matches %}
+                            <tr>
+                                <td>{{ match.home_team.name if match.home_team else 'TBD' }}</td>
+                                <td>{{ match.away_team.name if match.away_team else 'TBD' }}</td>
+                                <td>{{ match.league.name if match.league else 'N/A' }}</td>
+                                <td>
+                                    <button class="button small" onclick="scheduleMatch({{ match.id }})">Schedule</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p>No unscheduled matches found.</p>
+                    {% endif %}
+                </div>
+                
+                <div class="large-6 columns">
+                    <h5>Quick Schedule</h5>
+                    <div class="callout secondary">
+                        <p>Use the quick schedule feature to automatically assign dates and times to unscheduled matches.</p>
+                        <button class="button" onclick="quickSchedule()">Quick Schedule All</button>
+                    </div>
+                    
+                    <h5>Active Leagues</h5>
+                    {% if leagues %}
+                    <ul>
+                        {% for league in leagues %}
+                        <li>{{ league.name }} ({{ league.teams|length if league.teams else 0 }} teams)</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p>No active leagues found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function scheduleMatch(matchId) {
+    // Placeholder for match scheduling functionality
+    alert('Match scheduling feature will be implemented here');
+}
+
+function quickSchedule() {
+    // Placeholder for quick scheduling functionality
+    alert('Quick schedule feature will be implemented here');
+}
+</script>
+{% endblock %}

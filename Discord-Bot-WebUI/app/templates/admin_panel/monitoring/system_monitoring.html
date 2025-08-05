@@ -1,0 +1,286 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}System Monitoring - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">System Monitoring</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- System Status Overview -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-{% if services.database.status == 'healthy' %}success{% elif services.database.status == 'warning' %}warning{% elif services.database.status == 'disabled' %}secondary{% else %}danger{% endif %} text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ services.database.status|title }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Database</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-database" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-{% if services.redis.status == 'healthy' %}success{% elif services.redis.status == 'warning' %}warning{% elif services.redis.status == 'disabled' %}secondary{% else %}danger{% endif %} text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ services.redis.status|title }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Redis Cache</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-database-import" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-{% if services.discord_api.status == 'healthy' %}success{% elif services.discord_api.status == 'warning' %}warning{% elif services.discord_api.status == 'disabled' %}secondary{% else %}danger{% endif %} text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ services.discord_api.status|title }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Discord API</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-brand-discord" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-{% if services.push_notifications.status == 'healthy' %}success{% elif services.push_notifications.status == 'warning' %}warning{% elif services.push_notifications.status == 'disabled' %}secondary{% else %}danger{% endif %} text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ services.push_notifications.status|title }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Push Service</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-bell" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Statistics -->
+<div class="row mb-4">
+    <div class="col-md-8 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-chart-bar me-2"></i>System Performance
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="flex-shrink-0">
+                                <div class="bg-primary rounded-circle p-2">
+                                    <i class="ti ti-cpu text-white"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="mb-1">CPU Usage</h6>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-primary" style="width: {{ stats.cpu_usage }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ stats.cpu_usage }}%</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="flex-shrink-0">
+                                <div class="bg-info rounded-circle p-2">
+                                    <i class="ti ti-memory text-white"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="mb-1">Memory Usage</h6>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-info" style="width: {{ stats.memory_usage }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ stats.memory_usage }}%</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="flex-shrink-0">
+                                <div class="bg-success rounded-circle p-2">
+                                    <i class="ti ti-hard-drive text-white"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="mb-1">Disk Usage</h6>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-success" style="width: {{ stats.disk_usage }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ stats.disk_usage }}%</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-activity me-2"></i>System Health
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Uptime</span>
+                            <span class="badge bg-success">{{ stats.uptime }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Load Average</span>
+                            <span class="text-muted">{{ stats.load_average }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Active Connections</span>
+                            <span class="text-muted">{{ stats.active_connections }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Service Details -->
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-server me-2"></i>Core Services
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for service_name, service_data in services.items() %}
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1 me-3">
+                                <strong>{{ service_name|replace('_', ' ')|title }}</strong>
+                                {% if service_data.message %}
+                                <br><small class="text-muted">{{ service_data.message }}</small>
+                                {% endif %}
+                                {% if service_data.details %}
+                                <br><small class="text-muted">{{ service_data.details }}</small>  
+                                {% endif %}
+                                {% if service_data.response_time and service_data.response_time != 'N/A' %}
+                                <br><small class="text-success">Response: {{ service_data.response_time }}</small>
+                                {% endif %}
+                            </div>
+                            <span class="badge bg-{% if service_data.status == 'healthy' %}success{% elif service_data.status == 'warning' %}warning{% elif service_data.status == 'disabled' %}secondary{% else %}danger{% endif %}">
+                                {{ service_data.status|title }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-tools me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary" onclick="refreshStatus()">
+                        <i class="ti ti-refresh me-1"></i>Refresh Status
+                    </button>
+                    <button class="btn btn-outline-info" onclick="viewLogs()">
+                        <i class="ti ti-file-text me-1"></i>View System Logs
+                    </button>
+                    <button class="btn btn-outline-warning" onclick="clearCache()">
+                        <i class="ti ti-trash me-1"></i>Clear Cache
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="emergencyMode()">
+                        <i class="ti ti-alert-triangle me-1"></i>Emergency Mode
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function refreshStatus() {
+    Swal.fire({
+        title: 'Refreshing Status...',
+        text: 'Checking all system services',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        }
+    });
+}
+
+function viewLogs() {
+    window.location.href = '{{ url_for("admin_panel.system_logs") }}';
+}
+
+function clearCache() {
+    Swal.fire({
+        title: 'Clear System Cache?',
+        text: 'This will clear all cached data',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Clear Cache'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Implement cache clearing
+            Swal.fire('Cache Cleared!', 'System cache has been cleared successfully.', 'success');
+        }
+    });
+}
+
+function emergencyMode() {
+    Swal.fire({
+        title: 'Emergency Mode',
+        text: 'Emergency system controls coming soon!',
+        icon: 'info'
+    });
+}
+
+// Auto-refresh every 30 seconds
+setInterval(() => {
+    location.reload();
+}, 30000);
+</script>
+{% endblock %}

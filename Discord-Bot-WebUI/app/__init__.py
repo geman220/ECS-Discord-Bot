@@ -16,6 +16,13 @@ import logging
 import logging.config
 import os
 
+# Fix eventlet database connection handling
+try:
+    import eventlet.debug
+    eventlet.debug.hub_prevent_multiple_readers(False)
+except ImportError:
+    pass
+
 from datetime import timedelta
 from flask import Flask, request, session, redirect, url_for, render_template, g
 from flask_assets import Environment
@@ -734,6 +741,7 @@ def init_blueprints(app):
     from app.wallet_routes import wallet_bp
     from app.admin.wallet_admin_routes import wallet_admin_bp
     from app.admin.notification_admin_routes import notification_admin_bp
+    from app.admin_panel import admin_panel_bp
     from app.routes.notifications import notifications_bp
     from app.api_smart_sync import smart_sync_bp
 
@@ -775,6 +783,7 @@ def init_blueprints(app):
     app.register_blueprint(wallet_bp)  # Blueprint has url_prefix='/wallet'
     app.register_blueprint(wallet_admin_bp)  # Blueprint has url_prefix='/admin/wallet'
     app.register_blueprint(notification_admin_bp)  # Blueprint has url_prefix='/admin/notifications'
+    app.register_blueprint(admin_panel_bp)  # Centralized admin panel
     app.register_blueprint(notifications_bp)  # Blueprint has url_prefix='/api/v1/notifications'
     app.register_blueprint(smart_sync_bp)  # Smart RSVP sync API endpoints
     csrf.exempt(smart_sync_bp)  # Exempt smart sync endpoints from CSRF
@@ -832,11 +841,28 @@ def init_context_processors(app):
             is_impersonation_active, get_effective_roles, get_effective_permissions,
             has_effective_permission, has_effective_role
         )
+        from app.models.admin_config import AdminConfig
         
         # Get effective roles and permissions (considering impersonation)
         # Avoid database calls during template rendering by caching the results
         user_roles = []
         user_permissions = []
+        
+        # Get admin settings for template use
+        admin_settings = {
+            'teams_navigation_enabled': AdminConfig.get_setting('teams_navigation_enabled', True),
+            'store_navigation_enabled': AdminConfig.get_setting('store_navigation_enabled', True),
+            'matches_navigation_enabled': AdminConfig.get_setting('matches_navigation_enabled', True),
+            'leagues_navigation_enabled': AdminConfig.get_setting('leagues_navigation_enabled', True),
+            'drafts_navigation_enabled': AdminConfig.get_setting('drafts_navigation_enabled', True),
+            'players_navigation_enabled': AdminConfig.get_setting('players_navigation_enabled', True),
+            'messaging_navigation_enabled': AdminConfig.get_setting('messaging_navigation_enabled', True),
+            'mobile_features_navigation_enabled': AdminConfig.get_setting('mobile_features_navigation_enabled', True),
+            'waitlist_registration_enabled': AdminConfig.get_setting('waitlist_registration_enabled', True),
+            'apple_wallet_enabled': AdminConfig.get_setting('apple_wallet_enabled', True),
+            'push_notifications_enabled': AdminConfig.get_setting('push_notifications_enabled', True),
+            'maintenance_mode': AdminConfig.get_setting('maintenance_mode', False)
+        }
         
         # Only get roles if we have an active request context and user is authenticated
         if safe_current_user and safe_current_user.is_authenticated:
@@ -875,7 +901,8 @@ def init_context_processors(app):
             'has_permission': has_permission,
             'has_role': has_role,
             'is_admin': is_admin,
-            'is_role_impersonation_active': is_role_impersonation_active
+            'is_role_impersonation_active': is_role_impersonation_active,
+            'admin_settings': admin_settings
         }
     
     @app.context_processor

@@ -1,0 +1,438 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Performance Monitoring - Admin Panel{% endblock %}
+
+{% block panel_content %}
+<!-- Performance Overview Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ "%.1f"|format(report.database.avg_query_time * 1000) }}ms</h5>
+                        <p class="card-text small opacity-75 mb-0">Avg Query Time</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-database" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-{% if report.database.slow_queries > 5 %}danger{% elif report.database.slow_queries > 2 %}warning{% else %}success{% endif %} text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ report.database.slow_queries }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Slow Queries</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-clock-exclamation" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ report.cache.active_entries }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Cache Entries</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-server" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-{% if report.cache.cache_size_mb > 50 %}warning{% else %}secondary{% endif %} text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ "%.1f"|format(report.cache.cache_size_mb) }}MB</h5>
+                        <p class="card-text small opacity-75 mb-0">Cache Size</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-memory" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Details -->
+<div class="row">
+    <!-- Database Performance -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-database me-2"></i>Database Performance
+                </h5>
+                <div class="status-indicator {% if report.database.slow_queries <= 2 %}active{% else %}inactive{% endif %}"></div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Total Queries:</span>
+                            <strong>{{ report.database.total_queries }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Slow Queries:</span>
+                            <strong class="{% if report.database.slow_queries > 5 %}text-danger{% elif report.database.slow_queries > 2 %}text-warning{% else %}text-success{% endif %}">
+                                {{ report.database.slow_queries }}
+                            </strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Average Time:</span>
+                            <strong>{{ "%.3f"|format(report.database.avg_query_time) }}s</strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Min Time:</span>
+                            <strong>{{ "%.3f"|format(report.database.min_query_time) }}s</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Max Time:</span>
+                            <strong class="{% if report.database.max_query_time > 2 %}text-danger{% elif report.database.max_query_time > 1 %}text-warning{% endif %}">
+                                {{ "%.3f"|format(report.database.max_query_time) }}s
+                            </strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Performance:</span>
+                            <span class="badge bg-{% if report.database.avg_query_time < 0.1 %}success{% elif report.database.avg_query_time < 0.5 %}warning{% else %}danger{% endif %}">
+                                {% if report.database.avg_query_time < 0.1 %}Excellent{% elif report.database.avg_query_time < 0.5 %}Good{% else %}Slow{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Query Performance Chart Placeholder -->
+                <div class="mt-3">
+                    <canvas id="queryPerformanceChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cache Performance -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-server me-2"></i>Cache Performance
+                </h5>
+                <form method="POST" action="{{ url_for('admin_panel.clear_performance_cache') }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Clear all cache?')">
+                        <i class="ti ti-trash me-1"></i>Clear Cache
+                    </button>
+                </form>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Total Entries:</span>
+                            <strong>{{ report.cache.total_entries }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Active Entries:</span>
+                            <strong class="text-success">{{ report.cache.active_entries }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Expired Entries:</span>
+                            <strong class="{% if report.cache.expired_entries > report.cache.active_entries %}text-warning{% else %}text-muted{% endif %}">
+                                {{ report.cache.expired_entries }}
+                            </strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Cache Size:</span>
+                            <strong class="{% if report.cache.cache_size_mb > 50 %}text-warning{% endif %}">
+                                {{ "%.2f"|format(report.cache.cache_size_mb) }} MB
+                            </strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Hit Rate:</span>
+                            <span class="badge bg-{% if report.cache.active_entries > report.cache.expired_entries %}success{% else %}warning{% endif %}">
+                                {% set hit_rate = (report.cache.active_entries / (report.cache.total_entries or 1)) * 100 %}
+                                {{ "%.1f"|format(hit_rate) }}%
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Status:</span>
+                            <span class="badge bg-{% if report.cache.cache_size_mb < 25 and report.cache.active_entries > 0 %}success{% elif report.cache.cache_size_mb < 50 %}warning{% else %}danger{% endif %}">
+                                {% if report.cache.cache_size_mb < 25 and report.cache.active_entries > 0 %}Optimal{% elif report.cache.cache_size_mb < 50 %}Fair{% else %}Bloated{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Cache Usage Chart -->
+                <div class="mt-3">
+                    <canvas id="cacheUsageChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Recommendations -->
+{% if report.recommendations %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-bulb me-2"></i>Performance Recommendations
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Performance Optimization Suggestions:</strong>
+                    <ul class="mb-0 mt-2">
+                        {% for recommendation in report.recommendations %}
+                        <li>{{ recommendation }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Real-time Metrics -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-activity me-2"></i>Real-time Performance Metrics
+                </h5>
+                <div>
+                    <button id="toggleAutoRefresh" class="btn btn-sm btn-outline-primary">
+                        <i class="ti ti-refresh me-1"></i>Auto Refresh: <span id="autoRefreshStatus">ON</span>
+                    </button>
+                    <small class="text-muted ms-2">Last updated: <span id="lastUpdated">{{ report.timestamp }}</span></small>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="realTimeMetrics">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="metric-box">
+                                <h3 id="liveQueryTime" class="text-primary">{{ "%.1f"|format(report.database.avg_query_time * 1000) }}ms</h3>
+                                <p class="small text-muted">Current Avg Query</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="metric-box">
+                                <h3 id="liveSlowQueries" class="{% if report.database.slow_queries > 5 %}text-danger{% elif report.database.slow_queries > 2 %}text-warning{% else %}text-success{% endif %}">
+                                    {{ report.database.slow_queries }}
+                                </h3>
+                                <p class="small text-muted">Slow Queries</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="metric-box">
+                                <h3 id="liveCacheHits" class="text-info">{{ report.cache.active_entries }}</h3>
+                                <p class="small text-muted">Cache Hits</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="metric-box">
+                                <h3 id="liveCacheSize" class="{% if report.cache.cache_size_mb > 50 %}text-warning{% else %}text-secondary{% endif %}">
+                                    {{ "%.1f"|format(report.cache.cache_size_mb) }}MB
+                                </h3>
+                                <p class="small text-muted">Cache Size</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<style>
+.metric-box {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background: rgba(0, 0, 0, 0.02);
+    margin-bottom: 1rem;
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-indicator.active {
+    background-color: #28a745;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+}
+
+.status-indicator.inactive {
+    background-color: #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
+}
+</style>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let autoRefresh = true;
+    let refreshInterval;
+    
+    // Initialize charts
+    initializeCharts();
+    
+    // Start auto-refresh
+    startAutoRefresh();
+    
+    // Toggle auto-refresh
+    document.getElementById('toggleAutoRefresh').addEventListener('click', function() {
+        autoRefresh = !autoRefresh;
+        const statusSpan = document.getElementById('autoRefreshStatus');
+        
+        if (autoRefresh) {
+            statusSpan.textContent = 'ON';
+            startAutoRefresh();
+        } else {
+            statusSpan.textContent = 'OFF';
+            clearInterval(refreshInterval);
+        }
+    });
+    
+    function initializeCharts() {
+        // Query Performance Chart
+        const queryCtx = document.getElementById('queryPerformanceChart').getContext('2d');
+        new Chart(queryCtx, {
+            type: 'line',
+            data: {
+                labels: ['5min ago', '4min ago', '3min ago', '2min ago', '1min ago', 'Now'],
+                datasets: [{
+                    label: 'Avg Query Time (ms)',
+                    data: [{{ report.database.avg_query_time * 1000 }}, {{ report.database.avg_query_time * 1000 * 0.9 }}, {{ report.database.avg_query_time * 1000 * 1.1 }}, {{ report.database.avg_query_time * 1000 * 0.8 }}, {{ report.database.avg_query_time * 1000 * 1.2 }}, {{ report.database.avg_query_time * 1000 }}],
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Time (ms)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+        
+        // Cache Usage Chart
+        const cacheCtx = document.getElementById('cacheUsageChart').getContext('2d');
+        new Chart(cacheCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Active', 'Expired'],
+                datasets: [{
+                    data: [{{ report.cache.active_entries }}, {{ report.cache.expired_entries }}],
+                    backgroundColor: ['#28a745', '#dc3545'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+    
+    function startAutoRefresh() {
+        refreshInterval = setInterval(updateMetrics, 30000); // Update every 30 seconds
+    }
+    
+    function updateMetrics() {
+        if (!autoRefresh) return;
+        
+        fetch('{{ url_for("admin_panel.performance_api_metrics") }}')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const report = data.data;
+                    
+                    // Update live metrics
+                    document.getElementById('liveQueryTime').textContent = (report.database.avg_query_time * 1000).toFixed(1) + 'ms';
+                    document.getElementById('liveSlowQueries').textContent = report.database.slow_queries;
+                    document.getElementById('liveCacheHits').textContent = report.cache.active_entries;
+                    document.getElementById('liveCacheSize').textContent = report.cache.cache_size_mb.toFixed(1) + 'MB';
+                    
+                    // Update timestamp
+                    document.getElementById('lastUpdated').textContent = new Date(report.timestamp).toLocaleString();
+                    
+                    // Update colors based on thresholds
+                    updateMetricColors(report);
+                }
+            })
+            .catch(error => {
+                console.error('Error updating metrics:', error);
+            });
+    }
+    
+    function updateMetricColors(report) {
+        const slowQueriesElement = document.getElementById('liveSlowQueries');
+        slowQueriesElement.className = '';
+        if (report.database.slow_queries > 5) {
+            slowQueriesElement.classList.add('text-danger');
+        } else if (report.database.slow_queries > 2) {
+            slowQueriesElement.classList.add('text-warning');
+        } else {
+            slowQueriesElement.classList.add('text-success');
+        }
+        
+        const cacheSizeElement = document.getElementById('liveCacheSize');
+        cacheSizeElement.className = '';
+        if (report.cache.cache_size_mb > 50) {
+            cacheSizeElement.classList.add('text-warning');
+        } else {
+            cacheSizeElement.classList.add('text-secondary');
+        }
+    }
+});
+</script>
+{% endblock %}

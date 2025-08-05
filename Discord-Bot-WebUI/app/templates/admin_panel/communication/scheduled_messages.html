@@ -1,0 +1,534 @@
+{% extends "admin_panel/base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Scheduled Messages - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.communication_hub') }}">Communication</a>
+</li>
+<li class="breadcrumb-item active">Scheduled Messages</li>
+{% endblock %}
+
+{% block panel_content %}
+
+    <!-- Scheduled Messages Overview -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ scheduled_messages|length }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Total Scheduled</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-calendar-time" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ pending_messages }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Pending</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-clock-pause" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ sent_messages }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Sent Today</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-send" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ failed_messages }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Failed</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-alert-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule New Message -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-plus me-2"></i>Schedule New Message
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin_panel.create_scheduled_message') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="message_title" class="form-label">Message Title</label>
+                                <input type="text" class="form-control" id="message_title" name="title" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="message_type" class="form-label">Message Type</label>
+                                <select class="form-select" id="message_type" name="message_type" required>
+                                    <option value="">Select type...</option>
+                                    <option value="announcement">Announcement</option>
+                                    <option value="reminder">Reminder</option>
+                                    <option value="notification">Notification</option>
+                                    <option value="alert">Alert</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="schedule_date" class="form-label">Schedule Date</label>
+                                <input type="datetime-local" class="form-control" id="schedule_date" name="schedule_date" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="target_channel" class="form-label">Target Channel</label>
+                                <select class="form-select" id="target_channel" name="target_channel" required>
+                                    <option value="">Select channel...</option>
+                                    <option value="general">General</option>
+                                    <option value="announcements">Announcements</option>
+                                    <option value="league-updates">League Updates</option>
+                                    <option value="email">Email</option>
+                                    <option value="push">Push Notification</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="message_content" class="form-label">Message Content</label>
+                            <textarea class="form-control" id="message_content" name="content" rows="4" required 
+                                      placeholder="Enter your message content here..."></textarea>
+                            <small class="form-text text-muted">You can use markdown formatting and mention @everyone or @here</small>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="is_recurring" name="is_recurring">
+                                    <label class="form-check-label" for="is_recurring">
+                                        Recurring Message
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3" id="recurrence_options" style="display: none;">
+                                <label for="recurrence_pattern" class="form-label">Recurrence Pattern</label>
+                                <select class="form-select" id="recurrence_pattern" name="recurrence_pattern">
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">
+                                <i class="ti ti-arrow-left me-1"></i>Back
+                            </button>
+                            <div>
+                                <button type="button" class="btn btn-outline-primary me-2" onclick="previewMessage()">
+                                    <i class="ti ti-eye me-1"></i>Preview
+                                </button>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="ti ti-calendar-plus me-1"></i>Schedule Message
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scheduled Messages Queue -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-list me-2"></i>Message Queue
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <input type="radio" class="btn-check" name="queue_filter" id="filter_all" autocomplete="off" checked>
+                        <label class="btn btn-outline-primary btn-sm" for="filter_all">All</label>
+                        
+                        <input type="radio" class="btn-check" name="queue_filter" id="filter_pending" autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="filter_pending">Pending</label>
+                        
+                        <input type="radio" class="btn-check" name="queue_filter" id="filter_sent" autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="filter_sent">Sent</label>
+                        
+                        <input type="radio" class="btn-check" name="queue_filter" id="filter_failed" autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="filter_failed">Failed</label>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if scheduled_messages %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Message</th>
+                                    <th>Type</th>
+                                    <th>Channel</th>
+                                    <th>Scheduled For</th>
+                                    <th>Status</th>
+                                    <th>Created By</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for message in scheduled_messages %}
+                                <tr class="message-row" data-status="{{ message.status or 'pending' }}">
+                                    <td>
+                                        <div>
+                                            <strong>{{ message.message_type|title }} Message</strong>
+                                            <br><small class="text-muted">Match ID: {{ message.match_id or 'N/A' }}</small>
+                                            {% if message.task_name %}
+                                            <br><small class="text-muted">Task: {{ message.task_name }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ message.message_type|title }}</span>
+                                    </td>
+                                    <td>
+                                        <i class="ti ti-hash me-1"></i>{{ message.target_channel }}
+                                    </td>
+                                    <td>
+                                        <small>{{ message.schedule_date.strftime('%Y-%m-%d %H:%M') if message.schedule_date else 'Not set' }}</small>
+                                        {% if message.schedule_date %}
+                                        {% set time_diff = (message.schedule_date - now).total_seconds() %}
+                                        {% if time_diff > 0 %}
+                                        <br><small class="text-info">
+                                            {% if time_diff < 3600 %}
+                                                In {{ (time_diff // 60)|int }} minutes
+                                            {% elif time_diff < 86400 %}
+                                                In {{ (time_diff // 3600)|int }} hours
+                                            {% else %}
+                                                In {{ (time_diff // 86400)|int }} days
+                                            {% endif %}
+                                        </small>
+                                        {% endif %}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% set status = message.status or 'pending' %}
+                                        <span class="badge bg-{% if status == 'sent' %}success{% elif status == 'failed' %}danger{% elif status == 'cancelled' %}secondary{% else %}warning{% endif %}">
+                                            {{ status|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>{{ message.created_by.name if message.created_by else 'System' }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-info" 
+                                                    onclick="viewScheduledMessage({{ message.id }}, '{{ message.title }}')">
+                                                <i class="ti ti-eye"></i>
+                                            </button>
+                                            {% if (message.status or 'pending') == 'pending' %}
+                                            <button class="btn btn-outline-warning" 
+                                                    onclick="editScheduledMessage({{ message.id }})">
+                                                <i class="ti ti-edit"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="cancelScheduledMessage({{ message.id }}, '{{ message.title }}')">
+                                                <i class="ti ti-x"></i>
+                                            </button>
+                                            {% elif (message.status or 'pending') == 'failed' %}
+                                            <button class="btn btn-outline-success" 
+                                                    onclick="retryScheduledMessage({{ message.id }}, '{{ message.title }}')">
+                                                <i class="ti ti-refresh"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="ti ti-calendar-x text-muted" style="font-size: 4rem;"></i>
+                        <h5 class="text-muted mt-3">No scheduled messages</h5>
+                        <p class="text-muted">Create your first scheduled message to get started.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Details Modal -->
+    <div class="modal fade" id="messageDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="message_details_title">Message Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="message_details_content">
+                    <!-- Message details will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Preview Modal -->
+    <div class="modal fade" id="messagePreviewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Message Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex align-items-center">
+                                <i class="ti ti-hash me-2"></i>
+                                <span id="preview_channel">general</span>
+                                <span class="badge bg-primary ms-2" id="preview_type">announcement</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <h6 id="preview_title">Message Title</h6>
+                            <div id="preview_content">Message content will appear here...</div>
+                        </div>
+                        <div class="card-footer">
+                            <small class="text-muted">
+                                Scheduled for: <span id="preview_schedule">Not set</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.message-row {
+    transition: opacity 0.3s ease;
+}
+
+.message-row.filtered-out {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.75rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+// Handle recurring message checkbox
+document.getElementById('is_recurring').addEventListener('change', function() {
+    const recurrenceOptions = document.getElementById('recurrence_options');
+    if (this.checked) {
+        recurrenceOptions.style.display = 'block';
+        document.getElementById('recurrence_pattern').required = true;
+    } else {
+        recurrenceOptions.style.display = 'none';
+        document.getElementById('recurrence_pattern').required = false;
+    }
+});
+
+// Handle queue filtering
+document.querySelectorAll('input[name="queue_filter"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const filterValue = this.id.replace('filter_', '');
+        const rows = document.querySelectorAll('.message-row');
+        
+        rows.forEach(row => {
+            const status = row.dataset.status;
+            
+            if (filterValue === 'all') {
+                row.style.display = '';
+            } else if (status === filterValue) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+});
+
+function previewMessage() {
+    const title = document.getElementById('message_title').value;
+    const content = document.getElementById('message_content').value;
+    const type = document.getElementById('message_type').value;
+    const channel = document.getElementById('target_channel').value;
+    const scheduleDate = document.getElementById('schedule_date').value;
+    
+    if (!title || !content || !type || !channel) {
+        Swal.fire('Error', 'Please fill in all required fields before previewing', 'error');
+        return;
+    }
+    
+    document.getElementById('preview_title').textContent = title;
+    document.getElementById('preview_content').textContent = content;
+    document.getElementById('preview_type').textContent = type;
+    document.getElementById('preview_channel').textContent = channel;
+    document.getElementById('preview_schedule').textContent = scheduleDate || 'Not set';
+    
+    const modal = new bootstrap.Modal(document.getElementById('messagePreviewModal'));
+    modal.show();
+}
+
+function viewScheduledMessage(messageId, messageTitle) {
+    document.getElementById('message_details_title').textContent = `Details for "${messageTitle}"`;
+    document.getElementById('message_details_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+    
+    const modal = new bootstrap.Modal(document.getElementById('messageDetailsModal'));
+    modal.show();
+    
+    // Load message details via AJAX
+    fetch(`{{ url_for('admin_panel.get_scheduled_message_details') }}?message_id=${messageId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('message_details_content').innerHTML = data.html;
+            } else {
+                document.getElementById('message_details_content').innerHTML = '<div class="alert alert-danger">Error loading message details</div>';
+            }
+        })
+        .catch(error => {
+            document.getElementById('message_details_content').innerHTML = '<div class="alert alert-danger">Error loading message details</div>';
+        });
+}
+
+function editScheduledMessage(messageId) {
+    window.location.href = `{{ url_for('admin_panel.edit_scheduled_message') }}?message_id=${messageId}`;
+}
+
+function cancelScheduledMessage(messageId, messageTitle) {
+    Swal.fire({
+        title: 'Cancel Scheduled Message?',
+        text: `Cancel the scheduled message "${messageTitle}"? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, cancel it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("admin_panel.cancel_scheduled_message") }}';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = 'csrf_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            
+            const messageIdInput = document.createElement('input');
+            messageIdInput.type = 'hidden';
+            messageIdInput.name = 'message_id';
+            messageIdInput.value = messageId;
+            
+            form.appendChild(csrfToken);
+            form.appendChild(messageIdInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
+function retryScheduledMessage(messageId, messageTitle) {
+    Swal.fire({
+        title: 'Retry Scheduled Message?',
+        text: `Retry sending the failed message "${messageTitle}"?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, retry!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("admin_panel.retry_scheduled_message") }}';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = 'csrf_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            
+            const messageIdInput = document.createElement('input');
+            messageIdInput.type = 'hidden';
+            messageIdInput.name = 'message_id';
+            messageIdInput.value = messageId;
+            
+            form.appendChild(csrfToken);
+            form.appendChild(messageIdInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
+// Set minimum date to current date/time
+document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hour = String(now.getHours()).padStart(2, '0');
+    const minute = String(now.getMinutes()).padStart(2, '0');
+    
+    const minDateTime = `${year}-${month}-${day}T${hour}:${minute}`;
+    document.getElementById('schedule_date').min = minDateTime;
+});
+</script>
+{% endblock %}

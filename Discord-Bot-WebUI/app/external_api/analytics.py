@@ -1714,8 +1714,8 @@ def get_player_status():
         player_status_list = []
         
         # Calculate cutoff dates
-        recent_cutoff = datetime.now() - timedelta(days=30)
-        new_player_cutoff = datetime.now() - timedelta(days=60)
+        recent_cutoff = datetime.utcnow() - timedelta(days=30)
+        new_player_cutoff = datetime.utcnow() - timedelta(days=60)
         
         for player in players:
             # Determine status categories

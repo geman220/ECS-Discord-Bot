@@ -20,6 +20,16 @@ class BotState:
         # Store poll message_id -> {poll_id, team_id, channel_id} mapping
         self.poll_messages = {}
         self.bot_instance = None
+        # Track command usage by date
+        self.command_stats = {}
+        # Track start time for uptime calculation
+        self.start_time = datetime.utcnow()
+        # Track recent bot logs
+        self.recent_logs = []
+        # Track message activity
+        self.message_stats = {}
+        # Track member join activity
+        self.member_activity = {}
 
     def add_managed_message_id(self, message_id, match_date=None, team_id=None):
         """
@@ -177,8 +187,118 @@ class BotState:
                    f"({regular_messages_removed} match messages, {poll_messages_removed} poll messages)")
         return len(to_remove)
 
+    def track_command_usage(self, command_name=None):
+        """Track command usage by date."""
+        try:
+            today = datetime.utcnow().date()
+            date_key = str(today)
+            
+            # Increment daily command count
+            self.command_stats[date_key] = self.command_stats.get(date_key, 0) + 1
+            
+            # Log command usage
+            if command_name:
+                self.log_activity(f"Command executed: /{command_name}")
+                logger.debug(f"Command '{command_name}' executed. Daily total: {self.command_stats[date_key]}")
+        except Exception as e:
+            logger.error(f"Error tracking command usage: {e}")
+
+    def track_message_activity(self, guild_id=None):
+        """Track message activity by hour."""
+        try:
+            now = datetime.utcnow()
+            hour_key = now.strftime("%Y-%m-%d-%H")
+            
+            if hour_key not in self.message_stats:
+                self.message_stats[hour_key] = 0
+            self.message_stats[hour_key] += 1
+            
+            # Keep only last 24 hours of data
+            cutoff = now - timedelta(hours=24)
+            cutoff_key = cutoff.strftime("%Y-%m-%d-%H")
+            
+            # Remove old entries
+            old_keys = [k for k in self.message_stats.keys() if k < cutoff_key]
+            for key in old_keys:
+                del self.message_stats[key]
+                
+        except Exception as e:
+            logger.error(f"Error tracking message activity: {e}")
+
+    def track_member_join(self, member_id, guild_id):
+        """Track member join activity."""
+        try:
+            today = str(datetime.utcnow().date())
+            
+            if today not in self.member_activity:
+                self.member_activity[today] = []
+            
+            self.member_activity[today].append({
+                'member_id': member_id,
+                'guild_id': guild_id,
+                'joined_at': datetime.utcnow().isoformat()
+            })
+            
+            self.log_activity(f"New member joined: {member_id}")
+            
+            # Keep only last 7 days
+            cutoff = datetime.utcnow() - timedelta(days=7)
+            cutoff_date = str(cutoff.date())
+            
+            old_dates = [d for d in self.member_activity.keys() if d < cutoff_date]
+            for date in old_dates:
+                del self.member_activity[date]
+                
+        except Exception as e:
+            logger.error(f"Error tracking member join: {e}")
+
+    def log_activity(self, message, level="INFO"):
+        """Log bot activity."""
+        try:
+            log_entry = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "level": level,
+                "message": message
+            }
+            
+            self.recent_logs.append(log_entry)
+            
+            # Keep only last 100 log entries
+            if len(self.recent_logs) > 100:
+                self.recent_logs = self.recent_logs[-100:]
+                
+        except Exception as e:
+            logger.error(f"Error logging activity: {e}")
+
+    def get_messages_last_hour(self):
+        """Get message count for the last hour."""
+        try:
+            now = datetime.utcnow()
+            current_hour = now.strftime("%Y-%m-%d-%H")
+            return self.message_stats.get(current_hour, 0)
+        except Exception as e:
+            logger.error(f"Error getting messages last hour: {e}")
+            return 0
+
+    def get_new_members_today(self, guild_id=None):
+        """Get count of new members today."""
+        try:
+            today = str(datetime.utcnow().date())
+            members_today = self.member_activity.get(today, [])
+            
+            if guild_id:
+                members_today = [m for m in members_today if m['guild_id'] == guild_id]
+            
+            return len(members_today)
+        except Exception as e:
+            logger.error(f"Error getting new members today: {e}")
+            return 0
+
     def set_bot_instance(self, bot: commands.Bot):
         self.bot_instance = bot
+        # Set start time when bot is ready
+        if not hasattr(self, 'start_time') or self.start_time is None:
+            self.start_time = datetime.utcnow()
         logger.info(f"Bot instance has been set in shared_states. Bot ID: {bot.user.id if bot.user else 'Unknown'}")
 
     def get_bot_instance(self) -> commands.Bot:

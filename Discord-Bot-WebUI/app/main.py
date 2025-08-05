@@ -49,6 +49,18 @@ VERSION_FILE = os.path.join(PROJECT_DIR, "version.txt")
 LATEST_VERSION_URL = "https://raw.githubusercontent.com/geman220/ECS-Discord-Bot/master/Discord-Bot-WebUI/version.txt"
 
 
+@main.route('/api/health', methods=['GET'])
+def api_health():
+    """Simple health check endpoint for mobile API monitoring."""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'service': 'webui',
+        'version': '3.0.0',
+        'message': 'WebUI API is running'
+    })
+
+
 def fetch_announcements():
     """
     Fetch the latest 5 announcements.

@@ -1,0 +1,99 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Match Results - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="admin-panel-content">
+    <div class="row">
+        <div class="large-12 columns">
+            <h2>Match Results</h2>
+            
+            <div class="row">
+                <div class="large-4 columns">
+                    <div class="stat-card">
+                        <h5>Completed Matches</h5>
+                        <span class="stat-number">{{ stats.completed_matches }}</span>
+                    </div>
+                </div>
+                <div class="large-4 columns">
+                    <div class="stat-card">
+                        <h5>Pending Results</h5>
+                        <span class="stat-number">{{ stats.pending_results }}</span>
+                    </div>
+                </div>
+                <div class="large-4 columns">
+                    <div class="stat-card">
+                        <h5>Recent Results</h5>
+                        <span class="stat-number">{{ stats.recent_results|length }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="large-6 columns">
+                    <h4>Matches Awaiting Results</h4>
+                    {% if pending_results %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Home Team</th>
+                                <th>Away Team</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for match in pending_results %}
+                            <tr>
+                                <td>{{ match.date.strftime('%Y-%m-%d') if match.date else 'TBD' }}</td>
+                                <td>{{ match.home_team.name if match.home_team else 'TBD' }}</td>
+                                <td>{{ match.away_team.name if match.away_team else 'TBD' }}</td>
+                                <td>
+                                    <button class="button small" onclick="enterResult({{ match.id }})">Enter Result</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p>No matches awaiting results.</p>
+                    {% endif %}
+                </div>
+                
+                <div class="large-6 columns">
+                    <h4>Recent Results</h4>
+                    {% if completed_matches %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Teams</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for match in completed_matches[:10] %}
+                            <tr>
+                                <td>{{ match.date.strftime('%Y-%m-%d') if match.date else 'N/A' }}</td>
+                                <td>{{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}</td>
+                                <td>{{ match.home_team_score }}-{{ match.away_team_score }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p>No completed matches found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function enterResult(matchId) {
+    // Placeholder for result entry functionality
+    alert('Result entry feature will be implemented here');
+}
+</script>
+{% endblock %}

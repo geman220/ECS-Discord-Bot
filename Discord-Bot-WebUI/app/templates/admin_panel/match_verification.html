@@ -1,0 +1,344 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Match Verification - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.match_operations') }}">Match Operations</a></li>
+<li class="breadcrumb-item active">Match Verification</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Match Verification Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-shield-check me-2"></i>
+                <div>
+                    <strong>Match Verification Dashboard</strong><br>
+                    Review and verify match results. Coaches can verify matches for their teams, while admins can verify any match.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters and Controls -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-filter me-2"></i>Filters & Search
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Week</label>
+                        <select name="week" class="form-select">
+                            <option value="">All Weeks</option>
+                            {% for week in weeks %}
+                            <option value="{{ week }}" {% if current_week == week %}selected{% endif %}>
+                                Week {{ week }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">League</label>
+                        <select name="league_id" class="form-select">
+                            <option value="">All Leagues</option>
+                            {% for league in leagues %}
+                            <option value="{{ league.id }}" {% if current_league_id == league.id %}selected{% endif %}>
+                                {{ league.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Verification Status</label>
+                        <select name="verification_status" class="form-select">
+                            <option value="all" {% if current_verification_status == 'all' %}selected{% endif %}>All Matches</option>
+                            <option value="unverified" {% if current_verification_status == 'unverified' %}selected{% endif %}>Unverified</option>
+                            <option value="partially_verified" {% if current_verification_status == 'partially_verified' %}selected{% endif %}>Partially Verified</option>
+                            <option value="fully_verified" {% if current_verification_status == 'fully_verified' %}selected{% endif %}>Fully Verified</option>
+                            <option value="not_reported" {% if current_verification_status == 'not_reported' %}selected{% endif %}>Not Reported</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-search me-1"></i>Filter
+                            </button>
+                            <a href="{{ url_for('admin_panel.match_verification') }}" class="btn btn-outline-secondary">
+                                <i class="ti ti-x me-1"></i>Clear
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-0">Total Matches</h6>
+                        <h4 class="mb-0">{{ matches|length }}</h4>
+                    </div>
+                    <div class="text-primary">
+                        <i class="ti ti-trophy" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-0">Needs Verification</h6>
+                        {% set unverified = matches|selectattr('reported')|rejectattr('home_team_verified')|list|length + matches|selectattr('reported')|rejectattr('away_team_verified')|list|length %}
+                        <h4 class="mb-0 text-warning">{{ unverified }}</h4>
+                    </div>
+                    <div class="text-warning">
+                        <i class="ti ti-clock" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-0">Fully Verified</h6>
+                        {% set verified = matches|selectattr('home_team_verified')|selectattr('away_team_verified')|list|length %}
+                        <h4 class="mb-0 text-success">{{ verified }}</h4>
+                    </div>
+                    <div class="text-success">
+                        <i class="ti ti-check" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-0">Not Reported</h6>
+                        {% set not_reported = matches|rejectattr('reported')|list|length %}
+                        <h4 class="mb-0 text-danger">{{ not_reported }}</h4>
+                    </div>
+                    <div class="text-danger">
+                        <i class="ti ti-alert-circle" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Matches Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-list me-2"></i>Matches
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if matches %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Week</th>
+                                <th>Date</th>
+                                <th>Match</th>
+                                <th>Score</th>
+                                <th>Home Verification</th>
+                                <th>Away Verification</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for match in matches %}
+                            <tr>
+                                <td>
+                                    {% if match.schedule %}
+                                    <span class="badge bg-secondary">Week {{ match.schedule.week }}</span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ match.date.strftime('%m/%d') if match.date else 'TBD' }}<br>
+                                    <small class="text-muted">{{ match.time.strftime('%I:%M %p') if match.time else '' }}</small>
+                                </td>
+                                <td>
+                                    <strong>{{ match.home_team.name if match.home_team else 'TBD' }}</strong><br>
+                                    <small class="text-muted">vs</small><br>
+                                    <strong>{{ match.away_team.name if match.away_team else 'TBD' }}</strong>
+                                </td>
+                                <td>
+                                    {% if match.home_team_score is not none and match.away_team_score is not none %}
+                                    <span class="fw-bold">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
+                                    {% else %}
+                                    <span class="text-muted">Not reported</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if match.home_team_verified %}
+                                    <span class="badge bg-success">
+                                        <i class="ti ti-check me-1"></i>Verified
+                                    </span>
+                                    {% elif match.home_team_score is not none %}
+                                    <span class="badge bg-warning">
+                                        <i class="ti ti-clock me-1"></i>Pending
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="ti ti-minus me-1"></i>N/A
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if match.away_team_verified %}
+                                    <span class="badge bg-success">
+                                        <i class="ti ti-check me-1"></i>Verified
+                                    </span>
+                                    {% elif match.away_team_score is not none %}
+                                    <span class="badge bg-warning">
+                                        <i class="ti ti-clock me-1"></i>Pending
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="ti ti-minus me-1"></i>N/A
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if match.home_team_verified and match.away_team_verified %}
+                                    <span class="badge bg-success">Fully Verified</span>
+                                    {% elif match.home_team_verified or match.away_team_verified %}
+                                    <span class="badge bg-warning">Partially Verified</span>
+                                    {% elif match.home_team_score is not none and match.away_team_score is not none %}
+                                    <span class="badge bg-danger">Unverified</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Not Reported</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if match.home_team_score is not none and match.away_team_score is not none %}
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                                            Verify
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            {% if not match.home_team_verified and (not is_coach or match.home_team_id in verifiable_teams) %}
+                                            <li>
+                                                <a class="dropdown-item" href="#" onclick="verifyMatch({{ match.id }}, 'home')">
+                                                    <i class="ti ti-home me-2"></i>Verify Home Team
+                                                </a>
+                                            </li>
+                                            {% endif %}
+                                            {% if not match.away_team_verified and (not is_coach or match.away_team_id in verifiable_teams) %}
+                                            <li>
+                                                <a class="dropdown-item" href="#" onclick="verifyMatch({{ match.id }}, 'away')">
+                                                    <i class="ti ti-plane me-2"></i>Verify Away Team
+                                                </a>
+                                            </li>
+                                            {% endif %}
+                                            {% if not match.home_team_verified and not match.away_team_verified and (not is_coach or (match.home_team_id in verifiable_teams and match.away_team_id in verifiable_teams)) %}
+                                            <li>
+                                                <a class="dropdown-item" href="#" onclick="verifyMatch({{ match.id }}, 'both')">
+                                                    <i class="ti ti-checks me-2"></i>Verify Both Teams
+                                                </a>
+                                            </li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted">Match not reported</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-trophy text-muted" style="font-size: 4rem;"></i>
+                    <h4 class="text-muted mt-3">No matches found</h4>
+                    <p class="text-muted">Try adjusting your filters or check back later.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function verifyMatch(matchId, team) {
+    const teamText = team === 'both' ? 'both teams' : team === 'home' ? 'home team' : 'away team';
+    
+    Swal.fire({
+        title: 'Verify Match',
+        text: `Are you sure you want to verify this match for ${teamText}?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#198754',
+        confirmButtonText: 'Yes, Verify',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create a form and submit it
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `{{ url_for('admin_panel.verify_match', match_id=0) }}`.replace('0', matchId);
+            
+            const teamInput = document.createElement('input');
+            teamInput.type = 'hidden';
+            teamInput.name = 'team';
+            teamInput.value = team;
+            form.appendChild(teamInput);
+            
+            // Add CSRF token if available
+            const csrfToken = document.querySelector('meta[name=csrf-token]');
+            if (csrfToken) {
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrf_token';
+                csrfInput.value = csrfToken.getAttribute('content');
+                form.appendChild(csrfInput);
+            }
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
+// Auto-refresh every 5 minutes
+setTimeout(() => {
+    location.reload();
+}, 300000);
+</script>
+{% endblock %}

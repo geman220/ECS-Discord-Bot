@@ -1,0 +1,534 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}API Endpoints - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.api_management') }}">API Management</a></li>
+<li class="breadcrumb-item active">Endpoints</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">API Endpoints</h4>
+    <div class="btn-group">
+        <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="ti ti-download me-2"></i>Export
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#" onclick="exportEndpoints('csv')"><i class="ti ti-file-text me-2"></i>Export as CSV</a></li>
+            <li><a class="dropdown-item" href="#" onclick="exportEndpoints('json')"><i class="ti ti-code me-2"></i>Export as JSON</a></li>
+            <li><a class="dropdown-item" href="#" onclick="exportEndpoints('xlsx')"><i class="ti ti-file-spreadsheet me-2"></i>Export as Excel</a></li>
+        </ul>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Blueprint</label>
+                <select name="filter" class="form-select">
+                    <option value="all" {% if current_filters.filter == 'all' %}selected{% endif %}>All Blueprints</option>
+                    {% for blueprint in blueprints %}
+                    <option value="{{ blueprint }}" {% if current_filters.filter == blueprint %}selected{% endif %}>
+                        {{ blueprint }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Method</label>
+                <select name="method" class="form-select">
+                    <option value="all" {% if current_filters.method == 'all' %}selected{% endif %}>All Methods</option>
+                    {% for method in methods %}
+                    <option value="{{ method }}" {% if current_filters.method == method %}selected{% endif %}>
+                        {{ method }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control" placeholder="Search endpoints..." value="{{ current_filters.search }}">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="ti ti-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <a href="{{ url_for('admin_panel.api_endpoints') }}" class="btn btn-outline-secondary me-2" title="Clear filters">
+                    <i class="ti ti-x"></i> Clear
+                </a>
+                <button type="button" class="btn btn-primary" onclick="refreshEndpoints()">
+                    <i class="ti ti-refresh"></i> Refresh
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Endpoints Table -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if endpoints %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Endpoint</th>
+                        <th>Blueprint</th>
+                        <th>Methods</th>
+                        <th>Authentication</th>
+                        <th>Requests</th>
+                        <th>Avg Response</th>
+                        <th>Status</th>
+                        <th>Last Used</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for endpoint in endpoints %}
+                    <tr>
+                        <td>
+                            <div>
+                                <code class="text-primary">{{ endpoint.path }}</code>
+                                {% if endpoint.description %}
+                                <br><small class="text-muted">{{ endpoint.description }}</small>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ endpoint.blueprint }}</span>
+                        </td>
+                        <td>
+                            {% for method in endpoint.methods %}
+                            <span class="badge bg-{% if method == 'GET' %}info{% elif method == 'POST' %}primary{% elif method == 'PUT' %}warning{% elif method == 'DELETE' %}danger{% else %}secondary{% endif %} me-1">
+                                {{ method }}
+                            </span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <span class="badge bg-{% if endpoint.authentication == 'admin' %}danger{% elif endpoint.authentication == 'required' %}warning{% else %}success{% endif %}">
+                                {{ endpoint.authentication }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="fw-bold">{{ "{:,}".format(endpoint.request_count) }}</span>
+                        </td>
+                        <td>
+                            <span class="{% if endpoint.avg_response_time > 0.5 %}text-danger{% elif endpoint.avg_response_time > 0.2 %}text-warning{% else %}text-success{% endif %}">
+                                {{ "%.3f"|format(endpoint.avg_response_time) }}s
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-{% if endpoint.status == 'active' %}success{% elif endpoint.status == 'deprecated' %}warning{% else %}danger{% endif %}">
+                                {{ endpoint.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <small>{{ endpoint.last_used.strftime('%Y-%m-%d %H:%M') if endpoint.last_used else 'Never' }}</small>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-info" 
+                                        onclick="viewEndpointDetails('{{ endpoint.path[1:] }}')" title="View Details">
+                                    <i class="ti ti-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" 
+                                        onclick="testEndpoint('{{ endpoint.path }}', {{ endpoint.methods | tojson }})" title="Test">
+                                    <i class="ti ti-test-pipe"></i>
+                                </button>
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="ti ti-dots"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" onclick="copyEndpoint('{{ endpoint.path }}')">
+                                            <i class="ti ti-copy me-2"></i>Copy Path
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="showDocumentation('{{ endpoint.path }}')">
+                                            <i class="ti ti-book me-2"></i>Documentation
+                                        </a></li>
+                                        {% if endpoint.status == 'active' %}
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-warning" href="#" onclick="toggleEndpointStatus('{{ endpoint.path }}', 'inactive')">
+                                            <i class="ti ti-pause me-2"></i>Disable
+                                        </a></li>
+                                        {% else %}
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-success" href="#" onclick="toggleEndpointStatus('{{ endpoint.path }}', 'active')">
+                                            <i class="ti ti-play me-2"></i>Enable
+                                        </a></li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if pagination.pages > 1 %}
+        <div class="card-footer">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin_panel.api_endpoints', page=pagination.prev_num, **current_filters) }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in range(1, pagination.pages + 1) %}
+                        {% if page_num == pagination.page %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% elif page_num <= 3 or page_num > pagination.pages - 3 or (page_num >= pagination.page - 1 and page_num <= pagination.page + 1) %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin_panel.api_endpoints', page=page_num, **current_filters) }}">{{ page_num }}</a>
+                        </li>
+                        {% elif page_num == 4 or page_num == pagination.pages - 3 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">…</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin_panel.api_endpoints', page=pagination.next_num, **current_filters) }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ti ti-api text-muted" style="font-size: 4rem;"></i>
+            <h5 class="text-muted mt-3">No Endpoints Found</h5>
+            <p class="text-muted">No API endpoints match your current filters.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Statistics Summary -->
+{% if endpoints %}
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card bg-light">
+            <div class="card-body text-center">
+                <i class="ti ti-api text-primary" style="font-size: 2rem;"></i>
+                <h6 class="card-title mt-2">{{ pagination.total }}</h6>
+                <p class="card-text small text-muted">Total Endpoints</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-light">
+            <div class="card-body text-center">
+                <i class="ti ti-check-circle text-success" style="font-size: 2rem;"></i>
+                <h6 class="card-title mt-2">{{ endpoints | selectattr('status', 'equalto', 'active') | list | length }}</h6>
+                <p class="card-text small text-muted">Active Endpoints</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-light">
+            <div class="card-body text-center">
+                <i class="ti ti-activity text-info" style="font-size: 2rem;"></i>
+                <h6 class="card-title mt-2">{{ "{:,}".format(endpoints | sum(attribute='request_count')) }}</h6>
+                <p class="card-text small text-muted">Total Requests</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-light">
+            <div class="card-body text-center">
+                <i class="ti ti-clock text-warning" style="font-size: 2rem;"></i>
+                <h6 class="card-title mt-2">{{ "%.3f"|format(endpoints | sum(attribute='avg_response_time') / endpoints | length) }}s</h6>
+                <p class="card-text small text-muted">Avg Response Time</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function viewEndpointDetails(endpointPath) {
+    fetch(`/admin-panel/api/endpoint/${endpointPath}/details`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const endpoint = data.endpoint;
+                const usage = data.usage_stats;
+                const recentActivity = data.recent_activity;
+                
+                let detailsHtml = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Endpoint Information</h6>
+                            <p><strong>Path:</strong> <code>${endpoint.path}</code></p>
+                            <p><strong>Blueprint:</strong> ${endpoint.blueprint}</p>
+                            <p><strong>Methods:</strong> ${endpoint.methods.join(', ')}</p>
+                            <p><strong>Authentication:</strong> <span class="badge bg-secondary">${endpoint.authentication}</span></p>
+                            <p><strong>Status:</strong> <span class="badge bg-${endpoint.status === 'active' ? 'success' : 'warning'}">${endpoint.status}</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Usage Statistics</h6>
+                            <p><strong>Total Requests:</strong> ${usage.total_requests.toLocaleString()}</p>
+                            <p><strong>Success Rate:</strong> ${usage.success_rate.toFixed(1)}%</p>
+                            <p><strong>Avg Response Time:</strong> ${usage.avg_response_time.toFixed(3)}s</p>
+                            <p><strong>Last 24h Requests:</strong> ${usage.last_24h_requests}</p>
+                            <p><strong>Peak Hour:</strong> ${usage.peak_hour}</p>
+                        </div>
+                    </div>
+                `;
+                
+                if (endpoint.description) {
+                    detailsHtml += `
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6>Description</h6>
+                                <p class="bg-light p-3 rounded">${endpoint.description}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (usage.most_common_errors && usage.most_common_errors.length > 0) {
+                    detailsHtml += `
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6>Common Errors</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr><th>Error</th><th>Count</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            ${usage.most_common_errors.map(error => 
+                                                `<tr><td>${error.error}</td><td>${error.count}</td></tr>`
+                                            ).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (recentActivity && recentActivity.length > 0) {
+                    detailsHtml += `
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6>Recent Activity</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr><th>Time</th><th>Method</th><th>Status</th><th>Response Time</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            ${recentActivity.slice(0, 5).map(activity => 
+                                                `<tr>
+                                                    <td>${new Date(activity.timestamp).toLocaleString()}</td>
+                                                    <td><span class="badge bg-info">${activity.method}</span></td>
+                                                    <td><span class="badge bg-${activity.status_code < 400 ? 'success' : 'danger'}">${activity.status_code}</span></td>
+                                                    <td>${activity.response_time.toFixed(3)}s</td>
+                                                </tr>`
+                                            ).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                Swal.fire({
+                    title: 'Endpoint Details',
+                    html: detailsHtml,
+                    width: '800px',
+                    confirmButtonText: 'Close'
+                });
+            } else {
+                Swal.fire('Error', 'Could not load endpoint details', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'Could not load endpoint details', 'error');
+        });
+}
+
+function testEndpoint(endpoint, methods) {
+    Swal.fire({
+        title: 'Test Endpoint',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Endpoint</label>
+                    <input type="text" id="test-endpoint" class="form-control" value="${endpoint}" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Method</label>
+                    <select id="test-method" class="form-select">
+                        ${methods.map(method => `<option value="${method}">${method}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Parameters (JSON)</label>
+                    <textarea id="test-params" class="form-control" rows="3" placeholder='{"key": "value"}'></textarea>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Test Endpoint',
+        preConfirm: () => {
+            const endpointPath = document.getElementById('test-endpoint').value;
+            const method = document.getElementById('test-method').value;
+            const paramsText = document.getElementById('test-params').value;
+            
+            let parameters = {};
+            if (paramsText.trim()) {
+                try {
+                    parameters = JSON.parse(paramsText);
+                } catch (e) {
+                    Swal.showValidationMessage('Invalid JSON in parameters');
+                    return false;
+                }
+            }
+            
+            return { endpoint: endpointPath, method, parameters };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            testEndpointWithData(result.value);
+        }
+    });
+}
+
+function testEndpointWithData(data) {
+    fetch('/admin-panel/api/test-endpoint', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            let resultHtml = `
+                <div class="text-start">
+                    <p><strong>Status:</strong> <span class="badge bg-${result.status_code < 400 ? 'success' : 'danger'}">${result.status_code}</span></p>
+                    <p><strong>Response Time:</strong> ${result.response_time}s</p>
+                    <p><strong>Timestamp:</strong> ${new Date(result.timestamp).toLocaleString()}</p>
+                    <p><strong>Response:</strong></p>
+                    <pre class="bg-light p-3 rounded" style="max-height: 200px; overflow-y: auto;"><code>${JSON.stringify(result.response_data, null, 2)}</code></pre>
+                </div>
+            `;
+            
+            Swal.fire({
+                title: 'Test Results',
+                html: resultHtml,
+                icon: result.status_code < 400 ? 'success' : 'warning',
+                width: '700px',
+                confirmButtonText: 'Close'
+            });
+        } else {
+            Swal.fire('Error', result.error || 'Test failed', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire('Error', 'Could not test endpoint', 'error');
+    });
+}
+
+function copyEndpoint(endpoint) {
+    navigator.clipboard.writeText(endpoint).then(() => {
+        Swal.fire({
+            icon: 'success',
+            title: 'Copied!',
+            text: 'Endpoint path copied to clipboard',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    }).catch(() => {
+        Swal.fire('Error', 'Could not copy to clipboard', 'error');
+    });
+}
+
+function showDocumentation(endpoint) {
+    // Mock documentation
+    Swal.fire({
+        title: 'API Documentation',
+        html: `
+            <div class="text-start">
+                <h6>Endpoint: <code>${endpoint}</code></h6>
+                <p>This endpoint provides functionality related to the ECS Discord Bot system.</p>
+                <h6>Authentication</h6>
+                <p>This endpoint requires proper authentication tokens.</p>
+                <h6>Rate Limiting</h6>
+                <p>This endpoint is rate limited to 100 requests per minute.</p>
+                <p><em>Note: This is mock documentation. Real documentation would be loaded from the actual API specification.</em></p>
+            </div>
+        `,
+        width: '600px',
+        confirmButtonText: 'Close'
+    });
+}
+
+function toggleEndpointStatus(endpoint, newStatus) {
+    const action = newStatus === 'active' ? 'enable' : 'disable';
+    
+    Swal.fire({
+        title: `${action.charAt(0).toUpperCase() + action.slice(1)} Endpoint`,
+        text: `Are you sure you want to ${action} this endpoint?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: `Yes, ${action} it!`
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Mock endpoint status toggle
+            Swal.fire({
+                title: 'Status Updated',
+                text: `Endpoint has been ${action}d successfully.`,
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload(); // Refresh the page to show updated status
+            });
+        }
+    });
+}
+
+function exportEndpoints(format) {
+    Swal.fire({
+        title: 'Export Started',
+        text: `API endpoints export in ${format.toUpperCase()} format has been queued.`,
+        icon: 'info',
+        timer: 2000,
+        showConfirmButton: false
+    });
+}
+
+function refreshEndpoints() {
+    location.reload();
+}
+</script>
+{% endblock %}

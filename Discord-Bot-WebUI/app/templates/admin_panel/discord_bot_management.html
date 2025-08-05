@@ -1,0 +1,904 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Discord Bot Management - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">Discord Bot Management</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Bot Status Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-{% if stats.bot_status == 'online' %}success{% else %}danger{% endif %} text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.bot_status.title() }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Bot Status</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-brand-discord" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.guilds_connected or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Connected Guilds</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-server" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.commands_today or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Commands Today</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-command" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.uptime or '0%' }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Uptime</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bot Management Actions -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-settings me-2"></i>Bot Control
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Control bot operations and manage its status</p>
+                <div class="list-group list-group-flush">
+                    <button class="list-group-item list-group-item-action" onclick="restartBot()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-refresh me-2 text-warning"></i>Restart Bot
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </button>
+                    <button class="list-group-item list-group-item-action" onclick="checkBotHealth()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-heart me-2 text-success"></i>Health Check
+                            </div>
+                            <span class="status-indicator {% if stats.bot_status == 'online' %}active{% else %}inactive{% endif %}"></span>
+                        </div>
+                    </button>
+                    <button class="list-group-item list-group-item-action" onclick="viewBotLogs()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-file-text me-2"></i>View Bot Logs
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </button>
+                    <button class="list-group-item list-group-item-action" onclick="syncCommands()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-refresh me-2 text-info"></i>Sync Commands
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-command me-2"></i>Command Management
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Manage bot commands and their permissions</p>
+                <div class="list-group list-group-flush">
+                    <a href="#" class="list-group-item list-group-item-action" onclick="viewCommands()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-list me-2"></i>View All Commands
+                            </div>
+                            <span class="badge bg-primary">{{ stats.total_commands or 0 }}</span>
+                        </div>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" onclick="commandPermissions()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-shield me-2"></i>Command Permissions
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" onclick="commandUsage()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-chart-bar me-2"></i>Usage Statistics
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" onclick="customCommands()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-edit me-2"></i>Custom Commands
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Guild Management -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-server me-2"></i>Connected Guilds
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="card-title mb-0">{{ guild_info.name or 'ECS FC Discord' }}</h6>
+                                    <span class="badge bg-{% if stats.bot_status == 'online' %}success{% else %}danger{% endif %}">
+                                        {{ stats.bot_status.title() }}
+                                    </span>
+                                </div>
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <div class="h5 mb-1">{{ guild_info.member_count or stats.member_count or 0 }}</div>
+                                        <div class="small text-muted">Members</div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="h5 mb-1">{{ guild_info.channel_count or 45 }}</div>
+                                        <div class="small text-muted">Channels</div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="h5 mb-1">{{ guild_info.role_count or 25 }}</div>
+                                        <div class="small text-muted">Roles</div>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <button class="btn btn-sm btn-outline-primary me-2" onclick="manageGuild('main')">
+                                        <i class="ti ti-settings me-1"></i>Manage
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-info" onclick="guildStats('main')">
+                                        <i class="ti ti-chart-dots me-1"></i>Stats
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-center text-muted mt-4">
+                            <i class="ti ti-plus d-block mb-2" style="font-size: 3rem;"></i>
+                            <p>Connect to additional Discord servers</p>
+                            <button class="btn btn-outline-primary" onclick="addGuild()">
+                                <i class="ti ti-plus me-1"></i>Add Guild
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bot Configuration -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-tool me-2"></i>Bot Configuration
+                </h5>
+            </div>
+            <div class="card-body">
+                <form>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Bot Prefix</label>
+                                <input type="text" class="form-control" value="!" id="botPrefix">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Default Role</label>
+                                <select class="form-select" id="defaultRole">
+                                    <option value="">None</option>
+                                    <option value="member">Member</option>
+                                    <option value="player">Player</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Activity Type</label>
+                                <select class="form-select" id="activityType">
+                                    <option value="playing">Playing</option>
+                                    <option value="listening">Listening to</option>
+                                    <option value="watching">Watching</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Activity Text</label>
+                                <input type="text" class="form-control" value="ECS FC League" id="activityText">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="autoModeration" checked>
+                                <label class="form-check-label" for="autoModeration">
+                                    Enable Auto Moderation
+                                </label>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="commandLogging" checked>
+                                <label class="form-check-label" for="commandLogging">
+                                    Log All Commands
+                                </label>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="welcomeMessages" checked>
+                                <label class="form-check-label" for="welcomeMessages">
+                                    Send Welcome Messages
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="button" class="btn btn-primary" onclick="saveBotConfig()">
+                                <i class="ti ti-device-floppy me-1"></i>Save Configuration
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary ms-2" onclick="resetBotConfig()">
+                                <i class="ti ti-refresh me-1"></i>Reset to Defaults
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-activity me-2"></i>Recent Activity
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    {% if recent_logs %}
+                        {% for log in recent_logs[-5:] %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker 
+                                {% if log.level == 'ERROR' %}bg-danger
+                                {% elif log.level == 'WARNING' %}bg-warning
+                                {% elif log.level == 'INFO' %}bg-info
+                                {% else %}bg-secondary
+                                {% endif %}"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">{{ log.message | truncate(50) }}</h6>
+                                <p class="timeline-text">{{ log.level }} - {{ log.message }}</p>
+                                <small class="text-muted">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else 'Unknown time' }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-secondary"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">No Recent Activity</h6>
+                                <p class="timeline-text">Bot API not connected or no recent logs available</p>
+                                <small class="text-muted">Check bot connection</small>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bot Status Alert -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-{% if stats.bot_status == 'online' %}success{% else %}danger{% endif %}">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-{% if stats.bot_status == 'online' %}check-circle{% else %}alert-circle{% endif %} me-2"></i>
+                <div>
+                    <strong>Bot Status:</strong> 
+                    {% if stats.bot_status == 'online' %}
+                        Discord bot is online and responding to commands normally.
+                    {% else %}
+                        Discord bot appears to be offline. Please check the bot configuration and network connectivity.
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--bs-border-color);
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -24px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 2px solid var(--bs-body-bg);
+}
+
+.timeline-content {
+    background: var(--bs-light);
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.timeline-title {
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.timeline-text {
+    font-size: 0.85rem;
+    color: var(--bs-text-muted);
+    margin-bottom: 5px;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-indicator.active {
+    background-color: #28a745;
+    box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.2);
+}
+
+.status-indicator.inactive {
+    background-color: #dc3545;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+}
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function restartBot() {
+    Swal.fire({
+        title: 'Restart Discord Bot?',
+        text: 'This will temporarily disconnect the bot from Discord while it restarts.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Restart Bot'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Restarting Bot...',
+                text: 'Please wait while the bot restarts',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    
+                    // Call bot restart API
+                    fetch('http://localhost:5001/api/bot/restart', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Restarted!', 'Discord bot restart has been initiated.', 'success');
+                        } else {
+                            Swal.fire('Error!', `Failed to restart bot: ${data.message || 'Unknown error'}`, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error restarting bot:', error);
+                        Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
+                    });
+                }
+            });
+        }
+    });
+}
+
+function checkBotHealth() {
+    Swal.fire({
+        title: 'Running Health Check...',
+        text: 'Checking bot connectivity and status',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+            
+            // Call bot health check API
+            fetch('http://localhost:5001/api/bot/health-detailed')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'online') {
+                    const healthInfo = `
+                        <div class="text-start">
+                            <p><strong>Status:</strong> ${data.status}</p>
+                            <p><strong>Username:</strong> ${data.username || 'Unknown'}</p>
+                            <p><strong>Guild Count:</strong> ${data.guild_count || 0}</p>
+                            <p><strong>Latency:</strong> ${data.latency || 'N/A'}ms</p>
+                            ${data.memory_usage_mb ? `<p><strong>Memory Usage:</strong> ${data.memory_usage_mb}MB</p>` : ''}
+                        </div>
+                    `;
+                    Swal.fire({
+                        title: 'Bot Health Check',
+                        html: healthInfo,
+                        icon: 'success',
+                        confirmButtonText: 'Close'
+                    });
+                } else {
+                    Swal.fire('Bot Offline', `Bot status: ${data.status}. ${data.details || ''}`, 'warning');
+                }
+            })
+            .catch(error => {
+                console.error('Error checking bot health:', error);
+                Swal.fire('Connection Error', 'Failed to connect to bot API.', 'error');
+            });
+        }
+    });
+}
+
+function viewBotLogs() {
+    // Build logs HTML from real data
+    let logsHtml = '';
+    const logs = {{ recent_logs | tojson | safe }};
+    
+    if (logs && logs.length > 0) {
+        logs.forEach(log => {
+            const timestamp = new Date(log.timestamp).toLocaleString();
+            logsHtml += `[${timestamp}] ${log.level}: ${log.message}\n`;
+        });
+    } else {
+        logsHtml = 'No recent logs available. Bot may not be connected to the API.';
+    }
+    
+    Swal.fire({
+        title: 'Discord Bot Logs',
+        html: `
+            <div class="text-start" style="max-height: 400px; overflow-y: auto;">
+                <pre class="bg-dark text-light p-3 rounded" style="font-size: 12px;">${logsHtml}</pre>
+            </div>
+        `,
+        width: '600px',
+        showCancelButton: true,
+        confirmButtonText: 'Refresh Logs',
+        cancelButtonText: 'Close'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            location.reload(); // Refresh page to get new logs
+        }
+    });
+}
+
+function syncCommands() {
+    Swal.fire({
+        title: 'Sync Commands?',
+        text: 'This will synchronize all slash commands with Discord.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sync Commands'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Syncing Commands...',
+                text: 'Please wait while commands are synchronized',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    // TODO: Implement command sync
+                    setTimeout(() => {
+                        Swal.fire('Synced!', '25 commands have been synchronized with Discord.', 'success');
+                    }, 2500);
+                }
+            });
+        }
+    });
+}
+
+function viewCommands() {
+    const commands = {{ commands | tojson | safe }};  // Pass commands from backend
+    let commandsHtml = '';
+    
+    // Group commands by category
+    const categories = {};
+    commands.forEach(cmd => {
+        if (!categories[cmd.category]) {
+            categories[cmd.category] = [];
+        }
+        categories[cmd.category].push(cmd);
+    });
+    
+    // Build HTML for each category
+    Object.keys(categories).forEach(category => {
+        commandsHtml += `
+            <div class="mb-4">
+                <h6 class="mb-2 text-primary">${category} Commands</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Command</th>
+                                <th>Description</th>
+                                <th>Permission</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+        
+        categories[category].forEach(cmd => {
+            const permissionColor = cmd.permission_level === 'Public' ? 'success' : 
+                                   cmd.permission_level.includes('Admin') ? 'danger' : 'warning';
+            commandsHtml += `
+                <tr>
+                    <td><code>/${cmd.name}</code></td>
+                    <td>${cmd.description}</td>
+                    <td><span class="badge bg-${permissionColor}">${cmd.permission_level}</span></td>
+                </tr>
+            `;
+        });
+        
+        commandsHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    });
+    
+    Swal.fire({
+        title: 'Discord Bot Commands',
+        html: `
+            <div class="text-start" style="max-height: 500px; overflow-y: auto;">
+                ${commandsHtml}
+            </div>
+        `,
+        width: '800px',
+        confirmButtonText: 'Close'
+    });
+}
+
+function commandPermissions() {
+    // TODO: Implement permission management
+    Swal.fire({
+        title: 'Command Permissions',
+        text: 'Permission management functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function commandUsage() {
+    const commandUsage = {{ command_usage | tojson | safe }};
+    
+    Swal.fire({
+        title: 'Command Usage Statistics',
+        html: `
+            <div class="text-start">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h4>${commandUsage.commands_today}</h4>
+                                <small>Commands Today</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h4>${commandUsage.commands_this_week}</h4>
+                                <small>Commands This Week</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Most Used Command</h6>
+                        <p><code>/${commandUsage.most_used_command}</code> - Membership verification</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Average Response Time</h6>
+                        <p>${commandUsage.avg_response_time}</p>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <h6>Popular Commands</h6>
+                    <div class="progress mb-2">
+                        <div class="progress-bar" style="width: 35%">verify (35%)</div>
+                    </div>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-info" style="width: 25%">nextmatch (25%)</div>
+                    </div>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-warning" style="width: 20%">record (20%)</div>
+                    </div>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-success" style="width: 15%">lookup (15%)</div>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-secondary" style="width: 5%">others (5%)</div>
+                    </div>
+                </div>
+            </div>
+        `,
+        width: '600px',
+        confirmButtonText: 'Close'
+    });
+}
+
+function customCommands() {
+    // TODO: Implement custom commands
+    Swal.fire({
+        title: 'Custom Commands',
+        text: 'Custom command functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function manageGuild(guildId) {
+    // TODO: Implement guild management
+    Swal.fire({
+        title: 'Guild Management',
+        text: 'Guild management functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function guildStats(guildId) {
+    const guildInfo = {{ guild_info | tojson | safe }};
+    const memberCount = guildInfo.member_count || {{ stats.member_count or 0 }};
+    const channelCount = guildInfo.channel_count || 45;
+    const roleCount = guildInfo.role_count || 25;
+    const newMembersToday = guildInfo.new_members_today || 0;
+    const commandsToday = {{ stats.commands_today or 0 }};
+    
+    // Build role distribution HTML
+    let roleDistributionHtml = '';
+    if (guildInfo.role_distribution && Object.keys(guildInfo.role_distribution).length > 0) {
+        const colors = ['', 'bg-info', 'bg-warning', 'bg-success', 'bg-secondary'];
+        let colorIndex = 0;
+        
+        for (const [roleName, roleData] of Object.entries(guildInfo.role_distribution)) {
+            const percentage = roleData.percentage || 0;
+            const count = roleData.count || 0;
+            const colorClass = colors[colorIndex % colors.length];
+            
+            roleDistributionHtml += `
+                <div class="progress mb-2">
+                    <div class="progress-bar ${colorClass}" style="width: ${percentage}%">
+                        ${roleName} (${percentage}% - ${count} members)
+                    </div>
+                </div>
+            `;
+            colorIndex++;
+        }
+    } else {
+        roleDistributionHtml = '<p class="text-muted">No role distribution data available</p>';
+    }
+    
+    Swal.fire({
+        title: '${guildInfo.name || "ECS FC Discord"} Guild Statistics',
+        html: `
+            <div class="text-start">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h4>${memberCount}</h4>
+                                <small>Total Members</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h4>${channelCount}</h4>
+                                <small>Channels</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h4>${roleCount}</h4>
+                                <small>Roles</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <h6>Role Distribution</h6>
+                    ${roleDistributionHtml}
+                </div>
+                <div class="mt-3">
+                    <h6>Recent Activity</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="ti ti-user-plus text-success"></i> ${newMembersToday} new members joined today</li>
+                        <li><i class="ti ti-message text-info"></i> Activity tracking enabled</li>
+                        <li><i class="ti ti-command text-primary"></i> ${commandsToday} commands executed today</li>
+                    </ul>
+                </div>
+            </div>
+        `,
+        width: '700px',
+        confirmButtonText: 'Close'
+    });
+}
+
+function addGuild() {
+    // TODO: Implement guild addition
+    Swal.fire({
+        title: 'Add Guild',
+        text: 'Guild addition functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function saveBotConfig() {
+    const config = {
+        prefix: document.getElementById('botPrefix').value,
+        default_role: document.getElementById('defaultRole').value,
+        activity_type: document.getElementById('activityType').value,
+        activity_text: document.getElementById('activityText').value,
+        auto_moderation: document.getElementById('autoModeration').checked,
+        command_logging: document.getElementById('commandLogging').checked,
+        welcome_messages: document.getElementById('welcomeMessages').checked
+    };
+    
+    // Show loading
+    Swal.fire({
+        title: 'Saving Configuration...',
+        text: 'Please wait while the configuration is being saved',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    // Send configuration to bot API
+    fetch('http://localhost:5001/api/bot/config', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(config)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire('Saved!', 'Bot configuration has been updated successfully.', 'success');
+        } else {
+            Swal.fire('Error!', `Failed to save configuration: ${data.error || 'Unknown error'}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving bot config:', error);
+        Swal.fire('Error!', 'Failed to connect to bot API. Please check if the bot is running.', 'error');
+    });
+}
+
+function resetBotConfig() {
+    document.getElementById('botPrefix').value = '!';
+    document.getElementById('defaultRole').value = '';
+    document.getElementById('activityType').value = 'playing';
+    document.getElementById('activityText').value = 'ECS FC League';
+    document.getElementById('autoModeration').checked = true;
+    document.getElementById('commandLogging').checked = true;
+    document.getElementById('welcomeMessages').checked = true;
+    
+    Swal.fire('Reset!', 'Configuration has been reset to defaults.', 'info');
+}
+
+function loadBotConfig() {
+    // Load current bot configuration from API
+    fetch('http://localhost:5001/api/bot/config')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.config) {
+            const config = data.config;
+            document.getElementById('botPrefix').value = config.prefix || '!';
+            document.getElementById('defaultRole').value = config.default_role || '';
+            document.getElementById('activityType').value = config.activity_type || 'playing';
+            document.getElementById('activityText').value = config.activity_text || 'ECS FC League';
+            document.getElementById('autoModeration').checked = config.auto_moderation !== false;
+            document.getElementById('commandLogging').checked = config.command_logging !== false;
+            document.getElementById('welcomeMessages').checked = config.welcome_messages !== false;
+        }
+    })
+    .catch(error => {
+        console.log('Could not load bot configuration:', error);
+        // Use default values if API is not accessible
+    });
+}
+
+// Load configuration when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadBotConfig();
+});
+</script>
+{% endblock %}

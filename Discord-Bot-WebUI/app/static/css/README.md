@@ -6,16 +6,14 @@
 
 **Result**: Clean, maintainable CSS architecture with clear ownership
 
-## 📁 Current CSS Files (6 Files Total)
+## 📁 Current CSS Files (4 Files Total)
 
 ### Core Files (Used in Production)
 ```
 foundation.css          791KB  - Bootstrap 5.3.3 + ECS Core + Z-Index System
 components.css          124KB  - Theme + Layout + Components  
-utilities-merged.css     29KB  - All utility classes consolidated
 mobile.css              13KB  - Mobile-first responsive design
 vendor-overrides.css      8KB  - Third-party CSS fixes
-z-index-system.css        4KB  - Centralized z-index management
 ```
 
 ### Archived Files
@@ -30,7 +28,6 @@ z-index-system.css        4KB  - Centralized z-index management
 
 ### Components Bundle  
 - `components.css` - UI components and theme
-- `utilities-merged.css` - Utility classes
 - `mobile.css` - Responsive mobile design
 
 ### Vendor Bundle
@@ -79,7 +76,7 @@ The CSS architecture was previously organized into three main layers:
 
 1. **Core Layer (`ecs-core.css`)**: Fundamental styling, variables, and base elements - Now part of `foundation.css`
 2. **Component Layer (`ecs-components.css`)**: Reusable UI components - Now part of `components.css`  
-3. **Utilities Layer (`ecs-utilities.css`)**: Helper classes - Now `utilities-merged.css`
+3. **Utilities Layer (`ecs-utilities.css`)**: Helper classes - Now integrated into components.css
 
 ### Consolidated Files
 - `design-system.css` → `foundation.css` and `components.css`

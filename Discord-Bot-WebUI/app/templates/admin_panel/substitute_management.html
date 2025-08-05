@@ -1,0 +1,357 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Substitute Management - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.match_operations') }}">Match Operations</a></li>
+<li class="breadcrumb-item active">Substitute Management</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Substitute Management Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-users me-2"></i>
+                <div>
+                    <strong>Substitute Management Dashboard</strong><br>
+                    Manage substitute requests, assign available subs to matches, and track substitute availability for upcoming games.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-0">Total Requests</h6>
+                        <h4 class="mb-0">{{ stats.total_requests }}</h4>
+                    </div>
+                    <div class="text-primary">
+                        <i class="ti ti-clipboard-list" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-0">Active Requests</h6>
+                        <h4 class="mb-0 text-warning">{{ stats.active_requests }}</h4>
+                    </div>
+                    <div class="text-warning">
+                        <i class="ti ti-clock" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-0">Available Subs</h6>
+                        <h4 class="mb-0 text-success">{{ stats.available_subs }}</h4>
+                    </div>
+                    <div class="text-success">
+                        <i class="ti ti-user-check" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-0">Upcoming Matches</h6>
+                        <h4 class="mb-0 text-info">{{ stats.upcoming_matches }}</h4>
+                    </div>
+                    <div class="text-info">
+                        <i class="ti ti-calendar" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-filter me-2"></i>Filters
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Show Matches</label>
+                        <select name="show_requested" class="form-select">
+                            <option value="all" {% if show_requested == 'all' %}selected{% endif %}>All Matches</option>
+                            <option value="requested" {% if show_requested == 'requested' %}selected{% endif %}>With Sub Requests</option>
+                            <option value="not_requested" {% if show_requested == 'not_requested' %}selected{% endif %}>Without Sub Requests</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Week</label>
+                        <select name="week" class="form-select">
+                            <option value="">All Weeks</option>
+                            {% for week in weeks %}
+                            <option value="{{ week }}" {% if current_week == week %}selected{% endif %}>
+                                Week {{ week }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-search me-1"></i>Filter
+                            </button>
+                            <a href="{{ url_for('admin_panel.substitute_management') }}" class="btn btn-outline-secondary">
+                                <i class="ti ti-x me-1"></i>Clear
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Substitute Requests -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-alert-circle me-2"></i>Active Substitute Requests
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if sub_requests %}
+                <div class="row">
+                    {% for request in sub_requests %}
+                    {% if request.status in ['PENDING', 'APPROVED'] %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card border-start border-warning border-4">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title mb-0">{{ request.match.home_team.name }} vs {{ request.match.away_team.name }}</h6>
+                                    <span class="badge bg-warning">{{ request.status }}</span>
+                                </div>
+                                <p class="card-text small text-muted mb-2">
+                                    <i class="ti ti-calendar me-1"></i>{{ request.match.date.strftime('%m/%d/%Y') if request.match.date }}
+                                    {% if request.match.time %}
+                                    <i class="ti ti-clock ms-2 me-1"></i>{{ request.match.time.strftime('%I:%M %p') }}
+                                    {% endif %}
+                                </p>
+                                <p class="card-text small mb-2">
+                                    <strong>Team:</strong> {{ request.team.name }}<br>
+                                    <strong>Needed:</strong> {{ request.substitutes_needed }} substitute(s)<br>
+                                    {% if request.notes %}
+                                    <strong>Notes:</strong> {{ request.notes[:50] }}{% if request.notes|length > 50 %}...{% endif %}
+                                    {% endif %}
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">{{ request.assignments_count or 0 }}/{{ request.substitutes_needed }} assigned</small>
+                                    <button class="btn btn-sm btn-primary" onclick="showSubAssignmentModal({{ request.id }}, {{ request.match.id }}, {{ request.team.id }})">
+                                        <i class="ti ti-plus me-1"></i>Assign Sub
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="ti ti-clipboard-list text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="text-muted mt-2">No active substitute requests</h5>
+                    <p class="text-muted">All substitute requests have been fulfilled or there are no pending requests.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upcoming Matches -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-calendar me-2"></i>Upcoming Matches
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if upcoming_matches %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Match</th>
+                                <th>Sub Requests</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for match in upcoming_matches %}
+                            <tr>
+                                <td>
+                                    {{ match.date.strftime('%m/%d') if match.date else 'TBD' }}<br>
+                                    <small class="text-muted">{{ match.time.strftime('%I:%M %p') if match.time else '' }}</small>
+                                </td>
+                                <td>
+                                    <strong>{{ match.home_team.name }}</strong><br>
+                                    <small class="text-muted">vs</small><br>
+                                    <strong>{{ match.away_team.name }}</strong>
+                                </td>
+                                <td>
+                                    {% set match_requests = requested_teams_by_match.get(match.id, {}) %}
+                                    {% if match_requests %}
+                                    {% for team_id, request in match_requests.items() %}
+                                    <span class="badge bg-warning me-1">
+                                        {{ request.team.name }}: {{ request.assignments_count or 0 }}/{{ request.substitutes_needed }}
+                                    </span>
+                                    {% endfor %}
+                                    {% else %}
+                                    <span class="text-muted">No requests</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="showSubAssignmentModal(null, {{ match.id }}, null)">
+                                        <i class="ti ti-plus me-1"></i>Quick Assign
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="ti ti-calendar text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="text-muted mt-2">No upcoming matches</h5>
+                    <p class="text-muted">No matches found for the selected criteria.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sub Assignment Modal -->
+<div class="modal fade" id="subAssignmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign Substitute</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="subAssignmentForm" method="POST" action="{{ url_for('admin_panel.assign_substitute') }}">
+                <div class="modal-body">
+                    <input type="hidden" name="match_id" id="assignMatchId">
+                    <input type="hidden" name="team_id" id="assignTeamId">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Available Substitutes</label>
+                        <select name="player_id" id="assignPlayerId" class="form-select" required>
+                            <option value="">Select a substitute...</option>
+                            {% for sub in available_subs %}
+                            <option value="{{ sub.id }}">
+                                {{ sub.name }}
+                                {% if sub.positions %}- {{ sub.positions }}{% endif %}
+                                {% if sub.phone %}- {{ sub.phone }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Team (if not pre-selected)</label>
+                        <select name="team_select" id="assignTeamSelect" class="form-select">
+                            <option value="">Select team...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-check me-1"></i>Assign Substitute
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function showSubAssignmentModal(requestId, matchId, teamId) {
+    document.getElementById('assignMatchId').value = matchId;
+    document.getElementById('assignTeamId').value = teamId || '';
+    
+    // Reset form
+    document.getElementById('assignPlayerId').value = '';
+    document.getElementById('assignTeamSelect').value = '';
+    
+    // If no team specified, populate team dropdown
+    if (!teamId) {
+        // You might want to populate this with teams from the specific match
+        document.getElementById('assignTeamSelect').style.display = 'block';
+        document.getElementById('assignTeamSelect').previousElementSibling.style.display = 'block';
+    } else {
+        document.getElementById('assignTeamSelect').style.display = 'none';
+        document.getElementById('assignTeamSelect').previousElementSibling.style.display = 'none';
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('subAssignmentModal'));
+    modal.show();
+}
+
+// Handle team selection change
+document.getElementById('assignTeamSelect').addEventListener('change', function() {
+    if (this.value) {
+        document.getElementById('assignTeamId').value = this.value;
+    }
+});
+
+// Handle form submission
+document.getElementById('subAssignmentForm').addEventListener('submit', function(e) {
+    const playerId = document.getElementById('assignPlayerId').value;
+    const matchId = document.getElementById('assignMatchId').value;
+    const teamId = document.getElementById('assignTeamId').value;
+    
+    if (!playerId || !matchId || !teamId) {
+        e.preventDefault();
+        Swal.fire('Error', 'Please select a substitute, match, and team.', 'error');
+        return false;
+    }
+});
+
+// Auto-refresh every 2 minutes
+setTimeout(() => {
+    location.reload();
+}, 120000);
+</script>
+{% endblock %}

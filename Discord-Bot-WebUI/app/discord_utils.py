@@ -607,7 +607,7 @@ async def rename_team_roles_async_only(old_team_name: str, new_team_name: str, c
                 total_roles += 1
                 new_coach_name = f"ECS-FC-PL-{normalize_name(new_team_name)}-Coach"
                 url = f"{bot_api_url}/api/server/guilds/{guild_id}/roles/{coach_role_id}"
-                async with session.patch(url, json={'name': new_coach_name}) as response:
+                async with session.patch(url, json={'new_name': new_coach_name}) as response:
                     if response.status == 200:
                         success_count += 1
                         logger.info(f"Renamed coach role to: {new_coach_name}")
@@ -620,7 +620,7 @@ async def rename_team_roles_async_only(old_team_name: str, new_team_name: str, c
                 total_roles += 1
                 new_player_name = f"ECS-FC-PL-{normalize_name(new_team_name)}-Player"
                 url = f"{bot_api_url}/api/server/guilds/{guild_id}/roles/{player_role_id}"
-                async with session.patch(url, json={'name': new_player_name}) as response:
+                async with session.patch(url, json={'new_name': new_player_name}) as response:
                     if response.status == 200:
                         success_count += 1
                         logger.info(f"Renamed player role to: {new_player_name}")

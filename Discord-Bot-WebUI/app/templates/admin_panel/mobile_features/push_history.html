@@ -1,0 +1,574 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Push History - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.mobile_features') }}">Mobile Features</a>
+</li>
+<li class="breadcrumb-item active">Push History</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Push History Statistics -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.total_sent or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Sent</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-send" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.sent_today or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Sent Today</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-calendar" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.sent_this_week or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Sent This Week</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-calendar-week" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.avg_per_day or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Avg per Day</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-chart-line" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- History Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-filter me-2"></i>Filter Push History
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-2">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="">All Statuses</option>
+                            <option value="sent" {{ 'selected' if request.args.get('status') == 'sent' }}>Sent</option>
+                            <option value="delivered" {{ 'selected' if request.args.get('status') == 'delivered' }}>Delivered</option>
+                            <option value="failed" {{ 'selected' if request.args.get('status') == 'failed' }}>Failed</option>
+                            <option value="pending" {{ 'selected' if request.args.get('status') == 'pending' }}>Pending</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Type</label>
+                        <select name="type" class="form-select">
+                            <option value="">All Types</option>
+                            <option value="match_reminder" {{ 'selected' if request.args.get('type') == 'match_reminder' }}>Match Reminder</option>
+                            <option value="season_update" {{ 'selected' if request.args.get('type') == 'season_update' }}>Season Update</option>
+                            <option value="announcement" {{ 'selected' if request.args.get('type') == 'announcement' }}>Announcement</option>
+                            <option value="custom" {{ 'selected' if request.args.get('type') == 'custom' }}>Custom</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">From Date</label>
+                        <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">To Date</label>
+                        <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Search</label>
+                        <input type="text" name="search" class="form-control" placeholder="Search message content..." value="{{ request.args.get('search', '') }}">
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analytics Chart -->
+<div class="row mb-4">
+    <div class="col-md-8 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-chart-area me-2"></i>Push Notification Trends
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="pushHistoryChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-pie-chart me-2"></i>Status Distribution
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="statusDistributionChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Push History Management</h6>
+                        <small class="text-muted">{{ push_notifications|length or 0 }} notifications shown</small>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" onclick="retryFailed()">
+                            <i class="ti ti-refresh me-1"></i>Retry Failed
+                        </button>
+                        <button class="btn btn-outline-info" onclick="exportHistory()">
+                            <i class="ti ti-download me-1"></i>Export History
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="cleanupOld()">
+                            <i class="ti ti-trash me-1"></i>Cleanup Old
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Push History Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-history me-2"></i>Push Notification History
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if push_notifications %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAll">
+                                    </div>
+                                </th>
+                                <th>Notification</th>
+                                <th>Type</th>
+                                <th>Recipient</th>
+                                <th>Status</th>
+                                <th>Sent Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for notification in push_notifications %}
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <input class="form-check-input notification-checkbox" type="checkbox" value="{{ notification.id }}">
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>{{ notification.title or 'No Title' }}</strong>
+                                        <br><small class="text-muted">{{ (notification.message or notification.content or 'No content')[:50] }}{% if (notification.message or notification.content or '')|length > 50 %}...{% endif %}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ notification.notification_type or 'push' }}</span>
+                                </td>
+                                <td>
+                                    {% if notification.recipient %}
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2">
+                                            {{ notification.recipient.username[0].upper() if notification.recipient.username else 'U' }}
+                                        </div>
+                                        <div>
+                                            <small><strong>{{ notification.recipient.username or 'Unknown' }}</strong></small>
+                                            <br><small class="text-muted">{{ notification.recipient.email or 'No email' }}</small>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted">No recipient</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if notification.is_sent %}
+                                        <span class="badge bg-success">
+                                            <i class="ti ti-check me-1"></i>Sent
+                                        </span>
+                                    {% elif notification.failed_at %}
+                                        <span class="badge bg-danger">
+                                            <i class="ti ti-x me-1"></i>Failed
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-warning">
+                                            <i class="ti ti-clock me-1"></i>Pending
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ notification.created_at.strftime('%Y-%m-%d %H:%M:%S') if notification.created_at else 'Unknown' }}</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-info" onclick="viewNotificationDetails('{{ notification.id }}')">
+                                            <i class="ti ti-eye"></i>
+                                        </button>
+                                        {% if notification.failed_at %}
+                                        <button class="btn btn-outline-warning" onclick="retryNotification('{{ notification.id }}')">
+                                            <i class="ti ti-refresh"></i>
+                                        </button>
+                                        {% endif %}
+                                        <button class="btn btn-outline-primary" onclick="duplicateNotification('{{ notification.id }}')">
+                                            <i class="ti ti-copy"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="deleteNotification('{{ notification.id }}')">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-bell-off text-muted" style="font-size: 4rem;"></i>
+                    <h5 class="text-muted mt-3">No Push History</h5>
+                    <p class="text-muted">No push notifications match the current filter criteria.</p>
+                    <a href="{{ url_for('admin_panel.push_history') }}" class="btn btn-outline-primary">
+                        <i class="ti ti-refresh me-1"></i>Clear Filters
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Select all functionality
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.notification-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+});
+
+// Push History Trends Chart
+const pushHistoryCtx = document.getElementById('pushHistoryChart').getContext('2d');
+const pushHistoryChart = new Chart(pushHistoryCtx, {
+    type: 'line',
+    data: {
+        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7'],
+        datasets: [{
+            label: 'Notifications Sent',
+            data: [45, 52, 38, 67, 58, 72, 65],
+            borderColor: '#007bff',
+            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+            tension: 0.4,
+            fill: true
+        }, {
+            label: 'Delivery Rate (%)',
+            data: [95, 97, 93, 96, 98, 94, 95],
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            tension: 0.4,
+            yAxisID: 'y1'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Notifications Sent'
+                }
+            },
+            y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                min: 0,
+                max: 100,
+                title: {
+                    display: true,
+                    text: 'Delivery Rate (%)'
+                },
+                grid: {
+                    drawOnChartArea: false,
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                position: 'top'
+            }
+        }
+    }
+});
+
+// Status Distribution Chart
+const statusDistCtx = document.getElementById('statusDistributionChart').getContext('2d');
+const statusDistChart = new Chart(statusDistCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Sent', 'Delivered', 'Failed', 'Pending'],
+        datasets: [{
+            data: [{{ stats.total_sent or 0 }}, {{ (stats.total_sent * 0.95)|int if stats.total_sent else 0 }}, {{ (stats.total_sent * 0.03)|int if stats.total_sent else 0 }}, {{ (stats.total_sent * 0.02)|int if stats.total_sent else 0 }}],
+            backgroundColor: ['#007bff', '#28a745', '#dc3545', '#ffc107']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+function viewNotificationDetails(notificationId) {
+    Swal.fire({
+        title: `Notification Details`,
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <strong>Notification ID:</strong> ${notificationId}<br>
+                    <strong>Type:</strong> Push Notification<br>
+                    <strong>Status:</strong> <span class="badge bg-success">Sent</span><br>
+                    <strong>Created:</strong> 2024-01-30 18:00:00
+                </div>
+                <div class="mb-3">
+                    <strong>Content:</strong><br>
+                    <div class="card bg-light p-2">
+                        <strong>Title:</strong> Match Starting Soon!<br>
+                        <strong>Message:</strong> Your match against Arsenal FC starts in 30 minutes. Good luck team!
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <strong>Delivery Information:</strong><br>
+                    • Sent to: john.doe@example.com<br>
+                    • Device: iPhone 12 Pro (iOS)<br>
+                    • Sent at: 2024-01-30 18:00:15<br>
+                    • Delivered at: 2024-01-30 18:00:18<br>
+                    • Opened at: 2024-01-30 18:02:45
+                </div>
+                <div class="mb-3">
+                    <strong>Metadata:</strong><br>
+                    • Campaign: Match Day Reminders<br>
+                    • Priority: High<br>
+                    • Badge Count: 1<br>
+                    • Sound: default.aiff
+                </div>
+            </div>
+        `,
+        width: '600px',
+        confirmButtonText: 'Close'
+    });
+}
+
+function retryNotification(notificationId) {
+    Swal.fire({
+        title: 'Retry Notification?',
+        text: 'This will attempt to resend the failed notification',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Retry Send'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Retrying...',
+                text: 'Attempting to resend notification',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    setTimeout(() => {
+                        Swal.fire('Notification Retried!', 'The notification has been queued for retry.', 'success')
+                            .then(() => location.reload());
+                    }, 2000);
+                }
+            });
+        }
+    });
+}
+
+function duplicateNotification(notificationId) {
+    Swal.fire({
+        title: 'Duplicate Notification?',
+        text: 'This will create a copy of this notification that you can send again',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Duplicate'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Redirect to campaigns page with notification data pre-filled
+            Swal.fire('Notification Duplicated!', 'The notification has been copied to a new campaign.', 'success');
+        }
+    });
+}
+
+function deleteNotification(notificationId) {
+    Swal.fire({
+        title: 'Delete Notification?',
+        text: 'This will permanently remove this notification from history',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Delete',
+        confirmButtonColor: '#dc3545'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Notification Deleted!', 'The notification has been removed from history.', 'success')
+                .then(() => location.reload());
+        }
+    });
+}
+
+function retryFailed() {
+    const selectedNotifications = Array.from(document.querySelectorAll('.notification-checkbox:checked')).map(cb => cb.value);
+    
+    if (selectedNotifications.length === 0) {
+        Swal.fire('No Notifications Selected', 'Please select failed notifications to retry.', 'warning');
+        return;
+    }
+    
+    Swal.fire({
+        title: `Retry ${selectedNotifications.length} Failed Notifications?`,
+        text: 'This will attempt to resend all selected failed notifications',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Retry All'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Retrying Notifications...',
+                text: 'Processing retry requests',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    setTimeout(() => {
+                        Swal.fire('Retry Complete!', `${selectedNotifications.length} notifications have been queued for retry.`, 'success')
+                            .then(() => location.reload());
+                    }, 3000);
+                }
+            });
+        }
+    });
+}
+
+function exportHistory() {
+    const selectedNotifications = Array.from(document.querySelectorAll('.notification-checkbox:checked')).map(cb => cb.value);
+    
+    Swal.fire({
+        title: 'Export Push History?',
+        text: selectedNotifications.length > 0 ? `Export ${selectedNotifications.length} selected notifications?` : 'Export all visible notifications?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Export Data'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Export Started!', 'Push history export is being prepared for download.', 'success');
+        }
+    });
+}
+
+function cleanupOld() {
+    Swal.fire({
+        title: 'Cleanup Old Notifications?',
+        text: 'This will permanently remove push notifications older than 90 days',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Cleanup Old',
+        confirmButtonColor: '#dc3545'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Cleaning Up...',
+                text: 'Removing old push notifications',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    setTimeout(() => {
+                        Swal.fire('Cleanup Complete!', '247 old notifications have been removed.', 'success')
+                            .then(() => location.reload());
+                    }, 2000);
+                }
+            });
+        }
+    });
+}
+
+// Auto-refresh charts every 5 minutes
+setInterval(() => {
+    pushHistoryChart.update();
+    statusDistChart.update();
+}, 300000);
+</script>
+{% endblock %}

@@ -1,0 +1,280 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Team Management - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.match_operations') }}">Match Operations</a>
+</li>
+<li class="breadcrumb-item active">Team Management</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.total_teams or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Teams</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-shield" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.active_teams or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Active Teams</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-shield-check" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.teams_with_players or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">With Players</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.teams_by_league|length or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Leagues</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-flag" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Teams by League -->
+{% if stats.teams_by_league %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-flag me-2"></i>Teams by League
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for league_name, team_count in stats.teams_by_league.items() %}
+                    <div class="col-md-3 mb-2">
+                        <div class="d-flex justify-content-between p-2 border rounded">
+                            <span>{{ league_name }}</span>
+                            <span class="badge bg-primary">{{ team_count }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Teams Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-shield me-2"></i>All Teams
+                    </h5>
+                    <button class="btn btn-primary btn-sm" onclick="createTeam()">
+                        <i class="ti ti-plus me-1"></i>Create Team
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if teams %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Team Name</th>
+                                <th>League</th>
+                                <th>Players</th>
+                                <th>Matches</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for team in teams %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="team-logo me-2">
+                                            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                                <span class="text-white fw-bold">{{ team.name[0] if team.name else 'T' }}</span>
+                                            </div>
+                                        </div>
+                                        <strong>{{ team.name }}</strong>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if team.league %}
+                                        <span class="badge bg-info">{{ team.league.name }}</span>
+                                    {% else %}
+                                        <span class="text-muted">No League</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if team.players %}
+                                        <span class="badge bg-success">{{ team.players|length }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">0</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">0</span> <!-- Will be calculated -->
+                                </td>
+                                <td>
+                                    {% if team.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-info" onclick="viewTeam({{ team.id }})">
+                                            <i class="ti ti-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning" onclick="editTeam({{ team.id }})">
+                                            <i class="ti ti-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="manageRoster({{ team.id }})">
+                                            <i class="ti ti-users"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-shield-off text-muted" style="font-size: 4rem;"></i>
+                    <h5 class="text-muted mt-3">No Teams Found</h5>
+                    <p class="text-muted">Create your first team to get started.</p>
+                    <button class="btn btn-primary" onclick="createTeam()">
+                        <i class="ti ti-plus me-1"></i>Create Team
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-info-circle me-2"></i>
+                <div>
+                    <strong>Team Management:</strong> 
+                    Manage all teams in your system. Create teams, assign them to leagues, and manage player rosters.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function createTeam() {
+    Swal.fire({
+        title: 'Create New Team',
+        text: 'Team creation functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function viewTeam(teamId) {
+    Swal.fire({
+        title: 'View Team Details',
+        text: 'Team details functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function editTeam(teamId) {
+    Swal.fire({
+        title: 'Edit Team',
+        text: 'Team editing functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function manageRoster(teamId) {
+    // Redirect to team roster management
+    window.location.href = `{{ url_for('admin_panel.team_rosters') }}?team_id=${teamId}`;
+}
+</script>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.team-logo {
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .d-flex.justify-content-between > div:last-child {
+        margin-top: 0.25rem;
+    }
+    
+    .team-logo {
+        display: none;
+    }
+}
+</style>
+{% endblock %}

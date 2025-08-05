@@ -1,0 +1,366 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}System Performance - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.system_monitoring') }}">System Monitoring</a>
+</li>
+<li class="breadcrumb-item active">System Performance</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Performance Overview -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ performance_metrics.response_time_avg }}ms</h5>
+                        <p class="card-text small opacity-75 mb-0">Avg Response Time</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ performance_metrics.requests_per_minute }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Requests/Min</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-activity" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ performance_metrics.error_rate_percent }}%</h5>
+                        <p class="card-text small opacity-75 mb-0">Error Rate</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-alert-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ performance_metrics.active_sessions }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Active Sessions</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Charts -->
+<div class="row mb-4">
+    <div class="col-md-8 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-chart-line me-2"></i>Response Time Trends
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="responseTimeChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-pie-chart me-2"></i>Request Distribution
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="requestDistributionChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Metrics -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-server me-2"></i>Resource Utilization
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="text-center mb-3">
+                            <h6>CPU Usage</h6>
+                            <div class="progress mx-auto" style="width: 80px; height: 80px; border-radius: 50%;">
+                                <div class="progress-bar" style="width: {{ performance_metrics.cpu_usage }}%; background: conic-gradient(#007bff {{ performance_metrics.cpu_usage * 3.6 }}deg, #e9ecef 0deg);"></div>
+                            </div>
+                            <small class="text-muted">{{ performance_metrics.cpu_usage }}%</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center mb-3">
+                            <h6>Memory Usage</h6>
+                            <div class="progress mx-auto" style="width: 80px; height: 80px; border-radius: 50%;">
+                                <div class="progress-bar bg-info" style="width: {{ performance_metrics.memory_usage }}%; background: conic-gradient(#17a2b8 {{ performance_metrics.memory_usage * 3.6 }}deg, #e9ecef 0deg);"></div>
+                            </div>
+                            <small class="text-muted">{{ performance_metrics.memory_usage }}%</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Database Connections</span>
+                        <span class="badge bg-primary">{{ performance_metrics.db_connections_active }}/{{ performance_metrics.db_connections_max }}</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar" style="width: {{ (performance_metrics.db_connections_active / performance_metrics.db_connections_max * 100) if performance_metrics.db_connections_max else 0 }}%"></div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Cache Hit Rate</span>
+                        <span class="badge bg-success">{{ performance_metrics.cache_hit_rate }}%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success" style="width: {{ performance_metrics.cache_hit_rate }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-list me-2"></i>Top Endpoints
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Endpoint</th>
+                                <th>Requests</th>
+                                <th>Avg Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for endpoint in performance_metrics.top_endpoints %}
+                            <tr>
+                                <td>
+                                    <code>{{ endpoint.path }}</code>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ endpoint.requests }}</span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ endpoint.avg_time }}ms</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Historical Data -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-chart-area me-2"></i>Historical Performance Data
+                </h5>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary active" onclick="loadHistoricalData('1h')">1 Hour</button>
+                    <button class="btn btn-outline-primary" onclick="loadHistoricalData('6h')">6 Hours</button>
+                    <button class="btn btn-outline-primary" onclick="loadHistoricalData('24h')">24 Hours</button>
+                    <button class="btn btn-outline-primary" onclick="loadHistoricalData('7d')">7 Days</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="historicalChart" style="height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.progress[style*="border-radius: 50%"] {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e9ecef;
+}
+
+.progress[style*="border-radius: 50%"] .progress-bar {
+    position: absolute;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 50%;
+}
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Response Time Chart
+const responseTimeCtx = document.getElementById('responseTimeChart').getContext('2d');
+const responseTimeChart = new Chart(responseTimeCtx, {
+    type: 'line',
+    data: {
+        labels: {{ historical_data.response_time.labels | tojson | safe }},
+        datasets: [{
+            label: 'Response Time (ms)',
+            data: {{ historical_data.response_time.data | tojson | safe }},
+            borderColor: '#007bff',
+            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Request Distribution Chart
+const requestDistCtx = document.getElementById('requestDistributionChart').getContext('2d');
+const requestDistChart = new Chart(requestDistCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ historical_data.request_distribution.labels | tojson | safe }},
+        datasets: [{
+            data: {{ historical_data.request_distribution.data | tojson | safe }},
+            backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6c757d']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Historical Data Chart
+const historicalCtx = document.getElementById('historicalChart').getContext('2d');
+const historicalChart = new Chart(historicalCtx, {
+    type: 'line',
+    data: {
+        labels: {{ historical_data.timeline.labels | tojson | safe }},
+        datasets: [
+            {
+                label: 'Response Time (ms)',
+                data: {{ historical_data.timeline.response_time | tojson | safe }},
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                yAxisID: 'y'
+            },
+            {
+                label: 'Requests/min',
+                data: {{ historical_data.timeline.requests | tojson | safe }},
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                yAxisID: 'y1'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+            },
+            y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                grid: {
+                    drawOnChartArea: false,
+                },
+            }
+        }
+    }
+});
+
+function loadHistoricalData(period) {
+    // Update active button
+    document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Load data for the selected period
+    Swal.fire({
+        title: 'Loading Data...',
+        text: `Loading ${period} historical data`,
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+            // Simulate data loading
+            setTimeout(() => {
+                Swal.close();
+                // Update charts with new data
+            }, 1000);
+        }
+    });
+}
+
+// Auto-refresh every 30 seconds
+setInterval(() => {
+    // Update charts with fresh data
+    responseTimeChart.update();
+    requestDistChart.update();
+    historicalChart.update();
+}, 30000);
+</script>
+{% endblock %}

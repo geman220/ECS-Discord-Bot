@@ -1468,25 +1468,59 @@ def _extract_update_team_data(session, team_id: int, new_team_name: str):
         'new_team_name': new_team_name,
         'league_name': team.league.name if team.league else None,
         'discord_coach_role_id': team.discord_coach_role_id,
-        'discord_player_role_id': team.discord_player_role_id
+        'discord_player_role_id': team.discord_player_role_id,
+        'discord_channel_id': team.discord_channel_id
     }
 
 
 async def _execute_update_team_discord_async(data):
     """Execute Discord resource update without database session."""
+    import os
+    import aiohttp
+    from app.utils.discord_request_handler import make_discord_request
+    
     # Use async-only version of rename team roles
     from app.discord_utils import rename_team_roles_async_only
     
-    result = await rename_team_roles_async_only(
+    # Rename roles
+    role_result = await rename_team_roles_async_only(
         data['old_team_name'],
         data['new_team_name'],
         data['discord_coach_role_id'],
         data['discord_player_role_id']
     )
     
+    # Rename channel if it exists
+    channel_success = True
+    channel_message = ""
+    if data.get('discord_channel_id'):
+        try:
+            bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
+            url = f"{bot_api_url}/api/server/channels/{data['discord_channel_id']}"
+            
+            async with aiohttp.ClientSession() as session:
+                response = await make_discord_request('PATCH', url, session, json={'new_name': data['new_team_name']})
+                if response:
+                    logger.info(f"Renamed channel to: {data['new_team_name']}")
+                    channel_message = f"Channel renamed to: {data['new_team_name']}"
+                else:
+                    logger.error(f"Failed to rename channel")
+                    channel_success = False
+                    channel_message = f"Failed to rename channel"
+        except Exception as e:
+            logger.error(f"Error renaming channel: {e}")
+            channel_success = False
+            channel_message = f"Error renaming channel: {e}"
+    else:
+        channel_message = "No channel to rename"
+    
+    # Combine results
+    overall_success = role_result.get('success', False) and channel_success
+    combined_message = f"{role_result.get('message', '')}. {channel_message}"
+    
     return {
-        'success': result.get('success', True),
-        'message': result.get('message', 'Discord resources updated'),
+        'success': overall_success,
+        'message': combined_message,
         'team_id': data['team_id']
     }
 

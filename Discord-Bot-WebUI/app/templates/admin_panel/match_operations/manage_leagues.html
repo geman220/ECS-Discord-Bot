@@ -1,0 +1,257 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}League Management - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.match_operations') }}">Match Operations</a>
+</li>
+<li class="breadcrumb-item active">League Management</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.total_leagues or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Leagues</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-flag" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.active_leagues or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Active Leagues</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-flag-check" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.leagues_with_teams or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">With Teams</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.leagues_with_matches or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">With Matches</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-calendar" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leagues Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-flag me-2"></i>Leagues
+                    </h5>
+                    <button class="btn btn-primary btn-sm" onclick="createLeague()">
+                        <i class="ti ti-plus me-1"></i>Create League
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if leagues %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>League Name</th>
+                                <th>Season</th>
+                                <th>Teams</th>
+                                <th>Matches</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for league in leagues %}
+                            <tr>
+                                <td>
+                                    <strong>{{ league.name }}</strong>
+                                </td>
+                                <td>
+                                    <span class="text-muted">{{ league.season.name if league.season else 'No Season' }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ league.team_count or 0 }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ league.match_count or 0 }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">{{ league.status or 'Active' }}</span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-info" onclick="viewLeague({{ league.id }})">
+                                            <i class="ti ti-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning" onclick="editLeague({{ league.id }})">
+                                            <i class="ti ti-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="toggleLeagueStatus({{ league.id }})">
+                                            <i class="ti ti-toggle-left"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-flag-off text-muted" style="font-size: 4rem;"></i>
+                    <h5 class="text-muted mt-3">No Leagues Found</h5>
+                    <p class="text-muted">Create your first league to get started.</p>
+                    <button class="btn btn-primary" onclick="createLeague()">
+                        <i class="ti ti-plus me-1"></i>Create League
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-info-circle me-2"></i>
+                <div>
+                    <strong>League Management:</strong> 
+                    Manage all leagues in your system. Create new leagues, edit existing ones, and manage team assignments.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function createLeague() {
+    Swal.fire({
+        title: 'Create New League',
+        text: 'League creation functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function viewLeague(leagueId) {
+    Swal.fire({
+        title: 'View League Details',
+        text: 'League details functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function editLeague(leagueId) {
+    Swal.fire({
+        title: 'Edit League',
+        text: 'League editing functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function toggleLeagueStatus(leagueId) {
+    // Make AJAX request to toggle league status
+    fetch(`{{ url_for('admin_panel.toggle_league_status') }}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `league_id=${leagueId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                title: 'Success',
+                text: data.message,
+                icon: 'success'
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: data.message,
+                icon: 'error'
+            });
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            title: 'Error',
+            text: 'An error occurred while updating league status',
+            icon: 'error'
+        });
+    });
+}
+</script>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .d-flex.justify-content-between > div:last-child {
+        margin-top: 0.25rem;
+    }
+}
+</style>
+{% endblock %}

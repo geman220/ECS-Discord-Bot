@@ -1,0 +1,299 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Team Rosters - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.match_operations') }}">Match Operations</a>
+</li>
+<li class="breadcrumb-item active">Team Rosters</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.total_teams or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Teams</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-shield" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.teams_with_players or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">With Players</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-users-check" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.total_players or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Players</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-user" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.unassigned_players or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Unassigned</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-user-minus" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Teams without Players Alert -->
+{% if teams_without_players %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <i class="ti ti-alert-triangle me-2"></i>
+                    <strong>{{ teams_without_players|length }} teams</strong> have no players assigned.
+                </div>
+                <button class="btn btn-outline-warning btn-sm" onclick="showTeamsWithoutPlayers()">
+                    View Teams
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Team Rosters -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-users me-2"></i>Team Rosters
+                    </h5>
+                    <button class="btn btn-primary btn-sm" onclick="managePlayerAssignments()">
+                        <i class="ti ti-edit me-1"></i>Assign Players
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if teams %}
+                <div class="row">
+                    {% for team in teams %}
+                    <div class="col-lg-6 col-xl-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <div class="d-flex align-items-center">
+                                    <div class="team-logo me-2">
+                                        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                            <span class="text-white fw-bold">{{ team.name[0] if team.name else 'T' }}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">{{ team.name }}</h6>
+                                        {% if team.league %}
+                                            <small class="text-muted">{{ team.league.name }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                {% if team.players %}
+                                <div class="list-group list-group-flush">
+                                    {% for player in team.players[:10] %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                        <div class="d-flex align-items-center">
+                                            <div class="player-avatar me-2">
+                                                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
+                                                    <span class="text-white small">{{ player.display_name[0] if player.display_name else 'P' }}</span>
+                                                </div>
+                                            </div>
+                                            <span class="small">{{ player.display_name or 'Unknown Player' }}</span>
+                                        </div>
+                                        <small class="text-muted">
+                                            {% if player.user and player.user.is_active %}
+                                                <i class="ti ti-check text-success"></i>
+                                            {% else %}
+                                                <i class="ti ti-minus text-muted"></i>
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    {% endfor %}
+                                    {% if team.players|length > 10 %}
+                                    <div class="list-group-item text-center py-2">
+                                        <small class="text-muted">... and {{ team.players|length - 10 }} more players</small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% else %}
+                                <div class="text-center py-3">
+                                    <i class="ti ti-users text-muted" style="font-size: 2rem;"></i>
+                                    <p class="text-muted small mt-2">No players assigned</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="card-footer">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        {{ team.players|length if team.players else 0 }} players
+                                    </small>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-info btn-sm" onclick="viewTeamRoster({{ team.id }})">
+                                            <i class="ti ti-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning btn-sm" onclick="editTeamRoster({{ team.id }})">
+                                            <i class="ti ti-edit"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-users-off text-muted" style="font-size: 4rem;"></i>
+                    <h5 class="text-muted mt-3">No Teams Found</h5>
+                    <p class="text-muted">Create teams first to manage player rosters.</p>
+                    <a href="{{ url_for('admin_panel.manage_teams') }}" class="btn btn-outline-primary">
+                        <i class="ti ti-shield me-1"></i>Manage Teams
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-info-circle me-2"></i>
+                <div>
+                    <strong>Team Rosters:</strong> 
+                    Manage player assignments to teams. Players can be assigned to multiple teams or moved between teams as needed.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function managePlayerAssignments() {
+    Swal.fire({
+        title: 'Assign Players',
+        text: 'Player assignment functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function viewTeamRoster(teamId) {
+    Swal.fire({
+        title: 'View Team Roster',
+        text: 'Team roster details functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function editTeamRoster(teamId) {
+    Swal.fire({
+        title: 'Edit Team Roster',
+        text: 'Team roster editing functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function showTeamsWithoutPlayers() {
+    let teamsWithoutPlayers = {{ teams_without_players|map(attribute='name')|list|tojson if teams_without_players else '[]' }};
+    
+    if (teamsWithoutPlayers.length > 0) {
+        Swal.fire({
+            title: 'Teams Without Players',
+            html: '<ul class="text-start">' + teamsWithoutPlayers.map(team => '<li>' + team + '</li>').join('') + '</ul>',
+            icon: 'warning',
+            confirmButtonText: 'Assign Players'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                managePlayerAssignments();
+            }
+        });
+    }
+}
+</script>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.team-logo, .player-avatar {
+    flex-shrink: 0;
+}
+
+.list-group-flush .list-group-item {
+    border-left: 0;
+    border-right: 0;
+}
+
+.list-group-flush .list-group-item:first-child {
+    border-top: 0;
+}
+
+.list-group-flush .list-group-item:last-child {
+    border-bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .d-flex.justify-content-between > div:last-child {
+        margin-top: 0.25rem;
+    }
+}
+</style>
+{% endblock %}

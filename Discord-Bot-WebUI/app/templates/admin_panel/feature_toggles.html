@@ -1,0 +1,255 @@
+{% extends "admin_panel/base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Feature Toggles - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">Feature Toggles</li>
+{% endblock %}
+
+{% block panel_content %}
+
+    <!-- Feature Categories -->
+    {% for category, settings in categories.items() %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        {% if category == 'navigation' %}
+                            <i class="ti ti-navigation me-2"></i>Navigation Settings
+                        {% elif category == 'registration' %}
+                            <i class="ti ti-user-plus me-2"></i>Registration Settings
+                        {% elif category == 'features' %}
+                            <i class="ti ti-apps me-2"></i>Feature Settings
+                        {% elif category == 'system' %}
+                            <i class="ti ti-server me-2"></i>System Settings
+                        {% else %}
+                            <i class="ti ti-settings me-2"></i>{{ category.title() }} Settings
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for setting in settings %}
+                    <div class="row align-items-center py-3 {% if not loop.last %}border-bottom{% endif %}">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-start">
+                                <div class="me-3">
+                                    {% if setting.data_type == 'boolean' %}
+                                        {% if setting.parsed_value %}
+                                            <i class="ti ti-toggle-right text-success" style="font-size: 1.5rem;"></i>
+                                        {% else %}
+                                            <i class="ti ti-toggle-left text-muted" style="font-size: 1.5rem;"></i>
+                                        {% endif %}
+                                    {% else %}
+                                        <i class="ti ti-adjustments-horizontal text-primary" style="font-size: 1.5rem;"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">{{ setting.key.replace('_', ' ').title() }}</h6>
+                                    <p class="text-muted mb-2">{{ setting.description or 'No description available' }}</p>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-light text-dark me-2">{{ setting.data_type }}</span>
+                                        <small class="text-muted">
+                                            Last updated: {{ setting.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            {% if setting.data_type == 'boolean' %}
+                                <!-- Boolean Toggle -->
+                                <div class="d-flex justify-content-md-end align-items-center">
+                                    <div class="form-check form-switch form-switch-lg">
+                                        <input class="form-check-input setting-toggle" type="checkbox" 
+                                               id="toggle-{{ setting.key }}"
+                                               data-setting="{{ setting.key }}" 
+                                               {% if setting.parsed_value %}checked{% endif %}>
+                                        <label class="form-check-label" for="toggle-{{ setting.key }}">
+                                            <span class="toggle-status">
+                                                {% if setting.parsed_value %}Enabled{% else %}Disabled{% endif %}
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <!-- Text/Number Input -->
+                                <form method="POST" action="{{ url_for('admin_panel.update_setting') }}" class="d-flex">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="key" value="{{ setting.key }}">
+                                    <div class="input-group">
+                                        {% if setting.data_type == 'integer' %}
+                                            <input type="number" class="form-control" name="value" 
+                                                   value="{{ setting.value or '' }}" 
+                                                   placeholder="Enter {{ setting.data_type }}">
+                                        {% else %}
+                                            <input type="text" class="form-control" name="value" 
+                                                   value="{{ setting.value or '' }}" 
+                                                   placeholder="Enter {{ setting.data_type }}">
+                                        {% endif %}
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="ti ti-check"></i>
+                                        </button>
+                                    </div>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Critical Settings Warning -->
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-warning">
+                <div class="d-flex align-items-center">
+                    <i class="ti ti-alert-triangle me-2"></i>
+                    <div>
+                        <strong>Important:</strong> Changes to these settings take effect immediately. 
+                        Be careful when modifying critical features like Teams navigation and Waitlist registration, 
+                        as they directly affect user experience.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.form-switch-lg .form-check-input {
+    width: 3rem;
+    height: 1.5rem;
+}
+
+.form-switch-lg .form-check-input:focus {
+    border-color: rgba(13, 110, 253, 0.25);
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.toggle-status {
+    font-weight: 500;
+    margin-left: 0.5rem;
+}
+
+.card-body .row:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+    border-radius: 0.375rem;
+}
+
+[data-style="dark"] .card-body .row:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.setting-toggle:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle setting toggles
+    const toggles = document.querySelectorAll('.setting-toggle');
+    
+    toggles.forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const settingKey = this.dataset.setting;
+            const isEnabled = this.checked;
+            const statusLabel = this.parentElement.querySelector('.toggle-status');
+            
+            // Show loading state
+            this.disabled = true;
+            statusLabel.textContent = 'Updating...';
+            
+            fetch('{{ url_for("admin_panel.toggle_setting") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    key: settingKey
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the toggle and status to match server state
+                    this.checked = data.new_value;
+                    statusLabel.textContent = data.new_value ? 'Enabled' : 'Disabled';
+                    
+                    // Update the icon in the left column
+                    const icon = this.closest('.row').querySelector('.ti-toggle-right, .ti-toggle-left');
+                    if (icon) {
+                        if (data.new_value) {
+                            icon.className = 'ti ti-toggle-right text-success';
+                        } else {
+                            icon.className = 'ti ti-toggle-left text-muted';
+                        }
+                    }
+                    
+                    // Show success message
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Setting Updated',
+                        text: data.message,
+                        timer: 2000,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end'
+                    });
+                } else {
+                    // Revert the toggle and status
+                    this.checked = !isEnabled;
+                    statusLabel.textContent = !isEnabled ? 'Enabled' : 'Disabled';
+                    
+                    // Show error message
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Failed to update setting'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Revert the toggle and status
+                this.checked = !isEnabled;
+                statusLabel.textContent = !isEnabled ? 'Enabled' : 'Disabled';
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Network Error',
+                    text: 'Failed to communicate with server'
+                });
+            })
+            .finally(() => {
+                this.disabled = false;
+            });
+        });
+    });
+
+    // Handle form submissions for non-boolean settings
+    const forms = document.querySelectorAll('form[action*="update_setting"]');
+    forms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalIcon = submitBtn.innerHTML;
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div>';
+        });
+    });
+});
+</script>
+{% endblock %}

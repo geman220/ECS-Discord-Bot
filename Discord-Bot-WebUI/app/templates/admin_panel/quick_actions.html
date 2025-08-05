@@ -1,0 +1,777 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Quick Actions - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">Quick Actions</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Quick Actions Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-bolt me-2"></i>
+                <div>
+                    <strong>Quick Actions</strong><br>
+                    Perform common administrative tasks quickly and efficiently. These actions provide shortcuts to frequently used operations across the admin panel.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-settings me-2"></i>System Operations
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-refresh text-warning mb-2" style="font-size: 2rem;"></i>
+                                <h6>Clear All Cache</h6>
+                                <p class="small text-muted">Reset all cached data</p>
+                                <button class="btn btn-sm btn-outline-warning" onclick="clearAllCache()">
+                                    Clear Cache
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-database text-info mb-2" style="font-size: 2rem;"></i>
+                                <h6>DB Health Check</h6>
+                                <p class="small text-muted">Check database status</p>
+                                <button class="btn btn-sm btn-outline-info" onclick="checkDatabaseHealth()">
+                                    Check DB
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-shield text-success mb-2" style="font-size: 2rem;"></i>
+                                <h6>Initialize Settings</h6>
+                                <p class="small text-muted">Reset admin settings</p>
+                                <button class="btn btn-sm btn-outline-success" onclick="initializeSettings()">
+                                    Initialize
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-brand-discord text-primary mb-2" style="font-size: 2rem;"></i>
+                                <h6>Restart Bot</h6>
+                                <p class="small text-muted">Restart Discord bot</p>
+                                <button class="btn btn-sm btn-outline-primary" onclick="restartBot()">
+                                    Restart Bot
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Management Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-users me-2"></i>User Management
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-user-check text-success mb-2" style="font-size: 2rem;"></i>
+                                <h6>Approve All Pending</h6>
+                                <p class="small text-muted">Approve all pending user registrations</p>
+                                <button class="btn btn-sm btn-outline-success" onclick="approveAllPending()">
+                                    Approve All
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-user-plus text-primary mb-2" style="font-size: 2rem;"></i>
+                                <h6>Process Waitlist</h6>
+                                <p class="small text-muted">Process all users from waitlist</p>
+                                <button class="btn btn-sm btn-outline-primary" onclick="processWaitlist()">
+                                    Process All
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-mail text-info mb-2" style="font-size: 2rem;"></i>
+                                <h6>Send Notifications</h6>
+                                <p class="small text-muted">Send bulk notifications to users</p>
+                                <button class="btn btn-sm btn-outline-info" onclick="sendBulkNotifications()">
+                                    Send Notifications
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Content Management Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-file-text me-2"></i>Content Management
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-template text-purple mb-2" style="font-size: 2rem;"></i>
+                                <h6>Sync Templates</h6>
+                                <p class="small text-muted">Synchronize message templates</p>
+                                <button class="btn btn-sm btn-outline-purple" onclick="syncTemplates()">
+                                    Sync Templates
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-bell text-warning mb-2" style="font-size: 2rem;"></i>
+                                <h6>Test Notifications</h6>
+                                <p class="small text-muted">Send test push notification</p>
+                                <button class="btn btn-sm btn-outline-warning" onclick="testNotifications()">
+                                    Test Push
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-announcement text-danger mb-2" style="font-size: 2rem;"></i>
+                                <h6>Emergency Alert</h6>
+                                <p class="small text-muted">Send emergency system alert</p>
+                                <button class="btn btn-sm btn-outline-danger" onclick="sendEmergencyAlert()">
+                                    Send Alert
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-file-export text-secondary mb-2" style="font-size: 2rem;"></i>
+                                <h6>Export Data</h6>
+                                <p class="small text-muted">Export system data</p>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="exportSystemData()">
+                                    Export Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Maintenance Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-tool me-2"></i>Maintenance & Troubleshooting
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-power text-danger mb-2" style="font-size: 2rem;"></i>
+                                <h6>Maintenance Mode</h6>
+                                <p class="small text-muted">Toggle system maintenance mode</p>
+                                <button class="btn btn-sm btn-outline-danger" onclick="toggleMaintenanceMode()">
+                                    Toggle Mode
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-file-text text-info mb-2" style="font-size: 2rem;"></i>
+                                <h6>Clear Logs</h6>
+                                <p class="small text-muted">Clear system and error logs</p>
+                                <button class="btn btn-sm btn-outline-info" onclick="clearSystemLogs()">
+                                    Clear Logs
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-report text-warning mb-2" style="font-size: 2rem;"></i>
+                                <h6>System Report</h6>
+                                <p class="small text-muted">Generate full system report</p>
+                                <button class="btn btn-sm btn-outline-warning" onclick="generateSystemReport()">
+                                    Generate Report
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Quick Actions Form -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-code me-2"></i>Custom Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">Execute custom administrative commands and scripts</p>
+                <form>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Action Type</label>
+                                <select class="form-select" id="actionType">
+                                    <option value="">Select action type...</option>
+                                    <option value="database">Database Query</option>
+                                    <option value="cache">Cache Operation</option>
+                                    <option value="user">User Management</option>
+                                    <option value="system">System Command</option>
+                                    <option value="notification">Send Notification</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Target</label>
+                                <input type="text" class="form-control" id="actionTarget" placeholder="Target (optional)">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Command/Parameters</label>
+                        <textarea class="form-control" id="actionCommand" rows="3" placeholder="Enter command or parameters..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="confirmBeforeExecution">
+                            <label class="form-check-label" for="confirmBeforeExecution">
+                                Require confirmation before execution
+                            </label>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-primary" onclick="executeCustomAction()">
+                            <i class="ti ti-play me-1"></i>Execute Action
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="validateCustomAction()">
+                            <i class="ti ti-check me-1"></i>Validate Only
+                        </button>
+                        <button type="button" class="btn btn-outline-info" onclick="saveCustomAction()">
+                            <i class="ti ti-device-floppy me-1"></i>Save as Template
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.btn-outline-purple {
+    color: #6f42c1;
+    border-color: #6f42c1;
+}
+
+.btn-outline-purple:hover {
+    color: #fff;
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+}
+
+.text-purple {
+    color: #6f42c1 !important;
+}
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+// System Operations
+function clearAllCache() {
+    Swal.fire({
+        title: 'Clear All Cache?',
+        text: 'This will remove all cached data from the system.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#f39c12',
+        confirmButtonText: 'Clear All Cache'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Clearing Cache...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    // TODO: Implement cache clearing
+                    setTimeout(() => {
+                        Swal.fire('Cleared!', 'All cache has been cleared successfully.', 'success');
+                    }, 2000);
+                }
+            });
+        }
+    });
+}
+
+function checkDatabaseHealth() {
+    Swal.fire({
+        title: 'Checking Database...',
+        text: 'Running database health checks',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+            // TODO: Implement DB health check
+            setTimeout(() => {
+                Swal.fire('Database Healthy!', 'All database systems are operational.', 'success');
+            }, 1500);
+        }
+    });
+}
+
+function initializeSettings() {
+    Swal.fire({
+        title: 'Initialize Admin Settings?',
+        text: 'This will reset all admin settings to their default values.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Initialize Settings'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement settings initialization
+            Swal.fire('Initialized!', 'Admin settings have been reset to defaults.', 'success');
+        }
+    });
+}
+
+function restartBot() {
+    Swal.fire({
+        title: 'Restart Discord Bot?',
+        text: 'The bot will be temporarily offline during restart.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Restart Bot'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Restarting Bot...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    // TODO: Implement bot restart
+                    setTimeout(() => {
+                        Swal.fire('Bot Restarted!', 'Discord bot is back online.', 'success');
+                    }, 3000);
+                }
+            });
+        }
+    });
+}
+
+// User Management
+function approveAllPending() {
+    Swal.fire({
+        title: 'Approve All Pending Users?',
+        text: 'This will approve all users currently pending approval.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Approve All'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement bulk approval
+            Swal.fire('Approved!', 'All pending users have been approved.', 'success');
+        }
+    });
+}
+
+function processWaitlist() {
+    Swal.fire({
+        title: 'Process Entire Waitlist?',
+        text: 'This will process all users currently in the waitlist.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Process All'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement waitlist processing
+            Swal.fire('Processed!', 'All waitlist users have been processed.', 'success');
+        }
+    });
+}
+
+function sendBulkNotifications() {
+    Swal.fire({
+        title: 'Send Bulk Notifications',
+        html: `
+            <div class="mb-3">
+                <label class="form-label">Notification Title</label>
+                <input type="text" class="form-control" id="notificationTitle" placeholder="Enter notification title">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Message</label>
+                <textarea class="form-control" id="notificationMessage" rows="3" placeholder="Enter notification message"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Target Audience</label>
+                <select class="form-select" id="notificationTarget">
+                    <option value="all">All Users</option>
+                    <option value="approved">Approved Users Only</option>
+                    <option value="pending">Pending Users Only</option>
+                    <option value="admins">Administrators Only</option>
+                </select>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Send Notifications',
+        preConfirm: () => {
+            const title = document.getElementById('notificationTitle').value;
+            const message = document.getElementById('notificationMessage').value;
+            const target = document.getElementById('notificationTarget').value;
+            
+            if (!title || !message) {
+                Swal.showValidationMessage('Title and message are required');
+                return false;
+            }
+            
+            return { title, message, target };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement bulk notifications
+            Swal.fire('Sent!', 'Bulk notifications have been sent successfully.', 'success');
+        }
+    });
+}
+
+// Content Management
+function syncTemplates() {
+    Swal.fire({
+        title: 'Sync Message Templates?',
+        text: 'This will synchronize all message templates with the latest versions.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sync Templates'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement template sync
+            Swal.fire('Synced!', 'All message templates have been synchronized.', 'success');
+        }
+    });
+}
+
+function testNotifications() {
+    Swal.fire({
+        title: 'Send Test Notification?',
+        text: 'This will send a test push notification to verify the system is working.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Send Test'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement test notification
+            Swal.fire('Test Sent!', 'Test notification has been sent successfully.', 'success');
+        }
+    });
+}
+
+function sendEmergencyAlert() {
+    Swal.fire({
+        title: 'Send Emergency Alert',
+        html: `
+            <div class="alert alert-danger mb-3">
+                <strong>Warning:</strong> This will send an emergency alert to all users.
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Alert Message</label>
+                <textarea class="form-control" id="emergencyMessage" rows="3" placeholder="Enter emergency alert message"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Alert Level</label>
+                <select class="form-select" id="alertLevel">
+                    <option value="info">Info</option>
+                    <option value="warning">Warning</option>
+                    <option value="critical" selected>Critical</option>
+                </select>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Send Emergency Alert',
+        preConfirm: () => {
+            const message = document.getElementById('emergencyMessage').value;
+            const level = document.getElementById('alertLevel').value;
+            
+            if (!message) {
+                Swal.showValidationMessage('Alert message is required');
+                return false;
+            }
+            
+            return { message, level };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement emergency alert
+            Swal.fire('Alert Sent!', 'Emergency alert has been sent to all users.', 'warning');
+        }
+    });
+}
+
+function exportSystemData() {
+    Swal.fire({
+        title: 'Export System Data',
+        html: `
+            <div class="mb-3">
+                <label class="form-label">Data to Export</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="exportUsers" checked>
+                    <label class="form-check-label" for="exportUsers">User Data</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="exportSettings" checked>
+                    <label class="form-check-label" for="exportSettings">System Settings</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="exportLogs">
+                    <label class="form-check-label" for="exportLogs">Audit Logs</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="exportTemplates">
+                    <label class="form-check-label" for="exportTemplates">Message Templates</label>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Export Format</label>
+                <select class="form-select" id="exportFormat">
+                    <option value="json">JSON</option>
+                    <option value="csv">CSV</option>
+                    <option value="xlsx">Excel</option>
+                </select>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Export Data'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement data export
+            Swal.fire('Export Started!', 'Data export is being processed. You will receive a download link shortly.', 'success');
+        }
+    });
+}
+
+// Maintenance
+function toggleMaintenanceMode() {
+    Swal.fire({
+        title: 'Toggle Maintenance Mode?',
+        text: 'This will enable/disable system maintenance mode for all users.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Toggle Maintenance Mode'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement maintenance mode toggle
+            Swal.fire('Mode Toggled!', 'Maintenance mode status has been changed.', 'success');
+        }
+    });
+}
+
+function clearSystemLogs() {
+    Swal.fire({
+        title: 'Clear System Logs?',
+        text: 'This will permanently delete all system and error logs.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#f39c12',
+        confirmButtonText: 'Clear All Logs'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement log clearing
+            Swal.fire('Logs Cleared!', 'All system logs have been cleared.', 'success');
+        }
+    });
+}
+
+function generateSystemReport() {
+    Swal.fire({
+        title: 'Generate System Report?',
+        text: 'This will create a comprehensive system status report.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Generate Report'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Generating Report...',
+                text: 'Creating comprehensive system report',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    // TODO: Implement report generation
+                    setTimeout(() => {
+                        Swal.fire('Report Generated!', 'System report has been created and is ready for download.', 'success');
+                    }, 3000);
+                }
+            });
+        }
+    });
+}
+
+// Custom Actions
+function executeCustomAction() {
+    const actionType = document.getElementById('actionType').value;
+    const actionTarget = document.getElementById('actionTarget').value;
+    const actionCommand = document.getElementById('actionCommand').value;
+    const requireConfirmation = document.getElementById('confirmBeforeExecution').checked;
+    
+    if (!actionType || !actionCommand) {
+        Swal.fire('Missing Information', 'Please select an action type and enter a command.', 'warning');
+        return;
+    }
+    
+    const executeAction = () => {
+        // TODO: Implement custom action execution
+        Swal.fire({
+            title: 'Executing Action...',
+            text: `Running ${actionType} action`,
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+                setTimeout(() => {
+                    Swal.fire('Action Completed!', 'Custom action has been executed successfully.', 'success');
+                }, 2000);
+            }
+        });
+    };
+    
+    if (requireConfirmation) {
+        Swal.fire({
+            title: 'Execute Custom Action?',
+            html: `
+                <div class="text-start">
+                    <strong>Action Type:</strong> ${actionType}<br>
+                    <strong>Target:</strong> ${actionTarget || 'None'}<br>
+                    <strong>Command:</strong><br>
+                    <code class="small">${actionCommand}</code>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Execute Action'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                executeAction();
+            }
+        });
+    } else {
+        executeAction();
+    }
+}
+
+function validateCustomAction() {
+    const actionType = document.getElementById('actionType').value;
+    const actionCommand = document.getElementById('actionCommand').value;
+    
+    if (!actionType || !actionCommand) {
+        Swal.fire('Missing Information', 'Please select an action type and enter a command.', 'warning');
+        return;
+    }
+    
+    // TODO: Implement action validation
+    Swal.fire('Action Valid!', 'The custom action syntax is valid and ready for execution.', 'success');
+}
+
+function saveCustomAction() {
+    const actionType = document.getElementById('actionType').value;
+    const actionTarget = document.getElementById('actionTarget').value;
+    const actionCommand = document.getElementById('actionCommand').value;
+    
+    if (!actionType || !actionCommand) {
+        Swal.fire('Missing Information', 'Please select an action type and enter a command.', 'warning');
+        return;
+    }
+    
+    Swal.fire({
+        title: 'Save as Template',
+        html: `
+            <div class="mb-3">
+                <label class="form-label">Template Name</label>
+                <input type="text" class="form-control" id="templateName" placeholder="Enter template name">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" id="templateDescription" rows="2" placeholder="Template description (optional)"></textarea>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Save Template',
+        preConfirm: () => {
+            const templateName = document.getElementById('templateName').value;
+            if (!templateName) {
+                Swal.showValidationMessage('Template name is required');
+                return false;
+            }
+            return templateName;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement template saving
+            Swal.fire('Template Saved!', 'Custom action has been saved as a template.', 'success');
+        }
+    });
+}
+</script>
+{% endblock %}

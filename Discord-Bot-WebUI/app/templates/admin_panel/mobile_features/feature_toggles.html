@@ -1,0 +1,569 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Feature Toggles - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.mobile_features') }}">Mobile Features</a>
+</li>
+<li class="breadcrumb-item active">Feature Toggles</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Feature Toggle Overview -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-info-circle me-2"></i>
+                <div>
+                    <strong>Feature Toggle Management</strong>
+                    Control which features are available to mobile app users. Changes take effect immediately.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Core Mobile Features -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-device-mobile me-2"></i>Core Mobile Features
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Push Notifications</strong>
+                                <br><small class="text-muted">Enable push notifications for users</small>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="pushNotifications" 
+                                       data-feature="mobile_push_notifications" checked>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Wallet Passes</strong>
+                                <br><small class="text-muted">Apple Wallet / Google Pay integration</small>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="walletPasses" 
+                                       data-feature="mobile_wallet_passes" checked>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Offline Sync</strong>
+                                <br><small class="text-muted">Allow offline data synchronization</small>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="offlineSync" 
+                                       data-feature="mobile_offline_sync">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Biometric Authentication</strong>
+                                <br><small class="text-muted">Face ID / Fingerprint login</small>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="biometricAuth" 
+                                       data-feature="mobile_biometric_auth">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-map-pin me-2"></i>Location & Privacy Features
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Location Services</strong>
+                                <br><small class="text-muted">Location-based features and notifications</small>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="locationServices" 
+                                       data-feature="mobile_location_services">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Camera Upload</strong>
+                                <br><small class="text-muted">Photo upload from camera roll</small>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="cameraUpload" 
+                                       data-feature="mobile_camera_upload" checked>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Contact Sync</strong>
+                                <br><small class="text-muted">Sync contacts for team invitations</small>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="contactSync" 
+                                       data-feature="mobile_contact_sync">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Analytics Tracking</strong>
+                                <br><small class="text-muted">Usage analytics and crash reporting</small>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="analyticsTracking" 
+                                       data-feature="mobile_analytics_tracking" checked>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Experimental Features -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-flask me-2"></i>Experimental Features
+                </h5>
+                <small>These features are in beta and may not be stable</small>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>AR Match Views</strong>
+                                <br><small class="text-muted">Augmented reality match experience</small>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="arMatchViews" 
+                                       data-feature="mobile_ar_match_views">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Voice Commands</strong>
+                                <br><small class="text-muted">Voice-controlled navigation</small>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="voiceCommands" 
+                                       data-feature="mobile_voice_commands">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Smart Predictions</strong>
+                                <br><small class="text-muted">AI-powered match predictions</small>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="smartPredictions" 
+                                       data-feature="mobile_smart_predictions">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Feature Usage Analytics -->
+<div class="row mb-4">
+    <div class="col-md-8 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-chart-bar me-2"></i>Feature Usage Analytics
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="featureUsageChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-users me-2"></i>Feature Adoption
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Push Notifications</span>
+                        <span class="badge bg-success">91%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success" style="width: 91%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Wallet Passes</span>
+                        <span class="badge bg-primary">67%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-primary" style="width: 67%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Camera Upload</span>
+                        <span class="badge bg-info">45%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-info" style="width: 45%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Biometric Auth</span>
+                        <span class="badge bg-warning">23%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-warning" style="width: 23%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Feature Rollout Settings -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-settings me-2"></i>Feature Rollout Settings
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Default Feature State for New Users</label>
+                            <select class="form-select" id="defaultFeatureState">
+                                <option value="enabled">Enabled by Default</option>
+                                <option value="disabled" selected>Disabled by Default</option>
+                                <option value="beta">Beta Users Only</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Rollout Strategy</label>
+                            <select class="form-select" id="rolloutStrategy">
+                                <option value="immediate" selected>Immediate Rollout</option>
+                                <option value="gradual">Gradual Rollout (10% per day)</option>
+                                <option value="staged">Staged Rollout (Beta → Full)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="killSwitchEnabled">
+                                <label class="form-check-label" for="killSwitchEnabled">
+                                    Enable Emergency Kill Switch
+                                </label>
+                            </div>
+                            <div class="form-text">Allows immediate disabling of all features</div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="autoRollbackEnabled">
+                                <label class="form-check-label" for="autoRollbackEnabled">
+                                    Auto-rollback on Errors
+                                </label>
+                            </div>
+                            <div class="form-text">Automatically disable features causing crashes</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-danger" onclick="emergencyKillSwitch()">
+                        <i class="ti ti-alert-triangle me-1"></i>Emergency Kill Switch
+                    </button>
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary me-2" onclick="exportFeatureConfig()">
+                            <i class="ti ti-download me-1"></i>Export Config
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="saveFeatureSettings()">
+                            <i class="ti ti-device-floppy me-1"></i>Save Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Feature toggle handling
+document.querySelectorAll('input[data-feature]').forEach(toggle => {
+    toggle.addEventListener('change', function() {
+        const feature = this.dataset.feature;
+        const enabled = this.checked;
+        
+        // Confirm critical feature changes
+        if (['mobile_push_notifications', 'mobile_wallet_passes'].includes(feature) && !enabled) {
+            Swal.fire({
+                title: 'Disable Core Feature?',
+                text: 'This is a critical feature used by many users. Are you sure?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Disable',
+                confirmButtonColor: '#dc3545'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    toggleFeature(feature, enabled);
+                } else {
+                    this.checked = true; // Revert toggle
+                }
+            });
+        } else {
+            toggleFeature(feature, enabled);
+        }
+    });
+});
+
+function toggleFeature(feature, enabled) {
+    // Show loading state
+    const toggle = document.querySelector(`input[data-feature="${feature}"]`);
+    const originalState = toggle.checked;
+    toggle.disabled = true;
+    
+    // Simulate API call
+    fetch('{{ url_for("admin_panel.toggle_mobile_setting") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() if csrf_token else "" }}'
+        },
+        body: JSON.stringify({
+            key: feature,
+            enabled: enabled
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Feature Updated!',
+                text: `${feature.replace('mobile_', '').replace('_', ' ')} has been ${enabled ? 'enabled' : 'disabled'}`,
+                showConfirmButton: false,
+                timer: 2000
+            });
+        } else {
+            throw new Error(data.message || 'Failed to update feature');
+        }
+    })
+    .catch(error => {
+        console.error('Feature toggle error:', error);
+        toggle.checked = originalState; // Revert on error
+        Swal.fire('Error', 'Failed to update feature setting', 'error');
+    })
+    .finally(() => {
+        toggle.disabled = false;
+    });
+}
+
+// Feature Usage Chart
+const featureUsageCtx = document.getElementById('featureUsageChart').getContext('2d');
+const featureUsageChart = new Chart(featureUsageCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Push Notifications', 'Wallet Passes', 'Camera Upload', 'Offline Sync', 'Biometric Auth', 'Location Services'],
+        datasets: [{
+            label: 'Active Users',
+            data: [1250, 890, 654, 432, 321, 543],
+            backgroundColor: [
+                'rgba(40, 167, 69, 0.8)',
+                'rgba(0, 123, 255, 0.8)',
+                'rgba(255, 193, 7, 0.8)',
+                'rgba(220, 53, 69, 0.8)',
+                'rgba(108, 117, 125, 0.8)',
+                'rgba(23, 162, 184, 0.8)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+function saveFeatureSettings() {
+    const settings = {
+        defaultFeatureState: document.getElementById('defaultFeatureState').value,
+        rolloutStrategy: document.getElementById('rolloutStrategy').value,
+        killSwitchEnabled: document.getElementById('killSwitchEnabled').checked,
+        autoRollbackEnabled: document.getElementById('autoRollbackEnabled').checked
+    };
+    
+    Swal.fire({
+        title: 'Save Feature Settings?',
+        text: 'This will update the global feature rollout configuration',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Save Settings'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Saving Settings...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    setTimeout(() => {
+                        Swal.fire('Settings Saved!', 'Feature rollout settings have been updated.', 'success');
+                    }, 2000);
+                }
+            });
+        }
+    });
+}
+
+function emergencyKillSwitch() {
+    Swal.fire({
+        title: 'Emergency Kill Switch',
+        text: 'This will immediately disable ALL mobile features for ALL users!',
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonText: 'EMERGENCY DISABLE',
+        confirmButtonColor: '#dc3545',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Disabling All Features...',
+                text: 'Emergency shutdown in progress',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    setTimeout(() => {
+                        // Disable all toggles
+                        document.querySelectorAll('input[data-feature]').forEach(toggle => {
+                            toggle.checked = false;
+                        });
+                        Swal.fire('Emergency Shutdown Complete!', 'All mobile features have been disabled.', 'warning');
+                    }, 3000);
+                }
+            });
+        }
+    });
+}
+
+function exportFeatureConfig() {
+    const config = {
+        features: {},
+        settings: {
+            defaultFeatureState: document.getElementById('defaultFeatureState').value,
+            rolloutStrategy: document.getElementById('rolloutStrategy').value,
+            killSwitchEnabled: document.getElementById('killSwitchEnabled').checked,
+            autoRollbackEnabled: document.getElementById('autoRollbackEnabled').checked
+        },
+        exportedAt: new Date().toISOString()
+    };
+    
+    // Collect all feature states
+    document.querySelectorAll('input[data-feature]').forEach(toggle => {
+        config.features[toggle.dataset.feature] = toggle.checked;
+    });
+    
+    // Create and download JSON file
+    const dataStr = JSON.stringify(config, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `mobile-features-config-${new Date().toISOString().split('T')[0]}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    Swal.fire('Config Exported!', 'Feature configuration has been downloaded.', 'success');
+}
+
+// Auto-refresh feature usage chart every 5 minutes
+setInterval(() => {
+    featureUsageChart.update();
+}, 300000);
+</script>
+{% endblock %}

@@ -40,8 +40,10 @@ class SafeRedisClient:
             if client is None:
                 return False
             # Try to ping - fallback clients return False
-            return bool(client.ping())
-        except Exception:
+            result = client.ping()
+            return bool(result)
+        except Exception as e:
+            logger.debug(f"Redis availability check failed: {e}")
             return False
     
     def _warn_once(self, operation: str):
@@ -210,6 +212,28 @@ def get_safe_redis() -> SafeRedisClient:
     if _safe_redis_client is None:
         _safe_redis_client = SafeRedisClient()
     return _safe_redis_client
+
+
+def get_safe_redis_with_retry(max_retries: int = 5, retry_delay: float = 1.0) -> SafeRedisClient:
+    """
+    Get the global safe Redis client instance with retry mechanism.
+    
+    This method will retry getting a working Redis connection before falling back.
+    Useful for startup scenarios where Redis might not be immediately available.
+    """
+    import time
+    
+    for attempt in range(max_retries):
+        client = get_safe_redis()
+        if client.is_available:
+            return client
+        
+        if attempt < max_retries - 1:
+            logger.warning(f"Redis not available on attempt {attempt + 1}/{max_retries}, retrying in {retry_delay}s...")
+            time.sleep(retry_delay)
+        
+    logger.warning(f"Redis not available after {max_retries} attempts, returning client with fallback behavior")
+    return get_safe_redis()
 
 
 def redis_required(func):

@@ -1,0 +1,434 @@
+{% extends "admin_panel/base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}{{ category.name }} Templates - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.communication_hub') }}">Communication</a>
+</li>
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.message_templates') }}">Message Templates</a>
+</li>
+<li class="breadcrumb-item active">{{ category.name }}</li>
+{% endblock %}
+
+{% block panel_content %}
+
+    <!-- Category Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="text-white mb-2">
+                                <i class="ti ti-folder me-2"></i>{{ category.name }}
+                            </h2>
+                            <p class="mb-0 opacity-75">
+                                {{ category.description or 'No description provided' }}
+                            </p>
+                        </div>
+                        <div class="text-end">
+                            <div class="badge bg-white text-primary fs-6 mb-2">
+                                {{ templates|length }} Templates
+                            </div>
+                            <div class="small opacity-75">
+                                Last updated: {{ category.updated_at.strftime('%Y-%m-%d %H:%M') if category.updated_at else 'Never' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Templates Overview -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ templates|selectattr('is_active', 'equalto', true)|list|length }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Active Templates</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ templates|selectattr('is_active', 'equalto', false)|list|length }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Inactive Templates</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-circle-x" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ templates|selectattr('updated_at')|list|length }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Recently Updated</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-clock-edit" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ templates|length }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Total Templates</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-file-text" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Templates List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-file-text me-2"></i>Message Templates
+                    </h5>
+                    <div>
+                        <button class="btn btn-outline-secondary me-2" onclick="window.history.back()">
+                            <i class="ti ti-arrow-left me-1"></i>Back
+                        </button>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTemplateModal">
+                            <i class="ti ti-plus me-1"></i>Add Template
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if templates %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Template Name</th>
+                                    <th>Content Preview</th>
+                                    <th>Status</th>
+                                    <th>Last Updated</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for template in templates %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="ti ti-file-text me-2 text-primary"></i>
+                                            <div>
+                                                <strong>{{ template.name }}</strong>
+                                                {% if template.description %}
+                                                <br><small class="text-muted">{{ template.description }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="content-preview">
+                                            {{ template.message_content[:100] }}{% if template.message_content|length > 100 %}...{% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if template.is_active %}success{% else %}secondary{% endif %}">
+                                            {% if template.is_active %}Active{% else %}Inactive{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ template.updated_at.strftime('%Y-%m-%d %H:%M') if template.updated_at else 'Never' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-info" 
+                                                    onclick="viewTemplate({{ template.id }}, '{{ template.name }}', `{{ template.message_content|replace('`', '\\`')|replace('\n', '\\n') }}`)">
+                                                <i class="ti ti-eye"></i>
+                                            </button>
+                                            <button class="btn btn-outline-warning" 
+                                                    onclick="editTemplate({{ template.id }}, '{{ template.name }}', '{{ template.description or '' }}', `{{ template.message_content|replace('`', '\\`')|replace('\n', '\\n') }}`, {{ template.is_active|lower }})">
+                                                <i class="ti ti-edit"></i>
+                                            </button>
+                                            <button class="btn btn-outline-{% if template.is_active %}warning{% else %}success{% endif %}" 
+                                                    onclick="toggleTemplate({{ template.id }}, '{{ template.name }}', {{ template.is_active|lower }})">
+                                                <i class="ti ti-{% if template.is_active %}pause{% else %}play{% endif %}"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="deleteTemplate({{ template.id }}, '{{ template.name }}')">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="ti ti-file-x text-muted" style="font-size: 4rem;"></i>
+                        <h5 class="text-muted mt-3">No templates found in this category</h5>
+                        <p class="text-muted">Create your first message template to get started.</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTemplateModal">
+                            <i class="ti ti-plus me-1"></i>Create Template
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Template Modal -->
+    <div class="modal fade" id="createTemplateModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Message Template</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ url_for('admin_panel.create_message_template') }}">
+                    <div class="modal-body">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="category_id" value="{{ category.id }}">
+                        <div class="mb-3">
+                            <label for="template_name" class="form-label">Template Name</label>
+                            <input type="text" class="form-control" id="template_name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="template_description" class="form-label">Description</label>
+                            <input type="text" class="form-control" id="template_description" name="description">
+                        </div>
+                        <div class="mb-3">
+                            <label for="template_content" class="form-label">Template Content</label>
+                            <textarea class="form-control" id="template_content" name="content" rows="8" required></textarea>
+                            <div class="form-text">You can use variables like {player_name}, {league_name}, etc.</div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="template_active" name="is_active" checked>
+                            <label class="form-check-label" for="template_active">
+                                Activate template immediately
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Template</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Template Modal -->
+    <div class="modal fade" id="viewTemplateModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="view_template_title">Template Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="card">
+                        <div class="card-body">
+                            <pre id="view_template_content" class="mb-0" style="white-space: pre-wrap; font-family: inherit;"></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Template Modal -->
+    <div class="modal fade" id="editTemplateModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Message Template</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ url_for('admin_panel.update_message_template') }}">
+                    <div class="modal-body">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="template_id" id="edit_template_id">
+                        <div class="mb-3">
+                            <label for="edit_template_name" class="form-label">Template Name</label>
+                            <input type="text" class="form-control" id="edit_template_name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_template_description" class="form-label">Description</label>
+                            <input type="text" class="form-control" id="edit_template_description" name="description">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_template_content" class="form-label">Template Content</label>
+                            <textarea class="form-control" id="edit_template_content" name="content" rows="8" required></textarea>
+                            <div class="form-text">You can use variables like {player_name}, {league_name}, etc.</div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="edit_template_active" name="is_active">
+                            <label class="form-check-label" for="edit_template_active">
+                                Template is active
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update Template</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.content-preview {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.75rem;
+    }
+    
+    .content-preview {
+        max-width: 150px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function viewTemplate(id, name, content) {
+    document.getElementById('view_template_title').textContent = name;
+    document.getElementById('view_template_content').textContent = content;
+    
+    const modal = new bootstrap.Modal(document.getElementById('viewTemplateModal'));
+    modal.show();
+}
+
+function editTemplate(id, name, description, content, isActive) {
+    document.getElementById('edit_template_id').value = id;
+    document.getElementById('edit_template_name').value = name;
+    document.getElementById('edit_template_description').value = description;
+    document.getElementById('edit_template_content').value = content;
+    document.getElementById('edit_template_active').checked = isActive;
+    
+    const modal = new bootstrap.Modal(document.getElementById('editTemplateModal'));
+    modal.show();
+}
+
+function toggleTemplate(id, name, currentStatus) {
+    const action = currentStatus ? 'deactivate' : 'activate';
+    const newStatus = !currentStatus;
+    
+    Swal.fire({
+        title: `${action.charAt(0).toUpperCase() + action.slice(1)} Template?`,
+        text: `Are you sure you want to ${action} "${name}"?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: newStatus ? '#28a745' : '#ffc107',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: `Yes, ${action} it!`
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("admin_panel.toggle_message_template") }}';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = 'csrf_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            
+            const templateId = document.createElement('input');
+            templateId.type = 'hidden';
+            templateId.name = 'template_id';
+            templateId.value = id;
+            
+            form.appendChild(csrfToken);
+            form.appendChild(templateId);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
+function deleteTemplate(id, name) {
+    Swal.fire({
+        title: 'Delete Template?',
+        text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("admin_panel.delete_message_template") }}';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = 'csrf_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            
+            const templateId = document.createElement('input');
+            templateId.type = 'hidden';
+            templateId.name = 'template_id';
+            templateId.value = id;
+            
+            form.appendChild(csrfToken);
+            form.appendChild(templateId);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+</script>
+{% endblock %}

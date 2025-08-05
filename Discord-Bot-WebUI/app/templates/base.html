@@ -134,6 +134,24 @@
     
     {% block custom_css %}
     {% endblock %}
+    
+    <!-- ADMIN PANEL DARK MODE FIX -->
+    <style>
+    /* Fix dark mode text visibility for admin panel list items */
+    [data-style="dark"] .list-group-item-action {
+        color: #ffffff !important;
+        background-color: transparent !important;
+    }
+
+    [data-style="dark"] .list-group-item-action:hover {
+        color: #ffffff !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    [data-style="dark"] .list-group-item-action i {
+        color: #ffffff !important;
+    }
+    </style>
 </head>
 
 <body>

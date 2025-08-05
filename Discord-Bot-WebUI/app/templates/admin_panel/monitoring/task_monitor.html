@@ -1,0 +1,490 @@
+{% extends "admin_panel/base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Task Monitor - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.system_monitoring') }}">System Monitoring</a>
+</li>
+<li class="breadcrumb-item active">Task Monitor</li>
+{% endblock %}
+
+{% block panel_content %}
+
+    <!-- Task Monitor Overview -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ running_tasks or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Running Tasks</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-play" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ queued_tasks or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Queued Tasks</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-clock-pause" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ completed_today or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Completed Today</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ failed_tasks or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Failed Tasks</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-alert-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Tasks -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-activity me-2"></i>Active Tasks
+                    </h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="refreshTasks()">
+                        <i class="ti ti-refresh me-1"></i>Refresh
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    {% if active_tasks %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Task ID</th>
+                                    <th>Name</th>
+                                    <th>Status</th>
+                                    <th>Started</th>
+                                    <th>Duration</th>
+                                    <th>Progress</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in active_tasks %}
+                                <tr>
+                                    <td>
+                                        <code class="small">{{ task.id[:8] }}...</code>
+                                    </td>
+                                    <td>
+                                        <strong>{{ task.name }}</strong>
+                                        {% if task.description %}
+                                        <br><small class="text-muted">{{ task.description }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if task.status == 'running' %}success{% elif task.status == 'queued' %}warning{% elif task.status == 'failed' %}danger{% else %}secondary{% endif %}">
+                                            {{ task.status|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>{{ task.started_at.strftime('%H:%M:%S') if task.started_at else 'Not started' }}</small>
+                                    </td>
+                                    <td>
+                                        {% if task.started_at %}
+                                        {% set duration = (now - task.started_at).total_seconds() %}
+                                        <small>{{ (duration // 60)|int }}m {{ (duration % 60)|int }}s</small>
+                                        {% else %}
+                                        <small>-</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if task.progress is not none %}
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar" role="progressbar" 
+                                                 style="width: {{ task.progress }}%" 
+                                                 aria-valuenow="{{ task.progress }}" 
+                                                 aria-valuemin="0" aria-valuemax="100">
+                                                {{ task.progress }}%
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <small class="text-muted">Unknown</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-info" 
+                                                    onclick="viewTaskDetails('{{ task.id }}', '{{ task.name }}')">
+                                                <i class="ti ti-eye"></i>
+                                            </button>
+                                            {% if task.status in ['running', 'queued'] %}
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="cancelTask('{{ task.id }}', '{{ task.name }}')">
+                                                <i class="ti ti-x"></i>
+                                            </button>
+                                            {% endif %}
+                                            <button class="btn btn-outline-secondary" 
+                                                    onclick="viewTaskLogs('{{ task.id }}', '{{ task.name }}')">
+                                                <i class="ti ti-file-text"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="ti ti-clock-pause text-muted" style="font-size: 4rem;"></i>
+                        <h5 class="text-muted mt-3">No active tasks</h5>
+                        <p class="text-muted">All background tasks are currently idle.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Queue & History -->
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-list me-2"></i>Task Queue
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if queued_tasks_list %}
+                    <div class="list-group list-group-flush">
+                        {% for task in queued_tasks_list[:5] %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>{{ task.name }}</strong>
+                                    <br><small class="text-muted">Queued {{ task.queued_at.strftime('%H:%M:%S') if task.queued_at else 'Unknown' }}</small>
+                                </div>
+                                <span class="badge bg-warning">Queued</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% if queued_tasks_list|length > 5 %}
+                        <div class="list-group-item text-center">
+                            <small class="text-muted">{{ queued_tasks_list|length - 5 }} more tasks in queue...</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="ti ti-list-x text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">No tasks in queue</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-history me-2"></i>Recent Completed
+                    </h5>
+                    <a href="{{ url_for('admin_panel.task_history') }}" class="btn btn-sm btn-outline-primary">
+                        View All
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_completed %}
+                    <div class="list-group list-group-flush">
+                        {% for task in recent_completed[:5] %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>{{ task.name }}</strong>
+                                    <br><small class="text-muted">
+                                        Completed {{ task.completed_at.strftime('%H:%M:%S') if task.completed_at else 'Unknown' }}
+                                        {% if task.duration %}
+                                        ({{ task.duration }}s)
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <span class="badge bg-{% if task.status == 'completed' %}success{% elif task.status == 'failed' %}danger{% else %}secondary{% endif %}">
+                                    {{ task.status|title }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="ti ti-history-off text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">No recent tasks</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Statistics -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-chart-bar me-2"></i>Task Statistics (Last 24 Hours)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <div class="text-center p-3 border-end">
+                                <div class="h4 mb-1 text-success">{{ task_stats.completed or 0 }}</div>
+                                <div class="text-muted small">Completed</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center p-3 border-end">
+                                <div class="h4 mb-1 text-danger">{{ task_stats.failed or 0 }}</div>
+                                <div class="text-muted small">Failed</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center p-3 border-end">
+                                <div class="h4 mb-1 text-info">{{ task_stats.avg_duration or '0s' }}</div>
+                                <div class="text-muted small">Avg Duration</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center p-3 border-end">
+                                <div class="h4 mb-1 text-warning">{{ task_stats.retries or 0 }}</div>
+                                <div class="text-muted small">Retries</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center p-3 border-end">
+                                <div class="h4 mb-1 text-primary">{{ task_stats.success_rate or '100%' }}</div>
+                                <div class="text-muted small">Success Rate</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center p-3">
+                                <div class="h4 mb-1 text-secondary">{{ task_stats.peak_concurrent or 0 }}</div>
+                                <div class="text-muted small">Peak Concurrent</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Details Modal -->
+    <div class="modal fade" id="taskDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="task_details_title">Task Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="task_details_content">
+                    <!-- Task details will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Logs Modal -->
+    <div class="modal fade" id="taskLogsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="task_logs_title">Task Logs</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="task_logs_content">
+                    <!-- Task logs will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.progress {
+    background-color: #e9ecef;
+}
+
+@media (max-width: 768px) {
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.75rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+
+    .border-end {
+        border-right: none !important;
+        border-bottom: 1px solid var(--bs-border-color) !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function refreshTasks() {
+    // Show loading state
+    const refreshBtn = document.querySelector('button[onclick="refreshTasks()"]');
+    const originalText = refreshBtn.innerHTML;
+    refreshBtn.innerHTML = '<i class="ti ti-loader me-1"></i>Refreshing...';
+    refreshBtn.disabled = true;
+    
+    // Simulate refresh (in real implementation, this would be an AJAX call)
+    setTimeout(() => {
+        window.location.reload();
+    }, 1000);
+}
+
+function viewTaskDetails(taskId, taskName) {
+    document.getElementById('task_details_title').textContent = `Details for ${taskName}`;
+    document.getElementById('task_details_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+    
+    const modal = new bootstrap.Modal(document.getElementById('taskDetailsModal'));
+    modal.show();
+    
+    // Load task details via AJAX
+    fetch(`{{ url_for('admin_panel.get_task_details') }}?task_id=${taskId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('task_details_content').innerHTML = data.html;
+            } else {
+                document.getElementById('task_details_content').innerHTML = '<div class="alert alert-danger">Error loading task details</div>';
+            }
+        })
+        .catch(error => {
+            document.getElementById('task_details_content').innerHTML = '<div class="alert alert-danger">Error loading task details</div>';
+        });
+}
+
+function viewTaskLogs(taskId, taskName) {
+    document.getElementById('task_logs_title').textContent = `Logs for ${taskName}`;
+    document.getElementById('task_logs_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+    
+    const modal = new bootstrap.Modal(document.getElementById('taskLogsModal'));
+    modal.show();
+    
+    // Load task logs via AJAX
+    fetch(`{{ url_for('admin_panel.get_task_logs') }}?task_id=${taskId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('task_logs_content').innerHTML = `<pre class="bg-dark text-light p-3 rounded">${data.logs}</pre>`;
+            } else {
+                document.getElementById('task_logs_content').innerHTML = '<div class="alert alert-danger">Error loading task logs</div>';
+            }
+        })
+        .catch(error => {
+            document.getElementById('task_logs_content').innerHTML = '<div class="alert alert-danger">Error loading task logs</div>';
+        });
+}
+
+function cancelTask(taskId, taskName) {
+    Swal.fire({
+        title: 'Cancel Task?',
+        text: `Cancel the running task "${taskName}"? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, cancel it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("admin_panel.cancel_task") }}';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = 'csrf_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            
+            const taskIdInput = document.createElement('input');
+            taskIdInput.type = 'hidden';
+            taskIdInput.name = 'task_id';
+            taskIdInput.value = taskId;
+            
+            form.appendChild(csrfToken);
+            form.appendChild(taskIdInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
+// Auto-refresh every 10 seconds
+setInterval(() => {
+    // Add subtle visual indicator for auto-refresh
+    const activeTasksTable = document.querySelector('.table-responsive table');
+    if (activeTasksTable) {
+        activeTasksTable.style.opacity = '0.8';
+        setTimeout(() => {
+            activeTasksTable.style.opacity = '1';
+        }, 200);
+    }
+}, 10000);
+</script>
+{% endblock %}

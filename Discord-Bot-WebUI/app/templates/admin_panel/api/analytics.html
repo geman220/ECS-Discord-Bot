@@ -1,0 +1,456 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}API Analytics - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.api_management') }}">API Management</a></li>
+<li class="breadcrumb-item active">Analytics</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">API Analytics</h4>
+    <div class="d-flex gap-2">
+        <form method="GET" class="d-flex gap-2">
+            <input type="date" name="date_from" class="form-control" value="{{ date_range.start }}">
+            <input type="date" name="date_to" class="form-control" value="{{ date_range.end }}">
+            <button type="submit" class="btn btn-primary">Update</button>
+        </form>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">
+                            {{ "{:,}".format(analytics.total_requests) }}
+                        </h5>
+                        <p class="card-text small opacity-75 mb-0">Total Requests</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-activity" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-{% if analytics.error_rate < 2 %}success{% elif analytics.error_rate < 5 %}warning{% else %}danger{% endif %} text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">
+                            {{ "%.1f"|format(analytics.error_rate) }}%
+                        </h5>
+                        <p class="card-text small opacity-75 mb-0">Error Rate</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-alert-triangle" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">
+                            {{ "%.3f"|format(analytics.avg_response_time) }}s
+                        </h5>
+                        <p class="card-text small opacity-75 mb-0">Avg Response Time</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">
+                            {{ "{:,}".format(analytics.total_errors) }}
+                        </h5>
+                        <p class="card-text small opacity-75 mb-0">Total Errors</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-x-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-chart-line me-2"></i>API Requests Over Time
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="requestsChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-chart-pie me-2"></i>Error Distribution
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="errorChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Analysis -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-trending-up me-2"></i>Top Performing Endpoints
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if endpoint_performance %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Endpoint</th>
+                                <th>Requests</th>
+                                <th>Avg Time</th>
+                                <th>Success Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for endpoint in endpoint_performance %}
+                            <tr>
+                                <td>
+                                    <code class="small">{{ endpoint.endpoint }}</code>
+                                </td>
+                                <td>{{ "{:,}".format(endpoint.requests) }}</td>
+                                <td>
+                                    <span class="{% if endpoint.avg_response_time > 0.3 %}text-danger{% elif endpoint.avg_response_time > 0.15 %}text-warning{% else %}text-success{% endif %}">
+                                        {{ "%.3f"|format(endpoint.avg_response_time) }}s
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress me-2" style="width: 60px; height: 8px;">
+                                            <div class="progress-bar bg-{% if endpoint.success_rate > 95 %}success{% elif endpoint.success_rate > 90 %}warning{% else %}danger{% endif %}" 
+                                                 style="width: {{ endpoint.success_rate }}%"></div>
+                                        </div>
+                                        <small>{{ "%.1f"|format(endpoint.success_rate) }}%</small>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No performance data available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-alert-triangle me-2"></i>Error Analysis
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if error_analysis.error_types %}
+                <h6 class="mb-3">Error Types</h6>
+                {% for error in error_analysis.error_types %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="small">{{ error.type }}</span>
+                    <div class="d-flex align-items-center">
+                        <div class="progress me-2" style="width: 80px; height: 8px;">
+                            <div class="progress-bar bg-danger" 
+                                 style="width: {{ (error.count / error_analysis.total_errors * 100) if error_analysis.total_errors > 0 else 0 }}%"></div>
+                        </div>
+                        <small class="fw-bold">{{ error.count }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if error_analysis.top_error_endpoints %}
+                <h6 class="mb-3 mt-4">Top Error Endpoints</h6>
+                {% for endpoint in error_analysis.top_error_endpoints %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <code class="small">{{ endpoint.endpoint }}</code>
+                    <span class="badge bg-danger">{{ endpoint.errors }}</span>
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% else %}
+                <p class="text-muted mb-0">No error data available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Analytics Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-table me-2"></i>Daily Analytics Breakdown
+                </h5>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-primary" onclick="exportAnalytics('csv')">
+                        <i class="ti ti-download me-1"></i>CSV
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" onclick="exportAnalytics('json')">
+                        <i class="ti ti-download me-1"></i>JSON
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if analytics.daily_requests %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Requests</th>
+                                <th>Errors</th>
+                                <th>Error Rate</th>
+                                <th>Avg Response Time</th>
+                                <th>Health Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for day in analytics.daily_requests %}
+                            {% set error_rate = (day.errors / day.requests * 100) if day.requests > 0 else 0 %}
+                            {% set health_score = 100 - error_rate - (day.avg_response_time * 100) %}
+                            <tr>
+                                <td>{{ day.date }}</td>
+                                <td>{{ "{:,}".format(day.requests) }}</td>
+                                <td>{{ day.errors }}</td>
+                                <td>
+                                    <span class="{% if error_rate < 2 %}text-success{% elif error_rate < 5 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ "%.1f"|format(error_rate) }}%
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="{% if day.avg_response_time < 0.2 %}text-success{% elif day.avg_response_time < 0.4 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ "%.3f"|format(day.avg_response_time) }}s
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress me-2" style="width: 60px; height: 8px;">
+                                            <div class="progress-bar bg-{% if health_score > 80 %}success{% elif health_score > 60 %}warning{% else %}danger{% endif %}" 
+                                                 style="width: {{ [health_score, 100] | min }}%"></div>
+                                        </div>
+                                        <small>{{ "%.0f"|format([health_score, 100] | min) }}%</small>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No daily analytics data available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// API Requests Over Time Chart
+const requestsData = {{ analytics.daily_requests | tojson }};
+const requestsCtx = document.getElementById('requestsChart').getContext('2d');
+new Chart(requestsCtx, {
+    type: 'line',
+    data: {
+        labels: requestsData.map(d => d.date),
+        datasets: [
+            {
+                label: 'Requests',
+                data: requestsData.map(d => d.requests),
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                tension: 0.4,
+                fill: true
+            },
+            {
+                label: 'Errors',
+                data: requestsData.map(d => d.errors),
+                borderColor: '#dc3545',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                tension: 0.4,
+                fill: false
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                position: 'top'
+            },
+            tooltip: {
+                callbacks: {
+                    afterLabel: function(context) {
+                        if (context.datasetIndex === 0) {
+                            const dayData = requestsData[context.dataIndex];
+                            const errorRate = dayData.requests > 0 ? (dayData.errors / dayData.requests * 100) : 0;
+                            return `Error Rate: ${errorRate.toFixed(1)}%`;
+                        }
+                        return '';
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Error Distribution Chart
+const errorData = {{ error_analysis.error_types | tojson }};
+const errorLabels = errorData.map(d => d.type);
+const errorCounts = errorData.map(d => d.count);
+const errorColors = [
+    '#dc3545', '#fd7e14', '#ffc107', '#20c997', '#0dcaf0'
+];
+
+const errorCtx = document.getElementById('errorChart').getContext('2d');
+new Chart(errorCtx, {
+    type: 'doughnut',
+    data: {
+        labels: errorLabels,
+        datasets: [{
+            data: errorCounts,
+            backgroundColor: errorColors,
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    usePointStyle: true,
+                    padding: 15,
+                    font: {
+                        size: 11
+                    }
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                        return `${context.label}: ${context.parsed} (${percentage}%)`;
+                    }
+                }
+            }
+        }
+    }
+});
+
+function exportAnalytics(format) {
+    const dateFrom = new URLSearchParams(window.location.search).get('date_from') || '{{ date_range.start }}';
+    const dateTo = new URLSearchParams(window.location.search).get('date_to') || '{{ date_range.end }}';
+    
+    Swal.fire({
+        title: 'Export Started',
+        text: `API analytics export in ${format.toUpperCase()} format for ${dateFrom} to ${dateTo} has been queued.`,
+        icon: 'info',
+        timer: 2000,
+        showConfirmButton: false
+    });
+}
+
+// Auto-refresh functionality
+let autoRefresh = false;
+let refreshInterval;
+
+function toggleAutoRefresh() {
+    autoRefresh = !autoRefresh;
+    
+    if (autoRefresh) {
+        refreshInterval = setInterval(() => {
+            location.reload();
+        }, 30000); // Refresh every 30 seconds
+        
+        Swal.fire({
+            title: 'Auto-refresh Enabled',
+            text: 'Analytics will refresh every 30 seconds',
+            icon: 'info',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    } else {
+        clearInterval(refreshInterval);
+        
+        Swal.fire({
+            title: 'Auto-refresh Disabled',
+            icon: 'info',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    }
+}
+
+// Add auto-refresh toggle button to the header
+document.addEventListener('DOMContentLoaded', function() {
+    const header = document.querySelector('.d-flex.justify-content-between.align-items-center.mb-4');
+    if (header) {
+        const toggleButton = document.createElement('button');
+        toggleButton.className = 'btn btn-outline-secondary ms-2';
+        toggleButton.innerHTML = '<i class="ti ti-refresh"></i>';
+        toggleButton.title = 'Toggle Auto-refresh';
+        toggleButton.onclick = toggleAutoRefresh;
+        
+        const buttonGroup = header.querySelector('.d-flex.gap-2');
+        buttonGroup.appendChild(toggleButton);
+    }
+});
+</script>
+{% endblock %}

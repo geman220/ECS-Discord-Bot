@@ -1,0 +1,504 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Playoff Management - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">Playoff Management</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Playoff Overview Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.active_playoffs or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Active Playoffs</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-tournament" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.completed_playoffs or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Completed Playoffs</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-trophy" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.upcoming_matches or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Upcoming Matches</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-calendar" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.playoff_teams or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Playoff Teams</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Playoff Management Actions -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-plus me-2"></i>Create & Manage
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Set up new playoffs and manage existing tournaments</p>
+                <div class="list-group list-group-flush">
+                    <button class="list-group-item list-group-item-action" onclick="createPlayoff()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-plus me-2 text-success"></i>Create New Playoff
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </button>
+                    <a href="#" class="list-group-item list-group-item-action" onclick="viewActivePlayoffs()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-tournament me-2"></i>Active Playoffs
+                            </div>
+                            <span class="badge bg-primary">{{ stats.active_playoffs or 0 }}</span>
+                        </div>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" onclick="bracketGenerator()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-sitemap me-2"></i>Bracket Generator
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" onclick="seedTeams()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-sort-ascending me-2"></i>Seed Teams
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-chart-dots me-2"></i>Results & Reports
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Track results, generate reports, and manage playoffs</p>
+                <div class="list-group list-group-flush">
+                    <a href="#" class="list-group-item list-group-item-action" onclick="updateResults()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-edit me-2"></i>Update Match Results
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" onclick="viewBrackets()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-tournament me-2"></i>View Brackets
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" onclick="playoffHistory()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-history me-2"></i>Playoff History
+                            </div>
+                            <span class="badge bg-success">{{ stats.completed_playoffs or 0 }}</span>
+                        </div>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" onclick="generateReports()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-file-report me-2"></i>Generate Reports
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Playoffs -->
+{% if stats.active_playoffs > 0 %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-tournament me-2"></i>Current Playoffs
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="card-title mb-0">Spring 2024 Championship</h6>
+                                    <span class="badge bg-warning">Semifinals</span>
+                                </div>
+                                <div class="row text-center mb-3">
+                                    <div class="col-4">
+                                        <div class="h6 mb-1">8</div>
+                                        <div class="small text-muted">Teams</div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="h6 mb-1">6</div>
+                                        <div class="small text-muted">Completed</div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="h6 mb-1">2</div>
+                                        <div class="small text-muted">Remaining</div>
+                                    </div>
+                                </div>
+                                <div class="progress mb-3" style="height: 8px;">
+                                    <div class="progress-bar bg-warning" style="width: 75%"></div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="manageTournament('spring-2024')">
+                                        <i class="ti ti-settings me-1"></i>Manage
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-success" onclick="viewBracket('spring-2024')">
+                                        <i class="ti ti-tournament me-1"></i>Bracket
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-center text-muted mt-4">
+                            <i class="ti ti-plus d-block mb-2" style="font-size: 3rem;"></i>
+                            <p>Create additional playoff tournaments</p>
+                            <button class="btn btn-outline-primary" onclick="createPlayoff()">
+                                <i class="ti ti-plus me-1"></i>New Playoff
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-info-circle me-2"></i>
+                <div>
+                    <strong>No Active Playoffs</strong><br>
+                    Create your first playoff tournament to get started with bracket management.
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-primary" onclick="createPlayoff()">
+                            <i class="ti ti-plus me-1"></i>Create First Playoff
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Playoff Templates -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-template me-2"></i>Playoff Templates
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-tournament text-primary mb-2" style="font-size: 2rem;"></i>
+                                <h6 class="card-title">Single Elimination</h6>
+                                <p class="card-text small text-muted">8, 16, or 32 team bracket</p>
+                                <button class="btn btn-sm btn-outline-primary" onclick="useTemplate('single-elim')">
+                                    Use Template
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-repeat text-success mb-2" style="font-size: 2rem;"></i>
+                                <h6 class="card-title">Double Elimination</h6>
+                                <p class="card-text small text-muted">Winners & losers brackets</p>
+                                <button class="btn btn-sm btn-outline-success" onclick="useTemplate('double-elim')">
+                                    Use Template
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-users text-info mb-2" style="font-size: 2rem;"></i>
+                                <h6 class="card-title">Round Robin</h6>
+                                <p class="card-text small text-muted">Every team plays each other</p>
+                                <button class="btn btn-sm btn-outline-info" onclick="useTemplate('round-robin')">
+                                    Use Template
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-crown text-warning mb-2" style="font-size: 2rem;"></i>
+                                <h6 class="card-title">Swiss System</h6>
+                                <p class="card-text small text-muted">Pair teams by performance</p>
+                                <button class="btn btn-sm btn-outline-warning" onclick="useTemplate('swiss')">
+                                    Use Template
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-layers text-danger mb-2" style="font-size: 2rem;"></i>
+                                <h6 class="card-title">Group Stage</h6>
+                                <p class="card-text small text-muted">Groups then knockout</p>
+                                <button class="btn btn-sm btn-outline-danger" onclick="useTemplate('group-stage')">
+                                    Use Template
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border">
+                            <div class="card-body text-center">
+                                <i class="ti ti-settings text-secondary mb-2" style="font-size: 2rem;"></i>
+                                <h6 class="card-title">Custom Format</h6>
+                                <p class="card-text small text-muted">Design your own format</p>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="useTemplate('custom')">
+                                    Create Custom
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function createPlayoff() {
+    Swal.fire({
+        title: 'Create New Playoff',
+        html: `
+            <div class="mb-3">
+                <label class="form-label">Tournament Name</label>
+                <input type="text" class="form-control" id="tournamentName" placeholder="Enter tournament name">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Format</label>
+                <select class="form-select" id="tournamentFormat">
+                    <option value="">Select format...</option>
+                    <option value="single-elim">Single Elimination</option>
+                    <option value="double-elim">Double Elimination</option>
+                    <option value="round-robin">Round Robin</option>
+                    <option value="swiss">Swiss System</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Number of Teams</label>
+                <select class="form-select" id="teamCount">
+                    <option value="">Select team count...</option>
+                    <option value="4">4 Teams</option>
+                    <option value="8">8 Teams</option>
+                    <option value="16">16 Teams</option>
+                    <option value="32">32 Teams</option>
+                </select>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Create Tournament',
+        preConfirm: () => {
+            const name = document.getElementById('tournamentName').value;
+            const format = document.getElementById('tournamentFormat').value;
+            const teamCount = document.getElementById('teamCount').value;
+            
+            if (!name || !format || !teamCount) {
+                Swal.showValidationMessage('All fields are required');
+                return false;
+            }
+            
+            return { name, format, teamCount };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement playoff creation
+            Swal.fire('Created!', 'Tournament has been created successfully.', 'success');
+        }
+    });
+}
+
+function viewActivePlayoffs() {
+    // TODO: Implement active playoffs view
+    Swal.fire({
+        title: 'Active Playoffs',
+        text: 'Active playoffs functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function bracketGenerator() {
+    // TODO: Implement bracket generator
+    Swal.fire({
+        title: 'Bracket Generator',
+        text: 'Bracket generation functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function seedTeams() {
+    // TODO: Implement team seeding
+    Swal.fire({
+        title: 'Team Seeding',
+        text: 'Team seeding functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function updateResults() {
+    // TODO: Implement results updating
+    Swal.fire({
+        title: 'Update Results',
+        text: 'Match results functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function viewBrackets() {
+    // TODO: Implement bracket viewing
+    Swal.fire({
+        title: 'View Brackets',
+        text: 'Bracket viewing functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function playoffHistory() {
+    // TODO: Implement playoff history
+    Swal.fire({
+        title: 'Playoff History',
+        text: 'Playoff history functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function generateReports() {
+    // TODO: Implement report generation
+    Swal.fire({
+        title: 'Generate Reports',
+        text: 'Report generation functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function manageTournament(tournamentId) {
+    // TODO: Implement tournament management
+    Swal.fire({
+        title: 'Manage Tournament',
+        text: 'Tournament management functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function viewBracket(tournamentId) {
+    // TODO: Implement bracket viewing
+    Swal.fire({
+        title: 'Tournament Bracket',
+        text: 'Bracket viewing functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function useTemplate(templateType) {
+    let templateName = '';
+    switch(templateType) {
+        case 'single-elim': templateName = 'Single Elimination'; break;
+        case 'double-elim': templateName = 'Double Elimination'; break;
+        case 'round-robin': templateName = 'Round Robin'; break;
+        case 'swiss': templateName = 'Swiss System'; break;
+        case 'group-stage': templateName = 'Group Stage'; break;
+        case 'custom': templateName = 'Custom Format'; break;
+    }
+    
+    Swal.fire({
+        title: `Use ${templateName} Template?`,
+        text: 'This will create a new tournament using this format.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Use Template'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement template usage
+            Swal.fire('Template Applied!', `${templateName} tournament template is ready for configuration.`, 'success');
+        }
+    });
+}
+</script>
+{% endblock %}

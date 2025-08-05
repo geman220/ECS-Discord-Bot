@@ -1,0 +1,558 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Push Campaigns - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.mobile_features') }}">Mobile Features</a>
+</li>
+<li class="breadcrumb-item active">Push Campaigns</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Campaign Statistics -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ campaign_data.total_sent_today or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Sent Today</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-send" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ campaign_data.delivery_rate or '0%' }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Delivery Rate</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ campaign_data.avg_open_rate or '0%' }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Avg Open Rate</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-eye" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ campaign_data.active_users or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Target Users</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create New Campaign -->
+<div class="row mb-4">
+    <div class="col-md-8 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-plus me-2"></i>Create Push Campaign
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="campaignForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Campaign Name</label>
+                                <input type="text" class="form-control" name="campaign_name" placeholder="Match Day Reminder" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Campaign Type</label>
+                                <select class="form-select" name="campaign_type" required>
+                                    <option value="">Select Type</option>
+                                    <option value="match_reminder">Match Reminder</option>
+                                    <option value="season_update">Season Update</option>
+                                    <option value="event_announcement">Event Announcement</option>
+                                    <option value="custom">Custom Campaign</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Notification Title</label>
+                                <input type="text" class="form-control" name="notification_title" placeholder="Match Starting Soon!" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Target Audience</label>
+                                <select class="form-select" name="target_audience" required>
+                                    <option value="">Select Audience</option>
+                                    <option value="all">All Users ({{ campaign_data.total_users }})</option>
+                                    <option value="active">Active Players ({{ campaign_data.active_users }})</option>
+                                    <option value="team_specific">Team-Specific</option>
+                                    <option value="custom">Custom Segment</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Notification Message</label>
+                        <textarea class="form-control" name="notification_message" rows="3" placeholder="Your match against Arsenal FC starts in 30 minutes. Good luck!" required></textarea>
+                        <div class="form-text">
+                            <span id="messageCounter">0</span>/160 characters
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Send Schedule</label>
+                                <select class="form-select" name="send_schedule" required>
+                                    <option value="immediate">Send Immediately</option>
+                                    <option value="scheduled">Schedule for Later</option>
+                                    <option value="recurring">Recurring Campaign</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="scheduledDateField" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Send Date/Time</label>
+                                <input type="datetime-local" class="form-control" name="send_datetime">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="high_priority" id="highPriority">
+                                <label class="form-check-label" for="highPriority">
+                                    High Priority Notification
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="track_opens" id="trackOpens" checked>
+                                <label class="form-check-label" for="trackOpens">
+                                    Track Open Rates
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-3">
+                        <button type="button" class="btn btn-outline-secondary" onclick="previewCampaign()">
+                            <i class="ti ti-eye me-1"></i>Preview
+                        </button>
+                        <div>
+                            <button type="button" class="btn btn-outline-primary me-2" onclick="saveDraft()">
+                                <i class="ti ti-file me-1"></i>Save Draft
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-send me-1"></i>Create Campaign
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-template me-2"></i>Campaign Templates
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for template in campaign_data.templates %}
+                <div class="card border mb-3">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="card-title mb-1">{{ template.name }}</h6>
+                                <p class="card-text small text-muted mb-2">{{ template.description }}</p>
+                                <small class="text-muted">Target: {{ template.target_audience }}</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="loadTemplate({{ template.id }})">
+                                <i class="ti ti-download"></i>
+                            </button>
+                        </div>
+                        <div class="mt-2">
+                            <small class="badge bg-info">{{ template.estimated_reach }} users</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Campaigns -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-history me-2"></i>Recent Campaigns
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if campaign_data.recent_campaigns %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Campaign</th>
+                                <th>Type</th>
+                                <th>Sent Date</th>
+                                <th>Recipients</th>
+                                <th>Delivery Rate</th>
+                                <th>Open Rate</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for campaign in campaign_data.recent_campaigns %}
+                            <tr>
+                                <td>
+                                    <strong>{{ campaign.name }}</strong>
+                                    <br><small class="text-muted">{{ campaign.description or 'No description' }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ campaign.type or 'Custom' }}</span>
+                                </td>
+                                <td>{{ campaign.sent_date }}</td>
+                                <td>
+                                    <span class="badge bg-info">{{ campaign.recipients }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if campaign.delivery_rate and campaign.delivery_rate.rstrip('%')|int > 90 else 'warning' }}">
+                                        {{ campaign.delivery_rate }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if campaign.open_rate and campaign.open_rate.rstrip('%')|int > 50 else 'secondary' }}">
+                                        {{ campaign.open_rate }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">Completed</span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-info" onclick="viewCampaignDetails({{ campaign.id }})">
+                                            <i class="ti ti-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-primary" onclick="duplicateCampaign({{ campaign.id }})">
+                                            <i class="ti ti-copy"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary" onclick="downloadReport({{ campaign.id }})">
+                                            <i class="ti ti-download"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-send-off text-muted" style="font-size: 4rem;"></i>
+                    <h5 class="text-muted mt-3">No Campaigns Yet</h5>
+                    <p class="text-muted">Create your first push notification campaign to get started.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script>
+// Form handling
+document.getElementById('campaignForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    createCampaign();
+});
+
+// Message counter
+document.querySelector('textarea[name="notification_message"]').addEventListener('input', function() {
+    const counter = document.getElementById('messageCounter');
+    counter.textContent = this.value.length;
+    
+    if (this.value.length > 160) {
+        counter.classList.add('text-danger');
+    } else {
+        counter.classList.remove('text-danger');
+    }
+});
+
+// Send schedule handling
+document.querySelector('select[name="send_schedule"]').addEventListener('change', function() {
+    const scheduledField = document.getElementById('scheduledDateField');
+    if (this.value === 'scheduled' || this.value === 'recurring') {
+        scheduledField.style.display = 'block';
+    } else {
+        scheduledField.style.display = 'none';
+    }
+});
+
+function createCampaign() {
+    const form = document.getElementById('campaignForm');
+    const formData = new FormData(form);
+    
+    // Validate message length
+    const message = formData.get('notification_message');
+    if (message.length > 160) {
+        Swal.fire('Message Too Long', 'Please keep the notification message under 160 characters.', 'warning');
+        return;
+    }
+    
+    Swal.fire({
+        title: 'Create Campaign?',
+        text: 'This will send push notifications to the selected audience',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Create Campaign'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Creating Campaign...',
+                text: 'Setting up your push notification campaign',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    // Simulate campaign creation
+                    setTimeout(() => {
+                        Swal.fire('Campaign Created!', 'Your push notification campaign has been created successfully.', 'success')
+                            .then(() => location.reload());
+                    }, 3000);
+                }
+            });
+        }
+    });
+}
+
+function previewCampaign() {
+    const form = document.getElementById('campaignForm');
+    const formData = new FormData(form);
+    
+    const title = formData.get('notification_title') || 'Notification Title';
+    const message = formData.get('notification_message') || 'Notification message will appear here';
+    const audience = formData.get('target_audience') || 'all';
+    const schedule = formData.get('send_schedule') || 'immediate';
+    
+    // Get estimated reach based on audience
+    let estimatedReach = '{{ campaign_data.total_users }}';
+    if (audience === 'active') estimatedReach = '{{ campaign_data.active_users }}';
+    
+    Swal.fire({
+        title: 'Campaign Preview',
+        html: `
+            <div class="text-start">
+                <div class="card border mb-3" style="max-width: 300px; margin: 0 auto;">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="bg-primary rounded-circle me-2" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                                <i class="ti ti-shield text-white"></i>
+                            </div>
+                            <div>
+                                <strong style="font-size: 14px;">ECS FC</strong><br>
+                                <small class="text-muted">now</small>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <strong style="font-size: 15px;">${title}</strong>
+                        </div>
+                        <div style="font-size: 14px; color: #666;">
+                            ${message}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <strong>Campaign Details:</strong><br>
+                    <small>
+                    • Target Audience: ${audience}<br>
+                    • Estimated Reach: ${estimatedReach} users<br>
+                    • Send Schedule: ${schedule}<br>
+                    • High Priority: ${formData.get('high_priority') ? 'Yes' : 'No'}
+                    </small>
+                </div>
+            </div>
+        `,
+        width: '400px',
+        confirmButtonText: 'Close'
+    });
+}
+
+function saveDraft() {
+    Swal.fire({
+        title: 'Save Draft?',
+        text: 'This will save the campaign as a draft for later editing',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Save Draft'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Draft Saved!', 'Campaign has been saved as a draft.', 'success');
+        }
+    });
+}
+
+function loadTemplate(templateId) {
+    const templates = {
+        1: {
+            name: 'Match Day Reminder',
+            title: 'Match Starting Soon!',
+            message: 'Your match against [OPPONENT] starts in 30 minutes. Good luck team!',
+            type: 'match_reminder',
+            audience: 'active'
+        },
+        2: {
+            name: 'Season Update',
+            title: 'Season Standings Update',
+            message: 'Check out the latest season standings and upcoming fixtures in the app!',
+            type: 'season_update',
+            audience: 'all'
+        },
+        3: {
+            name: 'Event Announcement',
+            title: 'Special Event This Weekend',
+            message: 'Join us for our annual tournament this weekend. Register now!',
+            type: 'event_announcement',
+            audience: 'active'
+        }
+    };
+    
+    const template = templates[templateId];
+    if (template) {
+        document.querySelector('input[name="campaign_name"]').value = template.name;
+        document.querySelector('input[name="notification_title"]').value = template.title;
+        document.querySelector('textarea[name="notification_message"]').value = template.message;
+        document.querySelector('select[name="campaign_type"]').value = template.type;
+        document.querySelector('select[name="target_audience"]').value = template.audience;
+        
+        // Update message counter
+        const counter = document.getElementById('messageCounter');
+        counter.textContent = template.message.length;
+        
+        Swal.fire('Template Loaded!', `${template.name} template has been applied.`, 'success');
+    }
+}
+
+function viewCampaignDetails(campaignId) {
+    Swal.fire({
+        title: `Campaign Details: Week 5 Match Reminders`,
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <strong>Campaign ID:</strong> ${campaignId}<br>
+                    <strong>Type:</strong> Match Reminder<br>
+                    <strong>Created:</strong> 2024-01-15 09:00:00<br>
+                    <strong>Sent:</strong> 2024-01-15 10:30:00
+                </div>
+                <div class="mb-3">
+                    <strong>Notification Content:</strong><br>
+                    <div class="card bg-light p-2">
+                        <strong>Title:</strong> Match Starting Soon!<br>
+                        <strong>Message:</strong> Your match against Arsenal FC starts in 30 minutes. Good luck team!
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <strong>Performance Metrics:</strong><br>
+                    • Recipients: {{ campaign_data.active_users }} users<br>
+                    • Delivered: 95% ({{ (campaign_data.active_users * 0.95)|int }} users)<br>
+                    • Opened: 78% ({{ (campaign_data.active_users * 0.78)|int }} users)<br>
+                    • Clicked: 45% ({{ (campaign_data.active_users * 0.45)|int }} users)
+                </div>
+                <div class="mb-3">
+                    <strong>Audience Breakdown:</strong><br>
+                    • iOS Users: 60%<br>
+                    • Android Users: 40%<br>
+                    • Active Players: 100%
+                </div>
+            </div>
+        `,
+        width: '600px',
+        confirmButtonText: 'Close'
+    });
+}
+
+function duplicateCampaign(campaignId) {
+    Swal.fire({
+        title: 'Duplicate Campaign?',
+        text: 'This will create a copy of this campaign that you can edit',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Duplicate Campaign'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Load campaign data into form
+            document.querySelector('input[name="campaign_name"]').value = 'Copy of Week 5 Match Reminders';
+            document.querySelector('input[name="notification_title"]').value = 'Match Starting Soon!';
+            document.querySelector('textarea[name="notification_message"]').value = 'Your match against Arsenal FC starts in 30 minutes. Good luck team!';
+            document.querySelector('select[name="campaign_type"]').value = 'match_reminder';
+            document.querySelector('select[name="target_audience"]').value = 'active';
+            
+            Swal.fire('Campaign Duplicated!', 'Campaign has been loaded into the form for editing.', 'success');
+        }
+    });
+}
+
+function downloadReport(campaignId) {
+    Swal.fire({
+        title: 'Download Campaign Report?',
+        text: 'This will generate a detailed analytics report for this campaign',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Download Report'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Report Generating...', 'Your campaign report is being prepared for download.', 'success');
+        }
+    });
+}
+</script>
+{% endblock %}

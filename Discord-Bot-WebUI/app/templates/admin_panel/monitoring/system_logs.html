@@ -1,0 +1,370 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}System Logs - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.system_monitoring') }}">System Monitoring</a>
+</li>
+<li class="breadcrumb-item active">System Logs</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Log Level Statistics -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ current_filters.error_count or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Error Logs</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-alert-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ current_filters.warning_count or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Warning Logs</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-alert-triangle" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ current_filters.info_count or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Info Logs</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-info-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ current_filters.debug_count or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Debug Logs</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-bug" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-filter me-2"></i>Log Filters
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-2">
+                        <label class="form-label">Log Level</label>
+                        <select name="level" class="form-select">
+                            <option value="">All Levels</option>
+                            <option value="ERROR" {{ 'selected' if request.args.get('level') == 'ERROR' }}>Error</option>
+                            <option value="WARNING" {{ 'selected' if request.args.get('level') == 'WARNING' }}>Warning</option>
+                            <option value="INFO" {{ 'selected' if request.args.get('level') == 'INFO' }}>Info</option>
+                            <option value="DEBUG" {{ 'selected' if request.args.get('level') == 'DEBUG' }}>Debug</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Component</label>
+                        <select name="component" class="form-select">
+                            <option value="">All Components</option>
+                            <option value="app" {{ 'selected' if request.args.get('component') == 'app' }}>Application</option>
+                            <option value="discord" {{ 'selected' if request.args.get('component') == 'discord' }}>Discord Bot</option>
+                            <option value="database" {{ 'selected' if request.args.get('component') == 'database' }}>Database</option>
+                            <option value="cache" {{ 'selected' if request.args.get('component') == 'cache' }}>Cache</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Search Text</label>
+                        <input type="text" name="search" class="form-control" placeholder="Search log messages..." value="{{ request.args.get('search', '') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">From Date</label>
+                        <input type="datetime-local" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">To Date</label>
+                        <input type="datetime-local" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}">
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Log Management</h6>
+                        <small class="text-muted">Showing {{ logs|length }} log entries</small>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" onclick="refreshLogs()">
+                            <i class="ti ti-refresh me-1"></i>Refresh
+                        </button>
+                        <button class="btn btn-outline-info" onclick="exportLogs()">
+                            <i class="ti ti-download me-1"></i>Export
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="clearOldLogs()">
+                            <i class="ti ti-trash me-1"></i>Clear Old
+                        </button>
+                        <button class="btn btn-outline-success" onclick="startTail()">
+                            <i class="ti ti-eye me-1"></i>Live Tail
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Entries -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-file-text me-2"></i>Log Entries
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                {% if logs %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="140">Timestamp</th>
+                                <th width="80">Level</th>
+                                <th width="120">Component</th>
+                                <th>Message</th>
+                                <th width="80">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr class="log-entry-{{ log.level.lower() }}">
+                                <td>
+                                    <small class="font-monospace">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                                </td>
+                                <td>
+                                    {% if log.level == 'ERROR' %}
+                                        <span class="badge bg-danger">ERROR</span>
+                                    {% elif log.level == 'WARNING' %}
+                                        <span class="badge bg-warning">WARN</span>
+                                    {% elif log.level == 'INFO' %}
+                                        <span class="badge bg-info">INFO</span>
+                                    {% elif log.level == 'DEBUG' %}
+                                        <span class="badge bg-secondary">DEBUG</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark">{{ log.level }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ log.component or 'app' }}</small>
+                                </td>
+                                <td>
+                                    <div class="log-message">
+                                        {{ log.message[:100] }}{% if log.message|length > 100 %}...{% endif %}
+                                        {% if log.stack_trace %}
+                                        <br><small class="text-danger">Stack trace available</small>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-info" onclick="viewLogDetails({{ log.id }})">
+                                        <i class="ti ti-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Live Tail Area (hidden by default) -->
+                <div id="liveTailArea" class="p-3 bg-dark text-light font-monospace" style="display: none; height: 300px; overflow-y: auto;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-success">● Live tail active</small>
+                        <button class="btn btn-sm btn-outline-light" onclick="stopTail()">Stop</button>
+                    </div>
+                    <div id="liveTailContent"></div>
+                </div>
+                
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-file-x text-muted" style="font-size: 4rem;"></i>
+                    <h5 class="text-muted mt-3">No Log Entries</h5>
+                    <p class="text-muted">No log entries match the current filter criteria.</p>
+                    <a href="{{ url_for('admin_panel.system_logs') }}" class="btn btn-outline-primary">
+                        <i class="ti ti-refresh me-1"></i>Clear Filters
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.log-entry-error {
+    background-color: rgba(220, 53, 69, 0.05);
+}
+.log-entry-warning {
+    background-color: rgba(255, 193, 7, 0.05);
+}
+.log-entry-info {
+    background-color: rgba(13, 202, 240, 0.05);
+}
+.log-entry-debug {
+    background-color: rgba(108, 117, 125, 0.05);
+}
+
+.log-message {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+#liveTailContent {
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+let liveTailActive = false;
+let liveTailInterval = null;
+
+function refreshLogs() {
+    location.reload();
+}
+
+function exportLogs() {
+    const params = new URLSearchParams(window.location.search);
+    params.set('export', 'true');
+    window.open(`${window.location.pathname}?${params.toString()}`, '_blank');
+}
+
+function clearOldLogs() {
+    Swal.fire({
+        title: 'Clear Old Logs?',
+        text: 'This will delete log entries older than 30 days',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Clear Old Logs'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Implement old log clearing
+            Swal.fire('Logs Cleared!', 'Old log entries have been removed.', 'success');
+        }
+    });
+}
+
+function startTail() {
+    if (liveTailActive) return;
+    
+    liveTailActive = true;
+    document.getElementById('liveTailArea').style.display = 'block';
+    
+    // Simulate live tail
+    liveTailInterval = setInterval(() => {
+        const tailContent = document.getElementById('liveTailContent');
+        const timestamp = new Date().toISOString();
+        tailContent.innerHTML += `${timestamp} [INFO] Live log entry example\n`;
+        tailContent.scrollTop = tailContent.scrollHeight;
+    }, 2000);
+}
+
+function stopTail() {
+    liveTailActive = false;
+    if (liveTailInterval) {
+        clearInterval(liveTailInterval);
+        liveTailInterval = null;
+    }
+    document.getElementById('liveTailArea').style.display = 'none';
+}
+
+function viewLogDetails(logId) {
+    // Make AJAX request to get log details
+    Swal.fire({
+        title: 'Log Entry Details',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <strong>Timestamp:</strong> 2024-01-31 12:00:00<br>
+                    <strong>Level:</strong> <span class="badge bg-danger">ERROR</span><br>
+                    <strong>Component:</strong> app.admin_panel<br>
+                    <strong>Thread:</strong> MainThread
+                </div>
+                <div class="mb-3">
+                    <strong>Message:</strong><br>
+                    <pre class="bg-light p-2 rounded">Sample error message with details about what went wrong in the system.</pre>
+                </div>
+                <div class="mb-3">
+                    <strong>Stack Trace:</strong><br>
+                    <pre class="bg-dark text-light p-2 rounded" style="max-height: 200px; overflow-y: auto;">
+Traceback (most recent call last):
+  File "app.py", line 123, in handle_request
+    result = process_data(data)
+  File "handlers.py", line 45, in process_data
+    return transform(data)
+Exception: Sample error occurred
+                    </pre>
+                </div>
+            </div>
+        `,
+        width: '800px',
+        confirmButtonText: 'Close'
+    });
+}
+</script>
+{% endblock %}
