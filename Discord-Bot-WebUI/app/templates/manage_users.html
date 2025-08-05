@@ -1,5 +1,20 @@
 {% extends "base.html" %}
 
+{% block extra_head %}
+<style>
+/* Simple styling for role selection */
+#editRoles {
+    min-height: 120px;
+}
+
+/* Highlight selected options */
+#editRoles option:checked {
+    background-color: #0d6efd !important;
+    color: white !important;
+}
+</style>
+{% endblock %}
+
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Page Header -->
@@ -445,12 +460,11 @@
 
                         <div class="mb-3">
                             <label for="editRoles" class="form-label">Roles</label>
-                            <select multiple class="form-select" id="editRoles" name="roles">
+                            <select multiple class="form-select select2-multiple" id="editRoles" name="roles">
                                 {% for role in roles %}
                                 <option value="{{ role.id }}">{{ role.name }}</option>
                                 {% endfor %}
                             </select>
-                            <small class="text-muted">Hold Ctrl/Cmd to select multiple roles</small>
                         </div>
 
                         <div id="playerProfileSection">
@@ -566,18 +580,20 @@
                     return;
                 }
 
+                // Store user data globally for modal event handler
+                window.currentEditUserData = data;
+                
                 // Populate basic fields
                 document.getElementById('editUserId').value = data.id;
                 document.getElementById('editUsername').value = data.username;
                 document.getElementById('editEmail').value = data.email;
 
-                // Roles
-                const editRolesSelect = document.getElementById('editRoles');
-                const selectedRoles = data.roles.map(id => id.toString());
-                for (let option of editRolesSelect.options) {
-                    option.selected = selectedRoles.includes(option.value);
+                // Set user's current roles as selected using Select2
+                if (data.roles && Array.isArray(data.roles)) {
+                    const userRoleIds = data.roles.map(id => id.toString());
+                    $('#editRoles').val(userRoleIds).trigger('change');
                 }
-
+                
                 // Player profile section
                 const playerProfileSection = document.getElementById('playerProfileSection');
                 const leagueField = document.getElementById('editLeague');
@@ -641,10 +657,12 @@
                         secondaryTeamField.disabled = true;
                     }
                 }
-
-                // Update form action and show modal
+                
+                // Update form action
                 const editUserUrl = editUserUrlTemplate.replace('/0', `/${userId}`);
                 editUserForm.action = editUserUrl;
+                
+                // Show modal  
                 editUserModal.show();
             })
             .catch(error => {
@@ -783,10 +801,20 @@
         });
     }
 
+    // Initialize on DOMContentLoaded
     document.addEventListener('DOMContentLoaded', function () {
         // Initialize global variables
         editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
         editUserForm = document.getElementById('editUserForm');
+        
+        // Initialize Select2 for roles
+        $('#editRoles').select2({
+            placeholder: 'Select roles...',
+            allowClear: true,
+            dropdownParent: $('#editUserModal')
+        });
+        
+        // No need for complex modal event handlers - roles are pre-selected via server HTML
         editUserUrlTemplate = `{{ url_for('user_management.edit_user', user_id=0) }}`;
         approveUserUrlTemplate = `{{ url_for('user_management.approve_user', user_id=0) }}`;
         removeUserUrlTemplate = `{{ url_for('user_management.remove_user', user_id=0) }}`;

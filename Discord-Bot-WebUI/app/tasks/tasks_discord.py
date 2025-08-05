@@ -237,6 +237,17 @@ async def _execute_player_role_update_async(data):
         elif league_name.lower() == 'classic' and 'ECS-FC-PL-CLASSIC' not in expected_roles:
             expected_roles.append('ECS-FC-PL-CLASSIC')
     
+    # Add substitute roles based on Flask user roles
+    if 'Premier Sub' in user_roles:
+        if 'ECS-FC-PL-PREMIER-SUB' not in expected_roles:
+            expected_roles.append('ECS-FC-PL-PREMIER-SUB')
+    if 'Classic Sub' in user_roles:
+        if 'ECS-FC-PL-CLASSIC-SUB' not in expected_roles:
+            expected_roles.append('ECS-FC-PL-CLASSIC-SUB')
+    if 'ECS FC Sub' in user_roles:
+        if 'ECS-FC-LEAGUE-SUB' not in expected_roles:
+            expected_roles.append('ECS-FC-LEAGUE-SUB')
+    
     # Add coach roles based on leagues (not teams) if player is coach
     if data.get('is_coach'):
         # Priority 1: Flask user roles for coach assignments
@@ -260,8 +271,9 @@ async def _execute_player_role_update_async(data):
         'ECS-FC-PL-CLASSIC',
         'ECS-FC-PL-PREMIER-COACH',
         'ECS-FC-PL-CLASSIC-COACH',
-        'Substitute Pool - Premier',
-        'Substitute Pool - Classic'
+        'ECS-FC-PL-PREMIER-SUB',
+        'ECS-FC-PL-CLASSIC-SUB',
+        'ECS-FC-LEAGUE-SUB'
     ]
     
     # Add team-specific player roles to managed roles
@@ -564,6 +576,17 @@ async def _execute_assign_roles_async(data):
             if 'ECS-FC-PL-CLASSIC' not in expected_roles:
                 expected_roles.append('ECS-FC-PL-CLASSIC')
         
+        # Add substitute roles based on Flask user roles
+        if 'Premier Sub' in user_roles:
+            if 'ECS-FC-PL-PREMIER-SUB' not in expected_roles:
+                expected_roles.append('ECS-FC-PL-PREMIER-SUB')
+        if 'Classic Sub' in user_roles:
+            if 'ECS-FC-PL-CLASSIC-SUB' not in expected_roles:
+                expected_roles.append('ECS-FC-PL-CLASSIC-SUB')
+        if 'ECS FC Sub' in user_roles:
+            if 'ECS-FC-LEAGUE-SUB' not in expected_roles:
+                expected_roles.append('ECS-FC-LEAGUE-SUB')
+        
         # Add coach roles based on leagues if player is coach
         if data.get('is_coach'):
             if 'pl-premier' in user_roles:
@@ -585,8 +608,9 @@ async def _execute_assign_roles_async(data):
             'ECS-FC-PL-CLASSIC',
             'ECS-FC-PL-PREMIER-COACH',
             'ECS-FC-PL-CLASSIC-COACH',
-            'Substitute Pool - Premier',
-            'Substitute Pool - Classic'
+            'ECS-FC-PL-PREMIER-SUB',
+            'ECS-FC-PL-CLASSIC-SUB',
+            'ECS-FC-LEAGUE-SUB'
         ] + [f"ECS-FC-PL-{normalize_name(team['name'])}-Player" for team in data.get('teams', [])]
     }
     

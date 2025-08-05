@@ -122,7 +122,7 @@ class UnifiedRedisManager:
         """Create fallback clients that silently fail for graceful degradation."""
         from types import SimpleNamespace
         
-        logger.warning("Creating fallback Redis clients for graceful degradation")
+        logger.debug("Creating fallback Redis clients for graceful degradation")
         
         # Create dummy clients
         self._decoded_client = SimpleNamespace()
@@ -143,6 +143,7 @@ class UnifiedRedisManager:
             client.expire = lambda key, seconds: False
             client.ttl = lambda key: -1
             client.scan = lambda cursor=0, match=None, count=None: (0, [])
+            client.scan_iter = lambda match=None, count=None: iter([])  # Add scan_iter for compatibility
             client.pipeline = lambda: SimpleNamespace(execute=lambda: [])
             # Add Redis 'control' attribute for Celery compatibility
             client.control = SimpleNamespace(revoke=lambda task_id, terminate=True: None)
@@ -160,6 +161,9 @@ class UnifiedRedisManager:
         This is the default client for most application use cases.
         """
         self._check_health()
+        if self._decoded_client is None:
+            logger.debug("Decoded Redis client is None, creating fallback")
+            self._create_fallback_clients()
         return self._decoded_client
     
     @property
@@ -170,6 +174,9 @@ class UnifiedRedisManager:
         Use this for session storage or when you need binary data.
         """
         self._check_health()
+        if self._raw_client is None:
+            logger.debug("Raw Redis client is None, creating fallback")
+            self._create_fallback_clients()
         return self._raw_client
     
     def _check_health(self):
@@ -178,10 +185,20 @@ class UnifiedRedisManager:
         
         if current_time - self._last_health_check > self._health_check_interval:
             try:
-                if self._decoded_client:
-                    self._decoded_client.ping()
-                if self._raw_client:
-                    self._raw_client.ping()
+                # Check decoded client
+                if self._decoded_client is not None:
+                    if hasattr(self._decoded_client, 'ping'):
+                        self._decoded_client.ping()
+                    else:
+                        logger.debug("Decoded client doesn't have ping method, likely fallback client")
+                
+                # Check raw client
+                if self._raw_client is not None:
+                    if hasattr(self._raw_client, 'ping'):
+                        self._raw_client.ping()
+                    else:
+                        logger.debug("Raw client doesn't have ping method, likely fallback client")
+                
                 self._last_health_check = current_time
             except Exception as e:
                 logger.warning(f"Redis health check failed, reinitializing: {e}")
@@ -192,13 +209,20 @@ class UnifiedRedisManager:
         try:
             if self._pool:
                 self._pool.disconnect()
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"Error disconnecting Redis pool: {e}")
         
         self._pool = None
         self._decoded_client = None
         self._raw_client = None
+        
+        # Try to reinitialize real connection
         self._initialize_connection_pool()
+        
+        # Ensure we have clients even if initialization failed
+        if self._decoded_client is None or self._raw_client is None:
+            logger.warning("Real Redis initialization failed, ensuring fallback clients exist")
+            self._create_fallback_clients()
     
     @contextmanager
     def connection(self, raw: bool = False):

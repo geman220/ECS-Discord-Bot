@@ -15,7 +15,7 @@ from sqlalchemy.orm import joinedload
 
 from flask_login import login_required
 
-from app.models import User, Role, Player
+from app.models import User, Role, Player, League
 from app.utils.db_utils import transactional
 from app.decorators import role_required
 from app.admin.blueprint import admin_bp
@@ -125,30 +125,59 @@ def approve_user(user_id: int):
         if not league_type or league_type not in valid_league_types:
             return jsonify({'success': False, 'message': 'Invalid league type'}), 400
         
-        # Get the appropriate role
+        # Get the appropriate roles and league assignment
         role_mapping = {
-            'classic': 'pl-classic',
-            'premier': 'pl-premier',
-            'ecs-fc': 'pl-ecs-fc',
-            'sub-classic': 'Classic Sub',
-            'sub-premier': 'Premier Sub',
-            'sub-ecs-fc': 'ECS FC Sub'
+            'classic': ['pl-classic'],
+            'premier': ['pl-premier'],
+            'ecs-fc': ['pl-ecs-fc'],
+            'sub-classic': ['Classic Sub', 'pl-classic'],  # Sub gets both sub role AND division role
+            'sub-premier': ['Premier Sub', 'pl-premier'],  # Sub gets both sub role AND division role
+            'sub-ecs-fc': ['ECS FC Sub', 'pl-ecs-fc']     # Sub gets both sub role AND division role
         }
         
-        new_role_name = role_mapping[league_type]
-        new_role = db_session.query(Role).filter_by(name=new_role_name).first()
+        # League assignment mapping
+        league_assignment_mapping = {
+            'classic': 'Classic',
+            'premier': 'Premier', 
+            'ecs-fc': 'ECS FC',
+            'sub-classic': 'Classic',    # Subs get assigned to the base league
+            'sub-premier': 'Premier',    # Subs get assigned to the base league
+            'sub-ecs-fc': 'ECS FC'       # Subs get assigned to the base league
+        }
         
-        if not new_role:
-            return jsonify({'success': False, 'message': f'Role {new_role_name} not found'}), 404
+        new_role_names = role_mapping[league_type]
+        new_roles = []
+        
+        # Get all the roles that need to be assigned
+        for role_name in new_role_names:
+            role = db_session.query(Role).filter_by(name=role_name).first()
+            if not role:
+                return jsonify({'success': False, 'message': f'Role {role_name} not found'}), 404
+            new_roles.append(role)
         
         # Remove the pl-unverified role
         unverified_role = db_session.query(Role).filter_by(name='pl-unverified').first()
         if unverified_role and unverified_role in user.roles:
             user.roles.remove(unverified_role)
         
-        # Add the new approved role
-        if new_role not in user.roles:
-            user.roles.append(new_role)
+        # Add all the new approved roles
+        for new_role in new_roles:
+            if new_role not in user.roles:
+                user.roles.append(new_role)
+        
+        # Assign user to the appropriate league
+        league_name = league_assignment_mapping[league_type]
+        league = db_session.query(League).filter_by(name=league_name).first()
+        if league:
+            user.league_id = league.id
+            logger.info(f"Assigned user {user.id} to league '{league_name}' (ID: {league.id})")
+        else:
+            logger.warning(f"League '{league_name}' not found for user {user.id}")
+            
+        # Also set league on the player if exists  
+        if user.player and league:
+            user.player.league_id = league.id
+            logger.info(f"Assigned player {user.player.id} to league '{league_name}' (ID: {league.id})")
         
         # Update user approval status
         user.approval_status = 'approved'
@@ -166,13 +195,19 @@ def approve_user(user_id: int):
             assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
             logger.info(f"Triggered Discord role sync for approved user {user.id}")
         
+        assigned_roles = [role.name for role in new_roles]
         logger.info(f"User {user.id} approved for {league_type} league by {current_user.id}")
+        logger.info(f"Assigned roles: {assigned_roles}")
+        if league:
+            logger.info(f"Assigned to league: {league.name} (ID: {league.id})")
         
         return jsonify({
             'success': True,
-            'message': f'User {user.username} approved for {league_type.title()} league',
+            'message': f'User {user.username} approved for {league_type.title()} league with roles: {", ".join(assigned_roles)}',
             'user_id': user.id,
             'league_type': league_type,
+            'assigned_roles': assigned_roles,
+            'assigned_league': league.name if league else None,
             'approved_by': current_user.username,
             'approved_at': user.approved_at.isoformat()
         })
