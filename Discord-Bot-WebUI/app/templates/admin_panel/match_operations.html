@@ -1,0 +1,295 @@
+{% extends "admin_panel/base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Match & League Operations - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">Match & League Operations</li>
+{% endblock %}
+
+{% block panel_content %}
+
+    <!-- Operations Overview -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ stats.total_matches or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Total Matches</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-trophy" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ stats.active_leagues or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Active Leagues</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-flag" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ stats.upcoming_matches or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Upcoming Matches</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-calendar" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ stats.teams_count or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Active Teams</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Match Management -->
+    <div class="row mb-4">
+        <!-- Match Scheduling ---->
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-calendar-plus me-2"></i>Match Scheduling
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Schedule and manage matches for all leagues</p>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin_panel.schedule_matches') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-plus me-2"></i>Schedule New Match
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.view_matches') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-list me-2"></i>View All Matches
+                                </div>
+                                <span class="badge bg-primary">{{ stats.total_matches or 0 }}</span>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.upcoming_matches') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-calendar-event me-2"></i>Upcoming Matches
+                                </div>
+                                <span class="badge bg-warning">{{ stats.upcoming_matches or 0 }}</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Match Management ---->
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-shield-check me-2"></i>Match Management
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Verify matches and manage substitute requests</p>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin_panel.match_verification') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-shield-check me-2"></i>Match Verification
+                                </div>
+                                <span class="badge bg-warning">{{ stats.pending_verification or 0 }}</span>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.substitute_management') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-users me-2"></i>Substitute Management
+                                </div>
+                                <span class="badge bg-info">{{ stats.sub_requests or 0 }}</span>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.live_matches') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-broadcast me-2"></i>Live Matches
+                                </div>
+                                <span class="badge bg-success">{{ stats.live_matches or 0 }}</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- League Management & Teams -->
+    <div class="row">
+        <!-- League Management ---->
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-flag me-2"></i>League Management
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Manage leagues, divisions, and standings</p>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin_panel.manage_leagues') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-settings me-2"></i>League Settings
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.league_standings') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-list-numbers me-2"></i>Standings & Tables
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.seasons') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-calendar-time me-2"></i>Season Management
+                                </div>
+                                <span class="badge bg-info">{{ stats.active_seasons or 1 }}</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Management ---->
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-users me-2"></i>Team Management
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Manage teams, rosters, and player assignments</p>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin_panel.manage_teams') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-shield me-2"></i>Team Settings
+                                </div>
+                                <span class="badge bg-primary">{{ stats.teams_count or 0 }}</span>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.team_rosters') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-list me-2"></i>Team Rosters
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.player_transfers') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-arrows-exchange me-2"></i>Player Transfers
+                                </div>
+                                <span class="badge bg-warning">{{ stats.pending_transfers or 0 }}</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <div class="d-flex align-items-center">
+                    <i class="ti ti-info-circle me-2"></i>
+                    <div>
+                        <strong>Match & League Operations:</strong> 
+                        This section provides comprehensive tools for managing all aspects of league operations, 
+                        from scheduling matches to managing team rosters and tracking results.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ensure all text and icons in list group items are white in dark mode */
+[data-bs-theme="dark"] .list-group-item-action {
+    color: #ffffff !important;
+}
+
+[data-bs-theme="dark"] .list-group-item-action:hover {
+    color: #ffffff !important;
+}
+
+[data-bs-theme="dark"] .list-group-item-action i {
+    color: #ffffff !important;
+}
+
+[data-bs-theme="dark"] .list-group-item-action * {
+    color: #ffffff !important;
+}
+
+@media (max-width: 768px) {
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .d-flex.justify-content-between > div:last-child {
+        margin-top: 0.25rem;
+    }
+}
+</style>
+{% endblock %}

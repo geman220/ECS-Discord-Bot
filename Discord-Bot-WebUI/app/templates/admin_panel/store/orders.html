@@ -1,0 +1,325 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Store Orders - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.store_management') }}">Store Management</a></li>
+<li class="breadcrumb-item active">Orders</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">Store Orders</h4>
+    <div class="btn-group">
+        <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="ti ti-download me-2"></i>Export
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#"><i class="ti ti-file-text me-2"></i>Export as CSV</a></li>
+            <li><a class="dropdown-item" href="#"><i class="ti ti-file-spreadsheet me-2"></i>Export as Excel</a></li>
+        </ul>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="all" {% if current_filters.status == 'all' %}selected{% endif %}>All Status</option>
+                    {% for status in order_statuses %}
+                    <option value="{{ status }}" {% if current_filters.status == status %}selected{% endif %}>
+                        {{ status }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">From Date</label>
+                <input type="date" name="date_from" class="form-control" value="{{ current_filters.date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To Date</label>
+                <input type="date" name="date_to" class="form-control" value="{{ current_filters.date_to }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Sort By</label>
+                <select name="order_by" class="form-select">
+                    <option value="order_date_desc" {% if current_filters.order_by == 'order_date_desc' %}selected{% endif %}>Newest First</option>
+                    <option value="order_date_asc" {% if current_filters.order_by == 'order_date_asc' %}selected{% endif %}>Oldest First</option>
+                    <option value="status" {% if current_filters.order_by == 'status' %}selected{% endif %}>Status</option>
+                    <option value="item_name" {% if current_filters.order_by == 'item_name' %}selected{% endif %}>Item Name</option>
+                    <option value="orderer" {% if current_filters.order_by == 'orderer' %}selected{% endif %}>Customer</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control" placeholder="Search orders..." value="{{ current_filters.search }}">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="ti ti-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+                <a href="{{ url_for('admin_panel.store_orders') }}" class="btn btn-outline-secondary" title="Clear filters">
+                    <i class="ti ti-x"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Orders Table -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if orders.items %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Item</th>
+                        <th>Customer</th>
+                        <th>Details</th>
+                        <th>Status</th>
+                        <th>Order Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders.items %}
+                    <tr>
+                        <td>
+                            <strong>#{{ order.id }}</strong>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if order.item and order.item.image_url %}
+                                <img src="{{ order.item.image_url }}" alt="{{ order.item.name }}" 
+                                     class="img-thumbnail me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                {% else %}
+                                <div class="bg-light d-flex align-items-center justify-content-center me-2" 
+                                     style="width: 40px; height: 40px; border-radius: 4px;">
+                                    <i class="ti ti-package text-muted"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <strong>{{ order.item.name if order.item else 'Unknown Item' }}</strong>
+                                    <br><small class="text-muted">Qty: {{ order.quantity }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <strong>{{ order.orderer.username if order.orderer else 'Unknown User' }}</strong>
+                        </td>
+                        <td>
+                            {% if order.selected_color %}
+                            <small class="badge bg-light text-dark me-1">{{ order.selected_color }}</small>
+                            {% endif %}
+                            {% if order.selected_size %}
+                            <small class="badge bg-light text-dark">{{ order.selected_size }}</small>
+                            {% endif %}
+                            {% if not order.selected_color and not order.selected_size %}
+                            <span class="text-muted">No options</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-{% if order.status == 'PENDING' %}warning{% elif order.status == 'PROCESSING' %}info{% elif order.status == 'ORDERED' %}primary{% elif order.status == 'DELIVERED' %}success{% else %}secondary{% endif %}">
+                                {{ order.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <small>{{ order.order_date.strftime('%Y-%m-%d %H:%M') if order.order_date else 'Unknown' }}</small>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-info" 
+                                        onclick="viewOrderDetails({{ order.id }})" title="View Details">
+                                    <i class="ti ti-eye"></i>
+                                </button>
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-primary dropdown-toggle" type="button" 
+                                            data-bs-toggle="dropdown" title="Update Status">
+                                        <i class="ti ti-edit"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        {% for status in order_statuses %}
+                                        {% if status != order.status %}
+                                        <li>
+                                            <a class="dropdown-item" href="#" 
+                                               onclick="updateOrderStatus({{ order.id }}, '{{ status }}')">
+                                                {{ status }}
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if orders.pages > 1 %}
+        <div class="card-footer">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if orders.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin_panel.store_orders', page=orders.prev_num, **current_filters) }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in orders.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != orders.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_panel.store_orders', page=page_num, **current_filters) }}">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">…</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if orders.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin_panel.store_orders', page=orders.next_num, **current_filters) }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ti ti-shopping-cart text-muted" style="font-size: 4rem;"></i>
+            <h5 class="text-muted mt-3">No Orders Found</h5>
+            <p class="text-muted">No orders match your current filters.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function viewOrderDetails(orderId) {
+    fetch(`/admin-panel/store/orders/${orderId}/details`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const order = data.order;
+                let detailsHtml = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Order Information</h6>
+                            <p><strong>Order ID:</strong> #${order.id}</p>
+                            <p><strong>Customer:</strong> ${order.orderer_name}</p>
+                            <p><strong>Order Date:</strong> ${order.order_date}</p>
+                            <p><strong>Status:</strong> <span class="badge bg-primary">${order.status}</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Item Details</h6>
+                            <p><strong>Item:</strong> ${order.item_name}</p>
+                            <p><strong>Quantity:</strong> ${order.quantity}</p>
+                            ${order.selected_color ? `<p><strong>Color:</strong> ${order.selected_color}</p>` : ''}
+                            ${order.selected_size ? `<p><strong>Size:</strong> ${order.selected_size}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                if (order.notes) {
+                    detailsHtml += `
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6>Notes</h6>
+                                <p class="bg-light p-3 rounded">${order.notes}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (order.processed_date || order.delivered_date) {
+                    detailsHtml += `
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6>Timeline</h6>
+                                ${order.processed_date ? `<p><strong>Processed:</strong> ${order.processed_date}</p>` : ''}
+                                ${order.delivered_date ? `<p><strong>Delivered:</strong> ${order.delivered_date}</p>` : ''}
+                                ${order.processor_name ? `<p><strong>Processed by:</strong> ${order.processor_name}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                Swal.fire({
+                    title: 'Order Details',
+                    html: detailsHtml,
+                    width: '600px',
+                    confirmButtonText: 'Close'
+                });
+            } else {
+                Swal.fire('Error', 'Could not load order details', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'Could not load order details', 'error');
+        });
+}
+
+function updateOrderStatus(orderId, newStatus) {
+    Swal.fire({
+        title: 'Update Order Status',
+        text: `Change order status to ${newStatus}?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Update Status'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create and submit form
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/admin-panel/store/orders/${orderId}/update-status`;
+            
+            const statusInput = document.createElement('input');
+            statusInput.type = 'hidden';
+            statusInput.name = 'status';
+            statusInput.value = newStatus;
+            form.appendChild(statusInput);
+            
+            // Add CSRF token if available
+            const csrfToken = document.querySelector('meta[name=csrf-token]');
+            if (csrfToken) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'csrf_token';
+                input.value = csrfToken.getAttribute('content');
+                form.appendChild(input);
+            }
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+</script>
+{% endblock %}

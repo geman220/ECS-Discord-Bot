@@ -1,0 +1,401 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Message Template Management - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">Message Template Management</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Template Overview Cards -->
+<div class="row mb-4">
+    <div class="col-xl-4 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.total_templates or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Templates</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-template" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.active_templates or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Active Templates</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.total_categories or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Categories</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-category" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-primary w-100" onclick="createTemplate()">
+                            <i class="ti ti-plus me-1"></i>New Template
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-primary w-100" onclick="createCategory()">
+                            <i class="ti ti-category me-1"></i>New Category
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-success w-100" onclick="bulkActivate()">
+                            <i class="ti ti-checks me-1"></i>Bulk Activate
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-info w-100" onclick="exportTemplates()">
+                            <i class="ti ti-download me-1"></i>Export All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Templates by Category -->
+{% if categories %}
+<div class="row">
+    {% for category in categories %}
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="card-title mb-0">
+                        <i class="ti ti-folder me-2"></i>{{ category.name }}
+                    </h6>
+                    <span class="badge bg-primary">{{ category.templates|length }} templates</span>
+                </div>
+                {% if category.description %}
+                <small class="text-muted">{{ category.description }}</small>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if category.templates %}
+                <div class="list-group list-group-flush">
+                    {% for template in category.templates[:5] %}
+                    <a href="#" class="list-group-item list-group-item-action" onclick="viewTemplate({{ template.id }})">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-medium">{{ template.name }}</div>
+                                {% if template.description %}
+                                <small class="text-muted">{{ template.description[:60] }}{% if template.description|length > 60 %}...{% endif %}</small>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-{% if template.is_active %}success{% else %}secondary{% endif %} me-2">
+                                    {% if template.is_active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                    {% if category.templates|length > 5 %}
+                    <a href="#" class="list-group-item list-group-item-action text-center text-muted" onclick="viewCategory({{ category.id }})">
+                        View {{ category.templates|length - 5 }} more templates...
+                    </a>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="ti ti-inbox d-block mb-2" style="font-size: 2rem;"></i>
+                    No templates in this category yet.
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-primary" onclick="createTemplateInCategory({{ category.id }})">
+                            <i class="ti ti-plus me-1"></i>Add Template
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-info-circle me-2"></i>
+                <div>
+                    <strong>No Categories Found</strong><br>
+                    Start by creating categories to organize your message templates.
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-primary" onclick="createCategory()">
+                            <i class="ti ti-plus me-1"></i>Create First Category
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- All Templates List -->
+{% if templates %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-list me-2"></i>All Templates
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Template Name</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th>Last Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for template in templates[:20] %}
+                            <tr>
+                                <td>
+                                    <div class="fw-medium">{{ template.name }}</div>
+                                    {% if template.description %}
+                                    <small class="text-muted">{{ template.description[:80] }}{% if template.description|length > 80 %}...{% endif %}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark">{{ template.category.name if template.category else 'Uncategorized' }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if template.is_active %}success{% else %}secondary{% endif %}">
+                                        {% if template.is_active %}Active{% else %}Inactive{% endif %}
+                                    </span>
+                                </td>
+                                <td>{{ template.updated_at.strftime('%Y-%m-%d') if template.updated_at else 'Never' }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="viewTemplate({{ template.id }})">
+                                            <i class="ti ti-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary" onclick="editTemplate({{ template.id }})">
+                                            <i class="ti ti-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-{% if template.is_active %}warning{% else %}success{% endif %}" onclick="toggleTemplate({{ template.id }})">
+                                            <i class="ti ti-{% if template.is_active %}power{% else %}check{% endif %}"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if templates|length > 20 %}
+                <div class="text-center mt-3">
+                    <button class="btn btn-outline-primary" onclick="loadMoreTemplates()">
+                        Load More Templates ({{ templates|length - 20 }} remaining)
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function createTemplate() {
+    Swal.fire({
+        title: 'Create New Template',
+        html: `
+            <div class="mb-3">
+                <label class="form-label">Template Name</label>
+                <input type="text" class="form-control" id="templateName" placeholder="Enter template name">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Category</label>
+                <select class="form-select" id="templateCategory">
+                    <option value="">Select a category...</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}">{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" id="templateDescription" rows="2" placeholder="Template description (optional)"></textarea>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Create Template',
+        preConfirm: () => {
+            const name = document.getElementById('templateName').value;
+            const category = document.getElementById('templateCategory').value;
+            const description = document.getElementById('templateDescription').value;
+            
+            if (!name) {
+                Swal.showValidationMessage('Template name is required');
+                return false;
+            }
+            
+            return { name, category, description };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement template creation
+            Swal.fire('Created!', 'Template has been created successfully.', 'success');
+        }
+    });
+}
+
+function createCategory() {
+    Swal.fire({
+        title: 'Create New Category',
+        html: `
+            <div class="mb-3">
+                <label class="form-label">Category Name</label>
+                <input type="text" class="form-control" id="categoryName" placeholder="Enter category name">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" id="categoryDescription" rows="3" placeholder="Category description (optional)"></textarea>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Create Category',
+        preConfirm: () => {
+            const name = document.getElementById('categoryName').value;
+            const description = document.getElementById('categoryDescription').value;
+            
+            if (!name) {
+                Swal.showValidationMessage('Category name is required');
+                return false;
+            }
+            
+            return { name, description };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement category creation
+            Swal.fire('Created!', 'Category has been created successfully.', 'success');
+        }
+    });
+}
+
+function viewTemplate(templateId) {
+    // TODO: Implement template viewing
+    Swal.fire({
+        title: 'Template Details',
+        text: 'Template viewing functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function editTemplate(templateId) {
+    // TODO: Implement template editing
+    Swal.fire({
+        title: 'Edit Template',
+        text: 'Template editing functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function toggleTemplate(templateId) {
+    Swal.fire({
+        title: 'Toggle Template Status?',
+        text: 'This will change the active status of the template.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Toggle Status'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement template toggle
+            Swal.fire('Updated!', 'Template status has been toggled.', 'success');
+        }
+    });
+}
+
+function viewCategory(categoryId) {
+    // TODO: Implement category viewing
+    window.location.href = `/admin-panel/communication/messages/category/${categoryId}`;
+}
+
+function createTemplateInCategory(categoryId) {
+    // Set the category and create template
+    Swal.fire({
+        title: 'Create Template in Category',
+        text: 'Template creation with pre-selected category coming soon!',
+        icon: 'info'
+    });
+}
+
+function bulkActivate() {
+    Swal.fire({
+        title: 'Bulk Activate Templates',
+        text: 'Bulk operations functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function exportTemplates() {
+    Swal.fire({
+        title: 'Export Templates',
+        text: 'Template export functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function loadMoreTemplates() {
+    // TODO: Implement pagination
+    Swal.fire({
+        title: 'Load More',
+        text: 'Pagination functionality coming soon!',
+        icon: 'info'
+    });
+}
+</script>
+{% endblock %}

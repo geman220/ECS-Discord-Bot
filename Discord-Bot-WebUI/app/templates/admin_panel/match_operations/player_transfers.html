@@ -1,0 +1,293 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Player Transfers - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.match_operations') }}">Match Operations</a>
+</li>
+<li class="breadcrumb-item active">Player Transfers</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Current Season Info -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-calendar me-2"></i>Current Season: {{ transfers_data.current_season.name if transfers_data.current_season else 'No Active Season' }}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if transfers_data.current_season %}
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Total Transfers:</strong> {{ transfers_data.total_transfers or 0 }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Pending Requests:</strong> {{ transfers_data.pending_count or 0 }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Available Players:</strong> {{ transfers_data.available_players|length or 0 }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Active Teams:</strong> {{ transfers_data.teams|length or 0 }}
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="ti ti-alert-triangle me-2"></i>
+                    No active season found. Please create a season to manage player transfers.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transfer Actions -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-arrow-right me-2"></i>New Transfer
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Transfer a player between teams</p>
+                <form onsubmit="processTransfer(event)">
+                    <div class="mb-3">
+                        <label class="form-label">Player</label>
+                        <select class="form-select" name="player_id" required>
+                            <option value="">Select Player</option>
+                            {% for player in transfers_data.available_players %}
+                            <option value="{{ player.id }}">{{ player.username or player.display_name or 'Unknown Player' }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">To Team</label>
+                        <select class="form-select" name="team_id" required>
+                            <option value="">Select Team</option>
+                            {% for team in transfers_data.teams %}
+                            <option value="{{ team.id }}">{{ team.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Transfer Reason</label>
+                        <textarea class="form-control" name="reason" rows="2" placeholder="Optional reason for transfer"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-arrow-right me-1"></i>Process Transfer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-clock me-2"></i>Pending Requests
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if transfers_data.pending_requests %}
+                <div class="list-group">
+                    {% for request in transfers_data.pending_requests %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ request.player.name or 'Unknown Player' }}</strong>
+                            <br>
+                            <small class="text-muted">to {{ request.team.name or 'Unknown Team' }}</small>
+                        </div>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-success" onclick="approveTransfer({{ request.id }})">
+                                <i class="ti ti-check"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="rejectTransfer({{ request.id }})">
+                                <i class="ti ti-x"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="ti ti-clock text-muted" style="font-size: 2rem;"></i>
+                    <p class="text-muted mt-2">No pending requests</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Transfers -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-history me-2"></i>Recent Transfers
+                    </h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="exportTransferHistory()">
+                        <i class="ti ti-download me-1"></i>Export History
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if transfers_data.recent_transfers %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Player</th>
+                                <th>From Team</th>
+                                <th>To Team</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transfer in transfers_data.recent_transfers %}
+                            <tr>
+                                <td>{{ transfer.created_at.strftime('%Y-%m-%d') if transfer.created_at else 'N/A' }}</td>
+                                <td>
+                                    <strong>{{ transfer.player.name or 'Unknown Player' }}</strong>
+                                </td>
+                                <td>
+                                    <span class="text-muted">{{ transfer.from_team.name if transfer.from_team else 'Free Agent' }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ transfer.to_team.name if transfer.to_team else 'Unknown' }}</span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ transfer.reason or '-' }}</small>
+                                </td>
+                                <td>
+                                    {% if transfer.status == 'completed' %}
+                                        <span class="badge bg-success">Completed</span>
+                                    {% elif transfer.status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% elif transfer.status == 'rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ transfer.status or 'Unknown' }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-arrows-exchange text-muted" style="font-size: 4rem;"></i>
+                    <h5 class="text-muted mt-3">No Transfer History</h5>
+                    <p class="text-muted">Player transfers will appear here once they are processed.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-info-circle me-2"></i>
+                <div>
+                    <strong>Player Transfers:</strong> 
+                    Manage player movements between teams. All transfers are logged for audit purposes.
+                    <em>Note: This is a demo interface. Actual transfer functionality requires implementation.</em>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function processTransfer(event) {
+    event.preventDefault();
+    Swal.fire({
+        title: 'Process Transfer',
+        text: 'Player transfer functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function approveTransfer(requestId) {
+    Swal.fire({
+        title: 'Approve Transfer?',
+        text: 'This will complete the player transfer.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, approve',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Transfer Approved',
+                text: 'Transfer approval functionality coming soon!',
+                icon: 'success'
+            });
+        }
+    });
+}
+
+function rejectTransfer(requestId) {
+    Swal.fire({
+        title: 'Reject Transfer?',
+        text: 'This will reject the player transfer request.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, reject',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Transfer Rejected',
+                text: 'Transfer rejection functionality coming soon!',
+                icon: 'info'
+            });
+        }
+    });
+}
+
+function exportTransferHistory() {
+    Swal.fire({
+        title: 'Export Transfer History',
+        text: 'Export functionality coming soon!',
+        icon: 'info'
+    });
+}
+</script>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+@media (max-width: 768px) {
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .d-flex.justify-content-between > div:last-child {
+        margin-top: 0.25rem;
+    }
+}
+</style>
+{% endblock %}

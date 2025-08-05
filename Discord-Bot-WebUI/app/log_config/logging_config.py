@@ -39,7 +39,7 @@ LOGGING_CONFIG = {
         },
         'db_file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'db_operations.log',
+            'filename': 'logs/db_operations.log',
             'formatter': 'detailed',
             'level': 'ERROR',       # Only log serious DB errors
             'maxBytes': 50485760,   # 50MB
@@ -48,7 +48,7 @@ LOGGING_CONFIG = {
         },
         'requests_file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'requests.log',
+            'filename': 'logs/requests.log',
             'formatter': 'detailed',
             'level': 'ERROR',       # Only log request errors
             'maxBytes': 26214400,   # 25MB
@@ -57,7 +57,7 @@ LOGGING_CONFIG = {
         },
         'auth_file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'auth.log',
+            'filename': 'logs/auth.log',
             'formatter': 'detailed',
             'level': 'INFO',
             'maxBytes': 10485760,   # 10MB
@@ -66,7 +66,7 @@ LOGGING_CONFIG = {
         },
         'session_tracking': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'session_tracking.log',
+            'filename': 'logs/session_tracking.log',
             'formatter': 'focused',
             'level': 'ERROR',       # Only log session errors
             'maxBytes': 26214400,   # 25MB
@@ -75,7 +75,7 @@ LOGGING_CONFIG = {
         },
         'errors_file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'errors.log',
+            'filename': 'logs/errors.log',
             'formatter': 'detailed',
             'level': 'WARNING',
             'maxBytes': 26214400,   # 25MB

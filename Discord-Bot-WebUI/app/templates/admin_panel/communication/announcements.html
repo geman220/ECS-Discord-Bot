@@ -1,0 +1,294 @@
+{% extends "admin_panel/base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Announcements - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.communication_hub') }}">Communication</a>
+</li>
+<li class="breadcrumb-item active">Announcements</li>
+{% endblock %}
+
+{% block panel_content %}
+
+    <!-- Announcements Overview -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ announcements|length }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Total Announcements</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-speakerphone" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ active_announcements }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Active</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ recent_announcements }}</h5>
+                            <p class="card-text small opacity-75 mb-0">This Week</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-calendar-week" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ announcement_types|length }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Categories</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-tags" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Announcements Management -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-speakerphone me-2"></i>All Announcements
+                    </h5>
+                    <div>
+                        <button class="btn btn-outline-secondary me-2" onclick="window.history.back()">
+                            <i class="ti ti-arrow-left me-1"></i>Back
+                        </button>
+                        <a href="{{ url_for('admin_panel.create_announcement') }}" class="btn btn-primary">
+                            <i class="ti ti-plus me-1"></i>New Announcement
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if announcements %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Announcement</th>
+                                    <th>Type</th>
+                                    <th>Priority</th>
+                                    <th>Created</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for announcement in announcements %}
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <strong>{{ announcement.title }}</strong>
+                                            <br><small>{{ announcement.content[:100] }}{% if announcement.content|length > 100 %}...{% endif %}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ announcement.announcement_type or 'General' }}</span>
+                                    </td>
+                                    <td>
+                                        {% set priority = announcement.priority or 'normal' %}
+                                        <span class="badge bg-{% if priority == 'high' %}danger{% elif priority == 'medium' %}warning{% else %}info{% endif %}">
+                                            {{ priority.title() }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>{{ announcement.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">Active</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-info" 
+                                                    onclick="viewAnnouncement({{ announcement.id }}, '{{ announcement.title }}', `{{ announcement.content|replace('`', '\\`')|replace('\n', '\\n') }}`)">
+                                                <i class="ti ti-eye"></i>
+                                            </button>
+                                            <a href="{{ url_for('admin_panel.edit_announcement', announcement_id=announcement.id) }}" 
+                                               class="btn btn-outline-warning">
+                                                <i class="ti ti-edit"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="deleteAnnouncement({{ announcement.id }}, '{{ announcement.title }}')">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="ti ti-speakerphone-off text-muted" style="font-size: 4rem;"></i>
+                        <h5 class="text-muted mt-3">No announcements found</h5>
+                        <p class="text-muted">Create your first announcement to get started.</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createAnnouncementModal">
+                            <i class="ti ti-plus me-1"></i>Create Announcement
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Announcement Modal -->
+    <div class="modal fade" id="createAnnouncementModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Announcement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ url_for('admin_panel.manage_announcements') }}">
+                    <div class="modal-body">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="announcement_title" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="announcement_title" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="announcement_type" class="form-label">Type</label>
+                            <select class="form-select" id="announcement_type" name="announcement_type">
+                                <option value="general">General</option>
+                                <option value="league">League</option>
+                                <option value="match">Match</option>
+                                <option value="system">System</option>
+                                <option value="maintenance">Maintenance</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="announcement_priority" class="form-label">Priority</label>
+                            <select class="form-select" id="announcement_priority" name="priority">
+                                <option value="low">Low</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="announcement_content" class="form-label">Content</label>
+                            <textarea class="form-control" id="announcement_content" name="content" rows="6" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Announcement</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Announcement Modal -->
+    <div class="modal fade" id="viewAnnouncementModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="view_announcement_title">Announcement Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="card">
+                        <div class="card-body">
+                            <pre id="view_announcement_content" class="mb-0" style="white-space: pre-wrap; font-family: inherit;"></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.75rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function viewAnnouncement(id, title, content) {
+    document.getElementById('view_announcement_title').textContent = title;
+    document.getElementById('view_announcement_content').textContent = content;
+    
+    const modal = new bootstrap.Modal(document.getElementById('viewAnnouncementModal'));
+    modal.show();
+}
+
+function deleteAnnouncement(id, title) {
+    Swal.fire({
+        title: 'Delete Announcement?',
+        text: `Are you sure you want to delete "${title}"? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Redirect to delete endpoint
+            // Use the new admin_panel delete route
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `{{ url_for('admin_panel.delete_announcement', announcement_id='') }}${id}`;
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+</script>
+{% endblock %}

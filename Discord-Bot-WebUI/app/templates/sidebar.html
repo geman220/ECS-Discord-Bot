@@ -174,7 +174,7 @@
 
 
         <!-- Teams Overview -->
-        {% if can_view_teams %}
+        {% if can_view_teams and admin_settings.teams_navigation_enabled %}
         <li class="menu-item {{ 'active' if request.endpoint == 'teams.teams_overview' }}">
             <a class="menu-link teams-link" href="{{ url_for('teams.teams_overview') }}">
                 <i data-feather="users" class="menu-icon"></i>
@@ -307,8 +307,9 @@
         </li>
         {% endif %}
         
-        <!-- League Store - Available for Coaches and Admins -->
-        {% if 'Pub League Coach' in user_roles or 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+        <!-- League Store - Available for Coaches and Admins (with navigation setting) -->
+        {% set store_enabled = admin_settings.get('store_navigation_enabled', True) %}
+        {% if ('Pub League Coach' in user_roles or 'Pub League Admin' in user_roles or 'Global Admin' in user_roles) and (store_enabled or 'Global Admin' in user_roles) %}
         <li class="menu-item {{ 'active' if 'store' in request.path }}">
             <a class="menu-link" href="{{ url_for('store.index') }}">
                 <i class="ti ti-shopping-cart menu-icon"></i>
@@ -366,7 +367,15 @@
         </li>
         {% endif %}
         
-
+        <!-- Admin Panel - Centralized control center -->
+        {% if 'Global Admin' in user_roles or 'Pub League Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if request.blueprint == 'admin_panel' }}">
+            <a class="menu-link" href="{{ url_for('admin_panel.dashboard') }}">
+                <i class="ti ti-settings menu-icon"></i>
+                <div>Admin Panel 🚧 WIP</div>
+            </a>
+        </li>
+        {% endif %}
 
         <!-- Discord Admin Section Header -->
         {% if 'Discord Admin' in user_roles or 'Global Admin' in user_roles %}

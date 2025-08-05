@@ -1,0 +1,555 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}API Management - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">API Management</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- API Overview Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.total_endpoints }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Endpoints</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-api" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.active_endpoints }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Active Endpoints</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ "{:,}".format(stats.total_requests_today) }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Requests Today</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-activity" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ "%.1f"|format(stats.error_rate) }}%</h5>
+                        <p class="card-text small opacity-75 mb-0">Error Rate</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-alert-triangle" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-rocket me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('admin_panel.api_endpoints') }}" class="btn btn-primary">
+                                <i class="ti ti-list me-2"></i>View All Endpoints
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-grid">
+                            <a href="{{ url_for('admin_panel.api_analytics') }}" class="btn btn-info">
+                                <i class="ti ti-chart-line me-2"></i>View Analytics
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-outline-primary" onclick="testEndpoint()">
+                                <i class="ti ti-test-pipe me-2"></i>Test Endpoint
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-outline-warning" onclick="exportAPIData()">
+                                <i class="ti ti-download me-2"></i>Export Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-gauge me-2"></i>Performance
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small">Avg Response Time</span>
+                        <span class="small fw-bold">{{ "%.3f"|format(stats.avg_response_time) }}s</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-success" style="width: {{ (1 - stats.avg_response_time) * 100 }}%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small">Success Rate</span>
+                        <span class="small fw-bold">{{ "%.1f"|format(100 - stats.error_rate) }}%</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-primary" style="width: {{ 100 - stats.error_rate }}%"></div>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <span class="badge bg-{% if stats.error_rate < 2 %}success{% elif stats.error_rate < 5 %}warning{% else %}danger{% endif %}">
+                        {% if stats.error_rate < 2 %}Excellent{% elif stats.error_rate < 5 %}Good{% else %}Needs Attention{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Blueprint Breakdown -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-components me-2"></i>Endpoint Breakdown by Blueprint
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if stats.endpoint_breakdown %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Blueprint</th>
+                                <th>Total</th>
+                                <th>Active</th>
+                                <th>Requests</th>
+                                <th>Avg Response</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for blueprint, blueprint_stats in stats.endpoint_breakdown.items() %}
+                            <tr>
+                                <td><strong>{{ blueprint }}</strong></td>
+                                <td>{{ blueprint_stats.count }}</td>
+                                <td>{{ blueprint_stats.active }}</td>
+                                <td>{{ "{:,}".format(blueprint_stats.total_requests) }}</td>
+                                <td>{{ "%.3f"|format(blueprint_stats.avg_response_time) }}s</td>
+                                <td>
+                                    {% set health_score = (blueprint_stats.active / blueprint_stats.count) * 100 if blueprint_stats.count > 0 else 0 %}
+                                    <span class="badge bg-{% if health_score > 80 %}success{% elif health_score > 60 %}warning{% else %}danger{% endif %}">
+                                        {{ "%.0f"|format(health_score) }}%
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No endpoint data available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-activity me-2"></i>Recent Activity
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_activity %}
+                <div class="timeline">
+                    {% for activity in recent_activity %}
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-primary"></div>
+                        <div class="timeline-content">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <p class="mb-1 small">{{ activity.description }}</p>
+                                    <small class="text-muted">{{ activity.timestamp.strftime('%H:%M') }}</small>
+                                </div>
+                                <span class="badge bg-info ms-2">API</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No recent activity</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Endpoints -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-trending-up me-2"></i>Top Endpoints
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if endpoints %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Endpoint</th>
+                                <th>Blueprint</th>
+                                <th>Methods</th>
+                                <th>Requests</th>
+                                <th>Avg Response</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for endpoint in endpoints %}
+                            <tr>
+                                <td>
+                                    <code class="small">{{ endpoint.path }}</code>
+                                    {% if endpoint.description %}
+                                    <br><small class="text-muted">{{ endpoint.description }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ endpoint.blueprint }}</span>
+                                </td>
+                                <td>
+                                    {% for method in endpoint.methods %}
+                                    <span class="badge bg-{% if method == 'GET' %}info{% elif method == 'POST' %}primary{% elif method == 'PUT' %}warning{% elif method == 'DELETE' %}danger{% else %}secondary{% endif %} me-1">
+                                        {{ method }}
+                                    </span>
+                                    {% endfor %}
+                                </td>
+                                <td>{{ "{:,}".format(endpoint.request_count) }}</td>
+                                <td>{{ "%.3f"|format(endpoint.avg_response_time) }}s</td>
+                                <td>
+                                    <span class="badge bg-{% if endpoint.status == 'active' %}success{% else %}warning{% endif %}">
+                                        {{ endpoint.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-info" 
+                                                onclick="viewEndpointDetails('{{ endpoint.path[1:] }}')" title="View Details">
+                                            <i class="ti ti-eye"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-primary" 
+                                                onclick="testSpecificEndpoint('{{ endpoint.path }}', {{ endpoint.methods | tojson }})" title="Test">
+                                            <i class="ti ti-test-pipe"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('admin_panel.api_endpoints') }}" class="btn btn-outline-primary">
+                        View All Endpoints
+                    </a>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No endpoints available</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--bs-border-color);
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -24px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 2px solid var(--bs-body-bg);
+    top: 5px;
+}
+
+.timeline-content {
+    background: var(--bs-light);
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function viewEndpointDetails(endpointPath) {
+    fetch(`/admin-panel/api/endpoint/${endpointPath}/details`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const endpoint = data.endpoint;
+                const usage = data.usage_stats;
+                let detailsHtml = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Endpoint Information</h6>
+                            <p><strong>Path:</strong> <code>${endpoint.path}</code></p>
+                            <p><strong>Blueprint:</strong> ${endpoint.blueprint}</p>
+                            <p><strong>Methods:</strong> ${endpoint.methods.join(', ')}</p>
+                            <p><strong>Authentication:</strong> ${endpoint.authentication}</p>
+                            <p><strong>Status:</strong> <span class="badge bg-${endpoint.status === 'active' ? 'success' : 'warning'}">${endpoint.status}</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Usage Statistics</h6>
+                            <p><strong>Total Requests:</strong> ${usage.total_requests.toLocaleString()}</p>
+                            <p><strong>Success Rate:</strong> ${usage.success_rate.toFixed(1)}%</p>
+                            <p><strong>Avg Response Time:</strong> ${usage.avg_response_time.toFixed(3)}s</p>
+                            <p><strong>24h Requests:</strong> ${usage.last_24h_requests}</p>
+                            <p><strong>Peak Hour:</strong> ${usage.peak_hour}</p>
+                        </div>
+                    </div>
+                `;
+                
+                if (endpoint.description) {
+                    detailsHtml += `
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6>Description</h6>
+                                <p class="bg-light p-3 rounded">${endpoint.description}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                Swal.fire({
+                    title: 'Endpoint Details',
+                    html: detailsHtml,
+                    width: '700px',
+                    confirmButtonText: 'Close'
+                });
+            } else {
+                Swal.fire('Error', 'Could not load endpoint details', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'Could not load endpoint details', 'error');
+        });
+}
+
+function testEndpoint() {
+    Swal.fire({
+        title: 'Test API Endpoint',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Endpoint Path</label>
+                    <input type="text" id="test-endpoint" class="form-control" placeholder="/api/example">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Method</label>
+                    <select id="test-method" class="form-select">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Parameters (JSON)</label>
+                    <textarea id="test-params" class="form-control" rows="3" placeholder='{"key": "value"}'></textarea>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Test Endpoint',
+        preConfirm: () => {
+            const endpoint = document.getElementById('test-endpoint').value;
+            const method = document.getElementById('test-method').value;
+            const paramsText = document.getElementById('test-params').value;
+            
+            if (!endpoint) {
+                Swal.showValidationMessage('Please enter an endpoint path');
+                return false;
+            }
+            
+            let parameters = {};
+            if (paramsText.trim()) {
+                try {
+                    parameters = JSON.parse(paramsText);
+                } catch (e) {
+                    Swal.showValidationMessage('Invalid JSON in parameters');
+                    return false;
+                }
+            }
+            
+            return { endpoint, method, parameters };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            testSpecificEndpointWithData(result.value);
+        }
+    });
+}
+
+function testSpecificEndpoint(endpoint, methods) {
+    Swal.fire({
+        title: 'Test Endpoint',
+        text: `Test ${endpoint} with method:`,
+        input: 'select',
+        inputOptions: methods.reduce((obj, method) => {
+            obj[method] = method;
+            return obj;
+        }, {}),
+        showCancelButton: true,
+        confirmButtonText: 'Test'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            testSpecificEndpointWithData({
+                endpoint: endpoint,
+                method: result.value,
+                parameters: {}
+            });
+        }
+    });
+}
+
+function testSpecificEndpointWithData(data) {
+    fetch('/admin-panel/api/test-endpoint', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            let resultHtml = `
+                <div class="text-start">
+                    <p><strong>Status:</strong> <span class="badge bg-success">${result.status_code}</span></p>
+                    <p><strong>Response Time:</strong> ${result.response_time}s</p>
+                    <p><strong>Response:</strong></p>
+                    <pre class="bg-light p-3 rounded"><code>${JSON.stringify(result.response_data, null, 2)}</code></pre>
+                </div>
+            `;
+            
+            Swal.fire({
+                title: 'Test Results',
+                html: resultHtml,
+                icon: 'success',
+                width: '600px'
+            });
+        } else {
+            Swal.fire('Error', result.error || 'Test failed', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire('Error', 'Could not test endpoint', 'error');
+    });
+}
+
+function exportAPIData() {
+    Swal.fire({
+        title: 'Export API Data',
+        text: 'Choose export format:',
+        input: 'select',
+        inputOptions: {
+            'csv': 'CSV',
+            'json': 'JSON',
+            'xlsx': 'Excel'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Export'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Mock export functionality
+            Swal.fire('Export Started', `API data export in ${result.value.toUpperCase()} format has been queued.`, 'info');
+        }
+    });
+}
+</script>
+{% endblock %}

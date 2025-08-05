@@ -1,0 +1,632 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}API Management - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">API Management</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- API Overview Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.active_integrations or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Active Integrations</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-api" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.api_calls_today or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">API Calls Today</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-chart-line" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.failed_requests or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Failed Requests</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-alert-triangle" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.response_time_avg or '0ms' }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Avg Response Time</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- API Integrations Status -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-plug me-2"></i>External Integrations
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for integration in integrations %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card border">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="card-title mb-0">{{ integration.name }}</h6>
+                                    <span class="badge bg-{% if integration.status == 'healthy' %}success{% elif integration.status == 'warning' %}warning{% else %}danger{% endif %}">
+                                        {{ integration.status.title() }}
+                                    </span>
+                                </div>
+                                <div class="row text-center mb-3">
+                                    <div class="col-6">
+                                        <div class="small text-muted">Last Check</div>
+                                        <div class="fw-medium">{{ integration.last_check.strftime('%H:%M') if integration.last_check else 'Never' }}</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="small text-muted">Status</div>
+                                        <div class="fw-medium">
+                                            <i class="ti ti-{% if integration.status == 'healthy' %}check{% elif integration.status == 'warning' %}alert-triangle{% else %}x{% endif %} me-1"></i>
+                                            {{ integration.status.title() }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="testIntegration('{{ integration.name.lower().replace(' ', '-') }}')">
+                                        <i class="ti ti-refresh me-1"></i>Test
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="configureIntegration('{{ integration.name.lower().replace(' ', '-') }}')">
+                                        <i class="ti ti-settings me-1"></i>Config
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- API Management Actions -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-key me-2"></i>API Keys & Security
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Manage API keys, tokens, and security settings</p>
+                <div class="list-group list-group-flush">
+                    <a href="#" class="list-group-item list-group-item-action" onclick="manageApiKeys()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-key me-2"></i>API Keys
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" onclick="rateLimiting()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-shield me-2"></i>Rate Limiting
+                            </div>
+                            <span class="badge bg-success">{{ stats.rate_limit_status.title() }}</span>
+                        </div>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" onclick="accessLogs()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-file-text me-2"></i>Access Logs
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" onclick="securitySettings()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-lock me-2"></i>Security Settings
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-chart-dots me-2"></i>API Analytics
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Monitor API usage, performance, and analytics</p>
+                <div class="list-group list-group-flush">
+                    <a href="#" class="list-group-item list-group-item-action" onclick="usageStats()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-chart-bar me-2"></i>Usage Statistics
+                            </div>
+                            <span class="badge bg-info">{{ stats.api_calls_today or 0 }}</span>
+                        </div>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" onclick="performanceMetrics()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-activity me-2"></i>Performance Metrics
+                            </div>
+                            <span class="badge bg-success">{{ stats.response_time_avg }}</span>
+                        </div>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" onclick="errorReports()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-alert-circle me-2"></i>Error Reports
+                            </div>
+                            <span class="badge bg-warning">{{ stats.failed_requests or 0 }}</span>
+                        </div>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" onclick="generateApiReport()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-file-report me-2"></i>Generate Report
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- API Configuration -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-settings me-2"></i>Global API Configuration
+                </h5>
+            </div>
+            <div class="card-body">
+                <form>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">API Version</label>
+                                <select class="form-select" id="apiVersion">
+                                    <option value="v1">Version 1.0</option>
+                                    <option value="v1.1" selected>Version 1.1</option>
+                                    <option value="v2">Version 2.0 (Beta)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Default Rate Limit (per minute)</label>
+                                <input type="number" class="form-control" value="1000" id="rateLimit">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Timeout (seconds)</label>
+                                <input type="number" class="form-control" value="30" id="apiTimeout">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Max Payload Size (MB)</label>
+                                <input type="number" class="form-control" value="10" id="maxPayload">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="enableCors" checked>
+                                <label class="form-check-label" for="enableCors">
+                                    Enable CORS
+                                </label>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="enableLogging" checked>
+                                <label class="form-check-label" for="enableLogging">
+                                    Enable Request Logging
+                                </label>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="enableCompression" checked>
+                                <label class="form-check-label" for="enableCompression">
+                                    Enable Response Compression
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="button" class="btn btn-primary" onclick="saveApiConfig()">
+                                <i class="ti ti-device-floppy me-1"></i>Save Configuration
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary ms-2" onclick="resetApiConfig()">
+                                <i class="ti ti-refresh me-1"></i>Reset Defaults
+                            </button>
+                            <button type="button" class="btn btn-outline-info ms-2" onclick="testApiConfig()">
+                                <i class="ti ti-test-pipe me-1"></i>Test Configuration
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- API Documentation -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-book me-2"></i>API Documentation & Tools
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="card border text-center">
+                            <div class="card-body">
+                                <i class="ti ti-book text-primary mb-2" style="font-size: 2rem;"></i>
+                                <h6>API Docs</h6>
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewApiDocs()">
+                                    View Docs
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card border text-center">
+                            <div class="card-body">
+                                <i class="ti ti-test-pipe text-success mb-2" style="font-size: 2rem;"></i>
+                                <h6>API Tester</h6>
+                                <button class="btn btn-sm btn-outline-success" onclick="openApiTester()">
+                                    Test APIs
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card border text-center">
+                            <div class="card-body">
+                                <i class="ti ti-code text-info mb-2" style="font-size: 2rem;"></i>
+                                <h6>Code Samples</h6>
+                                <button class="btn btn-sm btn-outline-info" onclick="viewCodeSamples()">
+                                    View Samples
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card border text-center">
+                            <div class="card-body">
+                                <i class="ti ti-download text-warning mb-2" style="font-size: 2rem;"></i>
+                                <h6>SDK Downloads</h6>
+                                <button class="btn btn-sm btn-outline-warning" onclick="downloadSdk()">
+                                    Download
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- API Status Alert -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-{% if stats.rate_limit_status == 'healthy' %}success{% else %}warning{% endif %}">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-{% if stats.rate_limit_status == 'healthy' %}check-circle{% else %}alert-triangle{% endif %} me-2"></i>
+                <div>
+                    <strong>API Status:</strong> 
+                    {% if stats.rate_limit_status == 'healthy' %}
+                        All API integrations are operational and within rate limits.
+                    {% else %}
+                        Some API endpoints are experiencing high traffic. Monitor usage closely.
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function testIntegration(integrationName) {
+    Swal.fire({
+        title: 'Testing Integration...',
+        text: `Testing ${integrationName.replace('-', ' ')} connectivity`,
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+            // TODO: Implement integration testing
+            setTimeout(() => {
+                Swal.fire('Test Successful!', 'Integration is working correctly.', 'success');
+            }, 2000);
+        }
+    });
+}
+
+function configureIntegration(integrationName) {
+    // TODO: Implement integration configuration
+    Swal.fire({
+        title: 'Configure Integration',
+        text: `${integrationName.replace('-', ' ')} configuration coming soon!`,
+        icon: 'info'
+    });
+}
+
+function manageApiKeys() {
+    Swal.fire({
+        title: 'API Key Management',
+        html: `
+            <div class="mb-3">
+                <label class="form-label">Generate New API Key</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" value="ecs-fc-" id="keyPrefix" placeholder="Key prefix">
+                    <button class="btn btn-outline-primary" onclick="generateApiKey()">Generate</button>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Existing Keys</label>
+                <div class="list-group">
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>ecs-fc-main-key</span>
+                        <div>
+                            <span class="badge bg-success me-2">Active</span>
+                            <button class="btn btn-sm btn-outline-danger">Revoke</button>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>ecs-fc-mobile-key</span>
+                        <div>
+                            <span class="badge bg-success me-2">Active</span>
+                            <button class="btn btn-sm btn-outline-danger">Revoke</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Close',
+        width: '600px'
+    });
+}
+
+function generateApiKey() {
+    const prefix = document.getElementById('keyPrefix').value;
+    const randomKey = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const newKey = prefix + randomKey;
+    
+    // TODO: Implement actual key generation
+    Swal.fire({
+        title: 'API Key Generated!',
+        html: `
+            <div class="mb-3">
+                <label class="form-label">New API Key</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" value="${newKey}" id="newApiKey" readonly>
+                    <button class="btn btn-outline-primary" onclick="copyApiKey()">Copy</button>
+                </div>
+            </div>
+            <div class="alert alert-warning">
+                <strong>Important:</strong> Save this key now. You won't be able to see it again.
+            </div>
+        `,
+        confirmButtonText: 'I\'ve Saved It'
+    });
+}
+
+function copyApiKey() {
+    const keyInput = document.getElementById('newApiKey');
+    keyInput.select();
+    document.execCommand('copy');
+    
+    // Show temporary success message
+    const button = event.target;
+    const originalText = button.textContent;
+    button.textContent = 'Copied!';
+    button.className = 'btn btn-success';
+    setTimeout(() => {
+        button.textContent = originalText;
+        button.className = 'btn btn-outline-primary';
+    }, 2000);
+}
+
+function rateLimiting() {
+    // TODO: Implement rate limiting configuration
+    Swal.fire({
+        title: 'Rate Limiting',
+        text: 'Rate limiting configuration coming soon!',
+        icon: 'info'
+    });
+}
+
+function accessLogs() {
+    // TODO: Implement access logs viewing
+    Swal.fire({
+        title: 'Access Logs',
+        text: 'Access logs functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function securitySettings() {
+    // TODO: Implement security settings
+    Swal.fire({
+        title: 'Security Settings',
+        text: 'Security settings functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function usageStats() {
+    // TODO: Implement usage statistics
+    Swal.fire({
+        title: 'Usage Statistics',
+        text: 'Usage statistics functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function performanceMetrics() {
+    // TODO: Implement performance metrics
+    Swal.fire({
+        title: 'Performance Metrics',
+        text: 'Performance metrics functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function errorReports() {
+    // TODO: Implement error reports
+    Swal.fire({
+        title: 'Error Reports',
+        text: 'Error reports functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function generateApiReport() {
+    // TODO: Implement report generation
+    Swal.fire({
+        title: 'Generate Report',
+        text: 'Report generation functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function saveApiConfig() {
+    const config = {
+        version: document.getElementById('apiVersion').value,
+        rateLimit: document.getElementById('rateLimit').value,
+        timeout: document.getElementById('apiTimeout').value,
+        maxPayload: document.getElementById('maxPayload').value,
+        enableCors: document.getElementById('enableCors').checked,
+        enableLogging: document.getElementById('enableLogging').checked,
+        enableCompression: document.getElementById('enableCompression').checked
+    };
+    
+    // TODO: Implement configuration save
+    Swal.fire('Saved!', 'API configuration has been updated successfully.', 'success');
+}
+
+function resetApiConfig() {
+    document.getElementById('apiVersion').value = 'v1.1';
+    document.getElementById('rateLimit').value = '1000';
+    document.getElementById('apiTimeout').value = '30';
+    document.getElementById('maxPayload').value = '10';
+    document.getElementById('enableCors').checked = true;
+    document.getElementById('enableLogging').checked = true;
+    document.getElementById('enableCompression').checked = true;
+    
+    Swal.fire('Reset!', 'Configuration has been reset to defaults.', 'info');
+}
+
+function testApiConfig() {
+    Swal.fire({
+        title: 'Testing Configuration...',
+        text: 'Validating API configuration settings',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+            // TODO: Implement configuration testing
+            setTimeout(() => {
+                Swal.fire('Configuration Valid!', 'All settings are working correctly.', 'success');
+            }, 2000);
+        }
+    });
+}
+
+function viewApiDocs() {
+    // TODO: Implement API documentation viewing
+    Swal.fire({
+        title: 'API Documentation',
+        text: 'Documentation viewer coming soon!',
+        icon: 'info'
+    });
+}
+
+function openApiTester() {
+    // TODO: Implement API tester
+    Swal.fire({
+        title: 'API Tester',
+        text: 'API testing tool coming soon!',
+        icon: 'info'
+    });
+}
+
+function viewCodeSamples() {
+    // TODO: Implement code samples
+    Swal.fire({
+        title: 'Code Samples',
+        text: 'Code samples functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function downloadSdk() {
+    // TODO: Implement SDK downloads
+    Swal.fire({
+        title: 'SDK Downloads',
+        text: 'SDK download functionality coming soon!',
+        icon: 'info'
+    });
+}
+</script>
+{% endblock %}

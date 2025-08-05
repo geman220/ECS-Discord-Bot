@@ -328,6 +328,74 @@ async def load_poll_message_ids():
         logger.error(f"Error loading poll message IDs: {e}")
 
 
+async def start_rest_api():
+    """
+    Starts the FastAPI server using Uvicorn with improved retry logic and error handling.
+    """
+    # Always use port 5001 - kill any existing processes on this port
+    port = 5001
+    max_retries = 3
+    
+    # Add a delay before trying to bind to allow socket cleanup
+    await asyncio.sleep(5)
+    
+    for attempt in range(max_retries):
+        try:
+            # Kill any existing processes on the port
+            try:
+                logger.info(f"Checking for existing processes on port {port}...")
+                # Try to bind to check if port is available
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    s.bind(('0.0.0.0', port))
+                logger.info(f"Port {port} is available")
+            except OSError as e:
+                if e.errno == 98:  # Address already in use
+                    logger.warning(f"Port {port} is in use, attempting to free it...")
+                    # Try to free the port using fuser
+                    import subprocess
+                    try:
+                        result = subprocess.run(['fuser', '-k', f'{port}/tcp'], 
+                                              capture_output=True, text=True, timeout=10)
+                        logger.info(f"Port cleanup result: {result.stdout}")
+                        await asyncio.sleep(2)  # Wait for cleanup
+                    except (subprocess.TimeoutExpired, FileNotFoundError):
+                        logger.warning("Could not kill processes on port (fuser not available or timeout)")
+                        # Continue anyway and let uvicorn handle it
+                
+            # Configure and start the uvicorn server
+            config = uvicorn.Config(
+                app,
+                host="0.0.0.0",
+                port=port,
+                log_level="info",
+                loop=bot.loop,          # Use the bot's event loop
+                lifespan="off",         # Disable lifespan events
+            )
+            server = uvicorn.Server(config)
+            
+            # Store the port so other parts of the application can reference it
+            bot.api_port = port
+            
+            # Try to start the server
+            logger.info(f"Starting FastAPI server on port {port} (attempt {attempt + 1}/{max_retries})")
+            await server.serve()
+            logger.info(f"FastAPI server started successfully on port {port}")
+            return  # Success, exit the function
+                
+        except Exception as e:
+            logger.error(f"Failed to start API server on attempt {attempt + 1}: {e}")
+            if attempt < max_retries - 1:
+                # Wait before retrying
+                wait_time = 2 ** attempt  # Exponential backoff
+                logger.info(f"Retrying in {wait_time} seconds...")
+                await asyncio.sleep(wait_time)
+            else:
+                logger.error(f"Failed to start API server after {max_retries} attempts")
+                # Don't crash the bot, just log the error
+                break
+
+
 async def periodic_sync():
     """
     Periodically synchronizes managed_message_ids with the web app.
@@ -1372,6 +1440,11 @@ async def load_cogs():
 async def on_ready():
     logger.info(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
     
+    # Set bot instance in shared state and log startup
+    set_bot_instance(bot)
+    bot_state.log_activity(f"Bot connected to Discord as {bot.user.name}")
+    bot_state.log_activity(f"Monitoring {len(bot.guilds)} guild(s)")
+    
     # Initialize Enterprise RSVP Smart Sync Manager  
     try:
         logger.info("🤖 Initializing Enterprise RSVP Smart Sync Manager...")
@@ -1681,6 +1754,10 @@ async def on_message(message):
     """
     if message.author == bot.user:
         return
+    
+    # Track message activity
+    if message.guild:
+        bot_state.track_message_activity(message.guild.id)
 
     # Check if the message is sent in one of the verification channels.
     if message.channel.id in VERIFY_CHANNEL_IDS:
@@ -2237,6 +2314,10 @@ async def on_member_join(member: discord.Member):
     3. Posts to #pl-new-players when appropriate
     """
     logger.info(f"Member join event triggered for {member.id} - {member.name}")
+    
+    # Track member join activity
+    bot_state.track_member_join(member.id, member.guild.id)
+    
     # Wait a few seconds to allow for any asynchronous linking in Flask to complete.
     await asyncio.sleep(5)
     
@@ -2868,6 +2949,25 @@ def signal_handler(sig, frame):
     # Make sure we exit with success status to prevent Docker from restarting unnecessarily
     logger.info("Exiting bot process...")
     sys.exit(0)
+
+# Command tracking events
+@bot.event
+async def on_app_command_completion(interaction: discord.Interaction, command):
+    """Track application command usage."""
+    try:
+        bot_state.track_command_usage(command.name)
+        logger.debug(f"Tracked slash command: {command.name}")
+    except Exception as e:
+        logger.error(f"Error tracking slash command: {e}")
+
+@bot.event
+async def on_command_completion(ctx):
+    """Track text command usage."""
+    try:
+        bot_state.track_command_usage(ctx.command.name)
+        logger.debug(f"Tracked text command: {ctx.command.name}")
+    except Exception as e:
+        logger.error(f"Error tracking text command: {e}")
 
 # Register signal handlers
 signal.signal(signal.SIGINT, signal_handler)

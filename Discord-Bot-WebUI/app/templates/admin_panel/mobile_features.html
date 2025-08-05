@@ -1,0 +1,370 @@
+{% extends "admin_panel/base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Mobile Features - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">Mobile Features</li>
+{% endblock %}
+
+{% block panel_content %}
+
+    <!-- Mobile Features Overview -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ stats.total_app_installs or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">App Installs</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-download" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ stats.mobile_users or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Mobile Users</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-device-mobile" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ stats.push_subscriptions or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Push Subscriptions</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-bell" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ stats.app_downloads or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">App Downloads</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-download" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile User & App Management -->
+    <div class="row mb-4">
+        <!-- Mobile User Management -->
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-users me-2"></i>Mobile User Management
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Manage users with mobile app access and their roles</p>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin_panel.mobile_user_management') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-user-cog me-2"></i>Manage Mobile Users
+                                </div>
+                                <span class="badge bg-primary">{{ stats.mobile_users or 0 }}</span>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('user_management.manage_users') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-users-group me-2"></i>All User Management
+                                </div>
+                                <i class="ti ti-external-link"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.mobile_users') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-device-mobile me-2"></i>View Mobile Users
+                                </div>
+                                <span class="badge bg-success">{{ stats.active_mobile_users or 0 }}</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile App Settings -->
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-device-mobile me-2"></i>Mobile App Settings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Configure mobile app features and functionality</p>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin_panel.mobile_config') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-settings-cog me-2"></i>App Configuration
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.mobile_app_distribution') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-app-window me-2"></i>App Distribution
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.mobile_features_toggle') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-toggle-left me-2"></i>Feature Toggles
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Push Notifications & Analytics -->
+    <div class="row">
+        <!-- Push Notification Management -->
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-bell me-2"></i>Push Notifications
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Manage mobile push notification campaigns</p>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin_panel.push_campaigns') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-send me-2"></i>Send Notification
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.push_subscriptions') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-users me-2"></i>Subscriptions
+                                </div>
+                                <span class="badge bg-warning">{{ stats.push_subscriptions or 0 }}</span>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.push_history') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-history me-2"></i>Notification History
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Analytics -->
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-chart-line me-2"></i>Mobile Analytics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Track mobile app performance and user engagement</p>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('admin_panel.mobile_analytics') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-chart-dots me-2"></i>Usage Analytics
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('admin_panel.mobile_app_analytics') }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-chart-bar me-2"></i>App Analytics
+                                </div>
+                                <i class="ti ti-chevron-right"></i>
+                            </div>
+                        </a>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-download me-2"></i>App Downloads
+                                </div>
+                                <span class="badge bg-info">{{ stats.app_downloads or 0 }}</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="ti ti-users me-2"></i>Active Mobile Users
+                                </div>
+                                <span class="badge bg-success">{{ stats.active_mobile_users or 0 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Status & Configuration -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-device-mobile me-2"></i>Mobile Platform Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border-end">
+                                <div class="h4 mb-1 text-{% if stats.mobile_service_status == 'active' %}success{% else %}danger{% endif %}">
+                                    {% if stats.mobile_service_status == 'active' %}Online{% else %}Offline{% endif %}
+                                </div>
+                                <div class="text-muted small">Mobile Service</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border-end">
+                                <div class="h4 mb-1 text-{% if stats.push_service_status == 'active' %}success{% else %}danger{% endif %}">
+                                    {% if stats.push_service_status == 'active' %}Active{% else %}Inactive{% endif %}
+                                </div>
+                                <div class="text-muted small">Push Service</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 border-end">
+                                <div class="h4 mb-1 text-info">{{ stats.mobile_app_version or 'v1.0.0' }}</div>
+                                <div class="text-muted small">App Version</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3">
+                                <div class="h4 mb-1 text-primary">{{ stats.last_updated or 'Recently' }}</div>
+                                <div class="text-muted small">Last Updated</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Information Alert -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <div class="d-flex align-items-center">
+                    <i class="ti ti-info-circle me-2"></i>
+                    <div>
+                        <strong>Mobile Features:</strong> 
+                        This section provides comprehensive management tools for mobile app features, 
+                        including user management, push notifications, and mobile app analytics.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-indicator.active {
+    background-color: #28a745;
+    box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.2);
+}
+
+.status-indicator.inactive {
+    background-color: #dc3545;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+}
+
+/* Ensure all text and icons in list group items are white in dark mode */
+[data-bs-theme="dark"] .list-group-item-action {
+    color: #ffffff !important;
+}
+
+[data-bs-theme="dark"] .list-group-item-action:hover {
+    color: #ffffff !important;
+}
+
+[data-bs-theme="dark"] .list-group-item-action i {
+    color: #ffffff !important;
+}
+
+[data-bs-theme="dark"] .list-group-item-action * {
+    color: #ffffff !important;
+}
+
+@media (max-width: 768px) {
+    .border-end {
+        border-right: none !important;
+        border-bottom: 1px solid var(--bs-border-color) !important;
+    }
+    
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .d-flex.justify-content-between > div:last-child {
+        margin-top: 0.25rem;
+    }
+}
+</style>
+{% endblock %}

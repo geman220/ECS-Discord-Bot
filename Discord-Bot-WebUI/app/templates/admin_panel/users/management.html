@@ -1,0 +1,269 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}User Management - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">User Management</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- User Management Overview -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.total_users }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Users</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.pending_approvals }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Pending Approvals</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-user-clock" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.approved_users }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Approved Users</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-user-check" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.waitlist_users }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Waitlist Users</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-user-pause" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Management Actions -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-user-check me-2"></i>User Approvals
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Review and approve pending user registrations</p>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="list-group-item list-group-item-action bg-primary text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-users me-2"></i><strong>Advanced User Management</strong>
+                            </div>
+                            <i class="ti ti-external-link"></i>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('admin_panel.user_approvals') }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-user-check me-2 text-warning"></i>User Approvals
+                            </div>
+                            <span class="badge bg-warning">{{ stats.pending_approvals }}</span>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('admin_panel.bulk_operations') }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-list-check me-2 text-info"></i>Bulk Operations
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-shield me-2"></i>Role Management
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Manage user roles and permissions</p>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="list-group-item list-group-item-action bg-success text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-shield-check me-2"></i><strong>Advanced Role Management</strong>
+                            </div>
+                            <i class="ti ti-external-link"></i>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('admin_panel.roles_management') }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-shield me-2 text-primary"></i>Role Assignment Tools
+                            </div>
+                            <span class="badge bg-primary">{{ stats.total_roles }}</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-user-pause me-2"></i>Waitlist Management
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Manage users on the waitlist</p>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('admin_panel.user_waitlist') }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-user-pause me-2 text-warning"></i>Waitlist Users
+                            </div>
+                            <span class="badge bg-warning">{{ stats.waitlist_users }}</span>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('admin_panel.user_waitlist') }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-user-plus me-2 text-success"></i>Promote from Waitlist
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent User Management Actions -->
+{% if recent_actions %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-history me-2"></i>Recent User Management Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Admin</th>
+                                <th>Action</th>
+                                <th>Resource</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for action in recent_actions %}
+                            <tr>
+                                <td>
+                                    <small>{{ action.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                                </td>
+                                <td>
+                                    <strong>{{ action.admin.username if action.admin else 'System' }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ action.action.replace('_', ' ').title() }}</span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ action.resource_type.replace('_', ' ').title() }}</small>
+                                </td>
+                                <td>
+                                    <small>{{ action.new_value[:50] }}{% if action.new_value and action.new_value|length > 50 %}...{% endif %}</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-history me-2"></i>Recent User Management Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center py-4">
+                    <i class="ti ti-history text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="text-muted mt-3">No Recent Actions</h5>
+                    <p class="text-muted">User management actions will appear here when performed.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .card-title {
+        font-size: 1.1rem;
+    }
+    
+    .card-text {
+        font-size: 0.9rem;
+    }
+}
+</style>
+{% endblock %}

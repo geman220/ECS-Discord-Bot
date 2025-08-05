@@ -676,12 +676,12 @@ def get_stats_summary():
         
         # Recent activity
         recent_matches = Match.query.filter(
-            Match.date >= (datetime.now() - timedelta(days=30)).date()
+            Match.date >= (datetime.utcnow() - timedelta(days=30)).date()
         ).count()
         
         upcoming_matches = Match.query.filter(
             and_(
-                Match.date >= datetime.now().date(),
+                Match.date >= datetime.utcnow().date(),
                 Match.home_team_score.is_(None)
             )
         ).count()

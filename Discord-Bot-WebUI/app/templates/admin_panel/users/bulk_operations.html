@@ -1,0 +1,679 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Bulk Operations - User Management{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.user_management') }}">User Management</a></li>
+<li class="breadcrumb-item active">Bulk Operations</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Bulk Operations Overview -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ bulk_stats.pending_users }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Pending Approvals</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ bulk_stats.waitlist_users }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Waitlist Users</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-users" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ bulk_stats.total_roles }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Available Roles</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-shield" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ bulk_stats.recent_operations }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Recent Operations</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-activity" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Operations Actions -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-user-check me-2"></i>Bulk Approvals
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Approve multiple pending users at once with league assignments.</p>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-primary" onclick="showBulkApprovalModal()">
+                        <i class="ti ti-users me-2"></i>Bulk Approve Users
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" onclick="loadPendingUsers()">
+                        <i class="ti ti-list me-2"></i>View Pending Users
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-shield me-2"></i>Role Management
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Assign, remove, or replace roles for multiple users simultaneously.</p>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-success" onclick="showBulkRoleModal()">
+                        <i class="ti ti-shield-plus me-2"></i>Bulk Role Assignment
+                    </button>
+                    <button type="button" class="btn btn-outline-success" onclick="viewRoleDistribution()">
+                        <i class="ti ti-chart-pie me-2"></i>Role Distribution
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-list-check me-2"></i>Waitlist Management
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Process waitlist users in bulk to move them to pending approval.</p>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-info" onclick="showBulkWaitlistModal()">
+                        <i class="ti ti-arrow-right me-2"></i>Process Waitlist
+                    </button>
+                    <button type="button" class="btn btn-outline-info" onclick="loadWaitlistUsers()">
+                        <i class="ti ti-eye me-2"></i>View Waitlist
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Bulk Operations -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-history me-2"></i>Recent Bulk Operations
+                </h5>
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="refreshOperationHistory()">
+                    <i class="ti ti-refresh me-1"></i>Refresh
+                </button>
+            </div>
+            <div class="card-body">
+                {% if recent_bulk_ops %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Operation</th>
+                                <th>Admin</th>
+                                <th>Details</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for op in recent_bulk_ops %}
+                            <tr>
+                                <td>
+                                    <span class="badge bg-primary">{{ op.action|title }}</span>
+                                </td>
+                                <td>{{ op.user.username if op.user else 'System' }}</td>
+                                <td>{{ op.new_value or op.details or 'No details' }}</td>
+                                <td>
+                                    <small>{{ op.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">Completed</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="ti ti-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <p class="text-muted mt-2">No recent bulk operations found</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Role Distribution Chart -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-chart-donut me-2"></i>Role Distribution
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <canvas id="roleDistributionChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="role-stats">
+                            {% for role, count in role_stats.items() %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <strong>{{ role }}</strong>
+                                </div>
+                                <div>
+                                    <span class="badge bg-primary">{{ count }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Approval Modal -->
+<div class="modal fade" id="bulkApprovalModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk User Approval</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="bulkApprovalContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading pending users...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="processBulkApproval()" id="bulkApprovalBtn" disabled>
+                    <i class="ti ti-check me-2"></i>Approve Selected
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Role Assignment Modal -->
+<div class="modal fade" id="bulkRoleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Role Assignment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="bulkRoleContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading role assignment interface...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="processBulkRoleAssignment()" id="bulkRoleBtn" disabled>
+                    <i class="ti ti-shield-plus me-2"></i>Assign Roles
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Waitlist Processing Modal -->
+<div class="modal fade" id="bulkWaitlistModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Waitlist Processing</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="bulkWaitlistContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading waitlist users...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-info" onclick="processBulkWaitlist()" id="bulkWaitlistBtn" disabled>
+                    <i class="ti ti-arrow-right me-2"></i>Process Selected
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Global variables for bulk operations
+let selectedUsers = [];
+let selectedRoles = [];
+let bulkOperation = '';
+
+// Initialize role distribution chart
+document.addEventListener('DOMContentLoaded', function() {
+    initializeRoleDistributionChart();
+});
+
+function initializeRoleDistributionChart() {
+    const ctx = document.getElementById('roleDistributionChart').getContext('2d');
+    const roleStats = {{ role_stats|tojson }};
+    
+    const labels = Object.keys(roleStats);
+    const data = Object.values(roleStats);
+    const colors = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+        '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+    ];
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors.slice(0, labels.length),
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    });
+}
+
+function showBulkApprovalModal() {
+    const modal = new bootstrap.Modal(document.getElementById('bulkApprovalModal'));
+    modal.show();
+    loadPendingUsersForApproval();
+}
+
+function showBulkRoleModal() {
+    const modal = new bootstrap.Modal(document.getElementById('bulkRoleModal'));
+    modal.show();
+    loadRoleAssignmentInterface();
+}
+
+function showBulkWaitlistModal() {
+    const modal = new bootstrap.Modal(document.getElementById('bulkWaitlistModal'));
+    modal.show();
+    loadWaitlistUsersForProcessing();
+}
+
+function loadPendingUsersForApproval() {
+    // In a real implementation, this would fetch pending users via AJAX
+    const content = `
+        <div class="mb-3">
+            <label class="form-label">Default League Assignment</label>
+            <select class="form-select" id="defaultLeague">
+                <option value="classic">Classic League</option>
+                <option value="premier">Premier League</option>
+                <option value="ecs-fc">ECS FC</option>
+                <option value="sub-classic">Classic Sub</option>
+                <option value="sub-premier">Premier Sub</option>
+                <option value="sub-ecs-fc">ECS FC Sub</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="sendNotifications" checked>
+                <label class="form-check-label" for="sendNotifications">
+                    Send approval notifications
+                </label>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Select Users to Approve</label>
+            <div class="user-selection" style="max-height: 300px; overflow-y: auto;">
+                <div class="list-group">
+                    <div class="list-group-item">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="select-all" id="selectAllUsers" onchange="toggleAllUsers()">
+                            <label class="form-check-label fw-bold" for="selectAllUsers">
+                                Select All Pending Users (${{{ bulk_stats.pending_users }}})
+                            </label>
+                        </div>
+                    </div>
+                    <!-- User list would be populated via AJAX -->
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('bulkApprovalContent').innerHTML = content;
+    document.getElementById('bulkApprovalBtn').disabled = false;
+}
+
+function loadRoleAssignmentInterface() {
+    const roles = {{ roles|tojson }};
+    let roleOptions = '';
+    roles.forEach(role => {
+        roleOptions += `
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="${role.id}" id="role_${role.id}">
+                <label class="form-check-label" for="role_${role.id}">
+                    ${role.name} (${role.users ? role.users.length : 0} users)
+                </label>
+            </div>
+        `;
+    });
+    
+    const content = `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Operation Type</label>
+                    <select class="form-select" id="roleOperation">
+                        <option value="add">Add Roles</option>
+                        <option value="remove">Remove Roles</option>
+                        <option value="replace">Replace All Roles</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Select Roles</label>
+                    <div style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 10px;">
+                        ${roleOptions}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label">Select Users</label>
+                    <div style="max-height: 250px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 10px;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="select-all" id="selectAllRoleUsers" onchange="toggleAllRoleUsers()">
+                            <label class="form-check-label fw-bold" for="selectAllRoleUsers">
+                                Select All Users
+                            </label>
+                        </div>
+                        <hr>
+                        <!-- User list would be populated via AJAX -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('bulkRoleContent').innerHTML = content;
+    document.getElementById('bulkRoleBtn').disabled = false;
+}
+
+function loadWaitlistUsersForProcessing() {
+    const content = `
+        <div class="mb-3">
+            <label class="form-label">Processing Action</label>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="waitlistAction" value="move_to_pending" id="moveToPending" checked>
+                <label class="form-check-label" for="moveToPending">
+                    Move to Pending Approval
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="waitlistAction" value="remove_from_waitlist" id="removeFromWaitlist">
+                <label class="form-check-label" for="removeFromWaitlist">
+                    Remove from Waitlist
+                </label>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Select Waitlist Users</label>
+            <div class="user-selection" style="max-height: 300px; overflow-y: auto;">
+                <div class="list-group">
+                    <div class="list-group-item">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="select-all" id="selectAllWaitlistUsers" onchange="toggleAllWaitlistUsers()">
+                            <label class="form-check-label fw-bold" for="selectAllWaitlistUsers">
+                                Select All Waitlist Users (${{{ bulk_stats.waitlist_users }}})
+                            </label>
+                        </div>
+                    </div>
+                    <!-- User list would be populated via AJAX -->
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('bulkWaitlistContent').innerHTML = content;
+    document.getElementById('bulkWaitlistBtn').disabled = false;
+}
+
+function processBulkApproval() {
+    const defaultLeague = document.getElementById('defaultLeague').value;
+    const sendNotifications = document.getElementById('sendNotifications').checked;
+    
+    // Get selected users (in real implementation)
+    const selectedUserIds = []; // Would be populated from checkboxes
+    
+    if (selectedUserIds.length === 0) {
+        Swal.fire('Warning', 'Please select at least one user to approve', 'warning');
+        return;
+    }
+    
+    // Show confirmation
+    Swal.fire({
+        title: 'Confirm Bulk Approval',
+        text: `Approve ${selectedUserIds.length} users for ${defaultLeague} league?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Approve'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Perform bulk approval
+            performBulkApproval(selectedUserIds, defaultLeague, sendNotifications);
+        }
+    });
+}
+
+function performBulkApproval(userIds, league, notifications) {
+    fetch('/admin-panel/users/bulk-operations/approve', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            user_ids: userIds,
+            default_league: league,
+            send_notifications: notifications
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire('Success', data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('bulkApprovalModal')).hide();
+            location.reload();
+        } else {
+            Swal.fire('Error', data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire('Error', 'Failed to process bulk approval', 'error');
+    });
+}
+
+function processBulkRoleAssignment() {
+    const operation = document.getElementById('roleOperation').value;
+    const selectedRoleIds = Array.from(document.querySelectorAll('input[type="checkbox"][id^="role_"]:checked')).map(cb => cb.value);
+    const selectedUserIds = []; // Would be populated from user checkboxes
+    
+    if (selectedRoleIds.length === 0 || selectedUserIds.length === 0) {
+        Swal.fire('Warning', 'Please select both roles and users', 'warning');
+        return;
+    }
+    
+    // Perform bulk role assignment
+    fetch('/admin-panel/users/bulk-operations/role-assign', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            user_ids: selectedUserIds,
+            role_ids: selectedRoleIds,
+            operation: operation
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire('Success', data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('bulkRoleModal')).hide();
+            location.reload();
+        } else {
+            Swal.fire('Error', data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire('Error', 'Failed to process bulk role assignment', 'error');
+    });
+}
+
+function processBulkWaitlist() {
+    const action = document.querySelector('input[name="waitlistAction"]:checked').value;
+    const selectedUserIds = []; // Would be populated from checkboxes
+    
+    if (selectedUserIds.length === 0) {
+        Swal.fire('Warning', 'Please select at least one user to process', 'warning');
+        return;
+    }
+    
+    // Perform bulk waitlist processing
+    fetch('/admin-panel/users/bulk-operations/waitlist-process', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            user_ids: selectedUserIds,
+            action: action
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire('Success', data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('bulkWaitlistModal')).hide();
+            location.reload();
+        } else {
+            Swal.fire('Error', data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire('Error', 'Failed to process waitlist users', 'error');
+    });
+}
+
+function toggleAllUsers() {
+    // Implementation for select all functionality
+}
+
+function toggleAllRoleUsers() {
+    // Implementation for select all functionality
+}
+
+function toggleAllWaitlistUsers() {
+    // Implementation for select all functionality
+}
+
+function refreshOperationHistory() {
+    location.reload();
+}
+
+function loadPendingUsers() {
+    window.location.href = "{{ url_for('admin_panel.user_approvals') }}";
+}
+
+function loadWaitlistUsers() {
+    window.location.href = "{{ url_for('admin_panel.user_waitlist') }}";
+}
+
+function viewRoleDistribution() {
+    window.location.href = "{{ url_for('admin_panel.roles_management') }}";
+}
+</script>
+{% endblock %}

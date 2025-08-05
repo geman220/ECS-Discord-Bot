@@ -41,8 +41,8 @@ def setup_db_logging(testing=False):
             # Use console handler for testing to avoid file permission issues
             handler = logging.StreamHandler()
         else:
-            # Use file handler for production
-            handler = logging.FileHandler('sql_detailed.log')
+            # Use file handler for production with logs directory
+            handler = logging.FileHandler('logs/sql_detailed.log')
             
         handler.setFormatter(formatter)
         logger_instance.addHandler(handler)

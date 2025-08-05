@@ -86,6 +86,10 @@ from .ispy import (
     ISpyUserJail, ISpyUserStats
 )
 
+from .admin_config import (
+    AdminConfig, AdminAuditLog
+)
+
 # Make all models available at package level for backward compatibility
 __all__ = [
     # Database instance
@@ -143,5 +147,8 @@ __all__ = [
     
     # I-Spy models
     'ISpySeason', 'ISpyCategory', 'ISpyShot', 'ISpyShotTarget', 'ISpyCooldown',
-    'ISpyUserJail', 'ISpyUserStats'
+    'ISpyUserJail', 'ISpyUserStats',
+    
+    # Admin configuration models
+    'AdminConfig', 'AdminAuditLog'
 ]

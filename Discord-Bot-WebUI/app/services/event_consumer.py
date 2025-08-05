@@ -23,7 +23,7 @@ from dataclasses import dataclass
 
 from app.events.rsvp_events import RSVPEvent, RSVPSource
 from app.utils.redis_manager import get_redis_connection
-from app.utils.safe_redis import get_safe_redis
+from app.utils.safe_redis import get_safe_redis, get_safe_redis_with_retry
 from app.utils.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from app.sockets.rsvp import emit_rsvp_update
 from app import socketio
@@ -198,7 +198,18 @@ class EventConsumer(ABC):
     async def _initialize_consumer_group(self):
         """Initialize Redis consumer group if it doesn't exist."""
         try:
-            safe_redis = get_safe_redis()
+            # Use retry mechanism during startup to handle timing issues
+            safe_redis = get_safe_redis_with_retry(max_retries=3, retry_delay=1.0)
+            
+            # Check if Redis is actually available
+            if not safe_redis.is_available:
+                logger.warning(f"⚠️ Redis is not available for consumer group creation - will retry during consumption")
+                return  # Don't fail startup, just skip group creation
+            
+            if safe_redis.client is None:
+                logger.warning(f"⚠️ Redis client is None - will retry during consumption")
+                return  # Don't fail startup, just skip group creation
+            
             try:
                 safe_redis.client.xgroup_create(
                     self.config.stream_name,
@@ -206,16 +217,17 @@ class EventConsumer(ABC):
                     id='0',
                     mkstream=True
                 )
+                logger.debug(f"✅ Created consumer group '{self.config.consumer_group}' for stream '{self.config.stream_name}'")
             except Exception as e:
                 if "BUSYGROUP" not in str(e):
-                    raise
-            logger.debug(f"✅ Created consumer group '{self.config.consumer_group}' for stream '{self.config.stream_name}'")
+                    logger.warning(f"⚠️ Failed to create consumer group '{self.config.consumer_group}': {e}")
+                    return  # Don't fail startup, just skip group creation
+                else:
+                    logger.debug(f"📋 Consumer group '{self.config.consumer_group}' already exists")
+                    
         except Exception as e:
-            if "BUSYGROUP" in str(e):
-                logger.debug(f"📋 Consumer group '{self.config.consumer_group}' already exists")
-            else:
-                logger.error(f"❌ Failed to create consumer group: {e}")
-                raise
+            logger.warning(f"⚠️ Consumer group initialization failed: {e} - will retry during consumption")
+            return  # Don't fail startup, allow consumer to start without group
     
     async def _consume_loop(self):
         """Main event consumption loop."""
@@ -310,7 +322,29 @@ class EventConsumer(ABC):
                         block=self.config.poll_timeout
                     )
                 except Exception as e:
-                    if "timeout" not in str(e).lower():
+                    # If consumer group doesn't exist, try to create it
+                    if "NOGROUP" in str(e):
+                        logger.info(f"🔧 Consumer group '{self.config.consumer_group}' doesn't exist, creating it now...")
+                        try:
+                            safe_redis.client.xgroup_create(
+                                self.config.stream_name,
+                                self.config.consumer_group,
+                                id='0',
+                                mkstream=True
+                            )
+                            logger.info(f"✅ Created consumer group '{self.config.consumer_group}' during consumption")
+                            # Retry reading after creating the group
+                            messages = safe_redis.client.xreadgroup(
+                                self.config.consumer_group,
+                                self.config.consumer_name,
+                                streams={self.config.stream_name: '>'},
+                                count=self.config.batch_size,
+                                block=self.config.poll_timeout
+                            )
+                        except Exception as create_e:
+                            if "BUSYGROUP" not in str(create_e):
+                                logger.error(f"❌ Failed to create consumer group during consumption: {create_e}")
+                    elif "timeout" not in str(e).lower():
                         logger.error(f"Error reading messages: {e}")
             
             if messages:

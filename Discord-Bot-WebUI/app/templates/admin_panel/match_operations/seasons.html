@@ -1,0 +1,319 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Season Management - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.match_operations') }}">Match Operations</a>
+</li>
+<li class="breadcrumb-item active">Season Management</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.total_seasons or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Seasons</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-calendar-time" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.active_seasons or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Active Seasons</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-calendar-check" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.upcoming_seasons or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Upcoming Seasons</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-calendar-plus" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.past_seasons or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Past Seasons</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-calendar-minus" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Season Info -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-crown me-2"></i>Current Season: {{ stats.current_season or 'None Set' }}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if stats.current_season != 'None' %}
+                <div class="alert alert-success">
+                    <i class="ti ti-check-circle me-2"></i>
+                    <strong>{{ stats.current_season }}</strong> is currently active and being used for new matches and leagues.
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="ti ti-alert-triangle me-2"></i>
+                    No current season is set. Please set a season as current to enable match scheduling and league operations.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Seasons Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-calendar-time me-2"></i>All Seasons
+                    </h5>
+                    <button class="btn btn-primary btn-sm" onclick="createSeason()">
+                        <i class="ti ti-plus me-1"></i>Create Season
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if seasons %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Season Name</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Matches</th>
+                                <th>Status</th>
+                                <th>Current</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for season in seasons %}
+                            <tr>
+                                <td>
+                                    <strong>{{ season.name }}</strong>
+                                </td>
+                                <td>
+                                    {% if season.start_date %}
+                                        {{ season.start_date.strftime('%Y-%m-%d') }}
+                                    {% else %}
+                                        <span class="text-muted">TBD</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if season.end_date %}
+                                        {{ season.end_date.strftime('%Y-%m-%d') }}
+                                    {% else %}
+                                        <span class="text-muted">TBD</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ season.match_count or 0 }}</span>
+                                </td>
+                                <td>
+                                    {% if season.status == 'active' %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% elif season.status == 'upcoming' %}
+                                        <span class="badge bg-warning">Upcoming</span>
+                                    {% elif season.status == 'completed' %}
+                                        <span class="badge bg-secondary">Completed</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ season.status or 'Unknown' }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if season.is_current %}
+                                        <span class="badge bg-success">
+                                            <i class="ti ti-crown me-1"></i>Current
+                                        </span>
+                                    {% else %}
+                                        <button class="btn btn-outline-primary btn-sm" onclick="setCurrentSeason({{ season.id }})">
+                                            Set Current
+                                        </button>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-info" onclick="viewSeason({{ season.id }})">
+                                            <i class="ti ti-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning" onclick="editSeason({{ season.id }})">
+                                            <i class="ti ti-edit"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-calendar-off text-muted" style="font-size: 4rem;"></i>
+                    <h5 class="text-muted mt-3">No Seasons Found</h5>
+                    <p class="text-muted">Create your first season to get started with league management.</p>
+                    <button class="btn btn-primary" onclick="createSeason()">
+                        <i class="ti ti-plus me-1"></i>Create Season
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-info-circle me-2"></i>
+                <div>
+                    <strong>Season Management:</strong> 
+                    Seasons organize your leagues and matches by time period. Only one season can be current at a time.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function createSeason() {
+    Swal.fire({
+        title: 'Create New Season',
+        text: 'Season creation functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function viewSeason(seasonId) {
+    Swal.fire({
+        title: 'View Season Details',
+        text: 'Season details functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function editSeason(seasonId) {
+    Swal.fire({
+        title: 'Edit Season',
+        text: 'Season editing functionality coming soon!',
+        icon: 'info'
+    });
+}
+
+function setCurrentSeason(seasonId) {
+    Swal.fire({
+        title: 'Set Current Season?',
+        text: 'This will make this season the active one for new leagues and matches.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, set as current',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Make AJAX request to set current season
+            fetch(`{{ url_for('admin_panel.set_current_season') }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `season_id=${seasonId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Success',
+                        text: data.message,
+                        icon: 'success'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: data.message,
+                        icon: 'error'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'An error occurred while setting current season',
+                    icon: 'error'
+                });
+            });
+        }
+    });
+}
+</script>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .d-flex.justify-content-between > div:last-child {
+        margin-top: 0.25rem;
+    }
+}
+</style>
+{% endblock %}

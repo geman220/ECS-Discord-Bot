@@ -146,6 +146,11 @@ class UnifiedRedisManager:
             client.pipeline = lambda: SimpleNamespace(execute=lambda: [])
             # Add Redis 'control' attribute for Celery compatibility
             client.control = SimpleNamespace(revoke=lambda task_id, terminate=True: None)
+            # Add Redis Streams methods for event consumer compatibility
+            client.xgroup_create = lambda stream, group, id='0', mkstream=True: False
+            client.xreadgroup = lambda group, consumer, streams, count=None, block=None: {}
+            client.xack = lambda stream, group, *ids: 0
+            client.xadd = lambda stream, fields, id='*', maxlen=None, approximate=True: None
 
     @property
     def client(self) -> Redis:
@@ -229,11 +234,17 @@ class UnifiedRedisManager:
             try:
                 # Get connection pool details
                 pool = self._pool
+                
+                # Safely get connection counts with proper type checking
+                created_connections = getattr(pool, '_created_connections', set())
+                available_connections = getattr(pool, '_available_connections', [])
+                in_use_connections = getattr(pool, '_in_use_connections', set())
+                
                 stats['pool_stats'] = {
                     'max_connections': getattr(pool, 'max_connections', 0),
-                    'created_connections': len(getattr(pool, '_created_connections', set())),
-                    'available_connections': len(getattr(pool, '_available_connections', [])),
-                    'in_use_connections': len(getattr(pool, '_in_use_connections', set()))
+                    'created_connections': len(created_connections) if hasattr(created_connections, '__len__') else 0,
+                    'available_connections': len(available_connections) if hasattr(available_connections, '__len__') else 0,
+                    'in_use_connections': len(in_use_connections) if hasattr(in_use_connections, '__len__') else 0
                 }
                 
                 # Calculate utilization

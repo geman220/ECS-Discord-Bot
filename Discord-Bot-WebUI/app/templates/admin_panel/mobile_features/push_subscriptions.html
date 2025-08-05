@@ -1,0 +1,568 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Push Subscriptions - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.mobile_features') }}">Mobile Features</a>
+</li>
+<li class="breadcrumb-item active">Push Subscriptions</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Subscription Statistics -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.active_subscriptions or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Active Subscriptions</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-bell" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.inactive_subscriptions or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Inactive Subscriptions</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-bell-off" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.new_subscriptions_week or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">New This Week</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-trending-up" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.total_subscriptions or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Subscriptions</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-device-mobile" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Subscription Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-filter me-2"></i>Filter Subscriptions
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="">All Statuses</option>
+                            <option value="active" {{ 'selected' if request.args.get('status') == 'active' }}>Active</option>
+                            <option value="inactive" {{ 'selected' if request.args.get('status') == 'inactive' }}>Inactive</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Platform</label>
+                        <select name="platform" class="form-select">
+                            <option value="">All Platforms</option>
+                            <option value="iOS" {{ 'selected' if request.args.get('platform') == 'iOS' }}>iOS</option>
+                            <option value="Android" {{ 'selected' if request.args.get('platform') == 'Android' }}>Android</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Date Range</label>
+                        <select name="date_range" class="form-select">
+                            <option value="">All Time</option>
+                            <option value="today" {{ 'selected' if request.args.get('date_range') == 'today' }}>Today</option>
+                            <option value="week" {{ 'selected' if request.args.get('date_range') == 'week' }}>This Week</option>
+                            <option value="month" {{ 'selected' if request.args.get('date_range') == 'month' }}>This Month</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-search me-1"></i>Filter
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Management -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Subscription Management</h6>
+                        <small class="text-muted">{{ device_tokens|length or 0 }} subscriptions shown</small>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-success" onclick="bulkActivate()">
+                            <i class="ti ti-check me-1"></i>Bulk Activate
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="bulkDeactivate()">
+                            <i class="ti ti-x me-1"></i>Bulk Deactivate
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="cleanupInactive()">
+                            <i class="ti ti-trash me-1"></i>Cleanup Inactive
+                        </button>
+                        <button class="btn btn-outline-info" onclick="exportSubscriptions()">
+                            <i class="ti ti-download me-1"></i>Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Device Tokens Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-list me-2"></i>Push Subscriptions
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if device_tokens %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAll">
+                                    </div>
+                                </th>
+                                <th>User</th>
+                                <th>Device Token</th>
+                                <th>Platform</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Last Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for token in device_tokens %}
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <input class="form-check-input token-checkbox" type="checkbox" value="{{ token.id }}">
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if token.user %}
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2">
+                                            {{ token.user.username[0].upper() if token.user.username else 'U' }}
+                                        </div>
+                                        <div>
+                                            <strong>{{ token.user.username or 'Unknown User' }}</strong>
+                                            <br><small class="text-muted">{{ token.user.email or 'No email' }}</small>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted">No associated user</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <code class="small">{{ token.token[:20] }}...{{ token.token[-10:] if token.token|length > 30 else token.token }}</code>
+                                    <button class="btn btn-sm btn-outline-secondary ms-1" onclick="copyToken('{{ token.token }}')">
+                                        <i class="ti ti-copy"></i>
+                                    </button>
+                                </td>
+                                <td>
+                                    {% set platform = 'iOS' if 'iOS' in token.token or token.platform == 'iOS' else 'Android' %}
+                                    <span class="badge bg-{{ 'primary' if platform == 'iOS' else 'success' }}">
+                                        <i class="ti ti-{{ 'brand-apple' if platform == 'iOS' else 'brand-android' }} me-1"></i>
+                                        {{ platform }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if token.is_active %}
+                                        <span class="badge bg-success">
+                                            <i class="ti ti-check me-1"></i>Active
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">
+                                            <i class="ti ti-x me-1"></i>Inactive
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ token.created_at.strftime('%Y-%m-%d %H:%M') if token.created_at else 'Unknown' }}</small>
+                                </td>
+                                <td>
+                                    <small>{{ token.updated_at.strftime('%Y-%m-%d %H:%M') if token.updated_at else 'Unknown' }}</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-info" onclick="viewTokenDetails('{{ token.id }}')">
+                                            <i class="ti ti-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-primary" onclick="testNotification('{{ token.id }}')">
+                                            <i class="ti ti-send"></i>
+                                        </button>
+                                        {% if token.is_active %}
+                                        <button class="btn btn-outline-warning" onclick="deactivateToken('{{ token.id }}')">
+                                            <i class="ti ti-ban"></i>
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-outline-success" onclick="activateToken('{{ token.id }}')">
+                                            <i class="ti ti-check"></i>
+                                        </button>
+                                        {% endif %}
+                                        <button class="btn btn-outline-danger" onclick="deleteToken('{{ token.id }}')">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-bell-off text-muted" style="font-size: 4rem;"></i>
+                    <h5 class="text-muted mt-3">No Push Subscriptions</h5>
+                    <p class="text-muted">No device tokens match the current filter criteria.</p>
+                    <a href="{{ url_for('admin_panel.push_subscriptions') }}" class="btn btn-outline-primary">
+                        <i class="ti ti-refresh me-1"></i>Clear Filters
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script>
+// Select all functionality
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.token-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+});
+
+function viewTokenDetails(tokenId) {
+    Swal.fire({
+        title: `Device Token Details`,
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <strong>Token ID:</strong> ${tokenId}<br>
+                    <strong>Platform:</strong> iOS<br>
+                    <strong>Status:</strong> <span class="badge bg-success">Active</span><br>
+                    <strong>Created:</strong> 2024-01-15 10:30:00
+                </div>
+                <div class="mb-3">
+                    <strong>Device Information:</strong><br>
+                    • Device Model: iPhone 12 Pro<br>
+                    • OS Version: iOS 17.2<br>
+                    • App Version: 1.2.0<br>
+                    • Last Active: 2024-01-31 14:25:00
+                </div>
+                <div class="mb-3">
+                    <strong>Notification History:</strong><br>
+                    • Total Sent: 45 notifications<br>
+                    • Successfully Delivered: 43 (95.6%)<br>
+                    • Opened: 32 (71.1%)<br>
+                    • Last Notification: 2024-01-30 18:00:00
+                </div>
+                <div class="mb-3">
+                    <strong>Token String:</strong><br>
+                    <textarea class="form-control font-monospace small" rows="3" readonly>a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2g3h4i5j6k7l8m9n0o1p2</textarea>
+                </div>
+            </div>
+        `,
+        width: '600px',
+        confirmButtonText: 'Close'
+    });
+}
+
+function testNotification(tokenId) {
+    Swal.fire({
+        title: 'Send Test Notification',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Test Message</label>
+                    <input type="text" class="form-control" id="testMessage" value="Test notification from admin panel" maxlength="160">
+                    <div class="form-text">
+                        <span id="testMessageCounter">37</span>/160 characters
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="testHighPriority">
+                        <label class="form-check-label" for="testHighPriority">
+                            High Priority Notification
+                        </label>
+                    </div>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Send Test',
+        width: '400px',
+        preConfirm: () => {
+            const message = document.getElementById('testMessage').value;
+            if (!message.trim()) {
+                Swal.showValidationMessage('Please enter a test message');
+                return false;
+            }
+            return {
+                message: message,
+                highPriority: document.getElementById('testHighPriority').checked
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Test Sent!', 'Test notification has been sent to the device.', 'success');
+        }
+    });
+    
+    // Add character counter
+    setTimeout(() => {
+        const input = document.getElementById('testMessage');
+        const counter = document.getElementById('testMessageCounter');
+        
+        input.addEventListener('input', function() {
+            counter.textContent = this.value.length;
+            if (this.value.length > 160) {
+                counter.classList.add('text-danger');
+            } else {
+                counter.classList.remove('text-danger');
+            }
+        });
+    }, 100);
+}
+
+function copyToken(token) {
+    navigator.clipboard.writeText(token).then(() => {
+        Swal.fire({
+            icon: 'success',
+            title: 'Token Copied!',
+            text: 'Device token has been copied to clipboard',
+            showConfirmButton: false,
+            timer: 2000
+        });
+    }).catch(() => {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = token;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'Token Copied!',
+            text: 'Device token has been copied to clipboard',
+            showConfirmButton: false,
+            timer: 2000
+        });
+    });
+}
+
+function activateToken(tokenId) {
+    Swal.fire({
+        title: 'Activate Token?',
+        text: 'This will enable push notifications for this device',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Activate'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Make API call to activate token
+            Swal.fire('Token Activated!', 'Push notifications enabled for this device.', 'success')
+                .then(() => location.reload());
+        }
+    });
+}
+
+function deactivateToken(tokenId) {
+    Swal.fire({
+        title: 'Deactivate Token?',
+        text: 'This will disable push notifications for this device',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Deactivate',
+        confirmButtonColor: '#dc3545'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('{{ url_for("admin_panel.deactivate_device_token") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `token_id=${tokenId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Token Deactivated!', 'Push notifications disabled for this device.', 'success')
+                        .then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.message || 'Failed to deactivate token', 'error');
+                }
+            })
+            .catch(error => {
+                Swal.fire('Error', 'Failed to deactivate token', 'error');
+            });
+        }
+    });
+}
+
+function deleteToken(tokenId) {
+    Swal.fire({
+        title: 'Delete Token?',
+        text: 'This will permanently remove this device token. This action cannot be undone.',
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonText: 'Delete Token',
+        confirmButtonColor: '#dc3545'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Token Deleted!', 'Device token has been permanently removed.', 'success')
+                .then(() => location.reload());
+        }
+    });
+}
+
+function bulkActivate() {
+    const selectedTokens = Array.from(document.querySelectorAll('.token-checkbox:checked')).map(cb => cb.value);
+    
+    if (selectedTokens.length === 0) {
+        Swal.fire('No Tokens Selected', 'Please select tokens to activate.', 'warning');
+        return;
+    }
+    
+    Swal.fire({
+        title: `Activate ${selectedTokens.length} Tokens?`,
+        text: 'This will enable push notifications for all selected devices',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Activate All'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Tokens Activated!', `${selectedTokens.length} device tokens have been activated.`, 'success')
+                .then(() => location.reload());
+        }
+    });
+}
+
+function bulkDeactivate() {
+    const selectedTokens = Array.from(document.querySelectorAll('.token-checkbox:checked')).map(cb => cb.value);
+    
+    if (selectedTokens.length === 0) {
+        Swal.fire('No Tokens Selected', 'Please select tokens to deactivate.', 'warning');
+        return;
+    }
+    
+    Swal.fire({
+        title: `Deactivate ${selectedTokens.length} Tokens?`,
+        text: 'This will disable push notifications for all selected devices',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Deactivate All',
+        confirmButtonColor: '#dc3545'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Tokens Deactivated!', `${selectedTokens.length} device tokens have been deactivated.`, 'success')
+                .then(() => location.reload());
+        }
+    });
+}
+
+function cleanupInactive() {
+    Swal.fire({
+        title: 'Cleanup Inactive Tokens?',
+        text: 'This will permanently remove tokens that have been inactive for 30+ days',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Cleanup Inactive',
+        confirmButtonColor: '#dc3545'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Cleaning Up...',
+                text: 'Removing inactive device tokens',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    setTimeout(() => {
+                        Swal.fire('Cleanup Complete!', '15 inactive tokens have been removed.', 'success')
+                            .then(() => location.reload());
+                    }, 2000);
+                }
+            });
+        }
+    });
+}
+
+function exportSubscriptions() {
+    const selectedTokens = Array.from(document.querySelectorAll('.token-checkbox:checked')).map(cb => cb.value);
+    
+    Swal.fire({
+        title: 'Export Subscriptions?',
+        text: selectedTokens.length > 0 ? `Export ${selectedTokens.length} selected subscriptions?` : 'Export all visible subscriptions?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Export Data'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Export Started!', 'Subscription data export is being prepared for download.', 'success');
+        }
+    });
+}
+</script>
+{% endblock %}

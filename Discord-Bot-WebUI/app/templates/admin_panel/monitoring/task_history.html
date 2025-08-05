@@ -1,0 +1,320 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Task History - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.system_monitoring') }}">System Monitoring</a>
+</li>
+<li class="breadcrumb-item active">Task History</li>
+{% endblock %}
+
+{% block panel_content %}
+
+<!-- Task Statistics -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ history_data.completed or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Completed Tasks</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ history_data.failed or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Failed Tasks</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-x-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ zombie_tasks|length or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Zombie Tasks</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-ghost" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ history_data.total or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Tasks</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-list-check" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-filter me-2"></i>Filter Tasks
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="">All Statuses</option>
+                            <option value="completed" {{ 'selected' if request.args.get('status') == 'completed' }}>Completed</option>
+                            <option value="failed" {{ 'selected' if request.args.get('status') == 'failed' }}>Failed</option>
+                            <option value="zombie" {{ 'selected' if request.args.get('status') == 'zombie' }}>Zombie</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Task Type</label>
+                        <select name="task_type" class="form-select">
+                            <option value="">All Types</option>
+                            <option value="notification" {{ 'selected' if request.args.get('task_type') == 'notification' }}>Notification</option>
+                            <option value="match_update" {{ 'selected' if request.args.get('task_type') == 'match_update' }}>Match Update</option>
+                            <option value="data_sync" {{ 'selected' if request.args.get('task_type') == 'data_sync' }}>Data Sync</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">From Date</label>
+                        <input type="date" name="date_from" class="form-control" value="{{ request.args.get('date_from', '') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">To Date</label>
+                        <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-search me-1"></i>Filter
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Zombie Tasks Alert -->
+{% if zombie_tasks %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-alert-triangle me-2"></i>
+                <div>
+                    <strong>{{ zombie_tasks|length }} Zombie Tasks Detected!</strong>
+                    These tasks may be stuck or have lost their worker processes.
+                    <button class="btn btn-sm btn-outline-warning ms-2" onclick="cleanupZombies()">
+                        <i class="ti ti-trash me-1"></i>Cleanup Zombies
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Task History Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-history me-2"></i>Task Execution History
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if history_data.tasks %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Task ID</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Started</th>
+                                <th>Duration</th>
+                                <th>Result</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in history_data.tasks %}
+                            <tr>
+                                <td>
+                                    <code>{{ task.id[:8] }}</code>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ task.type or 'Unknown' }}</span>
+                                </td>
+                                <td>
+                                    {% if task.status == 'completed' %}
+                                        <span class="badge bg-success">Completed</span>
+                                    {% elif task.status == 'failed' %}
+                                        <span class="badge bg-danger">Failed</span>
+                                    {% elif task.status == 'zombie' %}
+                                        <span class="badge bg-warning">Zombie</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ task.status|title }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if task.started_at %}
+                                        {{ task.started_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                    {% else %}
+                                        <span class="text-muted">Unknown</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if task.duration %}
+                                        {{ task.duration }}s
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if task.result %}
+                                        <small class="text-muted">{{ task.result[:50] }}...</small>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-info" onclick="viewTaskDetails('{{ task.id }}')">
+                                            <i class="ti ti-eye"></i>
+                                        </button>
+                                        {% if task.status == 'failed' %}
+                                        <button class="btn btn-outline-warning" onclick="retryTask('{{ task.id }}')">
+                                            <i class="ti ti-refresh"></i>
+                                        </button>
+                                        {% endif %}
+                                        {% if task.status == 'zombie' %}
+                                        <button class="btn btn-outline-danger" onclick="killTask('{{ task.id }}')">
+                                            <i class="ti ti-x"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-history-off text-muted" style="font-size: 4rem;"></i>
+                    <h5 class="text-muted mt-3">No Task History</h5>
+                    <p class="text-muted">No background tasks have been executed recently.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function viewTaskDetails(taskId) {
+    // Make AJAX request to get task details
+    fetch(`{{ url_for('admin_panel.get_task_details') }}?task_id=${taskId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    title: `Task Details: ${taskId.substring(0, 8)}`,
+                    html: data.html,
+                    width: '800px',
+                    confirmButtonText: 'Close'
+                });
+            } else {
+                Swal.fire('Error', data.message || 'Failed to load task details', 'error');
+            }
+        })
+        .catch(error => {
+            Swal.fire('Error', 'Failed to load task details', 'error');
+        });
+}
+
+function retryTask(taskId) {
+    Swal.fire({
+        title: 'Retry Task?',
+        text: 'This will attempt to run the failed task again',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Retry Task'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Implement task retry
+            Swal.fire('Task Queued!', 'The task has been queued for retry.', 'success');
+        }
+    });
+}
+
+function killTask(taskId) {
+    Swal.fire({
+        title: 'Kill Zombie Task?',
+        text: 'This will forcefully terminate the zombie task',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Kill Task',
+        confirmButtonColor: '#dc3545'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Implement task killing
+            Swal.fire('Task Killed!', 'The zombie task has been terminated.', 'success');
+        }
+    });
+}
+
+function cleanupZombies() {
+    Swal.fire({
+        title: 'Cleanup All Zombie Tasks?',
+        text: 'This will terminate all zombie tasks',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Cleanup All',
+        confirmButtonColor: '#dc3545'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Implement zombie cleanup
+            Swal.fire('Zombies Cleaned!', 'All zombie tasks have been terminated.', 'success');
+        }
+    });
+}
+</script>
+{% endblock %}

@@ -473,7 +473,7 @@ class EcsFcScheduleManager:
             match_datetime = datetime.combine(match.match_date, match.match_time)
             
             # Find the Monday before the match
-            days_until_match = (match_datetime.date() - datetime.now().date()).days
+            days_until_match = (match_datetime.date() - datetime.utcnow().date()).days
             if days_until_match > 7:
                 # Find the Monday of the week before the match
                 days_until_monday = (match_datetime.weekday() + 6) % 7
@@ -484,7 +484,7 @@ class EcsFcScheduleManager:
             else:
                 # If match is within a week, send reminder tomorrow at 9 AM
                 send_time = datetime.combine(
-                    datetime.now().date() + timedelta(days=1),
+                    datetime.utcnow().date() + timedelta(days=1),
                     datetime.strptime("09:00", "%H:%M").time()
                 )
             

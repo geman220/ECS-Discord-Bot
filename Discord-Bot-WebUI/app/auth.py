@@ -1155,6 +1155,13 @@ def waitlist_register():
     2. Unauthenticated user with account: Show login message
     3. Unauthenticated user without account: Show registration form
     """
+    from app.models.admin_config import AdminConfig
+    
+    # Check if waitlist registration is enabled
+    if not AdminConfig.get_setting('waitlist_registration_enabled', True):
+        show_error('Waitlist registration is currently disabled.')
+        return redirect(url_for('main.index'))
+    
     db_session = g.db_session
     current_user = safe_current_user
     
@@ -1233,6 +1240,13 @@ def waitlist_discord_login():
     This is for existing users who want to login via Discord and join the waitlist.
     Uses the same Discord OAuth flow as regular login.
     """
+    from app.models.admin_config import AdminConfig
+    
+    # Check if waitlist registration is enabled
+    if not AdminConfig.get_setting('waitlist_registration_enabled', True):
+        show_error('Waitlist registration is currently disabled.')
+        return redirect(url_for('main.index'))
+    
     from app.auth_helpers import generate_oauth_state
     from urllib.parse import quote
     
@@ -1286,6 +1300,13 @@ def waitlist_discord_register():
     Initiate Discord OAuth for waitlist registration.
     Uses the same Discord OAuth flow as regular registration but sets waitlist flags.
     """
+    from app.models.admin_config import AdminConfig
+    
+    # Check if waitlist registration is enabled
+    if not AdminConfig.get_setting('waitlist_registration_enabled', True):
+        show_error('Waitlist registration is currently disabled.')
+        return redirect(url_for('main.index'))
+    
     from app.auth_helpers import generate_oauth_state
     from urllib.parse import quote
     
@@ -1342,6 +1363,13 @@ def waitlist_register_with_discord():
     This route checks if the user is in the Discord server, invites them if needed,
     and creates a new user account with pl-waitlist and pl-unverified roles.
     """
+    from app.models.admin_config import AdminConfig
+    
+    # Check if waitlist registration is enabled
+    if not AdminConfig.get_setting('waitlist_registration_enabled', True):
+        show_error('Waitlist registration is currently disabled.')
+        return redirect(url_for('main.index'))
+    
     import aiohttp
     import asyncio
     from app.discord_utils import assign_role_to_member, invite_user_to_server

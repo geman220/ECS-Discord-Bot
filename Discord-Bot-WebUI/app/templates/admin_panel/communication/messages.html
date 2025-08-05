@@ -1,0 +1,335 @@
+{% extends "admin_panel/base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Message Templates - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.communication_hub') }}">Communication</a>
+</li>
+<li class="breadcrumb-item active">Message Templates</li>
+{% endblock %}
+
+{% block panel_content %}
+
+    <!-- Message Template Overview -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ categories|length }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Categories</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-folder" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ total_templates }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Total Templates</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-file-text" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ active_templates }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Active Templates</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ recent_announcements|length }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Recent Announcements</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-speakerphone" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Categories -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-folder me-2"></i>Message Categories
+                    </h5>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
+                        <i class="ti ti-plus me-1"></i>Add Category
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    {% if categories %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Description</th>
+                                    <th>Templates</th>
+                                    <th>Last Updated</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category in categories %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="ti ti-folder me-2 text-primary"></i>
+                                            <strong>{{ category.name }}</strong>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">{{ category.description or 'No description' }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ category.templates|length }} templates</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ category.updated_at.strftime('%Y-%m-%d %H:%M') if category.updated_at else 'Never' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('admin_panel.message_category', category_id=category.id) }}" 
+                                               class="btn btn-outline-primary">
+                                                <i class="ti ti-eye"></i>
+                                            </a>
+                                            <button class="btn btn-outline-warning" 
+                                                    onclick="editCategory({{ category.id }}, '{{ category.name }}', '{{ category.description or '' }}')">
+                                                <i class="ti ti-edit"></i>
+                                            </button>
+                                            {% if category.templates|length == 0 %}
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="deleteCategory({{ category.id }}, '{{ category.name }}')">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="ti ti-folder-x text-muted" style="font-size: 4rem;"></i>
+                        <h5 class="text-muted mt-3">No message categories found</h5>
+                        <p class="text-muted">Create your first message category to get started.</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
+                            <i class="ti ti-plus me-1"></i>Create Category
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Announcements -->
+    {% if recent_announcements %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-speakerphone me-2"></i>Recent Announcements
+                    </h5>
+                    <a href="{{ url_for('admin_panel.announcements') }}" class="btn btn-sm btn-outline-primary">
+                        View All <i class="ti ti-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Created</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for announcement in recent_announcements %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ announcement.title }}</strong>
+                                        <br><small class="text-muted">{{ announcement.content[:50] }}...</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ announcement.announcement_type or 'General' }}</span>
+                                    </td>
+                                    <td>
+                                        <small>{{ announcement.created_at.strftime('%m/%d %H:%M') }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">Active</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Create Category Modal -->
+    <div class="modal fade" id="createCategoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Message Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ url_for('admin_panel.create_message_category') }}">
+                    <div class="modal-body">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="category_name" class="form-label">Category Name</label>
+                            <input type="text" class="form-control" id="category_name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="category_description" class="form-label">Description</label>
+                            <textarea class="form-control" id="category_description" name="description" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Category</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Category Modal -->
+    <div class="modal fade" id="editCategoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Message Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ url_for('admin_panel.update_message_category') }}">
+                    <div class="modal-body">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="category_id" id="edit_category_id">
+                        <div class="mb-3">
+                            <label for="edit_category_name" class="form-label">Category Name</label>
+                            <input type="text" class="form-control" id="edit_category_name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_category_description" class="form-label">Description</label>
+                            <textarea class="form-control" id="edit_category_description" name="description" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update Category</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.75rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function editCategory(id, name, description) {
+    document.getElementById('edit_category_id').value = id;
+    document.getElementById('edit_category_name').value = name;
+    document.getElementById('edit_category_description').value = description;
+    
+    const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
+    modal.show();
+}
+
+function deleteCategory(id, name) {
+    Swal.fire({
+        title: 'Delete Category?',
+        text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("admin_panel.delete_message_category") }}';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = 'csrf_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            
+            const categoryId = document.createElement('input');
+            categoryId.type = 'hidden';
+            categoryId.name = 'category_id';
+            categoryId.value = id;
+            
+            form.appendChild(csrfToken);
+            form.appendChild(categoryId);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+</script>
+{% endblock %}

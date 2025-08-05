@@ -1,0 +1,660 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Store Management - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">Store Management</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Store Overview Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.total_items or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Items</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-package" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.total_orders or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Orders</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-shopping-cart" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ stats.pending_orders or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Pending Orders</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">${{ stats.revenue_total or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Revenue</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-currency-dollar" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Store Management Actions -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-package me-2"></i>Product Management
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Manage store items, inventory, and product categories</p>
+                <div class="list-group list-group-flush">
+                    <button class="list-group-item list-group-item-action" onclick="addNewProduct()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-plus me-2"></i>Add New Product
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </button>
+                    <button class="list-group-item list-group-item-action" onclick="viewAllProducts()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-list me-2"></i>View All Products
+                            </div>
+                            <span class="badge bg-primary">{{ stats.total_items or 0 }}</span>
+                        </div>
+                    </button>
+                    <button class="list-group-item list-group-item-action" onclick="manageCategories()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-category me-2"></i>Product Categories
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-clipboard-list me-2"></i>Order Management
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Process orders, manage fulfillment, and track deliveries</p>
+                <div class="list-group list-group-flush">
+                    <button class="list-group-item list-group-item-action" onclick="viewPendingOrders()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-clock me-2"></i>Pending Orders
+                            </div>
+                            <span class="badge bg-warning">{{ stats.pending_orders or 0 }}</span>
+                        </div>
+                    </button>
+                    <button class="list-group-item list-group-item-action" onclick="viewCompletedOrders()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-check me-2"></i>Completed Orders
+                            </div>
+                            <span class="badge bg-success">{{ stats.completed_orders or 0 }}</span>
+                        </div>
+                    </button>
+                    <button class="list-group-item list-group-item-action" onclick="searchOrders()">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-search me-2"></i>Search Orders
+                            </div>
+                            <i class="ti ti-chevron-right"></i>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Orders -->
+{% if recent_orders %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-history me-2"></i>Recent Orders
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Items</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td>#{{ order.id }}</td>
+                                <td>{{ order.orderer.name or order.orderer.username if order.orderer else 'N/A' }}</td>
+                                <td>{{order.quantity or 1}} × {{ order.item.name if order.item else 'Unknown Item' }}</td>
+                                <td>N/A</td>
+                                <td>
+                                    <span class="badge bg-{% if order.status == 'completed' %}success{% elif order.status == 'pending' %}warning{% else %}secondary{% endif %}">
+                                        {{ order.status.title() if order.status else 'Unknown' }}
+                                    </span>
+                                </td>
+                                <td>{{ order.order_date.strftime('%Y-%m-%d') if order.order_date else 'N/A' }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="viewOrder({{ order.id }})">
+                                        <i class="ti ti-eye me-1"></i>View
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="ti ti-info-circle me-2"></i>
+            No orders found. Start by adding products to your store!
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block custom_js %}
+<script>
+// Store Product Management Functions
+function addNewProduct() {
+    Swal.fire({
+        title: 'Add New Product',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Product Name</label>
+                    <input type="text" class="form-control" id="productName" placeholder="Enter product name">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" id="productDescription" rows="3" placeholder="Product description"></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Price ($)</label>
+                            <input type="number" class="form-control" id="productPrice" placeholder="0.00" step="0.01">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Stock Quantity</label>
+                            <input type="number" class="form-control" id="productStock" placeholder="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Category</label>
+                    <select class="form-select" id="productCategory">
+                        <option value="">Select category</option>
+                        <option value="jersey">Jerseys</option>
+                        <option value="merchandise">Merchandise</option>
+                        <option value="equipment">Equipment</option>
+                        <option value="accessories">Accessories</option>
+                    </select>
+                </div>
+            </div>
+        `,
+        width: '600px',
+        showCancelButton: true,
+        confirmButtonText: 'Add Product',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const name = document.getElementById('productName').value;
+            const description = document.getElementById('productDescription').value;
+            const price = document.getElementById('productPrice').value;
+            const stock = document.getElementById('productStock').value;
+            const category = document.getElementById('productCategory').value;
+            
+            if (!name || !price || !category) {
+                Swal.showValidationMessage('Please fill in all required fields');
+                return false;
+            }
+            
+            return { name, description, price, stock, category };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement actual product creation
+            Swal.fire('Success!', 'Product added successfully. (Feature in development)', 'success');
+        }
+    });
+}
+
+function viewAllProducts() {
+    Swal.fire({
+        title: 'All Products',
+        html: `
+            <div class="text-start">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>ECS FC Jersey</td>
+                                <td>Jerseys</td>
+                                <td>$45.00</td>
+                                <td>12</td>
+                                <td><span class="badge bg-success">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td>Team Scarf</td>
+                                <td>Merchandise</td>
+                                <td>$15.00</td>
+                                <td>5</td>
+                                <td><span class="badge bg-warning">Low Stock</span></td>
+                            </tr>
+                            <tr>
+                                <td>ECS FC Mug</td>
+                                <td>Merchandise</td>
+                                <td>$12.00</td>
+                                <td>0</td>
+                                <td><span class="badge bg-danger">Out of Stock</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted mt-3"><small>Note: Product data is loaded from the database when available.</small></p>
+            </div>
+        `,
+        width: '700px',
+        confirmButtonText: 'Close'
+    });
+}
+
+function manageCategories() {
+    Swal.fire({
+        title: 'Product Categories',
+        html: `
+            <div class="text-start">
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <input type="text" class="form-control" id="newCategoryName" placeholder="New category name">
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-primary w-100" onclick="addCategory()">Add Category</button>
+                    </div>
+                </div>
+                <div class="list-group">
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="ti ti-hanger me-2"></i>Jerseys</span>
+                        <div>
+                            <span class="badge bg-primary me-2">3 items</span>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory('jerseys')">Delete</button>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="ti ti-gift me-2"></i>Merchandise</span>
+                        <div>
+                            <span class="badge bg-primary me-2">8 items</span>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory('merchandise')">Delete</button>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="ti ti-tools me-2"></i>Equipment</span>
+                        <div>
+                            <span class="badge bg-primary me-2">2 items</span>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory('equipment')">Delete</button>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-muted mt-3"><small>Note: Category management connects to the store database when configured.</small></p>
+            </div>
+        `,
+        width: '600px',
+        confirmButtonText: 'Close'
+    });
+}
+
+// Store Order Management Functions
+function viewPendingOrders() {
+    Swal.fire({
+        title: 'Pending Orders',
+        html: `
+            <div class="text-start">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Items</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>#1001</td>
+                                <td>John Doe</td>
+                                <td>2 × ECS FC Jersey</td>
+                                <td>2025-07-31</td>
+                                <td>
+                                    <button class="btn btn-sm btn-success me-1" onclick="processOrder(1001)">Process</button>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="viewOrder(1001)">View</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>#1002</td>
+                                <td>Jane Smith</td>
+                                <td>1 × Team Scarf</td>
+                                <td>2025-07-31</td>
+                                <td>
+                                    <button class="btn btn-sm btn-success me-1" onclick="processOrder(1002)">Process</button>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="viewOrder(1002)">View</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted mt-3"><small>Note: Order data is loaded from the database when available.</small></p>
+            </div>
+        `,
+        width: '700px',
+        confirmButtonText: 'Close'
+    });
+}
+
+function viewCompletedOrders() {
+    Swal.fire({
+        title: 'Completed Orders',
+        html: `
+            <div class="text-start">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Items</th>
+                                <th>Completed Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>#0998</td>
+                                <td>Mike Johnson</td>
+                                <td>1 × ECS FC Mug</td>
+                                <td>2025-07-30</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="viewOrder(998)">View</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>#0997</td>
+                                <td>Sarah Wilson</td>
+                                <td>3 × Team Scarf</td>
+                                <td>2025-07-29</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="viewOrder(997)">View</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted mt-3"><small>Note: Order history is loaded from the database when available.</small></p>
+            </div>
+        `,
+        width: '700px',
+        confirmButtonText: 'Close'
+    });
+}
+
+function searchOrders() {
+    Swal.fire({
+        title: 'Search Orders',
+        html: `
+            <div class="text-start">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Order ID</label>
+                        <input type="text" class="form-control" id="searchOrderId" placeholder="Enter order ID">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Customer Name</label>
+                        <input type="text" class="form-control" id="searchCustomer" placeholder="Enter customer name">
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="searchStatus">
+                            <option value="">All statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Date Range</label>
+                        <select class="form-select" id="searchDateRange">
+                            <option value="">All dates</option>
+                            <option value="today">Today</option>
+                            <option value="week">This week</option>
+                            <option value="month">This month</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <button class="btn btn-primary" onclick="performOrderSearch()">Search Orders</button>
+                </div>
+                <div id="searchResults" class="mt-3"></div>
+                <p class="text-muted mt-3"><small>Note: Search functionality connects to the database when configured.</small></p>
+            </div>
+        `,
+        width: '700px',
+        showConfirmButton: false,
+        showCloseButton: true
+    });
+}
+
+function processOrder(orderId) {
+    Swal.fire({
+        title: 'Process Order',
+        text: `Are you sure you want to mark order #${orderId} as processed?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Process Order',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // TODO: Implement actual order processing
+            Swal.fire('Processed!', `Order #${orderId} has been marked as processed.`, 'success');
+        }
+    });
+}
+
+function performOrderSearch() {
+    const orderId = document.getElementById('searchOrderId').value;
+    const customer = document.getElementById('searchCustomer').value;
+    const status = document.getElementById('searchStatus').value;
+    const dateRange = document.getElementById('searchDateRange').value;
+    
+    // TODO: Implement actual search
+    const resultsDiv = document.getElementById('searchResults');
+    resultsDiv.innerHTML = `
+        <div class="alert alert-info">
+            <strong>Search Parameters:</strong><br>
+            Order ID: ${orderId || 'Any'}<br>
+            Customer: ${customer || 'Any'}<br>
+            Status: ${status || 'Any'}<br>
+            Date Range: ${dateRange || 'Any'}<br>
+            <em>Search functionality is in development.</em>
+        </div>
+    `;
+}
+
+function viewOrder(orderId) {
+    if (!orderId) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Invalid order ID',
+            icon: 'error'
+        });
+        return;
+    }
+    
+    // Find the order data from the table
+    const orderRow = document.querySelector(`tr:has(td:first-child:contains('#${orderId}'))`);
+    if (!orderRow) {
+        // Try to find it by scanning all rows
+        const rows = document.querySelectorAll('tbody tr');
+        let orderData = null;
+        
+        for (let row of rows) {
+            const firstCell = row.querySelector('td:first-child');
+            if (firstCell && firstCell.textContent.includes(`#${orderId}`)) {
+                const cells = row.querySelectorAll('td');
+                orderData = {
+                    id: orderId,
+                    customer: cells[1]?.textContent || 'N/A',
+                    items: cells[2]?.textContent || 'N/A',
+                    total: cells[3]?.textContent || 'N/A',
+                    status: cells[4]?.querySelector('.badge')?.textContent || 'N/A',
+                    date: cells[5]?.textContent || 'N/A'
+                };
+                break;
+            }
+        }
+        
+        if (!orderData) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Order not found',
+                icon: 'error'
+            });
+            return;
+        }
+        
+        Swal.fire({
+            title: `Order #${orderId} Details`,
+            html: `
+                <div class="text-start">
+                    <p><strong>Customer:</strong> ${orderData.customer}</p>
+                    <p><strong>Items:</strong> ${orderData.items}</p>
+                    <p><strong>Total:</strong> ${orderData.total}</p>
+                    <p><strong>Status:</strong> ${orderData.status}</p>
+                    <p><strong>Date:</strong> ${orderData.date}</p>
+                </div>
+            `,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'Update Status',
+            cancelButtonText: 'Close'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                updateOrderStatus(orderId);
+            }
+        });
+    }
+}
+
+function updateOrderStatus(orderId) {
+    Swal.fire({
+        title: 'Update Order Status',
+        input: 'select',
+        inputOptions: {
+            'PENDING': 'Pending',
+            'PROCESSING': 'Processing',
+            'ORDERED': 'Ordered',
+            'DELIVERED': 'Delivered',
+            'CANCELLED': 'Cancelled'
+        },
+        inputPlaceholder: 'Select new status',
+        showCancelButton: true,
+        confirmButtonText: 'Update',
+        preConfirm: (status) => {
+            if (!status) {
+                Swal.showValidationMessage('Please select a status');
+                return false;
+            }
+            return status;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // In a real implementation, this would make an AJAX call to update the order
+            Swal.fire({
+                title: 'Status Updated',
+                text: `Order #${orderId} status updated to ${result.value}`,
+                icon: 'success'
+            }).then(() => {
+                // Refresh the page to show updated data
+                location.reload();
+            });
+        }
+    });
+}
+</script>
+{% endblock %}

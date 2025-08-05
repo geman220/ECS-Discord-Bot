@@ -1,0 +1,559 @@
+{% extends "admin_panel/base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Waitlist Management - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.user_management') }}">User Management</a>
+</li>
+<li class="breadcrumb-item active">Waitlist Management</li>
+{% endblock %}
+
+{% block panel_content %}
+
+    <!-- Waitlist Overview -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ waitlist_users|length }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Total Waitlist</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-clipboard-list" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ recent_waitlist|length }}</h5>
+                            <p class="card-text small opacity-75 mb-0">New This Week</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-user-plus" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ processed_count or 0 }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Processed This Month</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-check-circle" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ avg_wait_time or 'N/A' }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Avg Wait Time</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Waitlist Management Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-clipboard-list me-2"></i>Waitlist Queue
+                    </h5>
+                    <div>
+                        <button class="btn btn-outline-secondary me-2" onclick="window.history.back()">
+                            <i class="ti ti-arrow-left me-1"></i>Back
+                        </button>
+                        <button class="btn btn-success" onclick="processAllFromWaitlist()" 
+                                {% if not waitlist_users %}disabled{% endif %}>
+                            <i class="ti ti-check-circle me-1"></i>Process All
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if waitlist_users %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>
+                                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                    </th>
+                                    <th>User</th>
+                                    <th>Contact</th>
+                                    <th>Joined Waitlist</th>
+                                    <th>Wait Time</th>
+                                    <th>League Interest</th>
+                                    <th>Priority</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in waitlist_users %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" class="user-checkbox" value="{{ user.id }}">
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar avatar-sm me-2">
+                                                <span class="avatar-initial bg-label-primary rounded-circle">
+                                                    {{ (user.name or user.username or 'U')[0].upper() }}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <strong>{{ user.name or user.username or 'Unknown' }}</strong>
+                                                {% if user.discord_id %}
+                                                <br><small class="text-success">Discord Connected</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            {% if user.email %}
+                                            <div><i class="ti ti-mail me-1"></i>{{ user.email }}</div>
+                                            {% endif %}
+                                            {% if user.discord_username %}
+                                            <div><i class="ti ti-brand-discord me-1"></i>{{ user.discord_username }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <small>{{ user.waitlist_joined_at.strftime('%Y-%m-%d %H:%M') if user.waitlist_joined_at else user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'Unknown' }}</small>
+                                    </td>
+                                    <td>
+                                        {% set wait_days = ((now - (user.waitlist_joined_at or user.created_at)).days) if (user.waitlist_joined_at or user.created_at) else 0 %}
+                                        <span class="badge bg-{% if wait_days > 30 %}danger{% elif wait_days > 14 %}warning{% else %}info{% endif %}">
+                                            {{ wait_days }} days
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ user.preferred_league or 'Any' }}</span>
+                                    </td>
+                                    <td>
+                                        {% if wait_days > 30 %}
+                                        <span class="badge bg-danger">High</span>
+                                        {% elif wait_days > 14 %}
+                                        <span class="badge bg-warning">Medium</span>
+                                        {% else %}
+                                        <span class="badge bg-info">Normal</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-info" 
+                                                    onclick="viewWaitlistUser({{ user.id }}, '{{ user.name or user.username }}')">
+                                                <i class="ti ti-eye"></i>
+                                            </button>
+                                            <button class="btn btn-outline-success" 
+                                                    onclick="processFromWaitlist({{ user.id }}, '{{ user.name or user.username }}')">
+                                                <i class="ti ti-check"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" 
+                                                    onclick="removeFromWaitlist({{ user.id }}, '{{ user.name or user.username }}')">
+                                                <i class="ti ti-x"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="ti ti-clipboard-x text-muted" style="font-size: 4rem;"></i>
+                        <h5 class="text-muted mt-3">No users in waitlist</h5>
+                        <p class="text-muted">The waitlist is currently empty.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Waitlist Settings -->
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-settings me-2"></i>Waitlist Settings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-toggle-left me-2"></i>
+                                <span class="fw-medium">Waitlist Registration</span>
+                                <br><small class="text-muted">Allow new users to join waitlist</small>
+                            </div>
+                            <div>
+                                <span class="badge bg-{% if waitlist_registration_enabled %}success{% else %}danger{% endif %}">
+                                    {% if waitlist_registration_enabled %}Open{% else %}Closed{% endif %}
+                                </span>
+                                <a href="{{ url_for('admin_panel.feature_toggles') }}#registration" 
+                                   class="btn btn-sm btn-outline-primary ms-2">
+                                    <i class="ti ti-settings"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="ti ti-bell me-2"></i>
+                                <span class="fw-medium">Auto Notifications</span>
+                                <br><small class="text-muted">Notify users when processed</small>
+                            </div>
+                            <div>
+                                <span class="badge bg-success">Enabled</span>
+                                <a href="{{ url_for('admin_panel.feature_toggles') }}#notifications" 
+                                   class="btn btn-sm btn-outline-primary ms-2">
+                                    <i class="ti ti-settings"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-chart-bar me-2"></i>Waitlist Analytics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item">
+                            <div class="row">
+                                <div class="col-sm-8">
+                                    <div class="d-flex align-items-center">
+                                        <i class="ti ti-clock me-2"></i>
+                                        <span>Average Wait Time</span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 text-end">
+                                    <span class="badge bg-info">{{ avg_wait_time or '7 days' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="row">
+                                <div class="col-sm-8">
+                                    <div class="d-flex align-items-center">
+                                        <i class="ti ti-check-circle me-2"></i>
+                                        <span>Processing Rate</span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 text-end">
+                                    <span class="badge bg-success">{{ processing_rate or '85%' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="row">
+                                <div class="col-sm-8">
+                                    <div class="d-flex align-items-center">
+                                        <i class="ti ti-users me-2"></i>
+                                        <span>Conversion Rate</span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4 text-end">
+                                    <span class="badge bg-primary">{{ conversion_rate or '92%' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Details Modal -->
+    <div class="modal fade" id="waitlistUserModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="waitlist_user_title">User Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="waitlist_user_content">
+                    <!-- User details will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" onclick="processUserFromModal()">
+                        <i class="ti ti-check me-1"></i>Process User
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar {
+    width: 38px;
+    height: 38px;
+}
+
+.avatar-initial {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    width: 100%;
+    height: 100%;
+}
+
+@media (max-width: 768px) {
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.75rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+let selectedUserId = null;
+
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.user-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+}
+
+function viewWaitlistUser(userId, userName) {
+    selectedUserId = userId;
+    document.getElementById('waitlist_user_title').textContent = `Details for ${userName}`;
+    document.getElementById('waitlist_user_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+    
+    const modal = new bootstrap.Modal(document.getElementById('waitlistUserModal'));
+    modal.show();
+    
+    // Load user details via AJAX
+    fetch(`{{ url_for('admin_panel.get_user_details') }}?user_id=${userId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('waitlist_user_content').innerHTML = data.html;
+            } else {
+                document.getElementById('waitlist_user_content').innerHTML = '<div class="alert alert-danger">Error loading user details</div>';
+            }
+        })
+        .catch(error => {
+            document.getElementById('waitlist_user_content').innerHTML = '<div class="alert alert-danger">Error loading user details</div>';
+        });
+}
+
+function processFromWaitlist(userId, userName) {
+    Swal.fire({
+        title: 'Process User from Waitlist?',
+        text: `Process "${userName}" from the waitlist and approve their registration?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, process user!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("admin_panel.process_waitlist_user") }}';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = 'csrf_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            
+            const userIdInput = document.createElement('input');
+            userIdInput.type = 'hidden';
+            userIdInput.name = 'user_id';
+            userIdInput.value = userId;
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'process';
+            
+            form.appendChild(csrfToken);
+            form.appendChild(userIdInput);
+            form.appendChild(actionInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
+function removeFromWaitlist(userId, userName) {
+    Swal.fire({
+        title: 'Remove from Waitlist?',  
+        text: `Remove "${userName}" from the waitlist? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, remove!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("admin_panel.process_waitlist_user") }}';
+            
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = 'csrf_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            
+            const userIdInput = document.createElement('input');
+            userIdInput.type = 'hidden';
+            userIdInput.name = 'user_id';
+            userIdInput.value = userId;
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'remove';
+            
+            form.appendChild(csrfToken);
+            form.appendChild(userIdInput);
+            form.appendChild(actionInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
+function processAllFromWaitlist() {
+    const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+    const selectedCount = checkboxes.length;
+    
+    if (selectedCount === 0) {
+        // Process all users
+        Swal.fire({
+            title: 'Process All Users?',
+            text: 'Process all users from the waitlist and approve their registrations?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, process all!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '{{ url_for("admin_panel.process_waitlist_user") }}';
+                
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = 'csrf_token';
+                csrfToken.value = '{{ csrf_token() }}';
+                
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'process_all';
+                
+                form.appendChild(csrfToken);
+                form.appendChild(actionInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    } else {
+        // Process selected users
+        Swal.fire({
+            title: `Process ${selectedCount} Selected Users?`,
+            text: `Process ${selectedCount} selected users from the waitlist?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, process selected!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '{{ url_for("admin_panel.process_waitlist_user") }}';
+                
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = 'csrf_token';
+                csrfToken.value = '{{ csrf_token() }}';
+                
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'process_selected';
+                
+                // Add selected user IDs
+                checkboxes.forEach(checkbox => {
+                    const userIdInput = document.createElement('input');
+                    userIdInput.type = 'hidden';
+                    userIdInput.name = 'selected_users';
+                    userIdInput.value = checkbox.value;
+                    form.appendChild(userIdInput);
+                });
+                
+                form.appendChild(csrfToken);
+                form.appendChild(actionInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+}
+
+function processUserFromModal() {
+    if (selectedUserId) {
+        processFromWaitlist(selectedUserId, 'this user');
+    }
+}
+</script>
+{% endblock %}
