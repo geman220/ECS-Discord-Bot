@@ -142,41 +142,59 @@ class DraftCacheService:
             yield None
             return
             
-        redis_manager = get_redis_manager()
-        
-        # Check connection pool utilization - fail fast if overloaded
         try:
-            stats = redis_manager.get_connection_stats()
-            pool_utilization = stats.get('pool_stats', {}).get('utilization_percent', 0)
+            redis_manager = get_redis_manager()
             
-            if pool_utilization > 90:  # Very aggressive threshold for active drafts
-                logger.warning(f"Redis pool critical ({pool_utilization}%) - skipping operation to prevent timeout")
+            # Check connection pool utilization - fail fast if overloaded
+            try:
+                stats = redis_manager.get_connection_stats()
+                pool_utilization = stats.get('pool_stats', {}).get('utilization_percent', 0)
+                
+                if pool_utilization > 90:  # Very aggressive threshold for active drafts
+                    logger.warning(f"Redis pool critical ({pool_utilization}%) - skipping operation to prevent timeout")
+                    yield None
+                    return
+            except Exception as e:
+                # If we can't even get stats, Redis is in trouble
+                logger.warning(f"Could not get Redis stats: {e}")
+                DraftCacheService._record_failure()
                 yield None
                 return
-        except Exception:
-            # If we can't even get stats, Redis is in trouble
-            DraftCacheService._record_failure()
-            yield None
-            return
-        
-        # Set very aggressive timeout for connection
-        try:
-            start_time = time.time()
-            conn = redis_manager.client
             
-            # Test connection with minimal timeout
-            conn.ping()
-            
-            connection_time = time.time() - start_time
-            if connection_time > 0.1:  # 100ms is too slow for active draft
-                logger.warning(f"Redis connection slow ({connection_time:.3f}s) - potential timeout risk")
-            
-            DraftCacheService._record_success()
-            yield conn
-            
+            # Set very aggressive timeout for connection
+            try:
+                start_time = time.time()
+                conn = redis_manager.client
+                
+                # Ensure we got a valid connection
+                if conn is None:
+                    logger.error("Redis manager returned None client")
+                    DraftCacheService._record_failure()
+                    yield None
+                    return
+                
+                # Test connection with minimal timeout - but handle fallback clients
+                if hasattr(conn, 'ping'):
+                    ping_result = conn.ping()
+                    if ping_result is False:  # Fallback client returns False
+                        logger.debug("Redis fallback client detected - degraded mode")
+                else:
+                    logger.warning("Redis client has no ping method")
+                
+                connection_time = time.time() - start_time
+                if connection_time > 0.1:  # 100ms is too slow for active draft
+                    logger.warning(f"Redis connection slow ({connection_time:.3f}s) - potential timeout risk")
+                
+                DraftCacheService._record_success()
+                yield conn
+                
+            except Exception as e:
+                logger.error(f"Redis connection error: {e}")
+                DraftCacheService._record_failure()
+                yield None
+                
         except Exception as e:
-            logger.error(f"Redis connection error: {e}")
-            DraftCacheService._record_failure()
+            logger.error(f"Critical error in Redis connection manager: {e}")
             yield None
     
     @staticmethod

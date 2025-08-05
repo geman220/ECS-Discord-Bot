@@ -932,11 +932,21 @@ def get_user_data():
     if user.player and user.player.other_leagues:
         secondary_league_id = user.player.other_leagues[0].id
 
+    # Generate the properly selected roles HTML on the server side
+    all_roles = session.query(Role).order_by(Role.name).all()
+    user_role_ids = {role.id for role in user.roles}
+    
+    roles_html = ""
+    for role in all_roles:
+        selected = "selected" if role.id in user_role_ids else ""
+        roles_html += f'<option value="{role.id}" {selected}>{role.name}</option>'
+    
     user_data = {
         'id': user.id,
         'username': user.username,
         'email': user.email,
         'roles': [role.id for role in user.roles],
+        'roles_html': roles_html,  # Pre-rendered HTML with selected options
         'league_id': user.player.league_id if (user.player and user.player.league_id) else 0,
         'team_id': user.player.primary_team_id if (user.player and user.player.primary_team_id) else 0,
         'primary_league_id': user.player.primary_league_id if user.player else None,
