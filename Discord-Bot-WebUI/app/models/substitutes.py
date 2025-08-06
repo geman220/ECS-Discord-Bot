@@ -240,25 +240,35 @@ def get_eligible_players(league_type, positions=None, gender=None, session=None)
     if session is None:
         session = db.session
     
-    # Get all leagues for the given league type
-    from app.models import League, Season
-    league_ids = session.query(League.id).join(
-        Season, League.season_id == Season.id
-    ).filter(Season.league_type == league_type).subquery()
+    # Map league types to role names
+    role_mapping = {
+        'ECS FC': 'ECS FC Sub',
+        'Classic': 'Classic Sub', 
+        'Premier': 'Premier Sub'
+    }
     
-    query = session.query(SubstitutePool).filter(
-        SubstitutePool.league_id.in_(league_ids),
-        SubstitutePool.is_active == True
-    )
+    required_role = role_mapping.get(league_type)
+    if not required_role:
+        return []
     
-    if positions:
-        # Filter by preferred positions
-        position_filters = []
-        for position in positions:
-            position_filters.append(SubstitutePool.preferred_positions.like(f'%{position}%'))
-        query = query.filter(db.or_(*position_filters))
+    # Find all players with the required role
+    from app.models import Player, User, Role
+    from sqlalchemy.orm import joinedload
     
-    return query.all()
+    players_with_role = session.query(Player).options(
+        joinedload(Player.user).joinedload(User.roles)
+    ).join(User).join(User.roles).filter(
+        Role.name == required_role
+    ).all()
+    
+    # Apply gender filter if specified
+    if gender:
+        players_with_role = [
+            p for p in players_with_role 
+            if p.pronouns and gender.lower() in p.pronouns.lower()
+        ]
+    
+    return players_with_role
 
 
 def get_active_substitutes(league_type, session=None, gender_filter=None):
@@ -266,26 +276,36 @@ def get_active_substitutes(league_type, session=None, gender_filter=None):
     if session is None:
         session = db.session
     
-    # Get all leagues for the given league type
-    from app.models import League, Season, Player
-    league_ids = session.query(League.id).join(
-        Season, League.season_id == Season.id
-    ).filter(Season.league_type == league_type).subquery()
+    # Map league types to role names
+    role_mapping = {
+        'ECS FC': 'ECS FC Sub',
+        'Classic': 'Classic Sub', 
+        'Premier': 'Premier Sub'
+    }
     
-    query = session.query(SubstitutePool).options(
-        joinedload(SubstitutePool.player)
-    ).filter(
-        SubstitutePool.league_id.in_(league_ids),
+    required_role = role_mapping.get(league_type)
+    if not required_role:
+        return []
+    
+    # Find all active substitute pool entries for players with the required role
+    from app.models import Player, User, Role
+    from sqlalchemy.orm import joinedload
+    
+    # First, try to get existing SubstitutePool entries
+    existing_pools = session.query(SubstitutePool).options(
+        joinedload(SubstitutePool.player).joinedload(Player.user).joinedload(User.roles)
+    ).join(Player).join(User).join(User.roles).filter(
+        Role.name == required_role,
         SubstitutePool.is_active == True
     )
     
     # Apply gender filter if specified
     if gender_filter:
-        query = query.join(Player, SubstitutePool.player_id == Player.id).filter(
+        existing_pools = existing_pools.filter(
             Player.pronouns.ilike(f'%{gender_filter}%')
         )
     
-    return query.all()
+    return existing_pools.all()
 
 
 def log_pool_action(player_id, league_id, action, notes=None, performed_by=None):
