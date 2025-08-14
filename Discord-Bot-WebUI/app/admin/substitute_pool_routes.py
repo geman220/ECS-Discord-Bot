@@ -188,7 +188,10 @@ def add_player_to_pool(league_type: str):
     Add a player to the substitute pool for a specific league.
     """
     try:
+        logger.info(f"Adding player to {league_type} pool. Request data: {request.json}")
+        
         if league_type not in LEAGUE_TYPES:
+            logger.error(f"Invalid league type: {league_type}. Valid types: {list(LEAGUE_TYPES.keys())}")
             return jsonify({'success': False, 'message': 'Invalid league type'}), 400
         
         session = g.db_session
@@ -196,6 +199,7 @@ def add_player_to_pool(league_type: str):
         # Get form data
         player_id = request.json.get('player_id')
         if not player_id:
+            logger.error("No player_id in request")
             return jsonify({'success': False, 'message': 'Player ID is required'}), 400
         
         # Verify player exists and has the appropriate role
@@ -204,11 +208,25 @@ def add_player_to_pool(league_type: str):
         ).get(player_id)
         
         if not player:
+            logger.error(f"Player not found: {player_id}")
             return jsonify({'success': False, 'message': 'Player not found'}), 404
         
         # Check if player has the required role
         required_role = LEAGUE_TYPES[league_type]['role']
+        
+        if not player.user:
+            logger.error(f"Player {player.name} (ID: {player_id}) has no associated user account")
+            return jsonify({'success': False, 'message': 'Player has no associated user account'}), 400
+            
+        if not player.user.roles:
+            logger.error(f"Player {player.name} (ID: {player_id}) has no roles assigned")
+            return jsonify({'success': False, 'message': 'Player has no roles assigned'}), 400
+            
+        player_roles = [role.name for role in player.user.roles]
+        logger.info(f"Player {player.name} (ID: {player_id}) has roles: {player_roles}. Required role: {required_role}")
+        
         if not any(role.name == required_role for role in player.user.roles):
+            logger.error(f"Player {player.name} does not have required role {required_role}")
             return jsonify({'success': False, 'message': f'Player does not have {required_role} role'}), 400
         
         # Check if already in pool for this league type
@@ -223,12 +241,33 @@ def add_player_to_pool(league_type: str):
             else:
                 # Reactivate
                 existing_pool.is_active = True
+                
+                # Assign player to appropriate league if they don't have one
+                if not player.league_id and not player.primary_league_id:
+                    from app.models import League, Season
+                    # Find a league that matches this league type
+                    matching_league = session.query(League).join(Season).filter(
+                        Season.league_type == league_type,
+                        Season.is_current == True
+                    ).first()
+                    
+                    if matching_league:
+                        player.league_id = matching_league.id
+                        player.primary_league_id = matching_league.id
+                        existing_pool.league_id = matching_league.id  # Also update the pool entry
+                        logger.info(f"Assigned player {player.name} to {league_type} league (ID: {matching_league.id}) during reactivation")
+                        message = f"{player.name} has been reactivated in the {league_type} substitute pool and assigned to {matching_league.name} league"
+                    else:
+                        logger.warning(f"Could not find current league for type {league_type}")
+                        message = f"{player.name} has been reactivated in the {league_type} substitute pool"
+                else:
+                    message = f"{player.name} has been reactivated in the {league_type} substitute pool"
+                
                 session.add(existing_pool)
                 log_pool_action(
                     player.id, existing_pool.league_id, 'REACTIVATED',
                     f"Player reactivated in {league_type} pool", safe_current_user.id, existing_pool.id, session
                 )
-                message = f"{player.name} has been reactivated in the {league_type} substitute pool"
         else:
             # Create new pool entry
             pool_entry = SubstitutePool(
@@ -244,8 +283,26 @@ def add_player_to_pool(league_type: str):
             session.add(pool_entry)
             session.flush()  # Get the ID
             
+            # Assign player to appropriate league if they don't have one
+            if not player.league_id and not player.primary_league_id:
+                from app.models import League, Season
+                # Find a league that matches this league type
+                matching_league = session.query(League).join(Season).filter(
+                    Season.league_type == league_type,
+                    Season.is_current == True
+                ).first()
+                
+                if matching_league:
+                    player.league_id = matching_league.id
+                    player.primary_league_id = matching_league.id
+                    pool_entry.league_id = matching_league.id  # Also set on the pool entry
+                    logger.info(f"Assigned player {player.name} to {league_type} league (ID: {matching_league.id})")
+                    message += f" and assigned to {matching_league.name} league"
+                else:
+                    logger.warning(f"Could not find current league for type {league_type}")
+            
             log_pool_action(
-                player.id, None, 'ADDED',
+                player.id, pool_entry.league_id, 'ADDED',
                 f"Player added to {league_type} pool", safe_current_user.id, pool_entry.id, session
             )
             message = f"{player.name} has been added to the {league_type} substitute pool"
