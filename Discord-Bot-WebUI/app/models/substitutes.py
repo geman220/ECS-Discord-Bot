@@ -124,11 +124,11 @@ class SubstitutePool(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False, unique=True)
-    league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=False)
     league_type = db.Column(db.String(255), nullable=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
-    preferred_positions = db.Column(db.String(255), nullable=True)
-    max_matches_per_week = db.Column(db.Integer, nullable=True)
+    preferred_positions = db.Column(db.Text, nullable=True)
+    max_matches_per_week = db.Column(db.Integer, nullable=True, default=3)
+    notes = db.Column(db.Text, nullable=True)
     preferred_locations = db.Column(db.Text, nullable=True)
     max_travel_distance = db.Column(db.Integer, nullable=True)
     sms_for_sub_requests = db.Column(db.Boolean, nullable=False, default=True)
@@ -137,12 +137,17 @@ class SubstitutePool(db.Model):
     requests_received = db.Column(db.Integer, nullable=False, default=0)
     requests_accepted = db.Column(db.Integer, nullable=False, default=0)
     matches_played = db.Column(db.Integer, nullable=False, default=0)
-    joined_pool_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     last_active_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    approved_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=True)
+    joined_pool_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
     
     # Relationships
     player = db.relationship('Player', backref='substitute_pools')
     league = db.relationship('League', backref='substitute_pools')
+    approver = db.relationship('User', foreign_keys=[approved_by])
 
 
 class SubstitutePoolHistory(db.Model):
@@ -150,19 +155,37 @@ class SubstitutePoolHistory(db.Model):
     __tablename__ = 'substitute_pool_history'
     
     id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
-    league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=False)
     pool_id = db.Column(db.Integer, db.ForeignKey('substitute_pools.id'), nullable=False)
     action = db.Column(db.String(50), nullable=False)
-    notes = db.Column(db.Text, nullable=True)
+    previous_status = db.Column(db.JSON, nullable=True)
+    new_status = db.Column(db.JSON, nullable=True)
     performed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     performed_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    notes = db.Column(db.Text, nullable=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=True)
+    league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=True)
     
     # Relationships
     player = db.relationship('Player', backref='substitute_pool_history')
     league = db.relationship('League', backref='substitute_pool_history')
     pool = db.relationship('SubstitutePool', backref='history')
     performer = db.relationship('User', backref='substitute_pool_history')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'pool_id': self.pool_id,
+            'action': self.action,
+            'previous_status': self.previous_status,
+            'new_status': self.new_status,
+            'performed_by': self.performed_by,
+            'performed_at': self.performed_at.isoformat() if self.performed_at else None,
+            'notes': self.notes,
+            'player_id': self.player_id,
+            'league_id': self.league_id,
+            'player_name': self.player.name if self.player else None,
+            'performer_name': self.performer.username if self.performer else None
+        }
 
 
 class SubstituteRequest(db.Model):

@@ -232,6 +232,9 @@ class Player(db.Model):
         cascade='all, delete-orphan'
     )
     profile_last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_known_emails = db.Column(db.Text, nullable=True)
+    merge_history = db.Column(db.Text, nullable=True)
+    verified_phone = db.Column(db.Boolean, default=False)
 
     @property 
     def current_teams(self):
