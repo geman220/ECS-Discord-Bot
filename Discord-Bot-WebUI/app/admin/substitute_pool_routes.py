@@ -238,6 +238,7 @@ def add_player_to_pool(league_type: str):
             pool_entry = SubstitutePool(
                 player_id=player_id,
                 league_id=league.id,
+                league_type=league_type,
                 preferred_positions=request.json.get('preferred_positions', ''),
                 sms_for_sub_requests=request.json.get('sms_notifications', True),
                 discord_for_sub_requests=request.json.get('discord_notifications', True),
