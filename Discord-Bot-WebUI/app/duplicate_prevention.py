@@ -142,16 +142,16 @@ def find_potential_duplicates(user_data, league_id=None):
     
     # 1. Check for exact phone match (high confidence)
     if phone and len(phone) >= 10:
-        phone_matches = query.filter_by(phone=phone).all()
+        phone_matches = query.join(User).filter_by(phone=phone).all()
         for player in phone_matches:
-            if player.email.lower() != email:  # Different email but same phone
+            if player.user.email.lower() != email:  # Different email but same phone
                 potential_duplicates.append((player, 'phone', 0.9))
     
     # 2. Check for similar names (medium confidence)
     if name:
         # Get all players to check name similarity
-        all_players = query.filter(
-            Player.email != email  # Exclude exact email matches
+        all_players = query.join(User).filter(
+            User.email != email  # Exclude exact email matches
         ).all()
         
         for player in all_players:
@@ -162,12 +162,12 @@ def find_potential_duplicates(user_data, league_id=None):
     # 3. Check for email domain + similar name (medium confidence)
     if '@' in email:
         email_domain = email.split('@')[1]
-        domain_players = query.filter(
-            Player.email.like(f'%@{email_domain}')
+        domain_players = query.join(User).filter(
+            User.email.like(f'%@{email_domain}')
         ).all()
         
         for player in domain_players:
-            if player.email.lower() != email:
+            if player.user.email.lower() != email:
                 name_similarity = SequenceMatcher(None, name.lower(), player.name.lower()).ratio()
                 if name_similarity > 0.7:  # 70% similar with same email domain
                     potential_duplicates.append((player, 'email_domain_and_name', name_similarity * 0.8))
