@@ -311,8 +311,11 @@ def get_active_substitutes(league_type, session=None, gender_filter=None):
     return existing_pools.all()
 
 
-def log_pool_action(player_id, league_id, action, notes=None, performed_by=None, pool_id=None):
+def log_pool_action(player_id, league_id, action, notes=None, performed_by=None, pool_id=None, session=None):
     """Log an action in the substitute pool history."""
+    if session is None:
+        session = db.session
+    
     history_entry = SubstitutePoolHistory(
         player_id=player_id,
         league_id=league_id,
@@ -321,6 +324,6 @@ def log_pool_action(player_id, league_id, action, notes=None, performed_by=None,
         notes=notes,
         performed_by=performed_by
     )
-    db.session.add(history_entry)
-    db.session.commit()
+    session.add(history_entry)
+    # Don't commit here - let the calling code handle the transaction
     return history_entry
