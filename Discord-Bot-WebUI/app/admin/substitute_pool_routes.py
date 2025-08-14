@@ -230,7 +230,7 @@ def add_player_to_pool(league_type: str):
                 session.add(existing_pool)
                 log_pool_action(
                     player.id, league.id, 'REACTIVATED',
-                    f"Player reactivated in {league_type} pool", safe_current_user.id
+                    f"Player reactivated in {league_type} pool", safe_current_user.id, existing_pool.id
                 )
                 message = f"{player.name} has been reactivated in the {league_type} substitute pool"
         else:
@@ -251,7 +251,7 @@ def add_player_to_pool(league_type: str):
             
             log_pool_action(
                 player.id, league.id, 'ADDED',
-                f"Player added to {league_type} pool", safe_current_user.id
+                f"Player added to {league_type} pool", safe_current_user.id, pool_entry.id
             )
             message = f"{player.name} has been added to the {league_type} substitute pool"
         
@@ -314,7 +314,7 @@ def remove_player_from_pool(league_type: str):
         
         log_pool_action(
             player_id, league.id, 'REMOVED',
-            f"Player removed from {league_type} pool", safe_current_user.id
+            f"Player removed from {league_type} pool", safe_current_user.id, pool_entry.id
         )
         
         session.commit()
@@ -378,7 +378,7 @@ def update_pool_preferences(league_type: str):
         
         log_pool_action(
             player_id, league.id, 'UPDATED',
-            f"Preferences updated for {league_type} pool", safe_current_user.id
+            f"Preferences updated for {league_type} pool", safe_current_user.id, pool_entry.id
         )
         
         session.commit()

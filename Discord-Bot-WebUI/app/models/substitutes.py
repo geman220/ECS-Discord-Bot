@@ -152,6 +152,7 @@ class SubstitutePoolHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
     league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=False)
+    pool_id = db.Column(db.Integer, db.ForeignKey('substitute_pools.id'), nullable=False)
     action = db.Column(db.String(50), nullable=False)
     notes = db.Column(db.Text, nullable=True)
     performed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -160,6 +161,7 @@ class SubstitutePoolHistory(db.Model):
     # Relationships
     player = db.relationship('Player', backref='substitute_pool_history')
     league = db.relationship('League', backref='substitute_pool_history')
+    pool = db.relationship('SubstitutePool', backref='history')
     performer = db.relationship('User', backref='substitute_pool_history')
 
 
@@ -309,11 +311,12 @@ def get_active_substitutes(league_type, session=None, gender_filter=None):
     return existing_pools.all()
 
 
-def log_pool_action(player_id, league_id, action, notes=None, performed_by=None):
+def log_pool_action(player_id, league_id, action, notes=None, performed_by=None, pool_id=None):
     """Log an action in the substitute pool history."""
     history_entry = SubstitutePoolHistory(
         player_id=player_id,
         league_id=league_id,
+        pool_id=pool_id,
         action=action,
         notes=notes,
         performed_by=performed_by
