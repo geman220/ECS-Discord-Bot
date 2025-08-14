@@ -148,6 +148,13 @@ class SubstitutePool(db.Model):
     player = db.relationship('Player', backref='substitute_pools')
     league = db.relationship('League', backref='substitute_pools')
     approver = db.relationship('User', foreign_keys=[approved_by])
+    
+    @property
+    def acceptance_rate(self):
+        """Calculate acceptance rate as percentage."""
+        if self.requests_received == 0:
+            return 0.0
+        return (self.requests_accepted / self.requests_received) * 100
 
 
 class SubstitutePoolHistory(db.Model):
