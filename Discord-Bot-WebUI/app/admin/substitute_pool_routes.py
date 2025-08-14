@@ -71,13 +71,11 @@ def manage_substitute_pools():
         # Get data for all league types
         pools_data = {}
         for league_type, config in LEAGUE_TYPES.items():
-            # Get active pools
+            # Get active pools by league_type directly
             active_pools = session.query(SubstitutePool).options(
-                joinedload(SubstitutePool.player).joinedload(Player.user),
-                joinedload(SubstitutePool.league).joinedload(League.season)
-            ).join(League, SubstitutePool.league_id == League.id
-            ).join(Season, League.season_id == Season.id).filter(
-                Season.league_type == league_type,
+                joinedload(SubstitutePool.player).joinedload(Player.user)
+            ).filter(
+                SubstitutePool.league_type == league_type,
                 SubstitutePool.is_active == True
             ).all()
             
@@ -238,7 +236,9 @@ def add_player_to_pool(league_type: str):
         logger.info(f"Existing pool found: {existing_pool is not None}")
         
         if existing_pool:
+            logger.info(f"Existing pool status - is_active: {existing_pool.is_active}, league_type: {existing_pool.league_type}")
             if existing_pool.is_active:
+                logger.info(f"Player {player.name} is already in the active {league_type} pool")
                 return jsonify({'success': False, 'message': 'Player is already in the active pool'}), 400
             else:
                 # Reactivate
