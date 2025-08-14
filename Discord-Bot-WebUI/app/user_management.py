@@ -1766,10 +1766,10 @@ def search_players():
         session = g.db_session
         
         # Search players by name or email
-        players = session.query(Player).filter(
+        players = session.query(Player).join(User).filter(
             or_(
                 Player.name.ilike(f'%{query}%'),
-                Player.email.ilike(f'%{query}%')
+                User.email.ilike(f'%{query}%')
             )
         ).limit(10).all()
         

@@ -149,8 +149,10 @@ def manage_league_pool(league_type: str):
             joinedload(SubstitutePoolHistory.performer)
         ).join(
             League, SubstitutePoolHistory.league_id == League.id
+        ).join(
+            Season, League.season_id == Season.id
         ).filter(
-            League.name == league_type
+            Season.league_type == league_type
         ).order_by(
             SubstitutePoolHistory.performed_at.desc()
         ).limit(10).all()
@@ -209,16 +211,10 @@ def add_player_to_pool(league_type: str):
         if not any(role.name == required_role for role in player.user.roles):
             return jsonify({'success': False, 'message': f'Player does not have {required_role} role'}), 400
         
-        # Find the league by name to get its ID
-        from app.models import League
-        league = session.query(League).filter_by(name=league_type).first()
-        if not league:
-            return jsonify({'success': False, 'message': f'League {league_type} not found'}), 404
-        
-        # Check if already in pool
+        # Check if already in pool for this league type
         existing_pool = session.query(SubstitutePool).filter_by(
             player_id=player_id,
-            league_id=league.id
+            league_type=league_type
         ).first()
         
         if existing_pool:
@@ -229,7 +225,7 @@ def add_player_to_pool(league_type: str):
                 existing_pool.is_active = True
                 session.add(existing_pool)
                 log_pool_action(
-                    player.id, league.id, 'REACTIVATED',
+                    player.id, existing_pool.league_id, 'REACTIVATED',
                     f"Player reactivated in {league_type} pool", safe_current_user.id, existing_pool.id, session
                 )
                 message = f"{player.name} has been reactivated in the {league_type} substitute pool"
@@ -237,7 +233,6 @@ def add_player_to_pool(league_type: str):
             # Create new pool entry
             pool_entry = SubstitutePool(
                 player_id=player_id,
-                league_id=league.id,
                 league_type=league_type,
                 preferred_positions=request.json.get('preferred_positions', ''),
                 sms_for_sub_requests=request.json.get('sms_notifications', True),
@@ -250,7 +245,7 @@ def add_player_to_pool(league_type: str):
             session.flush()  # Get the ID
             
             log_pool_action(
-                player.id, league.id, 'ADDED',
+                player.id, None, 'ADDED',
                 f"Player added to {league_type} pool", safe_current_user.id, pool_entry.id, session
             )
             message = f"{player.name} has been added to the {league_type} substitute pool"
@@ -292,16 +287,10 @@ def remove_player_from_pool(league_type: str):
         if not player_id:
             return jsonify({'success': False, 'message': 'Player ID is required'}), 400
         
-        # Find the league by name to get its ID
-        from app.models import League
-        league = session.query(League).filter_by(name=league_type).first()
-        if not league:
-            return jsonify({'success': False, 'message': f'League {league_type} not found'}), 404
-        
-        # Find the pool entry
+        # Find the pool entry by league_type
         pool_entry = session.query(SubstitutePool).filter_by(
             player_id=player_id,
-            league_id=league.id,
+            league_type=league_type,
             is_active=True
         ).first()
         
@@ -313,7 +302,7 @@ def remove_player_from_pool(league_type: str):
         session.add(pool_entry)
         
         log_pool_action(
-            player_id, league.id, 'REMOVED',
+            player_id, pool_entry.league_id, 'REMOVED',
             f"Player removed from {league_type} pool", safe_current_user.id, pool_entry.id, session
         )
         
@@ -347,16 +336,10 @@ def update_pool_preferences(league_type: str):
         if not player_id:
             return jsonify({'success': False, 'message': 'Player ID is required'}), 400
         
-        # Find the league by name to get its ID
-        from app.models import League
-        league = session.query(League).filter_by(name=league_type).first()
-        if not league:
-            return jsonify({'success': False, 'message': f'League {league_type} not found'}), 404
-        
-        # Find the pool entry
+        # Find the pool entry by league_type
         pool_entry = session.query(SubstitutePool).filter_by(
             player_id=player_id,
-            league_id=league.id,
+            league_type=league_type,
             is_active=True
         ).first()
         
@@ -377,7 +360,7 @@ def update_pool_preferences(league_type: str):
         session.add(pool_entry)
         
         log_pool_action(
-            player_id, league.id, 'UPDATED',
+            player_id, pool_entry.league_id, 'UPDATED',
             f"Preferences updated for {league_type} pool", safe_current_user.id, pool_entry.id, session
         )
         
@@ -408,12 +391,10 @@ def get_pool_statistics(league_type: str):
         session = g.db_session
         
         # Get active pools with statistics
-        from app.models import League
         active_pools = session.query(SubstitutePool).options(
             joinedload(SubstitutePool.player)
-        ).join(League, SubstitutePool.league_id == League.id
         ).filter(
-            League.name == league_type,
+            SubstitutePool.league_type == league_type,
             SubstitutePool.is_active == True
         ).all()
         
@@ -484,15 +465,15 @@ def get_pool_history(league_type: str):
         
         session = g.db_session
         
-        # Get history entries
-        from app.models import League
+        # Get history entries through pool relationship
         history = session.query(SubstitutePoolHistory).options(
             joinedload(SubstitutePoolHistory.player),
-            joinedload(SubstitutePoolHistory.performer)
+            joinedload(SubstitutePoolHistory.performer),
+            joinedload(SubstitutePoolHistory.pool)
         ).join(
-            League, SubstitutePoolHistory.league_id == League.id
+            SubstitutePool, SubstitutePoolHistory.pool_id == SubstitutePool.id
         ).filter(
-            League.name == league_type
+            SubstitutePool.league_type == league_type
         ).order_by(
             SubstitutePoolHistory.performed_at.desc()
         ).limit(50).all()
@@ -602,7 +583,7 @@ def get_substitute_requests(league_type: str):
         session = g.db_session
         
         # Get recent substitute requests for this league
-        from app.models import Match, Team, League
+        from app.models import Match, Team, League, Season, Season
         requests = session.query(SubstituteRequest).options(
             joinedload(SubstituteRequest.team),
             joinedload(SubstituteRequest.requester),
@@ -611,8 +592,9 @@ def get_substitute_requests(league_type: str):
         ).join(Match, SubstituteRequest.match_id == Match.id
         ).join(Team, SubstituteRequest.team_id == Team.id
         ).join(League, Team.league_id == League.id
+        ).join(Season, League.season_id == Season.id
         ).filter(
-            League.name == league_type
+            Season.league_type == league_type
         ).order_by(
             SubstituteRequest.created_at.desc()
         ).limit(20).all()
@@ -657,16 +639,18 @@ def cancel_substitute_request(league_type: str, request_id: int):
         session = g.db_session
         
         # Find the request
-        from app.models import Match, Team, League
+        from app.models import Match, Team, League, Season
         request = session.query(SubstituteRequest).join(
             Match, SubstituteRequest.match_id == Match.id
         ).join(
             Team, SubstituteRequest.team_id == Team.id
         ).join(
             League, Team.league_id == League.id
+        ).join(
+            Season, League.season_id == Season.id
         ).filter(
             SubstituteRequest.id == request_id,
-            League.name == league_type
+            Season.league_type == league_type
         ).first()
         
         if not request:
@@ -707,16 +691,18 @@ def resend_substitute_request(league_type: str, request_id: int):
         session = g.db_session
         
         # Find the request
-        from app.models import Match, Team, League
+        from app.models import Match, Team, League, Season
         request = session.query(SubstituteRequest).join(
             Match, SubstituteRequest.match_id == Match.id
         ).join(
             Team, SubstituteRequest.team_id == Team.id
         ).join(
             League, Team.league_id == League.id
+        ).join(
+            Season, League.season_id == Season.id
         ).filter(
             SubstituteRequest.id == request_id,
-            League.name == league_type
+            Season.league_type == league_type
         ).first()
         
         if not request:
@@ -1183,7 +1169,7 @@ def get_substitute_request_details(league_type: str, request_id: int):
         session = g.db_session
         
         # Get the request with all related data
-        from app.models import Match, Team, League
+        from app.models import Match, Team, League, Season
         request = session.query(SubstituteRequest).options(
             joinedload(SubstituteRequest.team),
             joinedload(SubstituteRequest.requester),
@@ -1195,9 +1181,11 @@ def get_substitute_request_details(league_type: str, request_id: int):
             Team, SubstituteRequest.team_id == Team.id
         ).join(
             League, Team.league_id == League.id
+        ).join(
+            Season, League.season_id == Season.id
         ).filter(
             SubstituteRequest.id == request_id,
-            League.name == league_type
+            Season.league_type == league_type
         ).first()
         
         if not request:
@@ -1291,16 +1279,18 @@ def assign_substitute(league_type: str, request_id: int):
             return jsonify({'success': False, 'message': 'Player ID is required'}), 400
         
         # Verify the request exists and is open
-        from app.models import Match, Team, League
+        from app.models import Match, Team, League, Season
         sub_request = session.query(SubstituteRequest).join(
             Match, SubstituteRequest.match_id == Match.id
         ).join(
             Team, SubstituteRequest.team_id == Team.id
         ).join(
             League, Team.league_id == League.id
+        ).join(
+            Season, League.season_id == Season.id
         ).filter(
             SubstituteRequest.id == request_id,
-            League.name == league_type,
+            Season.league_type == league_type,
             SubstituteRequest.status == 'OPEN'
         ).first()
         

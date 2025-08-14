@@ -232,10 +232,7 @@ def check_pre_registration_duplicates(discord_email, discord_username):
     domain_matches = []
     if email_domain:
         domain_matches = Player.query.options(joinedload(Player.user)).filter(
-            or_(
-                Player.email.like(f'%@{email_domain}'),
-                Player.user.has(User.email.like(f'%@{email_domain}'))
-            )
+            Player.user.has(User.email.like(f'%@{email_domain}'))
         ).all()
     
     # Check name similarity
