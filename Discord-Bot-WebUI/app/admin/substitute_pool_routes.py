@@ -226,11 +226,11 @@ def add_player_to_pool(league_type: str):
                 return jsonify({'success': False, 'message': 'Player is already in the active pool'}), 400
             else:
                 # Reactivate
-                existing_pool.activate(safe_current_user.id)
+                existing_pool.is_active = True
                 session.add(existing_pool)
                 log_pool_action(
-                    existing_pool.id, 'REACTIVATED', safe_current_user.id,
-                    f"Player reactivated in {league_type} pool", session=session
+                    player.id, league.id, 'REACTIVATED',
+                    f"Player reactivated in {league_type} pool", safe_current_user.id
                 )
                 message = f"{player.name} has been reactivated in the {league_type} substitute pool"
         else:
@@ -244,13 +244,13 @@ def add_player_to_pool(league_type: str):
                 email_for_sub_requests=request.json.get('email_notifications', True)
             )
             
-            pool_entry.activate(safe_current_user.id)
+            pool_entry.is_active = True
             session.add(pool_entry)
             session.flush()  # Get the ID
             
             log_pool_action(
-                pool_entry.id, 'ADDED', safe_current_user.id,
-                f"Player added to {league_type} pool", session=session
+                player.id, league.id, 'ADDED',
+                f"Player added to {league_type} pool", safe_current_user.id
             )
             message = f"{player.name} has been added to the {league_type} substitute pool"
         
@@ -308,12 +308,12 @@ def remove_player_from_pool(league_type: str):
             return jsonify({'success': False, 'message': 'Player not found in active pool'}), 404
         
         # Deactivate the pool entry
-        pool_entry.deactivate()
+        pool_entry.is_active = False
         session.add(pool_entry)
         
         log_pool_action(
-            pool_entry.id, 'REMOVED', safe_current_user.id,
-            f"Player removed from {league_type} pool", session=session
+            player_id, league.id, 'REMOVED',
+            f"Player removed from {league_type} pool", safe_current_user.id
         )
         
         session.commit()
@@ -363,7 +363,6 @@ def update_pool_preferences(league_type: str):
             return jsonify({'success': False, 'message': 'Player not found in active pool'}), 404
         
         # Store previous status for logging
-        previous_status = pool_entry.to_dict()
         
         # Update preferences
         pool_entry.preferred_positions = request.json.get('preferred_positions', pool_entry.preferred_positions)
@@ -376,22 +375,16 @@ def update_pool_preferences(league_type: str):
         
         session.add(pool_entry)
         
-        new_status = pool_entry.to_dict()
-        
         log_pool_action(
-            pool_entry.id, 'UPDATED', safe_current_user.id,
-            f"Preferences updated for {league_type} pool",
-            previous_status=previous_status,
-            new_status=new_status,
-            session=session
+            player_id, league.id, 'UPDATED',
+            f"Preferences updated for {league_type} pool", safe_current_user.id
         )
         
         session.commit()
         
         return jsonify({
             'success': True,
-            'message': f"Preferences updated for {pool_entry.player.name}",
-            'updated_data': new_status
+            'message': f"Preferences updated for {pool_entry.player.name}"
         })
         
     except Exception as e:
