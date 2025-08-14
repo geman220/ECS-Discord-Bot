@@ -62,6 +62,18 @@
         box-shadow: none;
     }
     
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        text-align: left;
+    }
+    
+    .card-header .ms-3 {
+        margin-left: 0 !important;
+        margin-top: 0.75rem;
+        align-self: flex-end;
+    }
+    
     .section-header {
         font-size: 1.1rem;
     }
@@ -70,6 +82,40 @@
     .form-select {
         font-size: 16px; /* Prevent zoom on iOS */
     }
+    
+    .logo-sm {
+        max-height: 32px; /* Smaller on mobile */
+    }
+}
+
+/* ===== LOGO STYLING ===== */
+.logo-sm {
+    max-height: 40px;
+    height: auto;
+    width: auto;
+    object-fit: contain;
+}
+
+/* ===== CARD HEADER STYLING ===== */
+.card-header {
+    background-color: var(--bs-body-bg);
+    border-bottom: 1px solid var(--bs-border-color);
+    min-height: 60px;
+}
+
+.card-header h5 {
+    color: var(--bs-heading-color);
+    line-height: 1.2;
+}
+
+.card-header .logo-sm {
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.card-header .logo-sm:hover {
+    opacity: 1;
 }
 
 /* ===== DARK MODE SUPPORT ===== */
