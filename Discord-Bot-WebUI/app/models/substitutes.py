@@ -138,7 +138,7 @@ class SubstitutePool(db.Model):
     requests_accepted = db.Column(db.Integer, nullable=False, default=0)
     matches_played = db.Column(db.Integer, nullable=False, default=0)
     joined_pool_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    last_active_at = db.Column(db.DateTime, nullable=True)
+    last_active_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     
     # Relationships
     player = db.relationship('Player', backref='substitute_pools')
