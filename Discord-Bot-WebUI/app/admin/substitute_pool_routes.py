@@ -230,10 +230,12 @@ def add_player_to_pool(league_type: str):
             return jsonify({'success': False, 'message': f'Player does not have {required_role} role'}), 400
         
         # Check if already in pool for this league type
+        logger.info(f"Checking for existing pool entry for player {player_id} in {league_type}")
         existing_pool = session.query(SubstitutePool).filter_by(
             player_id=player_id,
             league_type=league_type
         ).first()
+        logger.info(f"Existing pool found: {existing_pool is not None}")
         
         if existing_pool:
             if existing_pool.is_active:
@@ -270,6 +272,7 @@ def add_player_to_pool(league_type: str):
                 )
         else:
             # Create new pool entry
+            logger.info(f"Creating new pool entry for player {player_id} in {league_type}")
             pool_entry = SubstitutePool(
                 player_id=player_id,
                 league_type=league_type,
@@ -278,13 +281,18 @@ def add_player_to_pool(league_type: str):
                 discord_for_sub_requests=request.json.get('discord_notifications', True),
                 email_for_sub_requests=request.json.get('email_notifications', True)
             )
+            logger.info(f"Pool entry created successfully")
             
             pool_entry.is_active = True
             session.add(pool_entry)
+            logger.info(f"Added pool entry to session, attempting flush...")
             session.flush()  # Get the ID
+            logger.info(f"Pool entry flushed successfully, ID: {pool_entry.id}")
             
             # Assign player to appropriate league if they don't have one
+            logger.info(f"Player league_id: {player.league_id}, primary_league_id: {player.primary_league_id}")
             if not player.league_id and not player.primary_league_id:
+                logger.info(f"Player has no league assignment, attempting to find matching league for {league_type}")
                 from app.models import League, Season
                 # Find a league that matches this league type
                 matching_league = session.query(League).join(Season).filter(
@@ -293,6 +301,7 @@ def add_player_to_pool(league_type: str):
                 ).first()
                 
                 if matching_league:
+                    logger.info(f"Found matching league: {matching_league.name} (ID: {matching_league.id})")
                     player.league_id = matching_league.id
                     player.primary_league_id = matching_league.id
                     pool_entry.league_id = matching_league.id  # Also set on the pool entry
@@ -300,6 +309,8 @@ def add_player_to_pool(league_type: str):
                     message += f" and assigned to {matching_league.name} league"
                 else:
                     logger.warning(f"Could not find current league for type {league_type}")
+            else:
+                logger.info(f"Player already has league assignment, skipping auto-assignment")
             
             log_pool_action(
                 player.id, pool_entry.league_id, 'ADDED',
@@ -307,7 +318,9 @@ def add_player_to_pool(league_type: str):
             )
             message = f"{player.name} has been added to the {league_type} substitute pool"
         
+        logger.info(f"Attempting to commit transaction...")
         session.commit()
+        logger.info(f"Transaction committed successfully")
         
         return jsonify({
             'success': True,
@@ -324,7 +337,7 @@ def add_player_to_pool(league_type: str):
     except Exception as e:
         logger.error(f"Error adding player to pool: {e}", exc_info=True)
         session.rollback()
-        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 500
 
 
 @substitute_pool_bp.route('/admin/substitute-pools/<league_type>/remove-player', methods=['POST'])
