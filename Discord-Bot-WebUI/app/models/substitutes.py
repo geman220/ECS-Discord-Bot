@@ -125,6 +125,7 @@ class SubstitutePool(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False, unique=True)
     league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=False)
+    league_type = db.Column(db.String(255), nullable=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     preferred_positions = db.Column(db.String(255), nullable=True)
     max_matches_per_week = db.Column(db.Integer, nullable=True)
