@@ -170,9 +170,20 @@ async def process_live_match_updates(match_id, thread_id, match_data, session=No
             new_events, current_event_keys = get_new_events(events, last_event_keys)
             logger.debug(f"Found {len(new_events)} new events to process")
 
+            # Get enhanced events service for filtering
+            from app.services.enhanced_match_events import get_enhanced_events_service
+            enhanced_events = get_enhanced_events_service()
+            
             for event in new_events:
                 logger.debug(f"Processing event: {event}")
-                await process_match_event(thread_id, event, team_map, home_team, away_team, home_score, away_score)
+                # Check if event should be reported (filters out opponent saves)
+                event_type = event.get("type", {}).get("text", "Unknown Event")
+                event_team_id = str(event.get("team", {}).get("id", ""))
+                
+                if enhanced_events.should_report_event(event_type, event_team_id):
+                    await process_match_event(thread_id, event, team_map, home_team, away_team, home_score, away_score)
+                else:
+                    logger.debug(f"Skipping event: {event_type} for team {event_team_id} (filtered out)")
 
             match_ended = status_type in ["STATUS_FULL_TIME", "STATUS_FINAL"]
             logger.info(f"Match ended: {match_ended} for match_id={match_id}")
@@ -225,9 +236,20 @@ async def process_live_match_updates(match_id, thread_id, match_data, session=No
                 new_events, current_event_keys = get_new_events(events, last_event_keys)
                 logger.debug(f"Found {len(new_events)} new events to process")
 
+                # Get enhanced events service for filtering
+                from app.services.enhanced_match_events import get_enhanced_events_service
+                enhanced_events = get_enhanced_events_service()
+                
                 for event in new_events:
                     logger.debug(f"Processing event: {event}")
-                    await process_match_event(thread_id, event, team_map, home_team, away_team, home_score, away_score)
+                    # Check if event should be reported (filters out opponent saves)
+                    event_type = event.get("type", {}).get("text", "Unknown Event")
+                    event_team_id = str(event.get("team", {}).get("id", ""))
+                    
+                    if enhanced_events.should_report_event(event_type, event_team_id):
+                        await process_match_event(thread_id, event, team_map, home_team, away_team, home_score, away_score)
+                    else:
+                        logger.debug(f"Skipping event: {event_type} for team {event_team_id} (filtered out)")
 
                 match_ended = status_type in ["STATUS_FULL_TIME", "STATUS_FINAL"]
                 logger.info(f"Match ended: {match_ended} for match_id={match_id}")
@@ -274,37 +296,40 @@ async def handle_status_change(thread_id, status_type, home_team, away_team, hom
         away_score (str): Away team score.
         match_data (dict, optional): Full match data for additional context.
     """
+    from app.services.enhanced_match_events import get_enhanced_events_service
+    
+    enhanced_events = get_enhanced_events_service()
+    
+    # Create enhanced status change data
+    enhanced_status_data = enhanced_events.create_status_change_data(
+        status_type, home_team, away_team, home_score, away_score, match_data or {}
+    )
+    
+    # Determine message type based on status
     if status_type == "STATUS_IN_PROGRESS" or status_type == "STATUS_FIRST_HALF":
-        # Match has started, send a kickoff update instead of duplicating score
-        logger.info(f"Match has started, sending kickoff update to thread {thread_id}")
-        await send_update_to_bot(thread_id, "match_started", {
-            "home_team": home_team,
-            "away_team": away_team,
-            "home_score": home_score,
-            "away_score": away_score,
-            "time": "0:00"
-        })
+        logger.info(f"⚽ Match has started, sending enhanced kickoff update to thread {thread_id}")
+        await send_update_to_bot(thread_id, "enhanced_match_started", enhanced_status_data)
     elif status_type == "STATUS_HALFTIME":
-        logger.info(f"Sending halftime update to thread {thread_id}")
-        await send_update_to_bot(thread_id, "halftime", {
-            "home_team": home_team,
-            "away_team": away_team,
-            "home_score": home_score,
-            "away_score": away_score,
-        })
+        logger.info(f"⏸️ Sending enhanced halftime update to thread {thread_id}")
+        await send_update_to_bot(thread_id, "enhanced_halftime", enhanced_status_data)
     elif status_type in ["STATUS_FULL_TIME", "STATUS_FINAL"]:
-        logger.info(f"Sending fulltime update to thread {thread_id}")
-        await send_update_to_bot(thread_id, "fulltime", {
-            "home_team": home_team,
-            "away_team": away_team,
-            "home_score": home_score,
-            "away_score": away_score,
-        })
+        logger.info(f"🏁 Sending enhanced fulltime update to thread {thread_id}")
+        # Check if this should be hyped (victory) or neutral (loss/draw)
+        if enhanced_status_data.get("result_type") == "victory":
+            await send_update_to_bot(thread_id, "enhanced_victory", enhanced_status_data)
+        else:
+            await send_update_to_bot(thread_id, "enhanced_fulltime", enhanced_status_data)
+    elif status_type == "STATUS_SECOND_HALF":
+        logger.info(f"🔄 Second half started for thread {thread_id}")
+        enhanced_status_data["message_type"] = "second_half_start"
+        enhanced_status_data["special_message"] = "🔄 **Second half is underway!**"
+        await send_update_to_bot(thread_id, "enhanced_second_half", enhanced_status_data)
 
 
 async def process_match_event(thread_id, event, team_map, home_team, away_team, home_score, away_score):
     """
-    Process an individual match event and send an update to the bot.
+    Process an individual match event using enhanced event service.
+    Now supports detailed goal information, substitutions, enhanced cards, and intelligent hype system.
 
     Parameters:
         thread_id (str): The Discord thread ID.
@@ -315,56 +340,43 @@ async def process_match_event(thread_id, event, team_map, home_team, away_team, 
         home_score (str): Home team score.
         away_score (str): Away team score.
     """
+    from app.services.enhanced_match_events import get_enhanced_events_service
+    
+    enhanced_events = get_enhanced_events_service()
     event_type = event.get("type", {}).get("text", "Unknown Event")
-    event_time = event.get("clock", {}).get("displayValue", "N/A")
     event_team_id = str(event.get("team", {}).get("id", ""))
-    event_team = team_map.get(event_team_id, {})
-    event_team_name = event_team.get("displayName", "Unknown Team")
-    event_team_logo = event_team.get("logo", None)
-
-    athletes_involved = event.get("athletesInvolved", [])
-    event_player_data = athletes_involved[0] if athletes_involved else {}
-    event_player = {
-        'id': event_player_data.get("id", ""),
-        'displayName': event_player_data.get("displayName", "Unknown Player"),
-        'shortName': event_player_data.get("shortName", "Unknown Player"),
-    }
-    event_description = event.get("text", "No description available.")
-
-    event_data = {
-        "type": event_type,
-        "team": {
-            'id': event_team_id,
-            'displayName': event_team_name,
-            'logo': event_team_logo
-        },
-        "player": event_player,
-        "time": event_time,
-        "description": event_description,
-        "home_team": home_team,
-        "away_team": away_team,
-        "home_score": home_score,
-        "away_score": away_score
-    }
-
-    is_favorable = False
-    if event_type == "Goal":
-        if event_team_id == TEAM_ID:
-            is_favorable = True
-    elif event_type in ["Yellow Card", "Red Card"]:
-        if event_team_id != TEAM_ID:
-            is_favorable = True
+    event_team_name = team_map.get(event_team_id, {}).get("displayName", "Unknown Team")
+    
+    # Create enhanced event data with rich details
+    enhanced_event_data = enhanced_events.create_enhanced_event_data(
+        event, team_map, home_team, away_team, home_score, away_score
+    )
+    
+    # Skip if event data is None (e.g., opponent saves)
+    if enhanced_event_data is None:
+        logger.debug(f"Skipping event {event_type} - filtered out by enhanced events service")
+        return
+    
+    # Handle special event types
+    if enhanced_event_data.get("is_added_time"):
+        logger.info(f"⏰ Added time announced for thread {thread_id}")
+        await send_update_to_bot(thread_id, "enhanced_added_time", enhanced_event_data)
+    elif enhanced_event_data.get("is_save"):
+        logger.info(f"🥅 Our goalkeeper makes a save! Sending to thread {thread_id}")
+        await send_update_to_bot(thread_id, "enhanced_save", enhanced_event_data)
+    elif enhanced_event_data.get("is_var"):
+        logger.info(f"📺 VAR review in progress for thread {thread_id}")
+        await send_update_to_bot(thread_id, "enhanced_var_review", enhanced_event_data)
+    else:
+        # Standard event processing with hype determination
+        should_hype = enhanced_events.should_hype_event(event_type, event_team_id, enhanced_event_data)
+        
+        if should_hype:
+            logger.info(f"🎉 Hyping favorable event: {event_type} for team {event_team_name}")
+            await send_update_to_bot(thread_id, "enhanced_hype_event", enhanced_event_data)
         else:
-            is_favorable = False
-    else:
-        is_favorable = False
-
-    if is_favorable:
-        logger.info(f"Hyping favorable event: {event_type} for team {event_team_name}")
-        await send_update_to_bot(thread_id, "hype_event", event_data)
-    else:
-        logger.info(f"Reporting event: {event_type} for team {event_team_name}")
-        await send_update_to_bot(thread_id, "match_event", event_data)
+            logger.info(f"📰 Reporting event: {event_type} for team {event_team_name}")
+            await send_update_to_bot(thread_id, "enhanced_match_event", enhanced_event_data)
 
 
 async def fetch_channel_id_from_webui(match_id):
@@ -442,7 +454,7 @@ async def send_pre_match_info(thread_id, match_data):
 
 async def send_update_to_bot(thread_id, update_type, update_data):
     """
-    Send an update to the bot.
+    Send an update to the bot using centralized service with fallback to direct method.
 
     Parameters:
         thread_id (str): The Discord thread ID.
@@ -452,6 +464,30 @@ async def send_update_to_bot(thread_id, update_type, update_data):
     logger.info(f"Sending {update_type} update to bot for thread {thread_id}")
     logger.debug(f"Update data: {update_data}")
 
+    # Try centralized Discord service first
+    try:
+        from app.services.discord_service import get_discord_service
+        
+        discord_service = get_discord_service()
+        match_data = {
+            'thread_id': thread_id,
+            'update_type': update_type,
+            'update_data': update_data
+        }
+        
+        success = await discord_service.update_live_match(thread_id, match_data)
+        if success:
+            logger.info(f"Successfully sent {update_type} update via centralized service")
+            return
+        else:
+            logger.warning(f"Centralized Discord service failed for {update_type} update")
+            
+    except Exception as e:
+        logger.warning(f"Centralized Discord service error: {e}")
+        
+    # Fallback to direct HTTP call [DEPRECATED]
+    logger.info("Falling back to direct HTTP call method for live match update...")
+    
     bot_api_url = "http://discord-bot:5001"
     endpoint = "/post_match_update"
     url = f"{bot_api_url}{endpoint}"
@@ -461,18 +497,18 @@ async def send_update_to_bot(thread_id, update_type, update_data):
         "update_data": update_data
     }
 
-    logger.info(f"Sending request to {url}")
+    logger.info(f"[DEPRECATED] Sending request to {url}")
     async with aiohttp.ClientSession() as asession:
         try:
             async with asession.post(url, json=payload) as response:
                 response_text = await response.text()
                 if response.status == 200:
-                    logger.info(f"Successfully sent {update_type} update to bot for thread {thread_id}")
+                    logger.info(f"Successfully sent {update_type} update to bot via fallback method")
                 else:
-                    logger.error(f"Failed to send update to bot. Status: {response.status}, Error: {response_text}")
+                    logger.error(f"Failed to send update to bot via fallback. Status: {response.status}, Error: {response_text}")
                     logger.debug(f"Payload sent: {payload}")
-        except Exception as e:
-            logger.error(f"Exception occurred while sending update to bot: {str(e)}", exc_info=True)
+        except Exception as fallback_error:
+            logger.error(f"Both centralized service and fallback failed for {update_type}: {fallback_error}")
 
 
 @match_api.route('/schedule_live_reporting', endpoint='schedule_live_reporting_route', methods=['POST'])

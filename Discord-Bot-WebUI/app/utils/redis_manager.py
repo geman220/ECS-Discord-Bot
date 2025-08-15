@@ -115,8 +115,7 @@ class UnifiedRedisManager:
                 else:
                     logger.error(f"Failed to initialize Redis after {max_retries} attempts")
                     logger.error(f"Redis configuration - URL: {redis_url}, Host: {redis_host}, Port: {redis_port}")
-                    self._create_fallback_clients()
-                    break
+                    raise ConnectionError(f"Unable to connect to Redis after {max_retries} attempts")
 
     def _create_fallback_clients(self):
         """Create fallback clients that silently fail for graceful degradation."""
@@ -162,8 +161,7 @@ class UnifiedRedisManager:
         """
         self._check_health()
         if self._decoded_client is None:
-            logger.debug("Decoded Redis client is None, creating fallback")
-            self._create_fallback_clients()
+            raise ConnectionError("Redis decoded client is not available")
         return self._decoded_client
     
     @property
@@ -175,8 +173,7 @@ class UnifiedRedisManager:
         """
         self._check_health()
         if self._raw_client is None:
-            logger.debug("Raw Redis client is None, creating fallback")
-            self._create_fallback_clients()
+            raise ConnectionError("Redis raw client is not available")
         return self._raw_client
     
     def _check_health(self):
@@ -185,24 +182,13 @@ class UnifiedRedisManager:
         
         if current_time - self._last_health_check > self._health_check_interval:
             try:
-                # Check decoded client
-                if self._decoded_client is not None:
-                    if hasattr(self._decoded_client, 'ping'):
-                        self._decoded_client.ping()
-                    else:
-                        logger.debug("Decoded client doesn't have ping method, likely fallback client")
-                
-                # Check raw client
-                if self._raw_client is not None:
-                    if hasattr(self._raw_client, 'ping'):
-                        self._raw_client.ping()
-                    else:
-                        logger.debug("Raw client doesn't have ping method, likely fallback client")
-                
+                # Just update the timestamp - rely on Redis being available as intended
+                # If there are connection issues, they'll be caught during actual operations
                 self._last_health_check = current_time
             except Exception as e:
-                logger.warning(f"Redis health check failed, reinitializing: {e}")
-                self._reinitialize()
+                # Log but don't reinitialize - let actual operations handle failures
+                logger.debug(f"Redis health check completed with note: {e}")
+                self._last_health_check = current_time
     
     def _reinitialize(self):
         """Reinitialize connection pool and clients."""
@@ -219,10 +205,9 @@ class UnifiedRedisManager:
         # Try to reinitialize real connection
         self._initialize_connection_pool()
         
-        # Ensure we have clients even if initialization failed
+        # If initialization failed, raise error
         if self._decoded_client is None or self._raw_client is None:
-            logger.warning("Real Redis initialization failed, ensuring fallback clients exist")
-            self._create_fallback_clients()
+            raise ConnectionError("Redis reinitialization failed")
     
     @contextmanager
     def connection(self, raw: bool = False):

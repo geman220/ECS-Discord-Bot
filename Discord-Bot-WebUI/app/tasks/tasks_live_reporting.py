@@ -30,7 +30,7 @@ from app.utils.task_session_manager import task_session
 from app.models import MLSMatch, Prediction
 from app.match_api import process_live_match_updates
 from app.discord_utils import create_match_thread
-from app.api_utils import fetch_espn_data
+# ESPN API now handled by centralized service
 
 logger = logging.getLogger(__name__)
 
@@ -88,12 +88,13 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
         # Log task execution for debugging
         logger.info(f"Processing match update with task ID: {self.request.id}, previous task ID: {task_id}")
         
-        # Use async_to_sync utility to safely run async functions
+        # Use centralized ESPN service
+        from app.services.espn_service import get_espn_service
         from app.api_utils import async_to_sync
         
-        # Fetch match data from ESPN
-        full_url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/{competition}/scoreboard/{match_id}"
-        match_data = async_to_sync(fetch_espn_data(full_url=full_url))
+        # Fetch match data from ESPN using centralized service
+        espn_service = get_espn_service()
+        match_data = async_to_sync(espn_service.get_match_data(match_id, competition))
         if not match_data:
             logger.error(f"Failed to fetch data for match {match_id}")
             return {'success': False, 'message': 'Failed to fetch match data'}
@@ -643,29 +644,7 @@ def _extract_mls_thread_data(session, match_id: str, force: bool = False):
     }
 
 
-async def _execute_mls_thread_creation_async(data):
-    """Execute MLS thread creation without database session."""
-    if data['thread_created'] and not data['force']:
-        return {'success': True, 'message': 'Thread already exists'}
-    
-    # Create thread using async-only approach  
-    from app.discord_utils import create_match_thread_async_only
-    
-    thread_id = await create_match_thread_async_only(data['match_data'])
-    
-    if thread_id:
-        return {
-            'success': True,
-            'thread_id': thread_id,
-            'match_id': data['match_id'],
-            'message': f'Created thread {thread_id} for match {data["match_id"]}'
-        }
-    else:
-        return {
-            'success': False,
-            'match_id': data['match_id'],
-            'message': 'Failed to create thread'
-        }
+# Old thread creation function removed - now using centralized Discord service
 
 
 def _update_match_after_thread_creation(session, result):
@@ -686,69 +665,189 @@ def _update_match_after_thread_creation(session, result):
     name='app.tasks.tasks_live_reporting.force_create_mls_thread_task',
     bind=True,
     queue='live_reporting',
-    max_retries=2
+    max_retries=3,
+    default_retry_delay=60
 )
-async def force_create_mls_thread_task(self, session, match_id: str, force: bool = False) -> Dict[str, Any]:
+def force_create_mls_thread_task(self, session, match_id: str, force: bool = False) -> Dict[str, Any]:
     """
-    Force the immediate creation of a Discord thread for an MLS match using two-phase pattern.
-    Returns a dictionary with the creation result and thread ID if successful.
+    Force the immediate creation of a Discord thread for an MLS match.
+    Implements proper locking, retry logic, and error handling.
+    
+    Args:
+        session: Database session
+        match_id: The match ID to create a thread for
+        force: If True, recreate thread even if it exists
+        
+    Returns:
+        Dictionary with success status and thread information
     """
-    # Handle Redis locking in the task since it's not database-related
+    logger.info(f"Starting thread creation task for match {match_id} (force={force})")
+    
     try:
-        logger.info(f"Starting thread creation for match {match_id}")
+        # Check Redis availability early for debugging with retry logic
+        from app.utils.safe_redis import get_safe_redis, reset_safe_redis
+        redis_check = get_safe_redis()
+        redis_status = "available" if (hasattr(redis_check, 'is_available') and redis_check.is_available) else "unavailable"
         
-        # Use Redis to ensure only one worker processes this match at a time
-        from app.utils.safe_redis import get_safe_redis
-        redis = get_safe_redis()
+        # If Redis is not available, try resetting and reinitializing once
+        if redis_status == "unavailable":
+            logger.info(f"Redis unavailable for match {match_id}, attempting reset and reinitialization...")
+            reset_safe_redis()
+            redis_check = get_safe_redis()
+            redis_status = "available" if (hasattr(redis_check, 'is_available') and redis_check.is_available) else "unavailable"
+        
+        logger.info(f"Redis status for match {match_id}: {redis_status}")
+        
+        # Get match from database
+        match = get_match(session, match_id)
+        if not match:
+            logger.error(f"Match {match_id} not found in database")
+            return {'success': False, 'message': f'Match {match_id} not found'}
+        
+        logger.info(f"Found match {match_id}: {match.opponent} on {match.date_time}, thread_created={match.thread_created}")
+        
+        # Check if thread already exists
+        if match.thread_created and match.discord_thread_id and not force:
+            logger.info(f"Thread already exists for match {match_id}: {match.discord_thread_id}")
+            return {
+                'success': True,
+                'message': 'Thread already exists',
+                'thread_id': match.discord_thread_id
+            }
+        
+        # Use Redis for distributed locking with fallback
+        redis = redis_check
         lock_key = f"thread_creation_lock:{match_id}"
-        lock_value = f"{self.request.id}"  # Use task ID as lock value
-        
-        # Try to acquire lock with 5 minute expiry
-        if not redis.set(lock_key, lock_value, nx=True, ex=300):
-            logger.info(f"Another worker is already creating thread for match {match_id}")
-            
-            # Check if thread was already created by another worker
-            from app.utils.task_session_manager import task_session
-            with task_session() as check_session:
-                match = get_match(check_session, match_id)
-                if match and match.thread_created:
-                    logger.info(f"Thread was created by another worker for match {match_id}")
-                    return {'success': True, 'message': 'Thread already exists'}
-            
-            # If not created yet, retry this task after a delay
-            logger.info(f"Retrying thread creation for match {match_id} after delay")
-            raise self.retry(countdown=5, max_retries=5)
+        lock_value = f"{self.request.id}"
+        lock_acquired = False
+        redis_available = redis.is_available if hasattr(redis, 'is_available') else True
         
         try:
-            # The two-phase pattern will be handled by the decorator automatically
-            pass
-        finally:
-            # Release the Redis lock
+            # Try to acquire lock with 5 minute expiry (only if Redis is available)
+            if redis_available:
+                try:
+                    lock_acquired = redis.set(lock_key, lock_value, nx=True, ex=300)
+                    logger.debug(f"Redis lock acquisition for match {match_id}: {lock_acquired}")
+                except Exception as redis_error:
+                    logger.warning(f"Redis lock failed for match {match_id}: {redis_error}")
+                    redis_available = False
+                    lock_acquired = True  # Proceed without locking if Redis fails
+            else:
+                logger.warning(f"Redis not available for match {match_id}, proceeding without distributed locking")
+                lock_acquired = True  # Proceed without locking if Redis is not available
+            
+            if not lock_acquired and redis_available:
+                logger.info(f"Another worker is creating thread for match {match_id}, checking status...")
+                
+                # Wait a bit for the other worker
+                import time
+                time.sleep(2)
+                
+                # Re-check if thread was created
+                session.expire(match, ['thread_created', 'discord_thread_id'])
+                if match.thread_created and match.discord_thread_id:
+                    logger.info(f"Thread was created by another worker for match {match_id}")
+                    return {
+                        'success': True,
+                        'message': 'Thread created by another worker',
+                        'thread_id': match.discord_thread_id
+                    }
+                
+                # Retry if still not created
+                logger.info(f"Thread still not created for match {match_id}, retrying...")
+                raise self.retry(countdown=10, max_retries=5)
+            
+            # Prepare match data for thread creation
+            match_data = {
+                'id': match.id,
+                'match_id': match.match_id,
+                'home_team': 'Seattle Sounders FC' if match.is_home_game else match.opponent,
+                'away_team': match.opponent if match.is_home_game else 'Seattle Sounders FC',
+                'date': match.date_time.strftime('%Y-%m-%d') if match.date_time else None,
+                'time': match.date_time.strftime('%H:%M') if match.date_time else None,
+                'venue': getattr(match, 'venue', 'TBD'),
+                'competition': getattr(match, 'competition', 'MLS'),
+                'is_home_game': match.is_home_game
+            }
+            
+            # Try centralized Discord service first
+            logger.info(f"Creating Discord thread for match {match_id} using centralized service...")
+            from app.services.discord_service import get_discord_service
+            from app.api_utils import async_to_sync
+            
+            discord_service = get_discord_service()
+            thread_id = None
+            
             try:
-                # Only release if we still own the lock
-                lua_script = """
-                if redis.call('get', KEYS[1]) == ARGV[1] then
-                    return redis.call('del', KEYS[1])
-                else
-                    return 0
-                end
-                """
-                redis.eval(lua_script, 1, lock_key, lock_value)
-                logger.debug(f"Released Redis lock for match {match_id}")
+                thread_id = async_to_sync(discord_service.create_match_thread(match_data))
             except Exception as e:
-                logger.warning(f"Failed to release Redis lock for match {match_id}: {e}")
-        
+                logger.warning(f"Centralized Discord service failed for match {match_id}: {e}")
+                logger.info("Falling back to direct thread creation method...")
+            
+            # Fallback to direct thread creation if centralized service fails
+            if not thread_id:
+                try:
+                    from app.discord_utils import create_match_thread_async_only
+                    thread_id = async_to_sync(create_match_thread_async_only(match_data))
+                    if thread_id:
+                        logger.info(f"Successfully created thread via fallback method for match {match_id}")
+                except Exception as e:
+                    logger.error(f"Fallback thread creation also failed for match {match_id}: {e}")
+            
+            if thread_id:
+                # Update match record
+                match.thread_created = True
+                match.discord_thread_id = thread_id
+                match.thread_creation_time = datetime.utcnow()
+                session.add(match)
+                session.commit()
+                
+                logger.info(f"Successfully created thread {thread_id} for match {match_id}")
+                return {
+                    'success': True,
+                    'message': f'Created thread {thread_id}',
+                    'thread_id': thread_id,
+                    'match_id': match_id
+                }
+            else:
+                logger.error(f"Both centralized and fallback methods failed for match {match_id}")
+                # Retry on complete failure
+                raise self.retry(countdown=30, exc=Exception("Both Discord service and fallback failed"))
+                
+        finally:
+            # Release lock if we acquired it and Redis is available
+            if lock_acquired and redis_available:
+                try:
+                    # Only release if we still own the lock
+                    lua_script = """
+                    if redis.call('get', KEYS[1]) == ARGV[1] then
+                        return redis.call('del', KEYS[1])
+                    else
+                        return 0
+                    end
+                    """
+                    redis.eval(lua_script, 1, lock_key, lock_value)
+                    logger.debug(f"Released Redis lock for match {match_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to release Redis lock for match {match_id}: {e}")
+            elif lock_acquired and not redis_available:
+                logger.debug(f"Skipping Redis lock release for match {match_id} (Redis not available)")
+                    
+    except self.MaxRetriesExceededError:
+        logger.error(f"Max retries exceeded for thread creation of match {match_id}")
+        return {
+            'success': False,
+            'message': 'Max retries exceeded',
+            'match_id': match_id
+        }
     except Exception as e:
-        logger.error(f"Error in force_create_mls_thread_task: {e}", exc_info=True)
-        raise
+        logger.error(f"Unexpected error creating thread for match {match_id}: {e}", exc_info=True)
+        # Retry on unexpected errors
+        raise self.retry(countdown=60, exc=e)
 
 
-# Attach phase methods
-force_create_mls_thread_task._extract_data = _extract_mls_thread_data
-force_create_mls_thread_task._execute_async = _execute_mls_thread_creation_async
-force_create_mls_thread_task._requires_final_db_update = True
-force_create_mls_thread_task._final_db_update = _update_match_after_thread_creation
-force_create_mls_thread_task._two_phase = True
+# Note: Two-phase pattern removed as it was incomplete and causing issues
+# The task now handles everything synchronously with proper error handling
 
 
 @celery_task(
@@ -869,3 +968,31 @@ def finalize_predictions_for_match(match_id: str, final_home_score: int, final_a
                 pred.is_correct = False
         session.commit()
     return correct_users
+
+# COMPATIBILITY WRAPPER for old scheduled tasks
+@celery_task(
+    name='__main__.create_live_thread',  # This matches the old task name from logs
+    bind=True,
+    queue='live_reporting',
+    max_retries=3
+)
+def create_live_thread(self, session, match_id: str) -> Dict[str, Any]:
+    """
+    Compatibility wrapper for old scheduled tasks.
+    Redirects to the correct force_create_mls_thread_task function with fallback logic.
+    """
+    logger.warning(f"Using compatibility wrapper for create_live_thread (match_id: {match_id})")
+    logger.info(f"Redirecting to force_create_mls_thread_task for match {match_id}")
+    
+    try:
+        # Call the correct function with enhanced error handling
+        return force_create_mls_thread_task(self, session, match_id, force=False)
+    except Exception as e:
+        logger.error(f"Compatibility wrapper failed for match {match_id}: {e}")
+        # Return a proper error result instead of raising
+        return {
+            'success': False,
+            'message': f'Thread creation failed: {str(e)}',
+            'match_id': match_id,
+            'error': 'compatibility_wrapper_failure'
+        }

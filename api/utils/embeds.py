@@ -43,7 +43,26 @@ def create_team_embed(match_request: AvailabilityRequest, rsvp_data, team_type='
 def create_match_embed(update_type, update_data):
     focus_team_id = str(TEAM_ID)  # Our team ID
 
-    if update_type == "score_update":
+    # Handle enhanced event types with personality
+    if update_type in ["enhanced_hype_event", "enhanced_match_event"]:
+        return create_enhanced_event_embed(update_data, focus_team_id, is_hype=(update_type == "enhanced_hype_event"))
+    elif update_type == "enhanced_match_started":
+        return create_enhanced_match_started_embed(update_data, focus_team_id)
+    elif update_type == "enhanced_halftime":
+        return create_enhanced_halftime_embed(update_data, focus_team_id)
+    elif update_type in ["enhanced_victory", "enhanced_fulltime"]:
+        return create_enhanced_fulltime_embed(update_data, focus_team_id, is_victory=(update_type == "enhanced_victory"))
+    elif update_type == "enhanced_second_half":
+        return create_enhanced_second_half_embed(update_data, focus_team_id)
+    # New enhanced event types
+    elif update_type == "enhanced_added_time":
+        return create_enhanced_added_time_embed(update_data, focus_team_id)
+    elif update_type == "enhanced_save":
+        return create_enhanced_save_embed(update_data, focus_team_id)
+    elif update_type == "enhanced_var_review":
+        return create_enhanced_var_embed(update_data, focus_team_id)
+    # Legacy event types
+    elif update_type == "score_update":
         return create_score_update_embed(update_data, focus_team_id)
     elif update_type in ["match_event", "hype_event"]:
         return create_match_event_embed(update_data, focus_team_id, is_hype=(update_type == "hype_event"))
@@ -199,7 +218,9 @@ def create_goal_embed(team_name, athlete, is_focus_team_event, event_time, is_hy
         messages = [
             f"🎉 GOOOOOAAAALLLL! {scorer_name} scores for {team_name} at {event_time}! Keep it coming! ⚽🔥",
             f"Goal! {scorer_name} puts {team_name} in the lead at {event_time}! Amazing strike! 🚀",
-            f"Fantastic! {scorer_name} nets one for {team_name} at {event_time}! Let's keep the momentum! 💪"
+            f"Fantastic! {scorer_name} nets one for {team_name} at {event_time}! Let's keep the momentum! 💪",
+            f"YES! {scorer_name} finds the back of the net at {event_time}! Pure magic! ✨",
+            f"BOOM! {scorer_name} strikes gold at {event_time}! That's what I'm talking about! 🎯"
         ]
         embed = discord.Embed(
             title=random.choice(messages),
@@ -209,7 +230,9 @@ def create_goal_embed(team_name, athlete, is_focus_team_event, event_time, is_hy
         messages = [
             f"😡 Goal for {team_name} by {scorer_name} at {event_time}. We must fight back! 💪",
             f"{scorer_name} scores for the opposition at {event_time}. Time to regroup! ⚡",
-            f"They take the lead... {scorer_name} scores for {team_name} at {event_time}. Let's counterattack! 🔥"
+            f"They take the lead... {scorer_name} scores for {team_name} at {event_time}. Let's counterattack! 🔥",
+            f"Ugh. {scorer_name} finds the net at {event_time}. Not ideal, but we're not done yet! 🔄",
+            f"Disappointing goal by {scorer_name} at {event_time}. Time to show our character! 💚"
         ]
         embed = discord.Embed(
             title=random.choice(messages),
@@ -223,7 +246,9 @@ def create_card_embed(card_type, team_name, athlete, is_focus_team_event, event_
     if is_hype:
         messages = [
             f"{emoji} {card_type} for {team_name}! {player_name} gets booked at {event_time}. Advantage us! 😈",
-            f"{emoji} A booking for {team_name} at {event_time}! {player_name} should be more careful! 🔥"
+            f"{emoji} A booking for {team_name} at {event_time}! {player_name} should be more careful! 🔥",
+            f"{emoji} {player_name} sees {card_type.lower()} at {event_time}! They're feeling the pressure! 😏",
+            f"{emoji} {card_type} shown to {player_name} at {event_time}! Getting under their skin! 🎯"
         ]
         embed = discord.Embed(
             title=random.choice(messages),
@@ -503,6 +528,233 @@ def create_pre_match_embed(update_data, focus_team_id):
     else:
         embed.description = "An exciting match is on the horizon! Who will come out on top?"
 
+    return embed
+
+def create_enhanced_event_embed(update_data, focus_team_id, is_hype=False):
+    """Create enhanced event embed with personality and rich details."""
+    event_type = update_data.get('type', 'Event')
+    event_team = update_data.get('team', {})
+    event_time = update_data.get('time', 'N/A')
+    home_team = update_data.get('home_team', {})
+    away_team = update_data.get('away_team', {})
+    home_score = update_data.get('home_score', '0')
+    away_score = update_data.get('away_score', '0')
+    is_our_team = update_data.get('is_our_team', False)
+    
+    # Use personality message if available, otherwise fall back to description
+    message = update_data.get('personality_message', update_data.get('description', f"{event_type} occurred"))
+    
+    embed = discord.Embed(
+        title=message,
+        color=discord.Color.green() if is_hype else discord.Color.blue()
+    )
+    
+    # Add event details based on type
+    if event_type == "Goal" and update_data.get('goal_details'):
+        goal_details = update_data['goal_details']
+        if goal_details.get('is_penalty'):
+            embed.add_field(name="Goal Type", value="🥅 Penalty Goal", inline=True)
+        elif goal_details.get('is_own_goal'):
+            embed.add_field(name="Goal Type", value="😅 Own Goal", inline=True)
+        else:
+            embed.add_field(name="Goal Type", value="⚽ Regular Goal", inline=True)
+    
+    elif event_type in ["Yellow Card", "Red Card"] and update_data.get('card_details'):
+        card_details = update_data['card_details']
+        team_totals = card_details.get('team_totals', {})
+        if event_type == "Yellow Card":
+            embed.add_field(name="Team Cards", value=f"🟨 {team_totals.get('home_yellows', 0)} | {team_totals.get('away_yellows', 0)} 🟨", inline=True)
+        else:
+            embed.add_field(name="Team Cards", value=f"🟥 {team_totals.get('home_reds', 0)} | {team_totals.get('away_reds', 0)} 🟥", inline=True)
+    
+    elif event_type == "Substitution" and update_data.get('substitution_details'):
+        sub_details = update_data['substitution_details']
+        embed.add_field(name="Substitution Count", value=f"Sub #{sub_details.get('team_sub_count', 1)}", inline=True)
+    
+    elif event_type == "Save" and update_data.get('save_details'):
+        save_details = update_data['save_details']
+        goalkeeper = save_details.get('goalkeeper', {})
+        if goalkeeper:
+            embed.add_field(name="Goalkeeper", value=f"🧤 {goalkeeper.get('short_name', 'Unknown')}", inline=True)
+    
+    elif event_type in ["Added Time", "Stoppage Time"] and update_data.get('added_time_details'):
+        added_time_details = update_data['added_time_details']
+        added_time = added_time_details.get('added_time', 'Unknown')
+        embed.add_field(name="Added Time", value=f"⏰ {added_time} minutes", inline=True)
+    
+    # Add time and score (unless it's a VAR event which doesn't need score)
+    if not update_data.get('is_var'):
+        embed.add_field(name="Time", value=event_time, inline=True)
+        embed.add_field(name="Score", value=f"{home_team.get('displayName', 'Home')} {home_score} - {away_score} {away_team.get('displayName', 'Away')}", inline=False)
+    else:
+        embed.add_field(name="Time", value=event_time, inline=True)
+    
+    # Set team logo
+    if is_our_team:
+        embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
+    elif event_team.get('logo'):
+        embed.set_thumbnail(url=event_team['logo'])
+    
+    return embed
+
+def create_enhanced_match_started_embed(update_data, focus_team_id):
+    """Create enhanced match start embed with personality."""
+    special_message = update_data.get('special_message', '⚽ **KICKOFF!** The match is underway!')
+    home_team = update_data.get('home_team', {})
+    away_team = update_data.get('away_team', {})
+    
+    embed = discord.Embed(
+        title=special_message,
+        description=f"{home_team.get('displayName', 'Home')} 0 - 0 {away_team.get('displayName', 'Away')}",
+        color=discord.Color.green()
+    )
+    
+    embed.add_field(name="Period", value="1st Half", inline=True)
+    embed.add_field(name="Time", value="Kickoff", inline=True)
+    embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
+    
+    return embed
+
+def create_enhanced_halftime_embed(update_data, focus_team_id):
+    """Create enhanced halftime embed with personality."""
+    special_message = update_data.get('special_message', '⏸️ **HALFTIME**')
+    home_team = update_data.get('home_team', {})
+    away_team = update_data.get('away_team', {})
+    home_score = update_data.get('home_score', '0')
+    away_score = update_data.get('away_score', '0')
+    
+    embed = discord.Embed(
+        title=special_message,
+        description=f"{home_team.get('displayName', 'Home')} {home_score} - {away_score} {away_team.get('displayName', 'Away')}",
+        color=discord.Color.orange()
+    )
+    
+    embed.add_field(name="Period", value="Half Time", inline=True)
+    embed.add_field(name="Time Played", value="45 minutes", inline=True)
+    embed.set_footer(text="Second half coming up! 🔄")
+    embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
+    
+    return embed
+
+def create_enhanced_fulltime_embed(update_data, focus_team_id, is_victory=False):
+    """Create enhanced fulltime embed with personality."""
+    special_message = update_data.get('special_message', '🏁 **FULL TIME**')
+    home_team = update_data.get('home_team', {})
+    away_team = update_data.get('away_team', {})
+    home_score = update_data.get('home_score', '0')
+    away_score = update_data.get('away_score', '0')
+    result_type = update_data.get('result_type', 'draw')
+    
+    # Set color based on result
+    if result_type == "victory":
+        color = discord.Color.green()
+    elif result_type == "defeat":
+        color = discord.Color.red()
+    else:
+        color = discord.Color.gold()
+    
+    embed = discord.Embed(
+        title=special_message,
+        description=f"{home_team.get('displayName', 'Home')} {home_score} - {away_score} {away_team.get('displayName', 'Away')}",
+        color=color
+    )
+    
+    embed.add_field(name="Result", value=result_type.capitalize(), inline=True)
+    embed.add_field(name="Time Played", value="90+ minutes", inline=True)
+    embed.set_footer(text="Thanks for following along! 🙏")
+    embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
+    
+    return embed
+
+def create_enhanced_second_half_embed(update_data, focus_team_id):
+    """Create enhanced second half start embed."""
+    special_message = update_data.get('special_message', '🔄 **Second half is underway!**')
+    home_team = update_data.get('home_team', {})
+    away_team = update_data.get('away_team', {})
+    home_score = update_data.get('home_score', '0')
+    away_score = update_data.get('away_score', '0')
+    
+    embed = discord.Embed(
+        title=special_message,
+        description=f"{home_team.get('displayName', 'Home')} {home_score} - {away_score} {away_team.get('displayName', 'Away')}",
+        color=discord.Color.blue()
+    )
+    
+    embed.add_field(name="Period", value="2nd Half", inline=True)
+    embed.add_field(name="Time", value="45+ minutes", inline=True)
+    embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
+    
+    return embed
+
+def create_enhanced_added_time_embed(update_data, focus_team_id):
+    """Create enhanced added time embed with personality."""
+    personality_message = update_data.get('personality_message', '⏰ Added time announced')
+    home_team = update_data.get('home_team', {})
+    away_team = update_data.get('away_team', {})
+    home_score = update_data.get('home_score', '0')
+    away_score = update_data.get('away_score', '0')
+    added_time_details = update_data.get('added_time_details', {})
+    
+    embed = discord.Embed(
+        title=personality_message,
+        description=f"{home_team.get('displayName', 'Home')} {home_score} - {away_score} {away_team.get('displayName', 'Away')}",
+        color=discord.Color.orange()
+    )
+    
+    added_time = added_time_details.get('added_time', 'Unknown')
+    embed.add_field(name="Added Time", value=f"{added_time} minutes", inline=True)
+    embed.add_field(name="Period", value="Stoppage Time", inline=True)
+    embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
+    
+    return embed
+
+def create_enhanced_save_embed(update_data, focus_team_id):
+    """Create enhanced save embed with personality (only for our team)."""
+    personality_message = update_data.get('personality_message', '🧤 What a save!')
+    home_team = update_data.get('home_team', {})
+    away_team = update_data.get('away_team', {})
+    home_score = update_data.get('home_score', '0')
+    away_score = update_data.get('away_score', '0')
+    save_details = update_data.get('save_details', {})
+    event_time = update_data.get('time', 'N/A')
+    
+    embed = discord.Embed(
+        title=personality_message,
+        description=f"{home_team.get('displayName', 'Home')} {home_score} - {away_score} {away_team.get('displayName', 'Away')}",
+        color=discord.Color.green()
+    )
+    
+    goalkeeper = save_details.get('goalkeeper', {})
+    if goalkeeper:
+        embed.add_field(name="Goalkeeper", value=goalkeeper.get('short_name', 'Unknown'), inline=True)
+    
+    embed.add_field(name="Time", value=event_time, inline=True)
+    embed.add_field(name="Save Type", value="🧤 Brilliant Stop", inline=True)
+    embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
+    
+    return embed
+
+def create_enhanced_var_embed(update_data, focus_team_id):
+    """Create enhanced VAR review embed with suspense."""
+    personality_message = update_data.get('personality_message', '📺 VAR Review in progress...')
+    home_team = update_data.get('home_team', {})
+    away_team = update_data.get('away_team', {})
+    home_score = update_data.get('home_score', '0')
+    away_score = update_data.get('away_score', '0')
+    event_time = update_data.get('time', 'N/A')
+    
+    embed = discord.Embed(
+        title=personality_message,
+        description=f"{home_team.get('displayName', 'Home')} {home_score} - {away_score} {away_team.get('displayName', 'Away')}",
+        color=discord.Color.blue()
+    )
+    
+    embed.add_field(name="Status", value="🔍 Under Review", inline=True)
+    embed.add_field(name="Time", value=event_time, inline=True)
+    embed.add_field(name="Wait For It...", value="📱 Decision coming soon", inline=True)
+    embed.set_footer(text="VAR: Video Assistant Referee 📹")
+    embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
+    
     return embed
 
 def add_player_image(embed, athlete):
