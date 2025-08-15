@@ -672,6 +672,11 @@ async def get_message_channel_from_web_ui(message_id):
     # Use a hardcoded URL to ensure it's correct
     api_url = f"http://webui:5000/api/get_message_info/{message_id_str}"
     try:
+        # Ensure we have a valid session
+        global session
+        if session is None or session.closed:
+            session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10))
+        
         logger.info(f"Fetching message info from: {api_url}")
         async with session.get(api_url) as response:
             if response.status == 200:
@@ -689,8 +694,11 @@ async def get_message_channel_from_web_ui(message_id):
             else:
                 logger.error(f"Failed to get message info: {await response.text()}")
                 return None
+    except aiohttp.ClientError as e:
+        logger.error(f"HTTP client error fetching message info for {message_id_str}: {str(e)}")
+        return None
     except Exception as e:
-        logger.error(f"Error fetching message info: {str(e)}")
+        logger.error(f"Unexpected error fetching message info for {message_id_str}: {str(e)}", exc_info=True)
         return None
 
 async def get_message_reactions(channel_id, message_id):
@@ -2852,8 +2860,9 @@ async def cleanup():
     # First cancel any running tasks to prevent them from creating new resources
     try:
         # Get all tasks from the current event loop
+        current_task = asyncio.current_task()
         pending_tasks = [task for task in asyncio.all_tasks() 
-                        if not task.done() and task != asyncio.current_task()]
+                        if not task.done() and task != current_task]
         
         if pending_tasks:
             logger.info(f"Cancelling {len(pending_tasks)} pending tasks...")
@@ -2862,7 +2871,19 @@ async def cleanup():
                 task.cancel()
             
             # Wait for all tasks to be cancelled with a timeout
-            await asyncio.wait(pending_tasks, timeout=5)
+            # Use return_when=asyncio.ALL_COMPLETED to properly handle cancellation
+            done, pending = await asyncio.wait(pending_tasks, timeout=5, return_when=asyncio.ALL_COMPLETED)
+            
+            # Force cancel any remaining tasks
+            for task in pending:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+                except Exception as e:
+                    logger.debug(f"Task {task.get_name()} raised exception during cancellation: {e}")
+            
             logger.info("All pending tasks cancelled or timed out.")
     except Exception as e:
         logger.error(f"Error cancelling pending tasks: {e}")
@@ -2924,15 +2945,18 @@ def signal_handler(sig, frame):
                 asyncio.set_event_loop(loop)
                 
             if loop.is_running():
-                # Close the bot connection
-                loop.create_task(bot.close())
-                # Run the cleanup tasks
-                loop.create_task(cleanup())
-                # Give tasks a chance to complete
-                try:
-                    loop.run_until_complete(asyncio.sleep(3))
-                except Exception as e:
-                    logger.error(f"Error waiting for tasks to complete: {e}")
+                # Close the bot connection and cleanup asynchronously
+                async def shutdown_tasks():
+                    try:
+                        await bot.close()
+                        await cleanup()
+                        # Give tasks a chance to complete
+                        await asyncio.sleep(3)
+                    except Exception as e:
+                        logger.error(f"Error during shutdown tasks: {e}")
+                
+                # Create task for async shutdown
+                loop.create_task(shutdown_tasks())
             else:
                 # If loop is not running, run cleanup synchronously
                 loop.run_until_complete(cleanup())

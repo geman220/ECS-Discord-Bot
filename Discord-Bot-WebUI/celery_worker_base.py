@@ -10,7 +10,7 @@ for use by worker scripts.
 """
 
 import eventlet
-eventlet.monkey_patch()  # Apply monkey patching for async support
+eventlet.monkey_patch(thread=False)  # Apply monkey patching for async support, disable thread patching to avoid greenlet errors
 
 import logging
 from app import create_app

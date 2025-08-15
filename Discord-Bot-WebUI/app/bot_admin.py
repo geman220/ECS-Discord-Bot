@@ -30,7 +30,8 @@ from app.tasks.tasks_live_reporting import (
 )
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.db_utils import load_match_dates_from_db, insert_mls_match, update_mls_match
-from app.api_utils import async_to_sync, fetch_espn_data, extract_match_details
+from app.api_utils import async_to_sync, extract_match_details
+from app.services.espn_service import get_espn_service
 from app.decorators import role_required
 from app.models import Match, MLSMatch, Player
 from app.match_scheduler import MatchScheduler
@@ -69,6 +70,7 @@ COMPETITION_MAPPINGS = {
     "FIFA Club World Cup": "fifa.cwc",
     "Concacaf": "concacaf.league",
     "Concacaf Champions League": "concacaf.champions",
+    "Leagues Cup": "concacaf.leagues.cup",
 }
 INVERSE_COMPETITION_MAPPINGS = {v: k for k, v in COMPETITION_MAPPINGS.items()}
 
@@ -217,8 +219,8 @@ def add_mls_match():
 
         date_only = date.split(" ")[0]
         formatted_date = datetime.strptime(date_only, "%Y-%m-%d").strftime("%Y%m%d")
-        endpoint = f"sports/soccer/{competition}/scoreboard?dates={formatted_date}"
-        match_data = async_to_sync(fetch_espn_data(endpoint))
+        espn_service = get_espn_service()
+        match_data = async_to_sync(espn_service.get_scoreboard(competition, formatted_date))
 
         if not match_data or 'events' not in match_data:
             logger.error(f"No events found for date {formatted_date} and competition {competition}")
@@ -291,9 +293,9 @@ def update_mls_match_route(match_id):
 
         date_only = date.split(" ")[0]
         formatted_date = datetime.strptime(date_only, "%Y-%m-%d").strftime("%Y%m%d")
-        endpoint = f"sports/soccer/{competition}/scoreboard?dates={formatted_date}"
-        logger.debug(f"Fetching data from ESPN API: {endpoint}")
-        match_data = async_to_sync(fetch_espn_data(endpoint))
+        logger.debug(f"Fetching scoreboard data for {competition} on {formatted_date}")
+        espn_service = get_espn_service()
+        match_data = async_to_sync(espn_service.get_scoreboard(competition, formatted_date))
 
         if not match_data or 'events' not in match_data:
             logger.error(f"No events found for date {formatted_date} and competition {competition}")

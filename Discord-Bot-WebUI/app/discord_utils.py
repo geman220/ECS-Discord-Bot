@@ -14,6 +14,7 @@ import asyncio
 import logging
 import time
 import re
+import json
 from functools import wraps
 from typing import Optional, List, Dict, Any, Union
 from zoneinfo import ZoneInfo
@@ -644,6 +645,7 @@ async def rename_team_roles_async_only(old_team_name: str, new_team_name: str, c
 async def create_match_thread_async_only(match_data: Dict[str, Any]) -> Optional[str]:
     """
     Create a Discord thread for an MLS match without database session.
+    Includes retry logic and enhanced error handling.
     
     Args:
         match_data: Dictionary containing match information
@@ -651,39 +653,95 @@ async def create_match_thread_async_only(match_data: Dict[str, Any]) -> Optional
     Returns:
         Thread ID if successful, None otherwise
     """
-    try:
-        bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
-        
-        # Create thread payload
-        thread_data = {
-            'match_id': match_data['id'],
-            'home_team': match_data['home_team'],
-            'away_team': match_data['away_team'],
-            'date': match_data.get('date'),
-            'time': match_data.get('time'),
-            'venue': match_data.get('venue'),
-            'competition': match_data.get('competition'),
-            'summary_link': match_data.get('summary_link'),
-            'stats_link': match_data.get('stats_link'),
-            'commentary_link': match_data.get('commentary_link')
-        }
-        
-        async with aiohttp.ClientSession() as session:
-            url = f"{bot_api_url}/api/create_match_thread"
-            async with session.post(url, json=thread_data, timeout=30) as response:
-                if response.status == 200:
-                    result = await response.json()
-                    thread_id = result.get('thread_id')
-                    logger.info(f"Created Discord thread for match {match_data['id']}: {thread_id}")
-                    return thread_id
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Failed to create Discord thread: {error_text}")
-                    return None
+    max_retries = 3
+    retry_delay = 5
+    
+    for attempt in range(max_retries):
+        try:
+            bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
+            
+            # Create thread payload with all available data
+            thread_data = {
+                'match_id': match_data.get('id') or match_data.get('match_id'),
+                'home_team': match_data['home_team'],
+                'away_team': match_data['away_team'],
+                'date': match_data.get('date'),
+                'time': match_data.get('time'),
+                'venue': match_data.get('venue', 'TBD'),
+                'competition': match_data.get('competition', 'MLS'),
+                'is_home_game': match_data.get('is_home_game', False),
+                'summary_link': match_data.get('summary_link'),
+                'stats_link': match_data.get('stats_link'),
+                'commentary_link': match_data.get('commentary_link')
+            }
+            
+            logger.info(f"Attempt {attempt + 1}/{max_retries} to create thread for match {thread_data['match_id']}")
+            
+            # Create session with custom timeout and retry settings
+            timeout = aiohttp.ClientTimeout(total=45, connect=10, sock_read=30)
+            connector = aiohttp.TCPConnector(force_close=True)
+            
+            async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
+                url = f"{bot_api_url}/api/create_match_thread"
+                
+                async with session.post(url, json=thread_data) as response:
+                    response_text = await response.text()
                     
-    except Exception as e:
-        logger.error(f"Error creating Discord thread for match {match_data.get('id', 'unknown')}: {e}")
-        return None
+                    if response.status == 200:
+                        try:
+                            result = json.loads(response_text) if response_text else {}
+                        except json.JSONDecodeError:
+                            logger.error(f"Invalid JSON response: {response_text}")
+                            result = {}
+                        
+                        thread_id = result.get('thread_id')
+                        if thread_id:
+                            logger.info(f"Successfully created Discord thread {thread_id} for match {thread_data['match_id']}")
+                            return thread_id
+                        else:
+                            logger.warning(f"API returned 200 but no thread_id in response: {result}")
+                            
+                    elif response.status == 409:
+                        # Thread already exists
+                        logger.info(f"Thread already exists for match {thread_data['match_id']}")
+                        try:
+                            result = json.loads(response_text) if response_text else {}
+                            existing_thread_id = result.get('thread_id')
+                            if existing_thread_id:
+                                return existing_thread_id
+                        except:
+                            pass
+                            
+                    elif response.status in [500, 502, 503, 504]:
+                        # Server error, retry
+                        logger.warning(f"Server error {response.status} creating thread: {response_text}")
+                        if attempt < max_retries - 1:
+                            await asyncio.sleep(retry_delay * (attempt + 1))
+                            continue
+                            
+                    else:
+                        logger.error(f"Failed to create thread (status {response.status}): {response_text}")
+                        
+        except asyncio.TimeoutError:
+            logger.error(f"Timeout creating thread for match {match_data.get('id', 'unknown')} (attempt {attempt + 1})")
+            if attempt < max_retries - 1:
+                await asyncio.sleep(retry_delay)
+                continue
+                
+        except aiohttp.ClientError as e:
+            logger.error(f"Client error creating thread for match {match_data.get('id', 'unknown')}: {e}")
+            if attempt < max_retries - 1:
+                await asyncio.sleep(retry_delay)
+                continue
+                
+        except Exception as e:
+            logger.error(f"Unexpected error creating thread for match {match_data.get('id', 'unknown')}: {e}", exc_info=True)
+            if attempt < max_retries - 1:
+                await asyncio.sleep(retry_delay)
+                continue
+    
+    logger.error(f"Failed to create thread after {max_retries} attempts for match {match_data.get('id', 'unknown')}")
+    return None
 
 
 async def create_discord_channel(session: Session, team_name: str, division: str, team_id: int) -> Dict[str, Any]:

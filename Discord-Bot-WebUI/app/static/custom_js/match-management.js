@@ -461,16 +461,23 @@ function getTaskStatusColor(status) {
 
 function addMatchByDate() {
     const dateInput = document.getElementById('matchDate');
+    const competitionInput = document.getElementById('matchCompetition');
     const date = dateInput.value;
+    const competition = competitionInput.value;
     
     if (!date) {
         Swal.fire('Error!', 'Please select a date.', 'error');
         return;
     }
     
+    if (!competition) {
+        Swal.fire('Error!', 'Please select a competition.', 'error');
+        return;
+    }
+    
     const formData = new FormData();
     formData.append('date', date);
-    formData.append('competition', 'MLS'); // Default competition
+    formData.append('competition', competition);
     
     fetch('/admin/match_management/add-by-date', {
         method: 'POST',

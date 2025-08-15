@@ -6,7 +6,7 @@ import os
 # Only use eventlet and full app setup when not running migrations
 if 'flask db' not in ' '.join(sys.argv):
     import eventlet
-    eventlet.monkey_patch()
+    eventlet.monkey_patch(thread=False)
     
     import logging
     from app import create_app, socketio

@@ -198,7 +198,10 @@ async def send_async_http_request(
 
 async def fetch_espn_data(endpoint: Optional[str] = None, full_url: Optional[str] = None) -> Optional[Dict]:
     """
-    Fetch data from the ESPN API.
+    Fetch data from the ESPN API using centralized service.
+    
+    DEPRECATED: Use app.services.espn_service.get_espn_service() directly for new code.
+    This function is kept for backward compatibility.
     
     Args:
         endpoint: API endpoint path.
@@ -206,31 +209,38 @@ async def fetch_espn_data(endpoint: Optional[str] = None, full_url: Optional[str
         
     Returns:
         dict: API response data if successful, otherwise None.
-        
-    Raises:
-        ValueError: If neither endpoint nor full_url is provided.
     """
-    if full_url:
-        url = full_url
-    elif endpoint:
-        url = f"https://site.api.espn.com/apis/site/v2/{endpoint}"
-    else:
-        raise ValueError("Either 'endpoint' or 'full_url' must be provided")
-
-    logger.info(f"[API UTILS] Fetching data from ESPN API: {url}")
+    # Note: This is kept as emergency fallback. Normal code should use app.services.espn_service
+    logger.debug("Using fallback ESPN API function")
     
+    # Use the centralized ESPN service
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    logger.info("Successfully fetched data from ESPN API")
-                    return data
-                logger.error(f"Failed to fetch data from ESPN API. Status: {response.status}")
-                return None
-    except Exception as e:
-        logger.error(f"[API UTILS] Error fetching data from ESPN API: {e}", exc_info=True)
-        return None
+        from app.services.espn_service import get_espn_service
+        espn_service = get_espn_service()
+        return await espn_service.fetch_data(endpoint=endpoint, full_url=full_url)
+    except ImportError:
+        # Fallback to old implementation if service not available
+        if full_url:
+            url = full_url
+        elif endpoint:
+            url = f"https://site.api.espn.com/apis/site/v2/{endpoint}"
+        else:
+            raise ValueError("Either 'endpoint' or 'full_url' must be provided")
+
+        logger.info(f"[API UTILS] Fallback: Fetching data from ESPN API: {url}")
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        logger.info("Successfully fetched data from ESPN API")
+                        return data
+                    logger.error(f"Failed to fetch data from ESPN API. Status: {response.status}")
+                    return None
+        except Exception as e:
+            logger.error(f"[API UTILS] Error fetching data from ESPN API: {e}", exc_info=True)
+            return None
 
 
 def async_to_sync(coroutine: Any) -> Any:

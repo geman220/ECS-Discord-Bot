@@ -492,7 +492,8 @@ def add_match_by_date():
             return jsonify({'success': False, 'error': 'Match date is required'}), 400
         
         # Import ESPN integration modules
-        from app.api_utils import async_to_sync, fetch_espn_data, extract_match_details
+        from app.api_utils import async_to_sync, extract_match_details
+        from app.services.espn_service import get_espn_service
         from app.db_utils import insert_mls_match
         from app.bot_admin import COMPETITION_MAPPINGS, ensure_utc
         
@@ -502,12 +503,12 @@ def add_match_by_date():
         # Format date for ESPN API
         date_only = match_date.split(" ")[0]
         formatted_date = datetime.strptime(date_only, "%Y-%m-%d").strftime("%Y%m%d")
-        endpoint = f"sports/soccer/{competition_code}/scoreboard?dates={formatted_date}"
         
         logger.info(f"Fetching match data from ESPN for {match_date} in {competition}")
         
-        # Fetch match data from ESPN
-        match_data = async_to_sync(fetch_espn_data(endpoint))
+        # Fetch match data from ESPN using centralized service
+        espn_service = get_espn_service()
+        match_data = async_to_sync(espn_service.get_scoreboard(competition_code, formatted_date))
         
         if not match_data or 'events' not in match_data:
             return jsonify({
@@ -598,7 +599,8 @@ def fetch_all_espn_matches():
     """Fetch all upcoming Seattle Sounders matches from ESPN."""
     try:
         # Import ESPN integration modules
-        from app.api_utils import async_to_sync, fetch_espn_data, extract_match_details
+        from app.api_utils import async_to_sync, extract_match_details
+        from app.services.espn_service import get_espn_service
         from app.db_utils import insert_mls_match
         from app.bot_admin import COMPETITION_MAPPINGS, ensure_utc
         
@@ -607,6 +609,7 @@ def fetch_all_espn_matches():
         session = g.db_session
         total_matches_added = 0
         competitions_checked = []
+        espn_service = get_espn_service()
         
         # Check multiple competitions for Seattle Sounders matches
         for competition_name, competition_code in COMPETITION_MAPPINGS.items():
@@ -615,7 +618,7 @@ def fetch_all_espn_matches():
                 
                 # Fetch team schedule (this gets all upcoming matches for the season)
                 team_endpoint = f"sports/soccer/{competition_code}/teams/9726/schedule"
-                team_data = async_to_sync(fetch_espn_data(team_endpoint))
+                team_data = async_to_sync(espn_service.fetch_data(endpoint=team_endpoint))
                 
                 if team_data and 'events' in team_data:
                     competitions_checked.append(competition_name)

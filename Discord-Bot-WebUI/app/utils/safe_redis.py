@@ -39,11 +39,14 @@ class SafeRedisClient:
             client = self.client
             if client is None:
                 return False
-            # Try to ping - fallback clients return False
+                
+            # Try to ping - this should always work in our Docker environment
             result = client.ping()
             return bool(result)
         except Exception as e:
-            logger.debug(f"Redis availability check failed: {e}")
+            # Only log if it's not a "client is not available" error during reinitialization
+            if "Redis decoded client is not available" not in str(e) and "Redis raw client is not available" not in str(e):
+                logger.warning(f"Redis availability check failed: {e}")
             return False
     
     def _warn_once(self, operation: str):
@@ -212,6 +215,17 @@ def get_safe_redis() -> SafeRedisClient:
     if _safe_redis_client is None:
         _safe_redis_client = SafeRedisClient()
     return _safe_redis_client
+
+
+def reset_safe_redis() -> None:
+    """
+    Reset the global safe Redis client instance.
+    
+    This forces reinitialization of the Redis connection.
+    Useful when Redis becomes available after being unavailable.
+    """
+    global _safe_redis_client
+    _safe_redis_client = None
 
 
 def get_safe_redis_with_retry(max_retries: int = 5, retry_delay: float = 1.0) -> SafeRedisClient:

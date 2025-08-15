@@ -844,7 +844,7 @@ async def update_user_reaction(request: dict, bot: commands.Bot = Depends(get_bo
 @router.post("/api/create_match_thread")
 async def create_match_thread(request: dict, bot: commands.Bot = Depends(get_bot)):
     """
-    Create a Discord thread for an MLS match.
+    Create a Discord thread for an MLS match with duplicate detection.
     
     Expected payload:
     {
@@ -852,11 +852,15 @@ async def create_match_thread(request: dict, bot: commands.Bot = Depends(get_bot
         "home_team": "team_name",
         "away_team": "team_name", 
         "date": "date_string",
-        "time": "time_string"
+        "time": "time_string",
+        "venue": "venue_name",
+        "competition": "competition_name",
+        "is_home_game": boolean
     }
     
     Returns:
         {"thread_id": "thread_id"} on success
+        {"thread_id": "thread_id", "existing": true} if thread already exists
     """
     logger.info(f"Received request to create match thread: {request}")
     
@@ -888,10 +892,33 @@ async def create_match_thread(request: dict, bot: commands.Bot = Depends(get_bot
             logger.error(f"Channel {MATCH_CHANNEL_ID} is not a forum channel")
             raise HTTPException(status_code=400, detail="Channel is not a forum channel")
         
-        # Create thread name
+        # Create thread name with consistent format
         thread_name = f"{home_team} vs {away_team}"
         if date:
             thread_name += f" - {date}"
+        
+        # Check for existing threads with the same name (duplicate prevention)
+        try:
+            # Get active threads
+            active_threads = channel.threads
+            for thread in active_threads:
+                if thread.name == thread_name:
+                    logger.info(f"Thread already exists for match {match_id}: '{thread_name}' (ID: {thread.id})")
+                    return {"thread_id": str(thread.id), "existing": True}
+            
+            # Also check archived threads
+            async for thread in channel.archived_threads(limit=100):
+                if thread.name == thread_name:
+                    logger.info(f"Found archived thread for match {match_id}: '{thread_name}' (ID: {thread.id})")
+                    # Unarchive the thread if it's archived
+                    if thread.archived:
+                        await thread.edit(archived=False)
+                        logger.info(f"Unarchived thread {thread.id}")
+                    return {"thread_id": str(thread.id), "existing": True}
+                    
+        except Exception as e:
+            logger.warning(f"Error checking for existing threads: {e}")
+            # Continue even if we can't check for duplicates
         
         # Create thread content
         content = "Match thread created! Discuss the game here and make your predictions."
