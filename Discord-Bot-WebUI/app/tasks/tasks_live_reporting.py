@@ -758,13 +758,25 @@ def force_create_mls_thread_task(self, session, match_id: str, force: bool = Fal
                 raise self.retry(countdown=10, max_retries=5)
             
             # Prepare match data for thread creation
+            # Convert time to PST for display
+            from zoneinfo import ZoneInfo
+            pst_time = None
+            if match.date_time:
+                # Ensure the datetime is timezone-aware
+                if match.date_time.tzinfo is None:
+                    utc_time = match.date_time.replace(tzinfo=ZoneInfo("UTC"))
+                else:
+                    utc_time = match.date_time.astimezone(ZoneInfo("UTC"))
+                # Convert to PST
+                pst_time = utc_time.astimezone(ZoneInfo("America/Los_Angeles"))
+            
             match_data = {
                 'id': match.id,
                 'match_id': match.match_id,
                 'home_team': 'Seattle Sounders FC' if match.is_home_game else match.opponent,
                 'away_team': match.opponent if match.is_home_game else 'Seattle Sounders FC',
-                'date': match.date_time.strftime('%Y-%m-%d') if match.date_time else None,
-                'time': match.date_time.strftime('%H:%M') if match.date_time else None,
+                'date': pst_time.strftime('%Y-%m-%d') if pst_time else None,
+                'time': pst_time.strftime('%-I:%M %p PST') if pst_time else None,  # 12-hour format with AM/PM and PST
                 'venue': getattr(match, 'venue', 'TBD'),
                 'competition': getattr(match, 'competition', 'MLS'),
                 'is_home_game': match.is_home_game
