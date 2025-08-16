@@ -128,16 +128,23 @@ class ISpySubmissionView(discord.ui.View):
                                 if target_member:
                                     cooldown_type = "🌍 Global" if filtered_target['type'] == 'global' else f"📍 {filtered_target.get('category_name', 'Venue')}"
                                     expires_readable = filtered_target['expires_at'][:10]  # Just the date part
-                                    filtered_mentions.append(f"{target_member.mention} ({cooldown_type} cooldown until {expires_readable})")
+                                    # Include both mention and display name for visibility
+                                    filtered_mentions.append(f"{target_member.mention} ({target_member.display_name}) - {cooldown_type} cooldown until {expires_readable}")
                             
                             if filtered_mentions:
                                 filtered_info = f"\n\n⚠️ **Excluded from shot:** {', '.join(filtered_mentions)}"
                         
                         # Public success message - make it engaging for the community
+                        # Create target mentions with both @mention and name for visibility
+                        target_mentions = []
+                        for target in valid_targets:
+                            # Include both mention and display name so everyone can see who was spotted
+                            target_mentions.append(f"{target.mention} ({target.display_name})")
+                        
                         public_embed = discord.Embed(
                             title="📸 I-Spy Shot Spotted!",
                             color=discord.Color.green(),
-                            description=f"**{interaction.user.mention} has Spied {', '.join([target.mention for target in valid_targets])} at {self.location}!**{filtered_info}"
+                            description=f"**{interaction.user.mention} ({interaction.user.display_name}) has Spied {', '.join(target_mentions)} at {self.location}!**{filtered_info}"
                         )
                         
                         public_embed.add_field(
@@ -389,9 +396,11 @@ async def ispy_submit(
             description=f"**Location:** {location}\n\n⚠️ **This will be posted publicly when submitted!**"
         )
         
+        # Show both mention and name in preview for clarity
+        target_list = ", ".join([f"{target.mention} ({target.display_name})" for target in target_members])
         embed.add_field(
             name="🎯 Targets",
-            value=", ".join([target.mention for target in target_members]),
+            value=target_list,
             inline=False
         )
         
