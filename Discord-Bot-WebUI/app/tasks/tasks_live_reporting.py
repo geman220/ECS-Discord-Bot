@@ -88,15 +88,25 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
         # Log task execution for debugging
         logger.info(f"Processing match update with task ID: {self.request.id}, previous task ID: {task_id}")
         
-        # Use centralized ESPN service
-        from app.services.espn_service import get_espn_service
-        from app.api_utils import async_to_sync
-        
-        # Fetch match data from ESPN using centralized service
-        espn_service = get_espn_service()
-        match_data = async_to_sync(espn_service.get_match_data(match_id, competition))
-        if not match_data:
-            logger.error(f"Failed to fetch data for match {match_id}")
+        try:
+            # Use centralized ESPN service
+            from app.services.espn_service import get_espn_service
+            from app.api_utils import async_to_sync
+            
+            logger.info(f"Fetching ESPN data for match {match_id}, competition: {competition}")
+            
+            # Fetch match data from ESPN using centralized service
+            espn_service = get_espn_service()
+            match_data = async_to_sync(espn_service.get_match_data(match_id, competition))
+            
+            if not match_data:
+                logger.error(f"Failed to fetch data for match {match_id} - ESPN API returned None")
+                return {'success': False, 'message': 'Failed to fetch match data from ESPN'}
+        except ImportError as e:
+            logger.error(f"Import error getting ESPN service: {str(e)}", exc_info=True)
+            return {'success': False, 'message': f'Import error: {str(e)}'}
+        except Exception as e:
+            logger.error(f"Error fetching ESPN data for match {match_id}: {str(e)}", exc_info=True)
             return {'success': False, 'message': 'Failed to fetch match data'}
 
         # Process live match updates using async_to_sync to avoid nested event loops
@@ -255,6 +265,7 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
     """
     try:
         logger.info(f"Starting live reporting for match_id: {match_id}")
+        logger.debug(f"Session type: {type(session)}, Session ID: {id(session)}")
 
         # Always use get_match to retrieve the match.
         match = get_match(session, match_id)
@@ -262,6 +273,11 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
         if not match:
             logger.error(f"Match {match_id} not found")
             return {'success': False, 'message': f'Match {match_id} not found'}
+        
+        # Check if match has a Discord thread ID
+        if not match.discord_thread_id:
+            logger.error(f"Match {match_id} has no Discord thread ID. Thread must be created before starting live reporting.")
+            return {'success': False, 'message': 'No Discord thread available for match. Please create thread first.'}
 
         if match.live_reporting_status == 'running':
             logger.warning(f"Live reporting already running for match {match_id}")
@@ -290,15 +306,28 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
         logger.info(f"Updated match status to running for {match_id}")
 
         # Trigger the update task asynchronously and store its ID.
-        task = process_match_update.delay(
-            match_id=str(match_data['match_id']),
-            thread_id=str(match_data['thread_id']),
-            competition=match_data['competition'],
-            last_status=None,
-            last_score=None,
-            last_event_keys=[],
-            task_id=None  # Will be set to the actual task ID
-        )
+        logger.info(f"Triggering process_match_update for match {match_data['match_id']}")
+        
+        try:
+            task = process_match_update.delay(
+                match_id=str(match_data['match_id']),
+                thread_id=str(match_data['thread_id']),
+                competition=match_data['competition'],
+                last_status=None,
+                last_score=None,
+                last_event_keys=[],
+                task_id=None  # Will be set to the actual task ID
+            )
+            logger.info(f"Successfully queued process_match_update with task ID: {task.id}")
+        except Exception as e:
+            logger.error(f"Failed to queue process_match_update: {str(e)}", exc_info=True)
+            match.live_reporting_status = 'failed'
+            match.live_reporting_started = False
+            session.add(match)
+            return {
+                'success': False,
+                'message': f'Failed to start match updates: {str(e)}'
+            }
         
         # Store the task ID to track this execution chain
         match.live_reporting_task_id = task.id

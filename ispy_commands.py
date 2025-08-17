@@ -916,6 +916,111 @@ async def ispy_admin_jail(
                 ephemeral=True
             )
 
+@app_commands.command(name="ispy-help", description="Learn how to play I-Spy and view all commands")
+async def ispy_help(interaction: discord.Interaction):
+    """Display comprehensive I-Spy game help and rules."""
+    
+    # Defer the response immediately
+    await interaction.response.defer(ephemeral=True)
+    
+    # Check channel restriction
+    if not is_pl_nonsense_channel(interaction):
+        await interaction.followup.send(
+            "❌ I-Spy commands can only be used in #pl-nonsense channel!",
+            ephemeral=True
+        )
+        return
+    
+    # Create main help embed
+    main_embed = discord.Embed(
+        title="📸 I-Spy Game Guide",
+        color=discord.Color.blue(),
+        description="**Welcome to I-Spy!**\nSpot fellow pub leaguers in the wild, snap photos, and earn points!\n\n**How to Play:**\n1. See pub leaguers out and about? Take a photo!\n2. Use `/ispy` to submit your shot\n3. Tag everyone you spotted (more people = more points!)\n4. Choose the venue category\n5. Earn points and climb the leaderboard!"
+    )
+    
+    # Game Rules Section
+    main_embed.add_field(
+        name="📏 Game Rules",
+        value=(
+            "• **Channel:** Only works in #pl-nonsense\n"
+            "• **Roles:** Requires ECS-FC-PL-CLASSIC or PREMIER\n"
+            "• **Targets:** Can't target yourself or same person twice\n"
+            "• **Daily Limit:** 3 shots per 24 hours\n"
+            "• **Location:** Max 40 characters"
+        ),
+        inline=False
+    )
+    
+    # Points System Section
+    main_embed.add_field(
+        name="🏆 Points System",
+        value=(
+            "• **Base:** 1 point per person spotted\n"
+            "• **Group Bonus:** +1 for spotting 3+ people\n"
+            "• **Streak Bonus:** +1 for daily streaks\n"
+            "• **Penalty:** -5 if shot is disallowed"
+        ),
+        inline=True
+    )
+    
+    # Cooldowns Section
+    main_embed.add_field(
+        name="⏰ Cooldown System",
+        value=(
+            "**After being spotted:**\n"
+            "• **48 hours:** Can't be spotted anywhere\n"
+            "• **14 days:** Can't be spotted at same venue type\n"
+            "• Check with `/ispy-cooldowns @user`"
+        ),
+        inline=True
+    )
+    
+    # Player Commands Section
+    main_embed.add_field(
+        name="🎮 Player Commands",
+        value=(
+            "`/ispy @targets location` - Submit a shot with photo\n"
+            "`/ispy-top [limit]` - View the leaderboard\n"
+            "`/ispy-me` - View your personal stats\n"
+            "`/ispy-stats <category>` - Category leaderboard\n"
+            "`/ispy-cooldowns @user` - Check if someone can be spotted\n"
+            "`/ispy-help` - Show this help message"
+        ),
+        inline=False
+    )
+    
+    # Admin Commands Section (only show if user is moderator)
+    if has_moderator_role(interaction):
+        main_embed.add_field(
+            name="👮 Admin Commands",
+            value=(
+                "`/ispy-disallow <id> <reason>` - Disallow a shot\n"
+                "`/ispy-recategorize <id> <category>` - Move shot category\n"
+                "`/ispy-jail @user <hours>` - Temporarily block user\n"
+                "`/ispy-reset-cooldowns @user` - Clear all cooldowns"
+            ),
+            inline=False
+        )
+    
+    # Tips Section
+    main_embed.add_field(
+        name="💡 Pro Tips",
+        value=(
+            "• More targets = more points (no maximum!)\n"
+            "• Submit daily for streak bonuses\n"
+            "• Check cooldowns before taking shots\n"
+            "• Different venue categories have separate cooldowns\n"
+            "• Photos must be unique (no reusing old pics)"
+        ),
+        inline=False
+    )
+    
+    # Footer
+    main_embed.set_footer(text="Ready to play? Grab your camera and start spotting! 📸")
+    
+    await interaction.followup.send(embed=main_embed, ephemeral=True)
+
+
 @app_commands.command(name="ispy-cooldowns", description="View active cooldowns for a user")
 @app_commands.describe(user="Discord user to check cooldowns for")
 async def ispy_check_cooldowns(interaction: discord.Interaction, user: discord.Member):
@@ -1051,6 +1156,7 @@ async def ispy_admin_reset_cooldowns(
 async def setup(bot):
     """Setup function for the cog."""
     bot.tree.add_command(ispy_submit, guild=discord.Object(id=server_id))
+    bot.tree.add_command(ispy_help, guild=discord.Object(id=server_id))
     bot.tree.add_command(ispy_leaderboard, guild=discord.Object(id=server_id))
     bot.tree.add_command(ispy_personal_stats, guild=discord.Object(id=server_id))
     bot.tree.add_command(ispy_category_stats, guild=discord.Object(id=server_id))
