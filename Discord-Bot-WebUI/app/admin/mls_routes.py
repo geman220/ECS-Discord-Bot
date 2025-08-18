@@ -497,14 +497,20 @@ def add_match_by_date():
         from app.db_utils import insert_mls_match
         from app.bot_admin import COMPETITION_MAPPINGS, ensure_utc
         
+        # Debug logging to understand the mapping
+        logger.info(f"Received competition from form: '{competition}'")
+        logger.info(f"Available mappings: {COMPETITION_MAPPINGS}")
+        
         # Map competition name to code
         competition_code = COMPETITION_MAPPINGS.get(competition, 'usa.1')  # Default to MLS
+        
+        logger.info(f"Mapped competition '{competition}' to code: '{competition_code}'")
         
         # Format date for ESPN API
         date_only = match_date.split(" ")[0]
         formatted_date = datetime.strptime(date_only, "%Y-%m-%d").strftime("%Y%m%d")
         
-        logger.info(f"Fetching match data from ESPN for {match_date} in {competition}")
+        logger.info(f"Fetching match data from ESPN for {match_date} in {competition} (code: {competition_code})")
         
         # Fetch match data from ESPN using centralized service
         espn_service = get_espn_service()
