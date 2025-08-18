@@ -217,22 +217,56 @@ def send_availability_message(self, session, scheduled_message_id: int) -> Dict[
         Retries the task on database or general errors.
     """
     try:
+        # Fetch the scheduled message and related data
+        message = session.query(ScheduledMessage).get(scheduled_message_id)
+        if not message:
+            logger.error(f"ScheduledMessage with id {scheduled_message_id} not found")
+            return {
+                'success': False,
+                'message': f"ScheduledMessage with id {scheduled_message_id} not found",
+                'error_type': 'not_found'
+            }
+        
+        # Construct the message_data dictionary
+        message_data = {
+            'scheduled_message_id': scheduled_message_id,
+            'match_id': message.match_id,
+            'home_channel_id': message.home_channel_id,
+            'away_channel_id': message.away_channel_id
+        }
+        
+        # If match exists, add match details
+        if message.match:
+            message_data.update({
+                'match_date': message.match.date.strftime('%Y-%m-%d') if message.match.date else '',
+                'match_time': message.match.time.strftime('%H:%M') if message.match.time else '',
+                'home_team_name': message.match.home_team.name if message.match.home_team else 'Home Team',
+                'away_team_name': message.match.away_team.name if message.match.away_team else 'Away Team'
+            })
+        else:
+            # Use metadata if available for ECS FC or other message types
+            metadata = message.message_metadata or {}
+            message_data.update({
+                'match_date': metadata.get('match_date', ''),
+                'match_time': metadata.get('match_time', ''),
+                'home_team_name': metadata.get('home_team_name', 'Home Team'),
+                'away_team_name': metadata.get('away_team_name', 'Away Team')
+            })
+        
         # Use async_to_sync utility instead of creating a new event loop
         from app.api_utils import async_to_sync
-        result = async_to_sync(_send_availability_message_async(scheduled_message_id))
+        result = async_to_sync(_send_availability_message_async(message_data))
         
-        # Update the ScheduledMessage record based on the result.
-        message = session.query(ScheduledMessage).get(scheduled_message_id)
-        if message:
-            message.last_send_attempt = datetime.utcnow()
-            if result['success']:
-                message.status = 'SENT'
-                message.sent_at = datetime.utcnow()
-                message.send_error = None
-            else:
-                message.status = 'FAILED'
-                message.send_error = result.get('message')
-            session.add(message)
+        # Update the ScheduledMessage record based on the result
+        message.last_send_attempt = datetime.utcnow()
+        if result['success']:
+            message.status = 'SENT'
+            message.sent_at = datetime.utcnow()
+            message.send_error = None
+        else:
+            message.status = 'FAILED'
+            message.send_error = result.get('message')
+        session.add(message)
         return result
     except SQLAlchemyError as e:
         logger.error(f"Database error sending availability message: {str(e)}", exc_info=True)
