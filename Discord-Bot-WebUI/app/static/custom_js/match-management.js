@@ -465,6 +465,10 @@ function addMatchByDate() {
     const date = dateInput.value;
     const competition = competitionInput.value;
     
+    console.log('Selected competition:', competition);
+    console.log('Competition dropdown options:', competitionInput.options);
+    console.log('Selected index:', competitionInput.selectedIndex);
+    
     if (!date) {
         Swal.fire('Error!', 'Please select a date.', 'error');
         return;
@@ -478,6 +482,8 @@ function addMatchByDate() {
     const formData = new FormData();
     formData.append('date', date);
     formData.append('competition', competition);
+    
+    console.log('Sending competition to server:', competition);
     
     fetch('/admin/match_management/add-by-date', {
         method: 'POST',
