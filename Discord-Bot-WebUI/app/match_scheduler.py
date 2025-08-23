@@ -125,6 +125,14 @@ class MatchScheduler:
             verification = self._verify_redis_keys(match_id)
             logger.info(f"Redis key verification: {verification}")
         
+            # Invalidate and warm cache for this match
+            try:
+                from app.tasks.tasks_cache_management import warm_cache_for_match
+                warm_cache_for_match.delay(match_id)
+                logger.debug(f"Scheduled cache warming for match {match_id}")
+            except Exception as cache_error:
+                logger.warning(f"Failed to schedule cache warming for match {match_id}: {cache_error}")
+            
             return {
                 'success': True,
                 'message': "Match tasks scheduled successfully",

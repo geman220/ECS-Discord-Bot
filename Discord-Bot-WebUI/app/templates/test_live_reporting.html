@@ -1,0 +1,523 @@
+{% extends "base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Test Live Reporting V2{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">
+        <span class="text-muted fw-light">Testing /</span> Live Match Reporting V2
+        <span class="badge bg-success ms-2">Industry Standard</span>
+    </h4>
+
+    <!-- System Status Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">System Status V2</h5>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="checkSystemHealth()">Check Health</button>
+                </div>
+                <div class="card-body">
+                    <div id="systemHealthDisplay">
+                        <p class="text-muted">Click "Check Health" to verify V2 system status</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Test Form -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Trigger Live Reporting</h5>
+                </div>
+                <div class="card-body">
+                    <form id="testLiveReportingForm">
+                        <div class="mb-3">
+                            <label for="matchId" class="form-label">ESPN Match ID</label>
+                            <input type="text" class="form-control" id="matchId" required>
+                            <div class="form-text">The ESPN match ID (e.g., 755878)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="competition" class="form-label">Competition</label>
+                            <select class="form-select" id="competition">
+                                <!-- MLS & US Soccer -->
+                                <option value="usa.1">MLS (usa.1)</option>
+                                <option value="usa.nwsl">NWSL (usa.nwsl)</option>
+                                <option value="usa.open">US Open Cup (usa.open)</option>
+                                <option value="usa.2">USL Championship (usa.2)</option>
+                                
+                                <!-- European Top Leagues -->
+                                <option value="eng.1">Premier League (eng.1)</option>
+                                <option value="esp.1">La Liga (esp.1)</option>
+                                <option value="ger.1">Bundesliga (ger.1)</option>
+                                <option value="ita.1">Serie A (ita.1)</option>
+                                <option value="fra.1">Ligue 1 (fra.1)</option>
+                                <option value="ned.1">Eredivisie (ned.1)</option>
+                                <option value="por.1">Primeira Liga (por.1)</option>
+                                
+                                <!-- UEFA Competitions -->
+                                <option value="uefa.champions">Champions League (uefa.champions)</option>
+                                <option value="uefa.europa">Europa League (uefa.europa)</option>
+                                <option value="uefa.europa_qual">Europa League Qualifying (uefa.europa_qual)</option>
+                                <option value="uefa.conference">Conference League (uefa.conference)</option>
+                                <option value="uefa.nations">Nations League (uefa.nations)</option>
+                                <option value="uefa.euro">European Championship (uefa.euro)</option>
+                                <option value="uefa.euro_qual">Euro Qualifying (uefa.euro_qual)</option>
+                                
+                                <!-- CONMEBOL -->
+                                <option value="conmebol.libertadores">Copa Libertadores (conmebol.libertadores)</option>
+                                <option value="conmebol.sudamericana">Copa Sudamericana (conmebol.sudamericana)</option>
+                                <option value="conmebol.america">Copa América (conmebol.america)</option>
+                                <option value="conmebol.america_qual">World Cup Qualifying CONMEBOL (conmebol.america_qual)</option>
+                                
+                                <!-- CONCACAF -->
+                                <option value="concacaf.champions">CONCACAF Champions Cup (concacaf.champions)</option>
+                                <option value="concacaf.gold">Gold Cup (concacaf.gold)</option>
+                                <option value="concacaf.nations">Nations League (concacaf.nations)</option>
+                                <option value="concacaf.champions_qual">CONCACAF Champions Qualifying (concacaf.champions_qual)</option>
+                                
+                                <!-- FIFA Competitions -->
+                                <option value="fifa.world">World Cup (fifa.world)</option>
+                                <option value="fifa.wworld">Women's World Cup (fifa.wworld)</option>
+                                <option value="fifa.confederations">Confederations Cup (fifa.confederations)</option>
+                                <option value="fifa.club">Club World Cup (fifa.club)</option>
+                                
+                                <!-- Other Major Leagues -->
+                                <option value="arg.1">Argentine Primera (arg.1)</option>
+                                <option value="arg.2">Argentine Primera Nacional (arg.2)</option>
+                                <option value="arg.3">Argentine Primera B (arg.3)</option>
+                                <option value="arg.4">Argentine Primera C (arg.4)</option>
+                                <option value="bra.1">Brazilian Serie A (bra.1)</option>
+                                <option value="bra.2">Brazilian Serie B (bra.2)</option>
+                                <option value="bra.3">Brazilian Serie C (bra.3)</option>
+                                <option value="chi.1">Chilean Primera (chi.1)</option>
+                                <option value="col.1">Colombian Primera A (col.1)</option>
+                                <option value="uru.1">Uruguayan Primera (uru.1)</option>
+                                <option value="per.1">Peruvian Primera (per.1)</option>
+                                <option value="ecu.1">Ecuadorian Primera (ecu.1)</option>
+                                <option value="mex.1">Liga MX (mex.1)</option>
+                                <option value="mex.2">Liga de Expansión MX (mex.2)</option>
+                                <option value="jpn.1">J1 League (jpn.1)</option>
+                                <option value="jpn.2">J2 League (jpn.2)</option>
+                                <option value="jpn.3">J3 League (jpn.3)</option>
+                                <option value="aus.1">A-League Men (aus.1)</option>
+                                <option value="aus.2">A-League Women (aus.2)</option>
+                                <option value="kor.1">K League 1 (kor.1)</option>
+                                <option value="kor.2">K League 2 (kor.2)</option>
+                                <option value="chn.1">Chinese Super League (chn.1)</option>
+                                <option value="tha.1">Thai League 1 (tha.1)</option>
+                                <option value="sau.1">Saudi Pro League (sau.1)</option>
+                                <option value="uae.1">UAE Pro League (uae.1)</option>
+                                <option value="qat.1">Qatar Stars League (qat.1)</option>
+                                <option value="rsa.1">South African Premier (rsa.1)</option>
+                                <option value="egy.1">Egyptian Premier League (egy.1)</option>
+                                <option value="mar.1">Botola Pro (mar.1)</option>
+                                <option value="nga.1">Nigerian Premier League (nga.1)</option>
+                                
+                                <!-- European Second Tiers -->
+                                <option value="eng.2">Championship (eng.2)</option>
+                                <option value="esp.2">La Liga 2 (esp.2)</option>
+                                <option value="ger.2">2. Bundesliga (ger.2)</option>
+                                <option value="ita.2">Serie B (ita.2)</option>
+                                <option value="fra.2">Ligue 2 (fra.2)</option>
+                                
+                                <!-- Domestic Cups -->
+                                <option value="eng.fa">FA Cup (eng.fa)</option>
+                                <option value="esp.copa_del_rey">Copa del Rey (esp.copa_del_rey)</option>
+                                <option value="ger.dfb_pokal">DFB Pokal (ger.dfb_pokal)</option>
+                                <option value="ita.coppa_italia">Coppa Italia (ita.coppa_italia)</option>
+                                <option value="fra.coupe_de_france">Coupe de France (fra.coupe_de_france)</option>
+                                
+                                <!-- International Friendlies -->
+                                <option value="fifa.friendly">International Friendlies (fifa.friendly)</option>
+                                <option value="fifa.wfriendly">Women's Friendlies (fifa.wfriendly)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="teamId" class="form-label">Team ID (Optional)</label>
+                            <input type="text" class="form-control" id="teamId" value="9726">
+                            <div class="form-text">ESPN team ID (default: 9726 for Sounders)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="threadId" class="form-label">Discord Thread ID (Optional)</label>
+                            <input type="text" class="form-control" id="threadId">
+                            <div class="form-text">Leave empty to skip Discord posting</div>
+                        </div>
+                        
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="button" class="btn btn-primary" onclick="startRobustLiveReporting()">Start Live Reporting</button>
+                            <button type="button" class="btn btn-outline-danger" onclick="stopRobustLiveReporting()">Stop Live Reporting</button>
+                            <button type="button" class="btn btn-info" onclick="fetchESPNData()">Test ESPN Fetch</button>
+                            <button type="button" class="btn btn-outline-primary" onclick="getActiveSessions()">Active Sessions</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Display -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Current Status</h5>
+                </div>
+                <div class="card-body">
+                    <div id="statusDisplay">
+                        <p class="text-muted">No match selected</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ESPN Data Display -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">ESPN Data</h5>
+                </div>
+                <div class="card-body">
+                    <div id="espnDataDisplay">
+                        <p class="text-muted">Fetch ESPN data to see match information</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Response Log -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Response Log</h5>
+                </div>
+                <div class="card-body">
+                    <pre id="responseLog" style="max-height: 400px; overflow-y: auto;"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// V2 system with fallback to robust system
+// All functions auto-detect and use V2 when available
+
+async function checkSystemHealth() {
+    try {
+        const response = await fetch('/test/v2/health');
+        const data = await response.json();
+        
+        const healthDisplay = document.getElementById('systemHealthDisplay');
+        if (data.overall === true) {
+            healthDisplay.innerHTML = `
+                <div class="alert alert-success">
+                    <strong>✅ V2 System Online</strong><br>
+                    ESPN API: ${data.components.espn ? '✅' : '❌'}<br>
+                    Discord API: ${data.components.discord ? '✅' : '❌'}<br>
+                    Database: ${data.components.database ? '✅' : '❌'}<br>
+                    AI Service: ${data.components.ai ? '✅' : '❌'}
+                </div>
+            `;
+        } else {
+            healthDisplay.innerHTML = `
+                <div class="alert alert-warning">
+                    <strong>⚠️ System Issues Detected</strong><br>
+                    ${data.error || 'Check individual components'}
+                </div>
+            `;
+        }
+        
+        logResponse('V2 Health Check', data);
+    } catch (error) {
+        document.getElementById('systemHealthDisplay').innerHTML = `
+            <div class="alert alert-danger">
+                <strong>❌ V2 System Unavailable</strong><br>
+                Falling back to Robust system
+            </div>
+        `;
+        logResponse('V2 Health Check Error', error);
+    }
+}
+
+async function fetchESPNData() {
+    const matchId = document.getElementById('matchId').value;
+    const competition = document.getElementById('competition').value;
+    
+    if (!matchId) {
+        showAlert('Error', 'Please enter a match ID', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/test/fetch-espn/${matchId}?competition=${competition}`);
+        const data = await response.json();
+        
+        logResponse('ESPN Data Fetch', data);
+        
+        if (data.success) {
+            const espnDisplay = document.getElementById('espnDataDisplay');
+            espnDisplay.innerHTML = `
+                <p><strong>Status:</strong> ${data.status}</p>
+                <p><strong>Home:</strong> ${data.home_team.name} (${data.home_team.score})</p>
+                <p><strong>Away:</strong> ${data.away_team.name} (${data.away_team.score})</p>
+                <p><strong>Events:</strong> ${data.events}</p>
+                <details>
+                    <summary>Raw Data</summary>
+                    <pre style="max-height: 200px; overflow-y: auto;">${JSON.stringify(data.raw_data, null, 2)}</pre>
+                </details>
+            `;
+        }
+    } catch (error) {
+        logResponse('ESPN Fetch Error', error);
+        showAlert('Error', error.message, 'danger');
+    }
+}
+
+async function triggerSingleUpdate() {
+    const matchId = document.getElementById('matchId').value;
+    const threadId = document.getElementById('threadId').value;
+    const competition = document.getElementById('competition').value;
+    
+    if (!matchId || !threadId) {
+        showAlert('Error', 'Match ID and Thread ID are required', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/test/process-single-update/${matchId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                thread_id: threadId,
+                competition: competition
+            })
+        });
+        
+        const data = await response.json();
+        logResponse('Single Update', data);
+        
+        if (data.success) {
+            showAlert('Success', 'Single update triggered!', 'info');
+        }
+    } catch (error) {
+        logResponse('Single Update Error', error);
+        showAlert('Error', error.message, 'danger');
+    }
+}
+
+async function stopReporting() {
+    const matchId = document.getElementById('matchId').value;
+    
+    if (!matchId) {
+        showAlert('Error', 'Please enter a match ID', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/test/stop/${matchId}`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        logResponse('Stop Reporting', data);
+        
+        if (data.success) {
+            showAlert('Success', 'Reporting stopped!', 'warning');
+            updateStatus(matchId);
+        }
+    } catch (error) {
+        logResponse('Stop Error', error);
+        showAlert('Error', error.message, 'danger');
+    }
+}
+
+async function updateStatus(matchId) {
+    if (!matchId) return;
+    
+    try {
+        const response = await fetch(`/test/status/${matchId}`);
+        const data = await response.json();
+        
+        const statusDisplay = document.getElementById('statusDisplay');
+        statusDisplay.innerHTML = `
+            <p><strong>Match ID:</strong> ${data.match_id}</p>
+            <p><strong>Competition:</strong> ${data.competition || 'N/A'}</p>
+            <p><strong>Thread ID:</strong> ${data.thread_id || 'None'}</p>
+            <p><strong>Status:</strong> <span class="badge bg-${getStatusColor(data.live_reporting_status)}">${data.live_reporting_status}</span></p>
+            <p><strong>Started:</strong> ${data.live_reporting_started ? 'Yes' : 'No'}</p>
+            <p><strong>Current Score:</strong> ${data.current_score || 'N/A'}</p>
+            <p><strong>Last Update:</strong> ${data.last_update || 'Never'}</p>
+            <p><strong>Task ID:</strong> <code>${data.task_id || 'None'}</code></p>
+        `;
+    } catch (error) {
+        console.error('Status update error:', error);
+    }
+}
+
+async function startRobustLiveReporting() {
+    const matchId = document.getElementById('matchId').value;
+    
+    if (!matchId) {
+        showAlert('Error', 'Please enter a match ID', 'warning');
+        return;
+    }
+    
+    try {
+        const requestData = {
+            competition: document.getElementById('competition').value,
+            thread_id: document.getElementById('threadId').value
+        };
+        
+        const response = await fetch(`/test/start-robust-live-reporting/${matchId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        const data = await response.json();
+        logResponse('Start Robust Live Reporting', data);
+        
+        if (data.success) {
+            showAlert('Success', 'Robust live reporting started! This will persist across container restarts.', 'success');
+            updateStatus(matchId);
+        } else {
+            showAlert('Error', data.error || 'Failed to start robust live reporting', 'danger');
+        }
+    } catch (error) {
+        logResponse('Start Robust Error', error);
+        showAlert('Error', error.message, 'danger');
+    }
+}
+
+async function stopRobustLiveReporting() {
+    const matchId = document.getElementById('matchId').value;
+    
+    if (!matchId) {
+        showAlert('Error', 'Please enter a match ID', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/test/stop-robust-live-reporting/${matchId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+        });
+        
+        const data = await response.json();
+        logResponse('Stop Robust Live Reporting', data);
+        
+        if (data.success) {
+            showAlert('Success', 'Robust live reporting stopped!', 'success');
+            updateStatus(matchId);
+        } else {
+            showAlert('Error', data.error || 'Failed to stop robust live reporting', 'danger');
+        }
+    } catch (error) {
+        logResponse('Stop Robust Error', error);
+        showAlert('Error', error.message, 'danger');
+    }
+}
+
+async function getActiveSessions() {
+    try {
+        // Try V2 first, fallback to legacy
+        let response;
+        let data;
+        let systemUsed = "Legacy";
+        
+        try {
+            response = await fetch('/test/v2/active-sessions');
+            data = await response.json();
+            systemUsed = "V2";
+        } catch (v2Error) {
+            console.log('V2 not available, using legacy system');
+            response = await fetch('/test/live-sessions');
+            data = await response.json();
+        }
+        
+        logResponse('Active Sessions', data);
+        
+        if (data.success) {
+            let sessionsHtml = `<h6>Active Live Reporting Sessions (${data.count}) - ${systemUsed} System</h6>`;
+            
+            if (data.count === 0) {
+                sessionsHtml += '<p class="text-muted">No active sessions</p>';
+            } else {
+                sessionsHtml += '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Match ID</th><th>Competition</th><th>Started</th><th>Updates</th><th>Status</th></tr></thead><tbody>';
+                
+                for (const session of data.active_sessions) {
+                    const startedAt = new Date(session.started_at).toLocaleString();
+                    sessionsHtml += `
+                        <tr>
+                            <td><code>${session.match_id}</code></td>
+                            <td>${session.competition}</td>
+                            <td>${startedAt}</td>
+                            <td>${session.update_count}</td>
+                            <td><span class="badge bg-${session.is_active ? 'success' : 'secondary'}">${session.is_active ? 'Active' : 'Inactive'}</span></td>
+                        </tr>
+                    `;
+                }
+                
+                sessionsHtml += '</tbody></table></div>';
+            }
+            
+            // Update status display
+            document.getElementById('statusDisplay').innerHTML = sessionsHtml;
+            showAlert('Success', `Found ${data.count} active sessions (${systemUsed})`, 'info');
+        } else {
+            showAlert('Error', data.error || 'Failed to get active sessions', 'danger');
+        }
+    } catch (error) {
+        logResponse('Get Sessions Error', error);
+        showAlert('Error', error.message, 'danger');
+    }
+}
+
+function getStatusColor(status) {
+    switch(status) {
+        case 'running': return 'success';
+        case 'stopped': return 'warning';
+        case 'failed': return 'danger';
+        case 'completed': return 'info';
+        default: return 'secondary';
+    }
+}
+
+function logResponse(action, data) {
+    const log = document.getElementById('responseLog');
+    const timestamp = new Date().toLocaleTimeString();
+    log.textContent = `[${timestamp}] ${action}:\n${JSON.stringify(data, null, 2)}\n\n` + log.textContent;
+}
+
+function showAlert(title, message, type) {
+    // You can implement your own alert system here
+    alert(`${title}: ${message}`);
+}
+
+// Auto-refresh status every 5 seconds if a match ID is present
+setInterval(() => {
+    const matchId = document.getElementById('matchId').value;
+    if (matchId) {
+        updateStatus(matchId);
+    }
+}, 5000);
+
+// Auto-check system health on page load
+document.addEventListener('DOMContentLoaded', function() {
+    checkSystemHealth();
+});
+</script>
+{% endblock %}

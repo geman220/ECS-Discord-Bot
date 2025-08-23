@@ -41,17 +41,17 @@ services:
       - "DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
       # ── pool tuning ───────────────────────────────────────────────────
       - POOL_MODE=transaction
-      - MAX_CLIENT_CONN=100
-      - DEFAULT_POOL_SIZE=18
-      - RESERVE_POOL_SIZE=2
-      - RESERVE_POOL_TIMEOUT=5
-      - QUERY_WAIT_TIMEOUT=30
+      - MAX_CLIENT_CONN=200              # Increased for multiple workers
+      - DEFAULT_POOL_SIZE=40             # Increased from 18 to handle worker load
+      - RESERVE_POOL_SIZE=5              # Increased reserve pool
+      - RESERVE_POOL_TIMEOUT=10          # Increased timeout
+      - QUERY_WAIT_TIMEOUT=60            # Increased from 30s
       - IGNORE_STARTUP_PARAMETERS=extra_float_digits
-      - IDLE_TRANSACTION_TIMEOUT=10
-      - CLIENT_IDLE_TIMEOUT=60  
-      - QUERY_TIMEOUT=30
-      - SERVER_IDLE_TIMEOUT=300
-      - SERVER_LIFETIME=3600
+      - IDLE_TRANSACTION_TIMEOUT=30      # Increased from 10s
+      - CLIENT_IDLE_TIMEOUT=120          # Increased from 60s
+      - QUERY_TIMEOUT=60                 # Increased from 30s
+      - SERVER_IDLE_TIMEOUT=600          # Increased from 300s
+      - SERVER_LIFETIME=7200             # Increased from 3600s
       # ── upstream TLS & auth (left blank/disabled in dev .env) ─────────
       - PGBOUNCER_SERVER_TLS_SSLMODE=${SERVER_TLS_SSLMODE:-disable}
       - PGBOUNCER_SERVER_TLS_CA_FILE=${SERVER_TLS_CA_FILE:-}

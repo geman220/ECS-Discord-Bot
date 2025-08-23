@@ -441,6 +441,16 @@
         </li>
         {% endif %}
 
+        <!-- AI Prompt Configuration -->
+        {% if 'Global Admin' in user_roles or 'Pub League Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if request.blueprint == 'ai_prompts' }}">
+            <a class="menu-link" href="{{ url_for('ai_prompts.list_prompts') }}">
+                <i class="ti ti-brain menu-icon"></i>
+                <div>AI Prompts</div>
+            </a>
+        </li>
+        {% endif %}
+
         <!-- Dev Tools - Only Global Admins -->
         {% if 'Global Admin' in user_roles %}
         <li class="menu-item {{ 'active' if request.endpoint == 'admin.admin_dashboard' }}">
@@ -467,6 +477,14 @@
             <a class="menu-link" href="{{ url_for('admin.test_onboarding') }}">
                 <i class="ti ti-flask menu-icon"></i>
                 <div>🧪 Test Onboarding</div>
+            </a>
+        </li>
+        
+        <!-- Test Live Reporting - Only Global Admins -->
+        <li class="menu-item {{ 'active' if request.endpoint == 'test_live_reporting.test_live_reporting' }}">
+            <a class="menu-link" href="{{ url_for('test_live_reporting.test_live_reporting') }}">
+                <i class="ti ti-live-photo menu-icon"></i>
+                <div>🚀 Test Live Reporting</div>
             </a>
         </li>
         {% endif %}

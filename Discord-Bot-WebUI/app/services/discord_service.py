@@ -29,11 +29,29 @@ class DiscordService:
         self.bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
         self._session = None
     
+    def _should_skip_call(self, operation_name: str) -> bool:
+        """Check if Discord bot calls should be skipped due to circuit breaker."""
+        try:
+            from app.utils.discord_helpers import get_circuit_breaker_status
+            cb_status = get_circuit_breaker_status()
+            if not cb_status['can_proceed']:
+                logger.warning(f"Skipping Discord {operation_name} - circuit breaker is {cb_status['state']}")
+                return True
+            return False
+        except Exception as e:
+            logger.warning(f"Error checking circuit breaker status: {e}")
+            return False
+    
     async def _get_session(self) -> aiohttp.ClientSession:
-        """Get or create aiohttp session."""
+        """Get or create aiohttp session with proper timeout."""
         if self._session is None or self._session.closed:
-            timeout = aiohttp.ClientTimeout(total=60, connect=10)
-            self._session = aiohttp.ClientSession(timeout=timeout)
+            # Create session with proper timeout configuration
+            timeout = aiohttp.ClientTimeout(total=30, connect=10, sock_read=20)
+            connector = aiohttp.TCPConnector(limit=100, limit_per_host=30)
+            self._session = aiohttp.ClientSession(
+                timeout=timeout,
+                connector=connector
+            )
         return self._session
     
     async def create_match_thread(self, match_data: Dict[str, Any]) -> Optional[str]:
@@ -46,6 +64,9 @@ class DiscordService:
         Returns:
             Thread ID if successful, None otherwise
         """
+        if self._should_skip_call("create_match_thread"):
+            return None
+            
         max_retries = 3
         retry_delay = 2
         
@@ -67,10 +88,6 @@ class DiscordService:
                 }
                 
                 logger.info(f"Attempt {attempt + 1}/{max_retries}: Creating Discord thread for match {payload['match_id']}")
-                
-                # Enhanced timeout settings
-                timeout = aiohttp.ClientTimeout(total=30, connect=10, sock_read=20)
-                session._timeout = timeout
                 
                 async with session.post(url, json=payload) as response:
                     if response.status == 200:
@@ -136,6 +153,9 @@ class DiscordService:
         Returns:
             True if successful, False otherwise
         """
+        if self._should_skip_call("update_live_match"):
+            return False
+            
         max_retries = 2
         retry_delay = 1
         
@@ -235,19 +255,11 @@ class DiscordService:
             Status dictionary with bot information
         """
         try:
-            session = await self._get_session()
-            url = f"{self.bot_api_url}/api/status"
-            
-            async with session.get(url) as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    logger.error(f"Failed to get bot status (status {response.status})")
-                    return {'status': 'error', 'connected': False}
-                    
+            from app.utils.discord_helpers import check_discord_bot_health
+            return await check_discord_bot_health()
         except Exception as e:
             logger.error(f"Error getting bot status: {e}")
-            return {'status': 'error', 'connected': False}
+            return {'status': 'error', 'connected': False, 'error': str(e)}
     
     async def close(self):
         """Close the aiohttp session."""

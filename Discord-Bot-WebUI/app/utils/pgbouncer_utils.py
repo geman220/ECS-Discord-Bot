@@ -51,7 +51,8 @@ def set_session_timeout(session, statement_timeout_seconds=None, idle_timeout_se
         idle_timeout_seconds: Idle in transaction timeout in seconds
     """
     if is_using_pgbouncer(session):
-        logger.debug("Skipping session timeout configuration for PgBouncer connection")
+        # Session timeout configuration skipped for PgBouncer
+        pass
         return
         
     try:
@@ -82,6 +83,7 @@ def execute_with_pgbouncer_fallback(session, statement, fallback_statement=None)
         return session.execute(statement)
     except Exception as e:
         if is_using_pgbouncer(session) and fallback_statement:
-            logger.debug(f"Primary statement failed with PgBouncer, using fallback: {e}")
+            # Using PgBouncer fallback statement
+            pass
             return session.execute(fallback_statement)
         raise

@@ -99,14 +99,14 @@ def create_match_started_embed(update_data, focus_team_id):
     embed.title = f"🏟️ Kickoff! {home_team_name} vs {away_team_name}"
     embed.color = discord.Color.green()
     
-    # Check if our team is playing
+    # Check if our team is playing - always use Sounders logo regardless of home/away
     if home_team_id == focus_team_id:
         embed.description = f"**{home_team_name}** 0 - 0 {away_team_name}"
-        embed.set_thumbnail(url=home_team.get('logo'))
+        embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
         embed.add_field(name="Let's Go!", value="The match has started! Let's go Sounders! 💚", inline=False)
     elif away_team_id == focus_team_id:
         embed.description = f"{home_team_name} 0 - 0 **{away_team_name}**"
-        embed.set_thumbnail(url=away_team.get('logo'))
+        embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
         embed.add_field(name="Let's Go!", value="The match has started! Let's go Sounders! 💚", inline=False)
     else:
         embed.description = f"{home_team_name} 0 - 0 {away_team_name}"
@@ -137,7 +137,7 @@ def create_match_update_embed(update_data, focus_team_id):
         # Our team is the home team
         embed.title = f"🏟️ Match Update: {home_team_name} vs {away_team_name}"
         embed.description = f"**{home_team_name}** {home_score} - {away_score} {away_team_name}"
-        embed.set_thumbnail(url=home_team.get('logo'))
+        embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
 
         if int(home_score) > int(away_score):
             embed.color = discord.Color.green()
@@ -152,7 +152,7 @@ def create_match_update_embed(update_data, focus_team_id):
         # Our team is the away team
         embed.title = f"🏟️ Match Update: {home_team_name} vs {away_team_name}"
         embed.description = f"{home_team_name} {home_score} - {away_score} **{away_team_name}**"
-        embed.set_thumbnail(url=away_team.get('logo'))
+        embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
 
         if int(away_score) > int(home_score):
             embed.color = discord.Color.green()
@@ -334,7 +334,7 @@ def create_score_update_embed(update_data, focus_team_id):
     if home_team_id == focus_team_id:
         embed.title = f"⚽ Score Update: {home_team_name} vs {away_team_name}"
         embed.description = f"**{home_team_name}** {home_score} - {away_score} {away_team_name}"
-        embed.set_thumbnail(url=home_team.get('logo'))
+        embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
         # Randomized messages for our team scoring conditions
         if home_score > away_score:
             messages = [
@@ -363,7 +363,7 @@ def create_score_update_embed(update_data, focus_team_id):
     elif away_team_id == focus_team_id:
         embed.title = f"⚽ Score Update: {home_team_name} vs {away_team_name}"
         embed.description = f"{home_team_name} {home_score} - {away_score} **{away_team_name}**"
-        embed.set_thumbnail(url=away_team.get('logo'))
+        embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
         if away_score > home_score:
             messages = [
                 "We're ahead! Keep the pressure on! 💪",
@@ -415,11 +415,11 @@ def create_halftime_embed(update_data, focus_team_id):
     if home_team_id == focus_team_id:
         embed.description = f"**{home_team_name}** {home_score} - {away_score} {away_team_name}"
         embed.add_field(name="Our Performance", value="Stay tuned for the second half!", inline=False)
-        embed.set_thumbnail(url=home_team.get('logo'))
+        embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
     elif away_team_id == focus_team_id:
         embed.description = f"{home_team_name} {home_score} - {away_score} **{away_team_name}**"
         embed.add_field(name="Our Performance", value="Stay tuned for the second half!", inline=False)
-        embed.set_thumbnail(url=away_team.get('logo'))
+        embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
     else:
         embed.description = f"{home_team_name} {home_score} - {away_score} {away_team_name}"
 
@@ -458,7 +458,7 @@ def create_fulltime_embed(match_id, update_data, focus_team_id):
         else:
             embed.color = discord.Color.gold()
             embed.add_field(name="Result", value="Draw. A hard-fought point! ⚖️", inline=False)
-        embed.set_thumbnail(url=home_team.get('logo'))
+        embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
     elif away_team_id == focus_team_id:
         embed.description = f"{home_team_name} {home_score} - {away_score} **{away_team_name}**"
         if int(away_score) > int(home_score):
@@ -470,7 +470,7 @@ def create_fulltime_embed(match_id, update_data, focus_team_id):
         else:
             embed.color = discord.Color.gold()
             embed.add_field(name="Result", value="Draw. A hard-fought point! ⚖️", inline=False)
-        embed.set_thumbnail(url=away_team.get('logo'))
+        embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
     else:
         embed.description = f"{home_team_name} {home_score} - {away_score} {away_team_name}"
         embed.color = discord.Color.blue()
@@ -514,7 +514,7 @@ def create_pre_match_embed(update_data, focus_team_id):
             f"{home_team_name} is ready to rock the stadium—let's show them our power! 🚀"
         ]
         embed.description = random.choice(messages)
-        embed.set_thumbnail(url=home_team.get('logo'))
+        embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
         embed.add_field(name="Team Spirit", value="Our boys are pumped and ready to give it their all! 💪", inline=False)
     elif away_team_id == str(focus_team_id):
         messages = [
@@ -523,7 +523,7 @@ def create_pre_match_embed(update_data, focus_team_id):
             f"On the road and on fire! {away_team_name} is set to take control! 🔥"
         ]
         embed.description = random.choice(messages)
-        embed.set_thumbnail(url=away_team.get('logo'))
+        embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
         embed.add_field(name="Away Day Magic", value="We're taking our A-game to their turf! Let's make our traveling fans proud! 🛫", inline=False)
     else:
         embed.description = "An exciting match is on the horizon! Who will come out on top?"
@@ -589,11 +589,10 @@ def create_enhanced_event_embed(update_data, focus_team_id, is_hype=False):
     else:
         embed.add_field(name="Time", value=event_time, inline=True)
     
-    # Set team logo
+    # Set team logo - only show Sounders logo, never opponent logo
     if is_our_team:
         embed.set_thumbnail(url="https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png")
-    elif event_team.get('logo'):
-        embed.set_thumbnail(url=event_team['logo'])
+    # For opponent events (like their cards), don't show any logo - we never want opponent branding
     
     return embed
 

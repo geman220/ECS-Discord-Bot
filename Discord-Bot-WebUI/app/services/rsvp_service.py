@@ -570,7 +570,8 @@ class RSVPService:
         
         try:
             # Test database
-            self.session.execute('SELECT 1')
+            from sqlalchemy import text
+            self.session.execute(text('SELECT 1'))
             health['database_connected'] = True
         except Exception:
             health['status'] = 'critical'

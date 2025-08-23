@@ -260,7 +260,8 @@ def check_system_health(session):
     try:
         # Database health check
         try:
-            session.execute('SELECT 1')
+            from sqlalchemy import text
+            session.execute(text('SELECT 1'))
             health_status['components']['database'] = {
                 'status': 'healthy',
                 'message': 'Database connection successful'

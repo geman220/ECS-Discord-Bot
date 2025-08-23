@@ -261,16 +261,28 @@ def get_all_tasks():
     """
     try:
         with managed_session() as session:
-            # Get all matches that might have scheduled tasks
+            # Get active matches (same criteria as cache system)
+            from datetime import datetime, timedelta
+            now = datetime.utcnow()
             matches = session.query(MLSMatch).filter(
-                (MLSMatch.live_reporting_scheduled == True) |
-                (MLSMatch.thread_created == True)
-            ).all()
+                MLSMatch.date_time >= now - timedelta(days=2),
+                MLSMatch.date_time <= now + timedelta(days=7)
+            ).order_by(MLSMatch.date_time).all()
             
-            result = {'success': True, 'matches': []}
+            # Collect all tasks for the frontend (flattened format)
+            all_tasks = []
+            matches_info = []
+            
             for match in matches:
-                tasks_info = task_monitor.verify_scheduled_tasks(str(match.id))
+                # Use enhanced task status with cache
+                try:
+                    from app.utils.task_status_helper import get_enhanced_match_task_status
+                    tasks_info = get_enhanced_match_task_status(match.id)
+                except ImportError:
+                    # Fallback to original monitoring logic
+                    tasks_info = task_monitor.verify_scheduled_tasks(str(match.id))
                 
+                # Create match info
                 match_info = {
                     'id': match.id,
                     'match_id': match.match_id,
@@ -281,19 +293,55 @@ def get_all_tasks():
                     'venue': match.venue,
                     'competition': match.competition,
                     'is_home_game': match.is_home_game,
-                    'live_reporting_scheduled': match.live_reporting_scheduled,
-                    'live_reporting_started': match.live_reporting_started,
-                    'live_reporting_status': match.live_reporting_status,
-                    'thread_created': match.thread_created,
-                    'thread_creation_scheduled': match.thread_creation_scheduled,
                     'discord_thread_id': match.discord_thread_id,
-                    'thread_creation_time': match.thread_creation_time.isoformat() if match.thread_creation_time else None,
-                    'last_thread_scheduling_attempt': match.last_thread_scheduling_attempt.isoformat() if match.last_thread_scheduling_attempt else None,
                     'tasks': tasks_info
                 }
-                result['matches'].append(match_info)
+                matches_info.append(match_info)
+                
+                # Flatten tasks for the frontend
+                if tasks_info.get('success') and tasks_info.get('tasks'):
+                    tasks = tasks_info['tasks']
+                    match_display = f"{'Sounders vs ' + match.opponent if match.is_home_game else match.opponent + ' vs Sounders'}"
+                    
+                    # Add thread creation task if exists
+                    if 'thread' in tasks:
+                        thread_task = tasks['thread']
+                        all_tasks.append({
+                            'name': f"Thread Creation - {match_display}",
+                            'type': 'Thread Creation',
+                            'match_id': match.id,
+                            'status': thread_task.get('status', 'UNKNOWN'),
+                            'task_id': thread_task.get('task_id', 'unknown'),
+                            'eta': thread_task.get('eta'),
+                            'result': thread_task.get('result'),
+                            'message': thread_task.get('message', ''),
+                            'fallback': thread_task.get('fallback', False),
+                            'timestamp': tasks_info.get('timestamp')
+                        })
+                    
+                    # Add live reporting task if exists
+                    if 'reporting' in tasks:
+                        reporting_task = tasks['reporting']
+                        all_tasks.append({
+                            'name': f"Live Reporting - {match_display}",
+                            'type': 'Live Reporting', 
+                            'match_id': match.id,
+                            'status': reporting_task.get('status', 'UNKNOWN'),
+                            'task_id': reporting_task.get('task_id', 'unknown'),
+                            'eta': reporting_task.get('eta'),
+                            'result': reporting_task.get('result'),
+                            'message': reporting_task.get('message', ''),
+                            'fallback': reporting_task.get('fallback', False),
+                            'timestamp': tasks_info.get('timestamp')
+                        })
             
-            return jsonify(result)
+            return jsonify({
+                'success': True,
+                'matches': matches_info,
+                'tasks': all_tasks,  # Flattened for frontend compatibility
+                'total_matches': len(matches_info),
+                'total_tasks': len(all_tasks)
+            })
     except Exception as e:
         logger.error(f"Error getting all tasks: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -407,7 +455,7 @@ def get_task_dashboard():
 @login_required
 def get_match_tasks(match_id):
     """
-    Retrieve scheduled tasks for a specific match.
+    Retrieve scheduled tasks for a specific match using enhanced logic.
     
     Parameters:
         match_id (str): The match identifier.
@@ -416,10 +464,325 @@ def get_match_tasks(match_id):
         JSON response with the scheduled tasks for the match.
     """
     try:
-        result = task_monitor.verify_scheduled_tasks(match_id)
-        return jsonify(result)
+        # For now, use the enhanced logic by importing the utility function
+        # We'll create a shared utility function in a future update
+        
+        # Try to call the enhanced task status logic directly
+        try:
+            from app.utils.task_status_helper import get_enhanced_match_task_status
+            result = get_enhanced_match_task_status(int(match_id))
+            response = jsonify(result)
+            response.headers['Cache-Control'] = 'max-age=30, public'
+            return response
+            
+        except ImportError:
+            # Fallback to original monitoring logic if helper doesn't exist yet
+            result = task_monitor.verify_scheduled_tasks(match_id)
+            return jsonify(result)
+            
     except Exception as e:
         logger.error(f"Error getting tasks for match {match_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@monitoring_bp.route('/queues/status', endpoint='get_queue_status')
+@login_required
+def get_queue_status():
+    """
+    Get real-time queue lengths and health status.
+    
+    Returns:
+        JSON response with queue lengths, health status, and alerts.
+    """
+    try:
+        # Try direct Redis connection first to bypass any safe_redis issues
+        try:
+            import redis
+            direct_redis = redis.Redis(host='redis', port=6379, db=0, decode_responses=True, socket_timeout=5)
+            direct_redis.ping()
+            logger.info("Direct Redis connection successful")
+            
+            # Use direct connection for queue operations
+            redis_client = direct_redis
+            
+        except Exception as e:
+            logger.error(f"Direct Redis connection failed: {e}")
+            return jsonify({
+                'success': False, 
+                'error': f'Redis connection failed: {str(e)}',
+                'queues': {},
+                'alerts': []
+            })
+        
+        queues = ['live_reporting', 'discord', 'celery', 'player_sync']
+        queue_thresholds = {
+            'live_reporting': 50,
+            'discord': 25, 
+            'celery': 100,
+            'player_sync': 15
+        }
+        
+        queue_data = {}
+        alerts = []
+        total_tasks = 0
+        
+        for queue_name in queues:
+            try:
+                length = redis_client.llen(queue_name)
+                threshold = queue_thresholds.get(queue_name, 50)
+                
+                status = 'healthy'
+                if length > threshold * 2:
+                    status = 'critical'
+                    alerts.append({
+                        'queue': queue_name,
+                        'message': f'Queue {queue_name} critically backed up: {length} tasks',
+                        'severity': 'error'
+                    })
+                elif length > threshold:
+                    status = 'warning'
+                    alerts.append({
+                        'queue': queue_name,
+                        'message': f'Queue {queue_name} growing: {length} tasks',
+                        'severity': 'warning'
+                    })
+                
+                queue_data[queue_name] = {
+                    'length': length,
+                    'threshold': threshold,
+                    'status': status,
+                    'percentage': min(100, (length / threshold) * 100) if threshold > 0 else 0
+                }
+                total_tasks += length
+                
+            except Exception as e:
+                queue_data[queue_name] = {
+                    'error': str(e),
+                    'status': 'error',
+                    'length': 0
+                }
+        
+        return jsonify({
+            'success': True,
+            'queues': queue_data,
+            'total_tasks': total_tasks,
+            'alerts': alerts,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting queue status: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@monitoring_bp.route('/queue/details', endpoint='get_queue_details')
+@login_required
+def get_queue_details():
+    """
+    Get detailed information about tasks in all queues.
+    
+    Returns:
+        JSON response with detailed task information for each queue.
+    """
+    try:
+        # Use direct Redis connection
+        try:
+            import redis
+            direct_redis = redis.Redis(host='redis', port=6379, db=0, decode_responses=True, socket_timeout=5)
+            direct_redis.ping()
+            logger.info("Direct Redis connection successful for queue details")
+            redis_client = direct_redis
+        except Exception as e:
+            logger.error(f"Direct Redis connection failed for queue details: {e}")
+            return jsonify({'success': False, 'error': f'Redis connection failed: {str(e)}'}), 500
+        
+        # Use Celery inspect to get detailed queue information
+        timeout = 2.0  # 2 second timeout
+        i = celery.control.inspect(timeout=timeout)
+        
+        # Get scheduled, reserved, and active tasks
+        scheduled = i.scheduled() or {}
+        reserved = i.reserved() or {}
+        active = i.active() or {}
+        
+        # Organize tasks by queue
+        queues = {}
+        
+        # Process scheduled tasks
+        for worker_name, tasks in scheduled.items():
+            for task in tasks:
+                queue_name = task.get('delivery_info', {}).get('routing_key', 'celery')
+                if queue_name not in queues:
+                    queues[queue_name] = []
+                
+                task_info = {
+                    'id': task.get('id', ''),
+                    'name': task.get('request', {}).get('task') or task.get('name', 'Unknown'),
+                    'args': task.get('request', {}).get('args', []),
+                    'kwargs': task.get('request', {}).get('kwargs', {}),
+                    'eta': task.get('eta'),
+                    'priority': task.get('priority'),
+                    'worker': worker_name,
+                    'status': 'scheduled'
+                }
+                queues[queue_name].append(task_info)
+        
+        # Process reserved tasks
+        for worker_name, tasks in reserved.items():
+            for task in tasks:
+                queue_name = task.get('delivery_info', {}).get('routing_key', 'celery')
+                if queue_name not in queues:
+                    queues[queue_name] = []
+                
+                task_info = {
+                    'id': task.get('id', ''),
+                    'name': task.get('name', 'Unknown'),
+                    'args': task.get('args', []),
+                    'kwargs': task.get('kwargs', {}),
+                    'eta': task.get('eta'),
+                    'priority': task.get('priority'),
+                    'worker': worker_name,
+                    'status': 'reserved'
+                }
+                queues[queue_name].append(task_info)
+        
+        # Process active tasks
+        for worker_name, tasks in active.items():
+            for task in tasks:
+                queue_name = task.get('delivery_info', {}).get('routing_key', 'celery')
+                if queue_name not in queues:
+                    queues[queue_name] = []
+                
+                task_info = {
+                    'id': task.get('id', ''),
+                    'name': task.get('name', 'Unknown'),
+                    'args': task.get('args', []),
+                    'kwargs': task.get('kwargs', {}),
+                    'eta': None,  # Active tasks don't have ETA
+                    'priority': None,
+                    'worker': worker_name,
+                    'status': 'active'
+                }
+                queues[queue_name].append(task_info)
+        
+        # Also check Redis directly for any queued messages
+        try:
+            # Check common Celery queue names in Redis
+            queue_names = ['celery', 'live_reporting', 'thread_creation', 'default']
+            for queue_name in queue_names:
+                redis_key = queue_name
+                queue_length = redis_client.llen(redis_key)
+                
+                if queue_length > 0:
+                    if queue_name not in queues:
+                        queues[queue_name] = []
+                    
+                    # Get a sample of tasks from Redis queue (up to 10)
+                    sample_tasks = redis_client.lrange(redis_key, 0, 9)
+                    logger.info(f"Found {len(sample_tasks)} tasks in {queue_name} queue")
+                    
+                    for i, task_data in enumerate(sample_tasks):
+                        try:
+                            logger.debug(f"Processing task {i}: {task_data[:200]}...")  # Log first 200 chars
+                            
+                            # Try different parsing approaches
+                            task_json = None
+                            if isinstance(task_data, str):
+                                try:
+                                    task_json = json.loads(task_data)
+                                except json.JSONDecodeError:
+                                    # Maybe it's base64 encoded?
+                                    try:
+                                        import base64
+                                        decoded = base64.b64decode(task_data)
+                                        task_json = json.loads(decoded.decode('utf-8'))
+                                    except:
+                                        pass
+                            else:
+                                task_json = task_data
+                            
+                            if task_json:
+                                # Try different field names for task information
+                                task_name = (
+                                    task_json.get('task') or 
+                                    task_json.get('name') or
+                                    task_json.get('headers', {}).get('task') or
+                                    task_json.get('properties', {}).get('correlation_id') or
+                                    'Unknown Task'
+                                )
+                                
+                                task_id = (
+                                    task_json.get('id') or
+                                    task_json.get('uuid') or
+                                    task_json.get('headers', {}).get('id') or
+                                    task_json.get('properties', {}).get('correlation_id') or
+                                    f"queue_item_{i}"
+                                )
+                                
+                                # Handle different body formats
+                                body = task_json.get('body', task_json)
+                                if isinstance(body, list) and len(body) >= 2:
+                                    args = body[0] if isinstance(body[0], list) else []
+                                    kwargs = body[1] if isinstance(body[1], dict) else {}
+                                else:
+                                    args = task_json.get('args', body.get('args', []) if isinstance(body, dict) else [])
+                                    kwargs = task_json.get('kwargs', body.get('kwargs', {}) if isinstance(body, dict) else {})
+                                
+                                task_info = {
+                                    'id': task_id,
+                                    'name': task_name,
+                                    'args': args,
+                                    'kwargs': kwargs,
+                                    'eta': task_json.get('eta') or task_json.get('headers', {}).get('eta'),
+                                    'priority': task_json.get('priority') or task_json.get('headers', {}).get('priority'),
+                                    'worker': 'N/A',
+                                    'status': 'queued_in_redis',
+                                    'raw_data': str(task_data)[:100] + '...' if len(str(task_data)) > 100 else str(task_data)
+                                }
+                                logger.info(f"Parsed task: {task_name} with ID {task_id}")
+                            else:
+                                # Could not parse JSON, create a basic entry with raw data
+                                task_info = {
+                                    'id': f"unparsed_{i}",
+                                    'name': f'Raw Redis Entry',
+                                    'args': [],
+                                    'kwargs': {},
+                                    'eta': None,
+                                    'priority': None,
+                                    'worker': 'N/A',
+                                    'status': 'queued_in_redis',
+                                    'raw_data': str(task_data)[:200] + '...' if len(str(task_data)) > 200 else str(task_data)
+                                }
+                                logger.warning(f"Could not parse task data, storing raw: {str(task_data)[:100]}...")
+                            
+                            queues[queue_name].append(task_info)
+                            
+                        except Exception as task_error:
+                            logger.error(f"Error processing task {i}: {task_error}", exc_info=True)
+                            # Add a basic entry for problematic tasks
+                            task_info = {
+                                'id': f"error_{i}",
+                                'name': f'Error parsing task',
+                                'args': [],
+                                'kwargs': {},
+                                'eta': None,
+                                'priority': None,
+                                'worker': 'N/A',
+                                'status': 'parse_error',
+                                'raw_data': str(task_data)[:100] + '...' if len(str(task_data)) > 100 else str(task_data)
+                            }
+                            queues[queue_name].append(task_info)
+        except Exception as redis_error:
+            logger.error(f"Error checking Redis queues directly: {redis_error}", exc_info=True)
+        
+        return jsonify({
+            'success': True,
+            'queues': queues,
+            'total_tasks': sum(len(tasks) for tasks in queues.values())
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting queue details: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -1859,8 +2222,18 @@ def get_workers():
         JSON response with details about active Celery workers.
     """
     try:
+        # Use direct Redis connection like other endpoints
+        try:
+            import redis
+            direct_redis = redis.Redis(host='redis', port=6379, db=0, decode_responses=True, socket_timeout=5)
+            direct_redis.ping()
+            logger.info("Direct Redis connection successful for workers")
+            redis_client = direct_redis
+        except Exception as e:
+            logger.error(f"Direct Redis connection failed for workers: {e}")
+            redis_client = get_safe_redis()
+        
         # Cache key for workers data (expires after 15 seconds)
-        redis_client = get_safe_redis()
         cache_key = "monitoring:workers_data"
         cache_ttl = 15  # seconds
         
