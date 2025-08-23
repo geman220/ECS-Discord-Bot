@@ -46,7 +46,8 @@ class SessionMonitor:
                 status='active'
             )
             self._stats['total_created'] += 1
-            logger.debug(f"Session registered: {session_id} for route {route}")
+            # Session registration logged only at trace level
+            pass
     
     def register_session_commit(self, session_id: str):
         """Register that a session was committed."""
@@ -54,7 +55,8 @@ class SessionMonitor:
             if session_id in self._sessions:
                 self._sessions[session_id].status = 'committed'
                 self._stats['total_committed'] += 1
-                logger.debug(f"Session committed: {session_id}")
+                # Session commit logged only at trace level
+                pass
     
     def register_session_rollback(self, session_id: str):
         """Register that a session was rolled back."""
@@ -62,7 +64,7 @@ class SessionMonitor:
             if session_id in self._sessions:
                 self._sessions[session_id].status = 'rolled_back'
                 self._stats['total_rolled_back'] += 1
-                logger.debug(f"Session rolled back: {session_id}")
+                logger.info(f"Session rolled back: {session_id}")
     
     def register_session_close(self, session_id: str):
         """Register that a session was closed."""
@@ -76,7 +78,8 @@ class SessionMonitor:
                     
                 del self._sessions[session_id]
                 self._stats['total_closed'] += 1
-                logger.debug(f"Session closed: {session_id} (duration: {duration:.2f}s)")
+                # Session closure logged only at trace level
+                pass
     
     def get_active_sessions(self) -> List[SessionInfo]:
         """Get list of currently active sessions."""

@@ -71,26 +71,24 @@ class UnifiedRedisManager:
                 if redis_url:
                     self._pool = ConnectionPool.from_url(
                         redis_url,
-                        socket_timeout=10.0,
-                        socket_connect_timeout=10.0,
+                        socket_timeout=15.0,              # Increased from 10s
+                        socket_connect_timeout=15.0,      # Increased from 10s
                         socket_keepalive=True,
                         socket_keepalive_options={},
-                        health_check_interval=30,
-                        max_connections=30,  # Single pool with higher limit
-                        retry_on_timeout=True,
+                        health_check_interval=15,         # More frequent health checks
+                        max_connections=50,               # Increased from 30
                     )
                 else:
                     self._pool = ConnectionPool(
                         host=redis_host,
                         port=redis_port,
                         db=redis_db,
-                        socket_timeout=10.0,
-                        socket_connect_timeout=10.0,
+                        socket_timeout=15.0,              # Increased from 10s
+                        socket_connect_timeout=15.0,      # Increased from 10s
                         socket_keepalive=True,
                         socket_keepalive_options={},
-                        health_check_interval=30,
-                        max_connections=30,  # Single pool with higher limit
-                        retry_on_timeout=True,
+                        health_check_interval=15,         # More frequent health checks
+                        max_connections=50,               # Increased from 30
                     )
                 
                 # Create clients using the shared pool
@@ -271,7 +269,7 @@ class UnifiedRedisManager:
     def cleanup(self):
         """Clean up connection pool and clients."""
         try:
-            logger.info("Cleaning up Redis connection pool")
+            # Redis connection pool cleanup (reduced logging)
             if self._pool:
                 self._pool.disconnect()
             self._pool = None

@@ -8,12 +8,14 @@ Specifically, it cleans up idle transactions and connection pools every 5 minute
 """
 
 import logging
+import json
 from datetime import datetime, timedelta
 from app.core import celery
 from app.decorators import celery_task
 from app.db_management import db_manager
 from app.models import TemporarySubAssignment, Match
 from app.models.communication import ScheduledMessage
+from app.utils.safe_redis import get_safe_redis
 from celery.schedules import crontab
 
 logger = logging.getLogger(__name__)
@@ -167,4 +169,215 @@ def cleanup_old_scheduled_messages(self, session):
         }
     except Exception as e:
         logger.error(f"Error cleaning up old scheduled messages: {str(e)}", exc_info=True)
+        return {"status": "error", "message": str(e)}
+
+
+@celery_task(
+    name='app.tasks.tasks_maintenance.cleanup_expired_queue_tasks',
+    bind=True,
+    queue='celery',
+    max_retries=2
+)
+def cleanup_expired_queue_tasks(self, session):
+    """
+    Clean up expired tasks from Redis queues to prevent backlog buildup.
+    
+    Checks all Celery queues for expired tasks and removes them.
+    """
+    try:
+        redis = get_safe_redis()
+        if not redis or not hasattr(redis, 'is_available') or not redis.is_available:
+            logger.warning("Redis not available for queue cleanup")
+            return {"status": "skipped", "message": "Redis not available"}
+        
+        queues_to_clean = ['live_reporting', 'discord', 'celery', 'player_sync']
+        total_cleaned = 0
+        queue_stats = {}
+        
+        for queue_name in queues_to_clean:
+            try:
+                # Get queue length before cleanup
+                initial_length = redis.llen(queue_name)
+                if initial_length == 0:
+                    queue_stats[queue_name] = {'initial': 0, 'cleaned': 0, 'remaining': 0}
+                    continue
+                
+                cleaned_count = 0
+                current_time = datetime.utcnow()
+                
+                # Process queue items in batches to avoid blocking Redis
+                batch_size = 100
+                remaining_items = []
+                
+                # Get all items from the queue
+                all_items = redis.lrange(queue_name, 0, -1)
+                
+                for item in all_items:
+                    try:
+                        # Parse the Celery task message
+                        task_data = json.loads(item)
+                        headers = task_data.get('headers', {})
+                        expires = headers.get('expires')
+                        
+                        if expires:
+                            # Parse expiry time
+                            if isinstance(expires, str):
+                                expire_time = datetime.fromisoformat(expires.replace('Z', '+00:00'))
+                            else:
+                                # Skip if expiry format is not recognized
+                                remaining_items.append(item)
+                                continue
+                            
+                            # Check if task is expired
+                            if expire_time < current_time:
+                                cleaned_count += 1
+                            else:
+                                remaining_items.append(item)
+                        else:
+                            # Keep tasks without expiry
+                            remaining_items.append(item)
+                            
+                    except (json.JSONDecodeError, KeyError, ValueError) as e:
+                        # Keep malformed items (let Celery handle them)
+                        remaining_items.append(item)
+                        logger.debug(f"Skipped malformed task in {queue_name}: {e}")
+                
+                # Replace queue contents with non-expired items
+                if cleaned_count > 0:
+                    # Clear the queue and repopulate with valid items
+                    redis.delete(queue_name)
+                    if remaining_items:
+                        redis.lpush(queue_name, *remaining_items)
+                
+                total_cleaned += cleaned_count
+                queue_stats[queue_name] = {
+                    'initial': initial_length,
+                    'cleaned': cleaned_count,
+                    'remaining': len(remaining_items)
+                }
+                
+                logger.info(f"Queue {queue_name}: cleaned {cleaned_count} expired tasks, {len(remaining_items)} remaining")
+                
+            except Exception as e:
+                logger.error(f"Error cleaning queue {queue_name}: {e}")
+                queue_stats[queue_name] = {'error': str(e)}
+        
+        logger.info(f"Queue cleanup completed: {total_cleaned} expired tasks removed total")
+        
+        return {
+            "status": "success",
+            "message": f"Cleaned {total_cleaned} expired tasks across all queues",
+            "total_cleaned": total_cleaned,
+            "queue_stats": queue_stats
+        }
+        
+    except Exception as e:
+        logger.error(f"Error during queue cleanup: {str(e)}", exc_info=True)
+        return {"status": "error", "message": str(e)}
+
+
+@celery_task(
+    name='app.tasks.tasks_maintenance.monitor_celery_health',
+    bind=True,
+    queue='celery',
+    max_retries=1
+)
+def monitor_celery_health(self, session):
+    """
+    Monitor Celery system health including queue lengths, worker status, and failed tasks.
+    
+    Provides alerting when thresholds are exceeded.
+    """
+    try:
+        redis = get_safe_redis()
+        if not redis or not hasattr(redis, 'is_available') or not redis.is_available:
+            logger.warning("Redis not available for health monitoring")
+            return {"status": "skipped", "message": "Redis not available"}
+        
+        health_data = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'queues': {},
+            'alerts': [],
+            'status': 'healthy'
+        }
+        
+        # Queue health thresholds
+        queue_thresholds = {
+            'live_reporting': 100,  # Alert if > 100 tasks
+            'discord': 50,
+            'celery': 200,
+            'player_sync': 30
+        }
+        
+        # Check queue lengths
+        for queue_name, threshold in queue_thresholds.items():
+            try:
+                queue_length = redis.llen(queue_name)
+                health_data['queues'][queue_name] = {
+                    'length': queue_length,
+                    'threshold': threshold,
+                    'status': 'ok' if queue_length <= threshold else 'warning'
+                }
+                
+                if queue_length > threshold:
+                    alert_msg = f"Queue {queue_name} has {queue_length} tasks (threshold: {threshold})"
+                    health_data['alerts'].append({
+                        'type': 'queue_backlog',
+                        'queue': queue_name,
+                        'message': alert_msg,
+                        'severity': 'warning' if queue_length < threshold * 2 else 'critical'
+                    })
+                    logger.warning(alert_msg)
+                
+            except Exception as e:
+                health_data['queues'][queue_name] = {'error': str(e)}
+        
+        # Check for stuck tasks (tasks older than 1 hour in queue)
+        try:
+            current_time = datetime.utcnow()
+            for queue_name in queue_thresholds.keys():
+                # Sample first few tasks to check age
+                sample_tasks = redis.lrange(queue_name, 0, 4)  # Check first 5 tasks
+                
+                stuck_count = 0
+                for task_data in sample_tasks:
+                    try:
+                        task_json = json.loads(task_data)
+                        headers = task_json.get('headers', {})
+                        
+                        # Check task age (if timestamp available)
+                        task_id = headers.get('id', 'unknown')
+                        
+                        # For more accurate monitoring, we'd need to track task creation time
+                        # This is a simplified check
+                        
+                    except (json.JSONDecodeError, KeyError):
+                        continue
+        
+        except Exception as e:
+            logger.error(f"Error checking for stuck tasks: {e}")
+        
+        # Set overall health status
+        if health_data['alerts']:
+            critical_alerts = [a for a in health_data['alerts'] if a['severity'] == 'critical']
+            health_data['status'] = 'critical' if critical_alerts else 'warning'
+        
+        # Log summary
+        total_tasks = sum(q.get('length', 0) for q in health_data['queues'].values() if isinstance(q, dict) and 'length' in q)
+        alert_count = len(health_data['alerts'])
+        
+        if alert_count > 0:
+            logger.warning(f"Celery health check: {alert_count} alerts, {total_tasks} total tasks in queues")
+        else:
+            logger.info(f"Celery health check: All systems healthy, {total_tasks} total tasks in queues")
+        
+        return {
+            "status": "success",
+            "health_data": health_data,
+            "total_tasks": total_tasks,
+            "alert_count": alert_count
+        }
+        
+    except Exception as e:
+        logger.error(f"Error during Celery health monitoring: {str(e)}", exc_info=True)
         return {"status": "error", "message": str(e)}

@@ -16,6 +16,7 @@ Supports:
 
 import logging
 import random
+import asyncio
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
 
@@ -37,6 +38,9 @@ class EnhancedMatchEvents:
             'goals_with_assists': [],
             'processed_events': set()  # Track processed event fingerprints
         }
+        
+        # Match-specific context tracking for AI awareness
+        self.match_contexts = {}  # match_id -> context
         
         # Personality and quips collections
         self.goal_hype_messages = [
@@ -467,6 +471,71 @@ class EnhancedMatchEvents:
         """Generate a random VAR review message with suspense."""
         return random.choice(self.var_review_messages)
     
+    async def _generate_ai_commentary(self, event: Dict[str, Any], enhanced_data: Dict[str, Any], 
+                                    match_context: Dict[str, Any]) -> Optional[str]:
+        """Generate AI commentary for an event."""
+        try:
+            from app.services.ai_commentary import generate_ai_commentary
+            
+            # Extract event details for AI
+            event_data = {
+                'type': enhanced_data.get('type', 'Event'),
+                'player_name': self._extract_player_name(event),
+                'team_name': enhanced_data.get('team_name', 'Unknown'),
+                'is_our_team': enhanced_data.get('is_our_team', False),
+                'time': enhanced_data.get('time', 'Unknown')
+            }
+            
+            # Add event-specific details
+            if 'goal_details' in enhanced_data:
+                event_data['goal_details'] = enhanced_data['goal_details']
+            if 'card_details' in enhanced_data:
+                event_data['card_details'] = enhanced_data['card_details']
+            if 'substitution_details' in enhanced_data:
+                event_data['substitution_details'] = enhanced_data['substitution_details']
+            
+            return await generate_ai_commentary(event_data, match_context)
+            
+        except Exception as e:
+            logger.error(f"Error generating AI commentary: {e}")
+            return None
+    
+    def _extract_player_name(self, event: Dict[str, Any]) -> str:
+        """Extract player name from event data."""
+        athletes = event.get("athletesInvolved", [])
+        if athletes:
+            return athletes[0].get("displayName", "Unknown Player")
+        return "Unknown Player"
+    
+    async def create_enhanced_event_data_async(self, match_id: str, event: Dict[str, Any], team_map: Dict[str, Any], 
+                                             home_team: Dict[str, Any], away_team: Dict[str, Any],
+                                             home_score: str, away_score: str) -> Dict[str, Any]:
+        """
+        Async version with AI commentary generation.
+        """
+        # Get the base enhanced data
+        enhanced_data = self.create_enhanced_event_data(event, team_map, home_team, away_team, home_score, away_score)
+        
+        # Try to generate AI commentary
+        match_context = {
+            'home_team': home_team,
+            'away_team': away_team,
+            'home_score': home_score,
+            'away_score': away_score
+        }
+        
+        ai_commentary = await self._generate_ai_commentary(event, enhanced_data, match_context)
+        if ai_commentary:
+            enhanced_data["personality_message"] = ai_commentary
+            enhanced_data["ai_generated"] = True
+            logger.info(f"✅ AI COMMENTARY USED for {enhanced_data.get('type', 'event')}: '{ai_commentary[:60]}{'...' if len(ai_commentary) > 60 else ''}'")
+        else:
+            enhanced_data["ai_generated"] = False
+            fallback_message = enhanced_data.get("personality_message", "No message")
+            logger.warning(f"⚠️ FALLBACK TEMPLATE USED for {enhanced_data.get('type', 'event')}: '{fallback_message[:60]}{'...' if len(fallback_message) > 60 else ''}' - check AI logs above for failure reason")
+        
+        return enhanced_data
+    
     def create_enhanced_event_data(self, event: Dict[str, Any], team_map: Dict[str, Any], 
                                   home_team: Dict[str, Any], away_team: Dict[str, Any],
                                   home_score: str, away_score: str) -> Dict[str, Any]:
@@ -570,7 +639,7 @@ class EnhancedMatchEvents:
             "away_team": away_team,
             "home_score": home_score,
             "away_score": away_score,
-            "clock": clock.get("displayValue", "N/A")
+            "clock": clock.get("displayValue", "N/A") if isinstance(clock, dict) else str(clock)
         }
         
         # Add special messages for different status changes with personality
@@ -623,6 +692,201 @@ class EnhancedMatchEvents:
             return False
         
         return True
+    
+    def get_match_context(self, match_id: str) -> Dict[str, Any]:
+        """Get or create match context for AI awareness."""
+        if match_id not in self.match_contexts:
+            self.match_contexts[match_id] = {
+                'events_timeline': [],  # List of (timestamp, event_type, details)
+                'goals_for': [],       # Our goals with timing
+                'goals_against': [],   # Their goals with timing
+                'cards_for': [],       # Our cards
+                'cards_against': [],   # Their cards
+                'match_narrative': [], # Key momentum shifts
+                'score_progression': [], # (time, score) tuples
+                'match_start_time': None,
+                'is_sounders_home': None,
+                'opponent_name': None
+            }
+        return self.match_contexts[match_id]
+    
+    def update_match_context(self, match_id: str, event_data: Dict[str, Any], 
+                           home_team: Dict[str, Any], away_team: Dict[str, Any],
+                           home_score: str, away_score: str) -> None:
+        """Update match context with new event for AI awareness."""
+        context = self.get_match_context(match_id)
+        
+        # Initialize match details if first time
+        if context['is_sounders_home'] is None:
+            context['is_sounders_home'] = home_team.get('id') == SEATTLE_SOUNDERS_ID
+            context['opponent_name'] = away_team['displayName'] if context['is_sounders_home'] else home_team['displayName']
+        
+        # Current time and scores
+        current_time = event_data.get('time', 'Unknown')
+        current_score = f"{home_score}-{away_score}"
+        is_our_team = event_data.get('is_our_team', False)
+        event_type = event_data.get('type', 'Unknown')
+        
+        # Add to timeline
+        event_entry = {
+            'time': current_time,
+            'type': event_type,
+            'is_our_team': is_our_team,
+            'player': event_data.get('player_name', ''),
+            'details': event_data.get('details', ''),
+            'timestamp': datetime.now()
+        }
+        context['events_timeline'].append(event_entry)
+        
+        # Track goals specifically
+        if event_type == 'Goal':
+            goal_info = {
+                'time': current_time,
+                'player': event_data.get('player_name', ''),
+                'score_after': current_score,
+                'timestamp': datetime.now()
+            }
+            if is_our_team:
+                context['goals_for'].append(goal_info)
+            else:
+                context['goals_against'].append(goal_info)
+        
+        # Track cards
+        elif event_type in ['Yellow Card', 'Red Card']:
+            card_info = {
+                'time': current_time,
+                'type': event_type,
+                'player': event_data.get('player_name', ''),
+                'timestamp': datetime.now()
+            }
+            if is_our_team:
+                context['cards_for'].append(card_info)
+            else:
+                context['cards_against'].append(card_info)
+        
+        # Track score progression
+        if current_score not in [entry['score'] for entry in context['score_progression']]:
+            context['score_progression'].append({
+                'time': current_time,
+                'score': current_score,
+                'timestamp': datetime.now()
+            })
+        
+        # Add narrative tracking for momentum shifts
+        self._analyze_momentum_shift(context, event_data, current_score, is_our_team)
+        
+        # Limit context size to prevent memory bloat
+        if len(context['events_timeline']) > 50:
+            context['events_timeline'] = context['events_timeline'][-30:]
+    
+    def _analyze_momentum_shift(self, context: Dict[str, Any], event_data: Dict[str, Any], 
+                               current_score: str, is_our_team: bool) -> None:
+        """Analyze if this event represents a momentum shift for narrative context."""
+        event_type = event_data.get('type', '')
+        
+        # Quick goals (within 5 minutes)
+        if event_type == 'Goal' and len(context['events_timeline']) > 0:
+            last_goal_time = None
+            for event in reversed(context['events_timeline']):
+                if event['type'] == 'Goal':
+                    last_goal_time = event['timestamp']
+                    break
+            
+            if last_goal_time:
+                time_diff = (datetime.now() - last_goal_time).total_seconds() / 60
+                if time_diff < 5:  # Goals within 5 minutes
+                    context['match_narrative'].append({
+                        'type': 'quick_goal_sequence',
+                        'description': f'Goals scored within {time_diff:.1f} minutes',
+                        'timestamp': datetime.now()
+                    })
+        
+        # Red cards = game changers
+        if event_type == 'Red Card':
+            context['match_narrative'].append({
+                'type': 'red_card_incident',
+                'is_our_team': is_our_team,
+                'description': f'Red card shown to {"us" if is_our_team else "them"}',
+                'timestamp': datetime.now()
+            })
+        
+        # Comeback tracking
+        if event_type == 'Goal' and is_our_team:
+            home_score, away_score = map(int, current_score.split('-'))
+            if context['is_sounders_home']:
+                our_score, their_score = home_score, away_score
+            else:
+                our_score, their_score = away_score, home_score
+                
+            # Check if this is a comeback goal
+            if len(context['goals_against']) > len(context['goals_for']) - 1:
+                context['match_narrative'].append({
+                    'type': 'comeback_goal',
+                    'description': f'Comeback goal to make it {our_score}-{their_score}',
+                    'timestamp': datetime.now()
+                })
+    
+    def build_ai_context(self, match_id: str, current_event: Dict[str, Any]) -> Dict[str, Any]:
+        """Build rich context for AI commentary."""
+        context = self.get_match_context(match_id)
+        
+        # Recent events (last 10 minutes or 5 events)
+        recent_events = []
+        current_time = datetime.now()
+        for event in reversed(context['events_timeline'][-10:]):
+            time_diff = (current_time - event['timestamp']).total_seconds() / 60
+            if time_diff < 10:  # Last 10 minutes
+                recent_events.append(event)
+        
+        # Goal timing analysis
+        goals_timing = []
+        for goal in context['goals_for']:
+            goals_timing.append({
+                'time': goal['time'],
+                'player': goal['player'],
+                'minutes_ago': (current_time - goal['timestamp']).total_seconds() / 60
+            })
+        
+        # Build narrative context
+        narrative_context = []
+        for narrative in context['match_narrative'][-3:]:  # Last 3 narrative events
+            narrative_context.append(narrative['description'])
+        
+        # Score situation analysis
+        if context['score_progression']:
+            latest_score = context['score_progression'][-1]['score']
+            home_score, away_score = map(int, latest_score.split('-'))
+            
+            if context['is_sounders_home']:
+                our_score, their_score = home_score, away_score
+            else:
+                our_score, their_score = away_score, home_score
+            
+            score_situation = {
+                'leading': our_score > their_score,
+                'tied': our_score == their_score,
+                'behind': our_score < their_score,
+                'goal_difference': our_score - their_score,
+                'clean_sheet': their_score == 0,
+                'our_goals': our_score,
+                'their_goals': their_score
+            }
+        else:
+            score_situation = {'leading': False, 'tied': True, 'behind': False, 'goal_difference': 0, 'clean_sheet': True, 'our_goals': 0, 'their_goals': 0}
+        
+        return {
+            'recent_events': recent_events,
+            'goals_timeline': goals_timing,
+            'narrative_moments': narrative_context,
+            'score_situation': score_situation,
+            'opponent_name': context['opponent_name'],
+            'is_home_game': context['is_sounders_home'],
+            'match_events_count': len(context['events_timeline']),
+            'total_goals_for': len(context['goals_for']),
+            'total_goals_against': len(context['goals_against']),
+            'total_cards_for': len(context['cards_for']),
+            'total_cards_against': len(context['cards_against'])
+        }
 
 
 # Global instance

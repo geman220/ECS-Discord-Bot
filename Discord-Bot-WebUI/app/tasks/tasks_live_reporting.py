@@ -1,9 +1,18 @@
 # app/tasks/tasks_live_reporting.py
 
 """
-Live Reporting Tasks Module
+[DEPRECATED - Use tasks_robust_live_reporting.py instead]
 
-This module defines Celery tasks for live match reporting. Tasks include:
+Live Reporting Tasks Module (Legacy)
+
+WARNING: This module is deprecated and should not be used for new implementations.
+Use app/tasks/tasks_robust_live_reporting.py which provides:
+- Database persistence across restarts
+- Periodic task-based processing (no self-scheduling chains)
+- Better error recovery
+- AI-powered commentary
+
+This module defines legacy Celery tasks for live match reporting. Tasks include:
   - Processing live match updates via ESPN data.
   - Starting live reporting for a match.
   - Scheduling live reporting for upcoming matches.
@@ -248,6 +257,8 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
 )
 def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
     """
+    [DEPRECATED - Use start_robust_live_reporting from tasks_robust_live_reporting.py]
+    
     Start live match reporting for a specific match.
 
     This task:
@@ -264,6 +275,7 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
         Retries the task on SQLAlchemy or general errors.
     """
     try:
+        logger.warning(f"[DEPRECATED] start_live_reporting called for match_id: {match_id} - should use start_robust_live_reporting")
         logger.info(f"Starting live reporting for match_id: {match_id}")
         logger.debug(f"Session type: {type(session)}, Session ID: {id(session)}")
 

@@ -753,7 +753,8 @@ def check_system_health() -> Dict[str, Any]:
 def check_database_health() -> bool:
     """Check database connection health."""
     try:
-        g.db_session.execute('SELECT 1')
+        from sqlalchemy import text
+        g.db_session.execute(text('SELECT 1'))
         return True
     except Exception as e:
         logger.error(f"Database health check failed: {e}")

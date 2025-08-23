@@ -45,160 +45,329 @@ function updateMatchRow(match) {
         statusBadge.innerHTML = `<i class="fas ${match.status_icon}"></i> ${match.status_display}`;
     }
     
-    // Update task details with new task details structure
-    const taskDetailsContainer = document.getElementById(`task-details-${match.id}`);
-    if (taskDetailsContainer && match.task_details) {
-        updateTaskDetailsFromCelery(match.id, match.task_details);
-    }
+    // Update task details with real-time data
+    loadMatchTaskDetails(match.id);
 }
 
-function updateTaskDetails(matchId, scheduledTasks, activeTaskId) {
-    const container = document.getElementById(`task-details-${matchId}`);
-    if (!container) return;
-    
-    let html = '';
-    let hasScheduledTasks = false;
-    
-    // Check for active task first
-    if (activeTaskId) {
-        html += `
-            <div class="mb-2">
-                <span class="badge bg-success mb-1">
-                    <i class="fas fa-play"></i> Running
-                </span>
-                <div class="font-monospace small text-truncate" style="max-width: 120px;" title="${activeTaskId}">
-                    ${activeTaskId.substring(0, 8)}...
-                </div>
-                <button class="btn btn-xs btn-outline-info mt-1" onclick="showTaskDetails('${matchId}', '${activeTaskId}')">
-                    <i class="fas fa-info-circle"></i> Details
-                </button>
-            </div>
-        `;
-    }
-    
-    // Show scheduled thread task
-    if (scheduledTasks.thread && scheduledTasks.thread.scheduled) {
-        hasScheduledTasks = true;
-        const scheduledTime = formatScheduledTime(scheduledTasks.thread.scheduled_time);
-        html += `
-            <div class="mb-1">
-                <span class="badge bg-warning text-dark mb-1">
-                    <i class="fas fa-comments"></i> Thread Queued
-                </span>
-                <div class="small">
-                    <div class="font-monospace text-truncate" style="max-width: 120px;" title="${scheduledTasks.thread.task_id}">
-                        ${scheduledTasks.thread.task_id ? scheduledTasks.thread.task_id.substring(0, 8) + '...' : 'N/A'}
-                    </div>
-                    <div class="text-muted">Due: ${scheduledTime}</div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // Show scheduled reporting task
-    if (scheduledTasks.reporting && scheduledTasks.reporting.scheduled) {
-        hasScheduledTasks = true;
-        const scheduledTime = formatScheduledTime(scheduledTasks.reporting.scheduled_time);
-        html += `
-            <div class="mb-1">
-                <span class="badge bg-info mb-1">
-                    <i class="fas fa-chart-line"></i> Report Queued
-                </span>
-                <div class="small">
-                    <div class="font-monospace text-truncate" style="max-width: 120px;" title="${scheduledTasks.reporting.task_id}">
-                        ${scheduledTasks.reporting.task_id ? scheduledTasks.reporting.task_id.substring(0, 8) + '...' : 'N/A'}
-                    </div>
-                    <div class="text-muted">Due: ${scheduledTime}</div>
-                </div>
-            </div>
-        `;
-    }
-    
-    if (!hasScheduledTasks && !activeTaskId) {
-        html = '<small class="text-muted">No scheduled tasks</small>';
-    }
-    
-    container.innerHTML = html;
-}
-
-function loadTaskDetails(matchId) {
-    fetch(`/admin/match_management/task-details/${matchId}`)
+// Load detailed task information for a specific match
+function loadMatchTaskDetails(matchId) {
+    fetch(`/admin/match_management/match-tasks/${matchId}`)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                updateTaskDetails(matchId, data.scheduled_tasks, data.active_task_id);
-            } else {
-                const container = document.getElementById(`task-details-${matchId}`);
-                if (container) {
-                    container.innerHTML = '<small class="text-danger">Failed to load task info</small>';
-                }
-            }
+            updateMatchTaskDetails(matchId, data);
         })
         .catch(error => {
-            console.error('Error loading task details:', error);
-            const container = document.getElementById(`task-details-${matchId}`);
-            if (container) {
-                container.innerHTML = '<small class="text-danger">Error loading tasks</small>';
-            }
+            console.error(`Error loading task details for match ${matchId}:`, error);
+            showTaskError(matchId, 'Failed to load task details');
         });
 }
 
-function updateTaskDetailsFromCelery(matchId, taskDetails) {
+// Update the task details display for a match
+function updateMatchTaskDetails(matchId, data) {
     const container = document.getElementById(`task-details-${matchId}`);
-    if (!container) return;
     
-    let html = '';
-    
-    if (taskDetails.active_tasks && taskDetails.active_tasks.length > 0) {
-        taskDetails.active_tasks.forEach(task => {
-            const eta = task.eta ? formatTaskETA(task.eta) : 'Unknown';
-            const ttl = task.ttl ? formatTTL(task.ttl) : 'No limit';
-            
-            html += `
-                <div class="mb-2">
-                    <span class="badge bg-${getTaskStatusColor(task.state)} mb-1">
-                        <i class="fas fa-play"></i> ${task.state}
-                    </span>
-                    <div class="font-monospace small text-truncate" style="max-width: 120px;" title="${task.task_id}">
-                        ${task.task_id.substring(0, 8)}...
-                    </div>
-                    <div class="small text-muted">
-                        ETA: ${eta} | TTL: ${ttl}
-                    </div>
-                    <button class="btn btn-xs btn-outline-info mt-1" onclick="showTaskDetails('${matchId}', '${task.task_id}')">
-                        <i class="fas fa-info-circle"></i> Details
-                    </button>
-                </div>
-            `;
-        });
+    if (!container) {
+        console.error(`No container found for task-details-${matchId}`);
+        return;
     }
     
-    if (taskDetails.scheduled_tasks && taskDetails.scheduled_tasks.length > 0) {
-        taskDetails.scheduled_tasks.forEach(task => {
-            const scheduledTime = formatScheduledTime(task.eta);
-            
-            html += `
-                <div class="mb-1">
-                    <span class="badge bg-warning text-dark mb-1">
-                        <i class="fas fa-clock"></i> Scheduled
-                    </span>
-                    <div class="small">
-                        <div class="font-monospace text-truncate" style="max-width: 120px;" title="${task.task_id}">
-                            ${task.task_id.substring(0, 8)}...
-                        </div>
-                        <div class="text-muted">Due: ${scheduledTime}</div>
-                    </div>
-                </div>
-            `;
-        });
+    if (!data.success) {
+        showTaskError(matchId, data.error || 'Failed to load task details');
+        return;
+    }
+    
+    const tasks = data.tasks || {};
+    let html = '';
+    
+    // Thread Creation Task
+    if (tasks.thread) {
+        html += createTaskCard('thread', tasks.thread, matchId);
+    } else {
+        html += createNoTaskCard('Thread Creation', 'No thread task scheduled');
+    }
+    
+    // Live Reporting Task  
+    if (tasks.reporting) {
+        html += createTaskCard('reporting', tasks.reporting, matchId);
+    } else {
+        html += createNoTaskCard('Live Reporting', 'No reporting task scheduled');
     }
     
     if (!html) {
-        html = '<small class="text-muted">No scheduled tasks</small>';
+        html = '<small class="text-muted">No tasks scheduled</small>';
     }
     
     container.innerHTML = html;
 }
+
+// Create a task card for display
+function createTaskCard(taskType, task, matchId) {
+    const statusColor = getStatusColor(task.status);
+    const statusIcon = getStatusIcon(task.status);
+    const typeName = task.type || (taskType === 'thread' ? 'Thread Creation' : 'Live Reporting');
+    const typeIcon = taskType === 'thread' ? 'fa-comments' : 'fa-broadcast-tower';
+    
+    // Use human-readable message if available (from fallback logic)
+    const displayMessage = task.message || typeName;
+    const isFallback = task.fallback === true;
+    
+    // Format countdown
+    let countdown = 'N/A';
+    if (task.ttl && task.ttl > 0) {
+        countdown = formatDuration(task.ttl);
+    } else if (task.eta && task.eta !== 'completed') {
+        const etaTime = new Date(task.eta);
+        const now = new Date();
+        const diff = Math.max(0, Math.floor((etaTime - now) / 1000));
+        countdown = diff > 0 ? formatDuration(diff) : 'Due now';
+    }
+    
+    // Special handling for different status types
+    let statusDisplay = task.status;
+    if (isFallback) {
+        if (task.status === 'SUCCESS') statusDisplay = 'Completed';
+        if (task.status === 'PENDING') statusDisplay = 'Scheduled';
+        if (task.status === 'RUNNING') statusDisplay = 'Active';
+        if (task.status === 'FINISHED') statusDisplay = 'Completed';
+        if (task.status === 'MISSING') statusDisplay = 'Issue';
+    }
+    
+    const fallbackIndicator = isFallback ? '<i class="fas fa-info-circle text-muted" title="Status derived from match data"></i>' : '';
+    
+    return `
+        <div class="task-card mb-2 p-2 border rounded ${isFallback ? 'border-info' : ''}">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="badge bg-${statusColor}">
+                    <i class="fas ${statusIcon}"></i> ${statusDisplay}
+                </span>
+                <small class="text-muted">${countdown} ${fallbackIndicator}</small>
+            </div>
+            <div class="d-flex align-items-center mb-2">
+                <i class="fas ${typeIcon} me-2 text-primary"></i>
+                <div class="flex-grow-1">
+                    <small class="fw-bold">${typeName}</small><br>
+                    <small class="text-muted">${displayMessage}</small>
+                </div>
+            </div>
+            ${task.result ? `<div class="mb-2"><small class="text-muted"><strong>Details:</strong> ${task.result}</small></div>` : ''}
+            <div class="task-actions">
+                <button class="btn btn-xs btn-outline-info me-1" onclick="showTaskInfo('${task.task_id}', '${typeName}', ${JSON.stringify(task).replace(/"/g, '&quot;')})">
+                    <i class="fas fa-info-circle"></i>
+                </button>
+                ${!isFallback && task.task_id !== 'unknown' && task.task_id !== 'scheduled' ? `
+                <button class="btn btn-xs btn-outline-danger me-1" onclick="revokeTask('${task.task_id}', '${matchId}', '${taskType}')">
+                    <i class="fas fa-times"></i>
+                </button>` : ''}
+                <button class="btn btn-xs btn-outline-warning" onclick="rescheduleTask('${matchId}', '${taskType}')">
+                    <i class="fas fa-redo"></i>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Create a "no task" card
+function createNoTaskCard(taskName, message) {
+    const typeIcon = taskName.includes('Thread') ? 'fa-comments' : 'fa-broadcast-tower';
+    return `
+        <div class="no-task-card mb-1 p-2 border rounded bg-light">
+            <div class="d-flex align-items-center">
+                <i class="fas ${typeIcon} me-2 text-muted"></i>
+                <div class="flex-grow-1">
+                    <small class="fw-bold text-muted">${taskName}</small><br>
+                    <small class="text-muted">${message}</small>
+                </div>
+                <span class="badge bg-secondary">Not Scheduled</span>
+            </div>
+        </div>
+    `;
+}
+
+// Show task error
+function showTaskError(matchId, error) {
+    const container = document.getElementById(`task-details-${matchId}`);
+    if (!container) return;
+    
+    // Show better display when Redis is unavailable
+    if (error === 'Redis not available') {
+        container.innerHTML = `
+            <div class="text-center">
+                <small class="text-muted"><i class="fas fa-database"></i> Task system unavailable</small><br>
+                <small class="text-muted">Redis connection needed</small>
+            </div>
+        `;
+    } else {
+        container.innerHTML = `
+            <div class="alert alert-danger alert-sm mb-0">
+                <small><i class="fas fa-exclamation-triangle"></i> ${error}</small>
+            </div>
+        `;
+    }
+}
+
+// Helper functions
+function getStatusColor(status) {
+    const statusColors = {
+        'PENDING': 'warning',
+        'STARTED': 'info', 
+        'SUCCESS': 'success',
+        'FAILURE': 'danger',
+        'RETRY': 'warning',
+        'REVOKED': 'secondary',
+        'RUNNING': 'info',
+        'FINISHED': 'success',
+        'MISSING': 'danger',
+        'Completed': 'success',
+        'Scheduled': 'warning',
+        'Active': 'info',
+        'Issue': 'danger'
+    };
+    return statusColors[status] || 'secondary';
+}
+
+function getStatusIcon(status) {
+    const statusIcons = {
+        'PENDING': 'fa-clock',
+        'STARTED': 'fa-play',
+        'SUCCESS': 'fa-check',
+        'FAILURE': 'fa-times',
+        'RETRY': 'fa-redo',
+        'REVOKED': 'fa-ban',
+        'RUNNING': 'fa-play',
+        'FINISHED': 'fa-check',
+        'MISSING': 'fa-exclamation-triangle',
+        'Completed': 'fa-check',
+        'Scheduled': 'fa-clock',
+        'Active': 'fa-play',
+        'Issue': 'fa-exclamation-triangle'
+    };
+    return statusIcons[status] || 'fa-question';
+}
+
+function formatDuration(seconds) {
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours}h ${remainingMinutes}m`;
+}
+
+// Task control functions
+function revokeTask(taskId, matchId, taskType) {
+    Swal.fire({
+        title: 'Revoke Task?',
+        text: `Are you sure you want to revoke this ${taskType} task?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, revoke it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/admin/match_management/revoke-task', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    task_id: taskId,
+                    match_id: matchId,
+                    task_type: taskType
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Revoked!', data.message, 'success');
+                    loadMatchTaskDetails(matchId);
+                } else {
+                    Swal.fire('Error!', data.error, 'error');
+                }
+            })
+            .catch(error => {
+                Swal.fire('Error!', 'Failed to revoke task', 'error');
+            });
+        }
+    });
+}
+
+function rescheduleTask(matchId, taskType) {
+    Swal.fire({
+        title: 'Reschedule Task?',
+        text: `This will reschedule the ${taskType} task for match ${matchId}`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, reschedule!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Use existing schedule match functionality
+            scheduleMatch(matchId);
+        }
+    });
+}
+
+function showTaskInfo(taskId, taskType, taskData) {
+    let taskObj;
+    try {
+        taskObj = typeof taskData === 'string' ? JSON.parse(taskData) : taskData;
+    } catch (e) {
+        taskObj = { error: 'Failed to parse task data', raw: taskData };
+    }
+    
+    const modalHtml = `
+        <div class="task-info-details">
+            <h6><i class="fas fa-info-circle"></i> ${taskType}</h6>
+            <table class="table table-sm">
+                <tr><td><strong>Task ID:</strong></td><td><code>${taskObj.task_id || 'N/A'}</code></td></tr>
+                <tr><td><strong>Status:</strong></td><td><span class="badge bg-${getStatusColor(taskObj.status)}">${taskObj.status}</span></td></tr>
+                <tr><td><strong>ETA:</strong></td><td>${taskObj.eta ? new Date(taskObj.eta).toLocaleString() : 'N/A'}</td></tr>
+                <tr><td><strong>TTL:</strong></td><td>${taskObj.ttl ? formatDuration(taskObj.ttl) : 'N/A'}</td></tr>
+                <tr><td><strong>Redis Key:</strong></td><td><code>${taskObj.redis_key || 'N/A'}</code></td></tr>
+                ${taskObj.result ? `<tr><td><strong>Result:</strong></td><td><pre class="small">${taskObj.result}</pre></td></tr>` : ''}
+            </table>
+        </div>
+    `;
+    
+    Swal.fire({
+        title: 'Task Information',
+        html: modalHtml,
+        width: '600px',
+        showCloseButton: true,
+        focusConfirm: false
+    });
+}
+
+// Load task details for all matches on the page
+function loadAllTaskDetails() {
+    // Find all match rows and load their task details, but exclude historical matches unless expanded
+    const matchRows = document.querySelectorAll('[data-match-id]:not(.historical-match)');
+    matchRows.forEach(row => {
+        const matchId = row.getAttribute('data-match-id');
+        if (matchId) {
+            loadMatchTaskDetails(matchId);
+        }
+    });
+    
+    // Also load for expanded historical matches
+    const historicalSection = document.getElementById('historicalMatches');
+    if (historicalSection && historicalSection.classList.contains('show')) {
+        const historicalRows = document.querySelectorAll('.historical-match[data-match-id]');
+        historicalRows.forEach(row => {
+            const matchId = row.getAttribute('data-match-id');
+            if (matchId) {
+                loadMatchTaskDetails(matchId);
+            }
+        });
+    }
+}
+
+
+
 
 function formatTaskETA(etaString) {
     if (!etaString) return 'Unknown';
@@ -240,32 +409,6 @@ function formatTTL(seconds) {
     }
 }
 
-function loadAllTaskDetails() {
-    // Make a single request to get all match statuses
-    fetch('/admin/match_management/statuses')
-        .then(response => response.json())
-        .then(data => {
-            if (data.statuses) {
-                data.statuses.forEach(match => {
-                    if (match.task_details) {
-                        updateTaskDetailsFromCelery(match.id, match.task_details);
-                    } else {
-                        const container = document.getElementById(`task-details-${match.id}`);
-                        if (container) {
-                            container.innerHTML = '<small class="text-muted">No scheduled tasks</small>';
-                        }
-                    }
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error loading task details:', error);
-            // Update all containers to show error state
-            document.querySelectorAll('[id^="task-details-"]').forEach(container => {
-                container.innerHTML = '<small class="text-danger">Failed to load task info</small>';
-            });
-        });
-}
 
 function formatScheduledTime(isoString) {
     if (!isoString) return 'Unknown';
@@ -847,6 +990,144 @@ $(document).ready(function() {
     // Load task details for all matches after a short delay
     setTimeout(loadAllTaskDetails, 1000);
     
-    // Auto-refresh every 30 seconds
-    setInterval(refreshStatuses, 30000);
+    // With background cache, we can refresh less frequently
+    // Refresh task details every 60 seconds (cache updates every 3 minutes)
+    setInterval(loadAllTaskDetails, 60000);
+    
+    // Auto-refresh every 60 seconds  
+    setInterval(refreshStatuses, 60000);
+    
+    // Handle historical matches toggle
+    const historicalToggle = document.getElementById('historicalMatches');
+    const historicalToggleIcon = document.getElementById('historicalToggleIcon');
+    
+    if (historicalToggle && historicalToggleIcon) {
+        historicalToggle.addEventListener('show.bs.collapse', function () {
+            historicalToggleIcon.classList.remove('ti-chevron-down');
+            historicalToggleIcon.classList.add('ti-chevron-up');
+            
+            // Load task details for historical matches when expanded
+            setTimeout(() => {
+                document.querySelectorAll('.historical-match[data-match-id]').forEach(card => {
+                    const matchId = card.dataset.matchId;
+                    if (matchId) {
+                        loadMatchTaskDetails(matchId);
+                    }
+                });
+            }, 100);
+        });
+        
+        historicalToggle.addEventListener('hide.bs.collapse', function () {
+            historicalToggleIcon.classList.remove('ti-chevron-up');
+            historicalToggleIcon.classList.add('ti-chevron-down');
+        });
+    }
 });
+
+// Show cache status
+function showCacheStatus() {
+    fetch('/admin/match_management/cache-status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const stats = data.cache_stats;
+                const modalHtml = `
+                    <div class="modal fade" id="cacheStatusModal" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="ti ti-database me-2"></i>Cache System Status
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <div class="card bg-primary text-white">
+                                                <div class="card-body text-center">
+                                                    <h3 class="card-title">${stats.total_entries}</h3>
+                                                    <p class="card-text mb-0">Cached Entries</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card bg-success text-white">
+                                                <div class="card-body text-center">
+                                                    <h3 class="card-title">${stats.cache_coverage_percent.toFixed(1)}%</h3>
+                                                    <p class="card-text mb-0">Coverage</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <div class="card bg-info text-white">
+                                                <div class="card-body text-center">
+                                                    <h3 class="card-title">${stats.health_score_percent.toFixed(1)}%</h3>
+                                                    <p class="card-text mb-0">Health Score</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card bg-warning text-white">
+                                                <div class="card-body text-center">
+                                                    <h3 class="card-title">${Math.round(stats.ttl_seconds / 60)}min</h3>
+                                                    <p class="card-text mb-0">Cache TTL</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <tbody>
+                                                <tr><td><strong>Active Matches:</strong></td><td>${stats.active_matches}</td></tr>
+                                                <tr><td><strong>Sample Size:</strong></td><td>${stats.sample_size}</td></tr>
+                                                <tr><td><strong>Valid Entries:</strong></td><td>${stats.valid_entries}</td></tr>
+                                                <tr><td><strong>Avg Entry Size:</strong></td><td>${(stats.avg_entry_size_bytes / 1024).toFixed(1)} KB</td></tr>
+                                                <tr><td><strong>Est. Total Size:</strong></td><td>${(stats.estimated_total_size_bytes / 1024 / 1024).toFixed(1)} MB</td></tr>
+                                                <tr><td><strong>Last Updated:</strong></td><td>${new Date(data.timestamp).toLocaleString()}</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="alert alert-info">
+                                        <i class="ti ti-info-circle me-2"></i>
+                                        Cache is updated automatically every 3 minutes by background tasks. 
+                                        High coverage and health scores indicate optimal performance.
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Remove existing modal if present
+                const existingModal = document.getElementById('cacheStatusModal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+                
+                // Add modal to body
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('cacheStatusModal'));
+                modal.show();
+                
+                // Clean up when modal is hidden
+                document.getElementById('cacheStatusModal').addEventListener('hidden.bs.modal', function () {
+                    this.remove();
+                });
+                
+            } else {
+                alert('Failed to load cache status: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading cache status:', error);
+            alert('Error loading cache status');
+        });
+}

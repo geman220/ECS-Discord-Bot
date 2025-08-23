@@ -108,9 +108,9 @@ def create_app(config_object='web_config.Config'):
     else:
         # Use full logging configuration for production
         logging.config.dictConfig(LOGGING_CONFIG)
-        app.logger.setLevel(logging.DEBUG)
+        app.logger.setLevel(logging.INFO if app.debug else logging.WARNING)
         if app.debug:
-            logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+            logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
 
     # SECRET_KEY is mandatory.
     if not app.config.get('SECRET_KEY'):
@@ -206,7 +206,8 @@ def create_app(config_object='web_config.Config'):
     # Initialize request lifecycle hooks.
     request_lifecycle.init_app(app, db)
     def custom_before_request():
-        logger.debug(f"Custom logic for request: {request.path}")
+        # Request-specific logging moved to DebugMiddleware
+        pass
     request_lifecycle.register_before_request(custom_before_request)
 
     # Initialize additional extensions.
@@ -352,12 +353,12 @@ def create_app(config_object='web_config.Config'):
     
     # Apply session persistence middleware
     app.wsgi_app = SessionPersistenceMiddleware(app.wsgi_app, app)
-    logger.debug("Applied SessionPersistenceMiddleware")
+    # SessionPersistenceMiddleware applied
 
     # Apply DebugMiddleware in debug mode.
     if app.debug:
         app.wsgi_app = DebugMiddleware(app.wsgi_app, app)
-        logger.debug("Applied DebugMiddleware")
+        logger.info("Debug mode enabled with request logging")
         
     # Register CLI commands
     from app.cli import build_assets, init_discord_roles, sync_coach_roles
@@ -405,7 +406,7 @@ def create_app(config_object='web_config.Config'):
 
     @app.errorhandler(401)
     def unauthorized(error):
-        logger.debug("Unauthorized access attempt")
+        # Unauthorized access redirected to login
         next_url = request.path
         # Use Flask's session explicitly
         from flask import session as flask_session
@@ -418,7 +419,7 @@ def create_app(config_object='web_config.Config'):
 
     @app.errorhandler(404)
     def not_found(error):
-        logger.debug(f"404 error for URL: {request.url}")
+        logger.warning(f"404 error: {request.path}")
         return render_template("404.html"), 404
 
     @app.errorhandler(BuildError)
@@ -469,7 +470,7 @@ def create_app(config_object='web_config.Config'):
                     conn_id = id(dbapi_conn)
                     from app.utils.db_connection_monitor import register_connection
                     register_connection(conn_id, "flask_request")
-                    logger.debug(f"Registered Flask request connection {conn_id}")
+                    # Connection registered silently
             except Exception as e:
                 logger.error(f"Failed to register Flask connection: {e}", exc_info=True)
             
@@ -510,8 +511,7 @@ def create_app(config_object='web_config.Config'):
                     g._cached_user_roles = list(roles) if roles else []
                     g._cached_user_permissions = list(permissions) if permissions else []
                     
-                    logger.debug(f"Cached user roles: {g._cached_user_roles}")
-                    logger.debug(f"Cached user permissions: {g._cached_user_permissions}")
+                    # User roles and permissions cached silently
                 except Exception as e:
                     logger.error(f"Error pre-loading user roles: {e}", exc_info=True)
                     g._cached_user_roles = []
@@ -811,6 +811,13 @@ def init_blueprints(app):
     if app.config.get('DEBUG', False):
         from app.test_team_notifications_route import test_bp
         app.register_blueprint(test_bp)
+        
+        # Register live reporting test routes
+        from app.test_live_reporting import test_live_reporting_bp
+        app.register_blueprint(test_live_reporting_bp)
+        
+        # V2 live reporting is now integrated into the main test_live_reporting.py
+        # Removed duplicate test_live_reporting_v2.py blueprint
     
     # Initialize enterprise RSVP system on app startup (simplified for Flask compatibility)
     try:
@@ -827,6 +834,10 @@ def init_blueprints(app):
     # Register duplicate management routes
     from app.admin.duplicate_management_routes import duplicate_management
     app.register_blueprint(duplicate_management)
+    
+    # Register AI Prompt Management (Enterprise Feature)
+    from app.routes.ai_prompts import ai_prompts_bp
+    app.register_blueprint(ai_prompts_bp)
 
 def init_context_processors(app):
     """
@@ -959,26 +970,15 @@ class DebugMiddleware:
         with self.flask_app.app_context():
             with self.flask_app.request_context(environ):
                 from flask import request, session
-                logger.debug(f"Request Path: {environ.get('PATH_INFO')}")
-                logger.debug(f"Request Method: {environ.get('REQUEST_METHOD')}")
-                logger.debug(f"Request Headers: {dict(request.headers)}")
-
-                try:
-                    session_data = dict(session) if session else {}
-                    logger.debug(f"Session Data: {session_data}")
-                    logger.debug(f"Session ID: {session.sid if hasattr(session, 'sid') else 'No session ID'}")
-                except RuntimeError:
-                    logger.debug("Session: Not available in current context")
-
-                try:
-                    user_info = current_user.is_authenticated
-                    logger.debug(f"User authenticated: {user_info}")
-                except RuntimeError:
-                    logger.debug("User: Not available in current context")
+                # Only log critical path information at INFO level
+                path = environ.get('PATH_INFO')
+                if not path.startswith('/static/') and not path.startswith('/test/status/'):
+                    logger.info(f"{environ.get('REQUEST_METHOD')} {path}")
 
                 def debug_start_response(status, headers, exc_info=None):
-                    logger.debug(f"Response Status: {status}")
-                    logger.debug(f"Response Headers: {headers}")
+                    # Only log non-200 responses
+                    if not status.startswith('200'):
+                        logger.info(f"Response Status: {status} for {environ.get('PATH_INFO')}")
                     return start_response(status, headers, exc_info)
 
                 try:

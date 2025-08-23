@@ -181,6 +181,21 @@ class SafeRedisClient:
                 return client.scan(cursor=cursor, match=match, count=count)
             return (0, [])
     
+    def llen(self, key: str) -> int:
+        """Safely get list length."""
+        with self.safe_operation("llen", 0) as (client, should_proceed):
+            if should_proceed:
+                return client.llen(key)
+            return 0
+    
+    def lrange(self, key: str, start: int, end: int) -> List[str]:
+        """Safely get range of list items."""
+        with self.safe_operation("lrange", []) as (client, should_proceed):
+            if should_proceed:
+                items = client.lrange(key, start, end)
+                return [item.decode('utf-8') if isinstance(item, bytes) else item for item in items]
+            return []
+    
     def pipeline(self):
         """Get a pipeline for batch operations."""
         if not self.is_available:
@@ -196,6 +211,7 @@ class SafeRedisClient:
                 hmset=lambda *args, **kwargs: None,
                 hset=lambda *args, **kwargs: None,
                 hgetall=lambda *args: {},
+                llen=lambda *args: 0,
             )
         return self.client.pipeline()
 

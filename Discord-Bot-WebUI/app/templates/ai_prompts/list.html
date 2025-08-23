@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}AI Prompt Configurations{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">
+                            <i class="fas fa-brain"></i> AI Prompt Configurations
+                        </h3>
+                        <div>
+                            <a href="{{ url_for('ai_prompts.create_prompt') }}" class="btn btn-success">
+                                <i class="fas fa-plus"></i> New Prompt
+                            </a>
+                            <a href="{{ url_for('ai_prompts.manage_templates') }}" class="btn btn-info">
+                                <i class="fas fa-file-alt"></i> Templates
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Filter Section -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <select id="typeFilter" class="form-control">
+                                <option value="">All Types</option>
+                                <option value="match_commentary">Match Commentary</option>
+                                <option value="goal">Goal Events</option>
+                                <option value="card">Card Events</option>
+                                <option value="substitution">Substitutions</option>
+                                <option value="rivalry">Rivalry Matches</option>
+                                <option value="status_change">Status Changes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="activeOnly" checked>
+                                <label class="form-check-label" for="activeOnly">
+                                    Show Active Only
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Prompts Table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Version</th>
+                                    <th>Temperature</th>
+                                    <th>Max Tokens</th>
+                                    <th>Competition</th>
+                                    <th>Status</th>
+                                    <th>Updated</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prompt in prompts %}
+                                <tr class="{% if not prompt.is_active %}table-secondary{% endif %}">
+                                    <td>
+                                        <strong>{{ prompt.name }}</strong>
+                                        {% if prompt.description %}
+                                        <br><small class="text-muted">{{ prompt.description[:50] }}...</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-info">{{ prompt.prompt_type }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-secondary">v{{ prompt.version }}</span>
+                                    </td>
+                                    <td>{{ prompt.temperature }}</td>
+                                    <td>{{ prompt.max_tokens }}</td>
+                                    <td>{{ prompt.competition_filter or 'All' }}</td>
+                                    <td>
+                                        {% if prompt.is_active %}
+                                        <span class="badge badge-success">Active</span>
+                                        {% else %}
+                                        <span class="badge badge-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ prompt.updated_at.strftime('%Y-%m-%d %H:%M') if prompt.updated_at else 'N/A' }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('ai_prompts.get_prompt', prompt_id=prompt.id) }}" 
+                                               class="btn btn-outline-info" title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('ai_prompts.edit_prompt', prompt_id=prompt.id) }}" 
+                                               class="btn btn-outline-warning" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button class="btn btn-outline-{% if prompt.is_active %}danger{% else %}success{% endif %}"
+                                                    onclick="togglePrompt({{ prompt.id }})"
+                                                    title="{% if prompt.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                                <i class="fas fa-{% if prompt.is_active %}pause{% else %}play{% endif %}"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Filter functionality
+document.getElementById('typeFilter').addEventListener('change', function() {
+    filterPrompts();
+});
+
+document.getElementById('activeOnly').addEventListener('change', function() {
+    filterPrompts();
+});
+
+function filterPrompts() {
+    const type = document.getElementById('typeFilter').value;
+    const activeOnly = document.getElementById('activeOnly').checked;
+    
+    const params = new URLSearchParams();
+    if (type) params.append('type', type);
+    params.append('active_only', activeOnly);
+    
+    window.location.href = '{{ url_for("ai_prompts.list_prompts") }}?' + params.toString();
+}
+
+// Toggle prompt active status
+function togglePrompt(promptId) {
+    fetch(`/ai-prompts/${promptId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to toggle prompt status');
+    });
+}
+</script>
+{% endblock %}

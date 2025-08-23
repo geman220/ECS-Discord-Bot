@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if prompt else 'Create' }} AI Prompt{% endblock %}
+
+{% block custom_css %}
+<style>
+.form-floating textarea {
+    min-height: 100px;
+}
+.personality-slider {
+    margin: 10px 0;
+}
+.temperature-indicator {
+    font-size: 0.875rem;
+    margin-left: 10px;
+}
+.prompt-preview {
+    background: #f8f9fa;
+    border: 1px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    font-family: monospace;
+    white-space: pre-wrap;
+}
+</style>
+{% endblock %}
+
+{% block main_content %}
+    <!-- Header with Breadcrumb -->
+    <h4 class="fw-bold py-3 mb-3">
+        <span class="text-muted fw-light">Admin / Live Reporting / AI Prompts / </span> 
+        {{ 'Edit Prompt' if prompt else 'Create Prompt' }}
+    </h4>
+
+    <form method="POST" action="{{ url_for('ai_prompts.create_prompt') if not prompt else url_for('ai_prompts.edit_prompt', prompt_id=prompt.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="row">
+            <!-- Main Configuration -->
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Basic Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Name and Type -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="name" name="name" 
+                                           value="{{ prompt.name if prompt else '' }}" required>
+                                    <label for="name">Prompt Name *</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <select class="form-select" id="prompt_type" name="prompt_type" required>
+                                        <option value="">Select Type...</option>
+                                        <option value="match_commentary" {{ 'selected' if prompt and prompt.prompt_type == 'match_commentary' }}>Match Commentary</option>
+                                        <option value="goal" {{ 'selected' if prompt and prompt.prompt_type == 'goal' }}>Goal Event</option>
+                                        <option value="card" {{ 'selected' if prompt and prompt.prompt_type == 'card' }}>Card Event</option>
+                                        <option value="substitution" {{ 'selected' if prompt and prompt.prompt_type == 'substitution' }}>Substitution</option>
+                                        <option value="halftime" {{ 'selected' if prompt and prompt.prompt_type == 'halftime' }}>Halftime</option>
+                                        <option value="fulltime" {{ 'selected' if prompt and prompt.prompt_type == 'fulltime' }}>Full Time</option>
+                                        <option value="rivalry" {{ 'selected' if prompt and prompt.prompt_type == 'rivalry' }}>Rivalry Match</option>
+                                        <option value="penalty" {{ 'selected' if prompt and prompt.prompt_type == 'penalty' }}>Penalty</option>
+                                    </select>
+                                    <label for="prompt_type">Prompt Type *</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="form-floating mb-3">
+                            <textarea class="form-control" id="description" name="description" style="height: 80px;">{{ prompt.description if prompt else '' }}</textarea>
+                            <label for="description">Description</label>
+                        </div>
+
+                        <!-- System Prompt -->
+                        <div class="form-floating mb-3">
+                            <textarea class="form-control" id="system_prompt" name="system_prompt" 
+                                      style="height: 120px;" required>{{ prompt.system_prompt if prompt else '' }}</textarea>
+                            <label for="system_prompt">System Prompt *</label>
+                            <div class="form-text">Define the AI's role, personality, and behavior</div>
+                        </div>
+
+                        <!-- User Prompt Template -->
+                        <div class="form-floating mb-3">
+                            <textarea class="form-control" id="user_prompt_template" name="user_prompt_template" 
+                                      style="height: 100px;" required>{{ prompt.user_prompt_template if prompt else '' }}</textarea>
+                            <label for="user_prompt_template">User Prompt Template *</label>
+                            <div class="form-text">Use {match_context}, {events}, {score} as variables</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Parameters -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">AI Parameters</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Temperature -->
+                        <div class="mb-4">
+                            <label for="temperature" class="form-label">Temperature: <span id="temp-value">{{ prompt.temperature if prompt else 0.7 }}</span></label>
+                            <input type="range" class="form-range" id="temperature" name="temperature" 
+                                   min="0" max="1" step="0.05" value="{{ prompt.temperature if prompt else 0.7 }}">
+                            <div class="d-flex justify-content-between text-muted small">
+                                <span>Conservative (0.0)</span>
+                                <span>Creative (1.0)</span>
+                            </div>
+                        </div>
+
+                        <!-- Max Tokens -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="number" class="form-control" id="max_tokens" name="max_tokens" 
+                                           min="50" max="500" value="{{ prompt.max_tokens if prompt else 150 }}">
+                                    <label for="max_tokens">Max Tokens</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <select class="form-select" id="competition_filter" name="competition_filter">
+                                        <option value="all" {{ 'selected' if not prompt or prompt.competition_filter == 'all' }}>All Competitions</option>
+                                        <option value="mls" {{ 'selected' if prompt and prompt.competition_filter == 'mls' }}>MLS Only</option>
+                                        <option value="usoc" {{ 'selected' if prompt and prompt.competition_filter == 'usoc' }}>US Open Cup</option>
+                                        <option value="ccl" {{ 'selected' if prompt and prompt.competition_filter == 'ccl' }}>Champions League</option>
+                                        <option value="leagues_cup" {{ 'selected' if prompt and prompt.competition_filter == 'leagues_cup' }}>Leagues Cup</option>
+                                    </select>
+                                    <label for="competition_filter">Competition Filter</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rivalry Configuration -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Rivalry Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Rivalry Intensity -->
+                        <div class="mb-3">
+                            <label for="rivalry_intensity" class="form-label">Rivalry Intensity: <span id="rivalry-value">{{ prompt.rivalry_intensity if prompt else 5 }}</span>/10</label>
+                            <input type="range" class="form-range" id="rivalry_intensity" name="rivalry_intensity" 
+                                   min="1" max="10" step="1" value="{{ prompt.rivalry_intensity if prompt else 5 }}">
+                            <div class="d-flex justify-content-between text-muted small">
+                                <span>Mild (1)</span>
+                                <span>Maximum Hostility (10)</span>
+                            </div>
+                        </div>
+
+                        <!-- Rivalry Teams -->
+                        <div class="form-floating">
+                            <textarea class="form-control" id="rivalry_teams" name="rivalry_teams" 
+                                      style="height: 80px;" placeholder='{"portland": ["timbers", "portland timbers"], "vancouver": ["whitecaps"]}'>{{ prompt.rivalry_teams|tojson if prompt and prompt.rivalry_teams else '' }}</textarea>
+                            <label for="rivalry_teams">Rivalry Teams (JSON)</label>
+                            <div class="form-text">Define team keywords that trigger rivalry behavior</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side Panel -->
+            <div class="col-lg-4">
+                <!-- Status and Actions -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Status & Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Active Status -->
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                                   {{ 'checked' if not prompt or prompt.is_active }}>
+                            <label class="form-check-label" for="is_active">
+                                Active
+                            </label>
+                        </div>
+
+                        <!-- Version Info -->
+                        {% if prompt %}
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                Version: {{ prompt.version }}<br>
+                                Created: {{ prompt.created_at.strftime('%Y-%m-%d %H:%M') }}<br>
+                                By: {{ prompt.created_by }}
+                            </small>
+                        </div>
+                        {% endif %}
+
+                        <!-- Submit Buttons -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-device-floppy me-1"></i>
+                                {{ 'Update Prompt' if prompt else 'Create Prompt' }}
+                            </button>
+                            <a href="{{ url_for('ai_prompts.list_prompts') }}" class="btn btn-outline-secondary">
+                                <i class="ti ti-arrow-left me-1"></i> Back to List
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personality Traits -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Personality Traits</h5>
+                    </div>
+                    <div class="card-body">
+                        {% set traits = prompt.personality_traits if prompt and prompt.personality_traits else {} %}
+                        
+                        <!-- Enthusiasm -->
+                        <div class="mb-3">
+                            <label class="form-label small">Enthusiasm: <span id="enthusiasm-value">{{ traits.get('enthusiasm', 5) }}</span></label>
+                            <input type="range" class="form-range form-range-sm" name="personality_enthusiasm" 
+                                   min="1" max="10" step="1" value="{{ traits.get('enthusiasm', 5) }}" 
+                                   oninput="document.getElementById('enthusiasm-value').textContent = this.value">
+                        </div>
+
+                        <!-- Bias -->
+                        <div class="mb-3">
+                            <label class="form-label small">Bias: <span id="bias-value">{{ traits.get('bias', 5) }}</span></label>
+                            <input type="range" class="form-range form-range-sm" name="personality_bias" 
+                                   min="1" max="10" step="1" value="{{ traits.get('bias', 5) }}"
+                                   oninput="document.getElementById('bias-value').textContent = this.value">
+                        </div>
+
+                        <!-- Humor -->
+                        <div class="mb-3">
+                            <label class="form-label small">Humor: <span id="humor-value">{{ traits.get('humor', 5) }}</span></label>
+                            <input type="range" class="form-range form-range-sm" name="personality_humor" 
+                                   min="1" max="10" step="1" value="{{ traits.get('humor', 5) }}"
+                                   oninput="document.getElementById('humor-value').textContent = this.value">
+                        </div>
+
+                        <!-- Hostility -->
+                        <div class="mb-3">
+                            <label class="form-label small">Hostility: <span id="hostility-value">{{ traits.get('hostility', 1) }}</span></label>
+                            <input type="range" class="form-range form-range-sm" name="personality_hostility" 
+                                   min="1" max="10" step="1" value="{{ traits.get('hostility', 1) }}"
+                                   oninput="document.getElementById('hostility-value').textContent = this.value">
+                        </div>
+
+                        <!-- Formality -->
+                        <div class="mb-3">
+                            <label class="form-label small">Formality: <span id="formality-value">{{ traits.get('formality', 5) }}</span></label>
+                            <input type="range" class="form-range form-range-sm" name="personality_formality" 
+                                   min="1" max="10" step="1" value="{{ traits.get('formality', 5) }}"
+                                   oninput="document.getElementById('formality-value').textContent = this.value">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Templates -->
+                {% if templates %}
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Quick Templates</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for template in templates[:3] %}
+                        <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-2" 
+                                onclick="loadTemplate({{ template.id }})">
+                            <i class="ti ti-copy me-1"></i> {{ template.name }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+// Temperature slider
+document.getElementById('temperature').addEventListener('input', function() {
+    document.getElementById('temp-value').textContent = this.value;
+});
+
+// Rivalry intensity slider
+document.getElementById('rivalry_intensity').addEventListener('input', function() {
+    document.getElementById('rivalry-value').textContent = this.value;
+});
+
+// Load template function
+function loadTemplate(templateId) {
+    if (confirm('This will replace the current prompt configuration. Continue?')) {
+        // You could implement AJAX to load template data here
+        fetch(`/ai-prompts/api/template/${templateId}`)
+            .then(response => response.json())
+            .then(data => {
+                // Populate form fields with template data
+                if (data.template_data.system_prompt) {
+                    document.getElementById('system_prompt').value = data.template_data.system_prompt;
+                }
+                if (data.template_data.temperature) {
+                    document.getElementById('temperature').value = data.template_data.temperature;
+                    document.getElementById('temp-value').textContent = data.template_data.temperature;
+                }
+                // Add more field mappings as needed
+            })
+            .catch(error => {
+                toastr.error('Failed to load template');
+            });
+    }
+}
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const rivalryTeams = document.getElementById('rivalry_teams').value.trim();
+    if (rivalryTeams && rivalryTeams !== '') {
+        try {
+            JSON.parse(rivalryTeams);
+        } catch (error) {
+            e.preventDefault();
+            toastr.error('Rivalry Teams must be valid JSON');
+            return false;
+        }
+    }
+});
+
+// Flash message handling
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      {% if category == 'error' %}
+        toastr.error('{{ message }}');
+      {% elif category == 'success' %}
+        toastr.success('{{ message }}');
+      {% elif category == 'warning' %}
+        toastr.warning('{{ message }}');
+      {% else %}
+        toastr.info('{{ message }}');
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+</script>
+{% endblock %}

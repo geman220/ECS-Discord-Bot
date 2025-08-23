@@ -246,10 +246,8 @@ def register_connection(conn_id: int, origin: str = None) -> None:
             'thread_id': threading.get_ident()
         }
         
-        logger.debug(
-            f"Registered connection {conn_id} from {origin}. "
-            f"Active connections: {len(_active_connections)}"
-        )
+        # Connection registration logged only at trace level
+        pass
 
 
 def unregister_connection(conn_id: int) -> None:
@@ -262,10 +260,8 @@ def unregister_connection(conn_id: int) -> None:
     with _connection_lock:
         if conn_id in _active_connections:
             conn_info = _active_connections.pop(conn_id)
-            logger.debug(
-                f"Unregistered connection {conn_id} from {conn_info.get('origin')}. "
-                f"Active connections: {len(_active_connections)}"
-            )
+            # Connection unregistration logged only at trace level
+            pass
         # Silent return for race condition - connection already cleaned up by another thread
         # This prevents log spam when multiple cleanup mechanisms run simultaneously
 

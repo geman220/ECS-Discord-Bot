@@ -181,7 +181,7 @@ async def process_live_match_updates(match_id, thread_id, match_data, session=No
                 event_team_id = str(event.get("team", {}).get("id", ""))
                 
                 if enhanced_events.should_report_event(event_type, event_team_id):
-                    await process_match_event(thread_id, event, team_map, home_team, away_team, home_score, away_score)
+                    await process_match_event(match_id, thread_id, event, team_map, home_team, away_team, home_score, away_score)
                 else:
                     logger.debug(f"Skipping event: {event_type} for team {event_team_id} (filtered out)")
 
@@ -247,7 +247,7 @@ async def process_live_match_updates(match_id, thread_id, match_data, session=No
                     event_team_id = str(event.get("team", {}).get("id", ""))
                     
                     if enhanced_events.should_report_event(event_type, event_team_id):
-                        await process_match_event(thread_id, event, team_map, home_team, away_team, home_score, away_score)
+                        await process_match_event(match_id, thread_id, event, team_map, home_team, away_team, home_score, away_score)
                     else:
                         logger.debug(f"Skipping event: {event_type} for team {event_team_id} (filtered out)")
 
@@ -326,7 +326,7 @@ async def handle_status_change(thread_id, status_type, home_team, away_team, hom
         await send_update_to_bot(thread_id, "enhanced_second_half", enhanced_status_data)
 
 
-async def process_match_event(thread_id, event, team_map, home_team, away_team, home_score, away_score):
+async def process_match_event(match_id, thread_id, event, team_map, home_team, away_team, home_score, away_score):
     """
     Process an individual match event using enhanced event service.
     Now supports detailed goal information, substitutions, enhanced cards, and intelligent hype system.
@@ -347,9 +347,9 @@ async def process_match_event(thread_id, event, team_map, home_team, away_team, 
     event_team_id = str(event.get("team", {}).get("id", ""))
     event_team_name = team_map.get(event_team_id, {}).get("displayName", "Unknown Team")
     
-    # Create enhanced event data with rich details
-    enhanced_event_data = enhanced_events.create_enhanced_event_data(
-        event, team_map, home_team, away_team, home_score, away_score
+    # Create enhanced event data with rich details and AI commentary
+    enhanced_event_data = await enhanced_events.create_enhanced_event_data_async(
+        match_id, event, team_map, home_team, away_team, home_score, away_score
     )
     
     # Skip if event data is None (e.g., opponent saves)

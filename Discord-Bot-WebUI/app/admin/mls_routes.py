@@ -208,26 +208,159 @@ def match_management():
     """
     session = g.db_session
     
-    # Get all MLS matches for display, but limit to recent/upcoming ones to avoid too much data
+    # Get matches with smart categorization for better UX
     import pytz
     now = datetime.now(pytz.UTC)
-    cutoff_start = now - timedelta(days=30)
-    cutoff_end = now + timedelta(days=60)
     
-    matches = session.query(MLSMatch).filter(
-        MLSMatch.date_time >= cutoff_start,
-        MLSMatch.date_time <= cutoff_end
+    # Define time ranges
+    recent_cutoff = now - timedelta(days=3)    # Show last 3 days by default
+    future_cutoff = now + timedelta(days=60)   # Show next 60 days
+    historical_cutoff = now - timedelta(days=30)  # Historical matches up to 30 days ago
+    
+    # Get recent/future matches (shown by default)
+    visible_matches = session.query(MLSMatch).filter(
+        MLSMatch.date_time >= recent_cutoff,
+        MLSMatch.date_time <= future_cutoff
     ).order_by(MLSMatch.date_time).all()
     
-    # Add enhanced data for each match
-    for match in matches:
+    # Get older historical matches (collapsed by default)  
+    historical_matches = session.query(MLSMatch).filter(
+        MLSMatch.date_time >= historical_cutoff,
+        MLSMatch.date_time < recent_cutoff
+    ).order_by(MLSMatch.date_time.desc()).all()
+    
+    # Add enhanced data for visible matches
+    for match in visible_matches:
         match.status_color = get_status_color(match.live_reporting_status)
         match.status_icon = get_status_icon(match.live_reporting_status)
         match.status_display = get_status_display(match.live_reporting_status)
         # Skip slow task details during initial load - will be loaded via AJAX
         match.task_details = {'status': 'LOADING'}
     
-    return render_template('admin/match_management.html', matches=matches, title='Match Management', current_time=datetime.utcnow(), timedelta=timedelta)
+    # Add enhanced data for historical matches (lighter processing)
+    for match in historical_matches:
+        match.status_color = get_status_color(match.live_reporting_status)
+        match.status_icon = get_status_icon(match.live_reporting_status)
+        match.status_display = get_status_display(match.live_reporting_status)
+        # Historical matches get minimal task details to reduce load
+        match.task_details = {'status': 'HISTORICAL'}
+    
+    return render_template(
+        'admin/match_management.html', 
+        matches=visible_matches,
+        historical_matches=historical_matches,
+        historical_count=len(historical_matches),
+        title='Match Management', 
+        current_time=datetime.utcnow(), 
+        timedelta=timedelta
+    )
+
+
+@admin_bp.route('/admin/match_management/match-tasks/<int:match_id>', endpoint='get_match_tasks', methods=['GET'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def get_match_tasks(match_id):
+    """Get detailed task information for a specific match."""
+    try:
+        # Use the shared enhanced task status function
+        from app.utils.task_status_helper import get_enhanced_match_task_status
+        
+        result = get_enhanced_match_task_status(match_id)
+        response = jsonify(result)
+        # Cache for 30 seconds to prevent inconsistent refreshes
+        response.headers['Cache-Control'] = 'max-age=30, public'
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error getting match tasks for {match_id}: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'match_id': match_id
+        }), 500
+
+
+@admin_bp.route('/admin/match_management/revoke-task', endpoint='revoke_match_task', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def revoke_match_task():
+    """Revoke a specific task for a match."""
+    try:
+        data = request.get_json()
+        task_id = data.get('task_id')
+        match_id = data.get('match_id')
+        task_type = data.get('task_type')  # 'thread' or 'reporting'
+        
+        if not task_id or not match_id:
+            return jsonify({
+                'success': False,
+                'error': 'task_id and match_id are required'
+            }), 400
+        
+        # Revoke the Celery task
+        from celery.result import AsyncResult
+        from app.core import celery
+        
+        task_result = AsyncResult(task_id)
+        task_result.revoke(terminate=True)
+        
+        # Remove from Redis scheduler
+        from app.utils.safe_redis import get_safe_redis
+        redis_client = get_safe_redis()
+        
+        if redis_client and hasattr(redis_client, 'is_available') and redis_client.is_available:
+            redis_key = f"match_scheduler:{match_id}:{task_type}"
+            redis_client.delete(redis_key)
+        
+        logger.info(f"Revoked task {task_id} for match {match_id} ({task_type})")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Task {task_id} has been revoked',
+            'task_id': task_id
+        })
+        
+    except Exception as e:
+        logger.error(f"Error revoking task: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@admin_bp.route('/admin/match_management/redis-test', endpoint='redis_test', methods=['GET'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def redis_test():
+    """Test Redis connection directly."""
+    try:
+        import redis
+        # Test direct connection
+        r = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
+        ping_result = r.ping()
+        
+        # Test safe Redis
+        from app.utils.safe_redis import get_safe_redis, reset_safe_redis
+        reset_safe_redis()
+        safe_client = get_safe_redis()
+        
+        return jsonify({
+            'success': True,
+            'direct_redis_ping': ping_result,
+            'safe_redis_available': safe_client.is_available if safe_client else False,
+            'queue_lengths': {
+                'live_reporting': r.llen('live_reporting'),
+                'discord': r.llen('discord'), 
+                'celery': r.llen('celery'),
+                'player_sync': r.llen('player_sync')
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 @admin_bp.route('/admin/match_management/statuses', endpoint='get_match_statuses', methods=['GET'])
@@ -347,14 +480,34 @@ def start_match_reporting(match_id):
         return jsonify({'success': False, 'error': 'Match not found'}), 404
     
     try:
-        from app.tasks.tasks_live_reporting import start_live_reporting
+        try:
+            from app.tasks.tasks_live_reporting_v2 import start_live_reporting_v2
+            v2_available = True
+        except ImportError:
+            from app.tasks.tasks_robust_live_reporting import start_robust_live_reporting
+            v2_available = False
         
         # Check if already running
         if match.live_reporting_status == 'running':
             return jsonify({'success': False, 'error': 'Live reporting already running'}), 400
         
-        # Start live reporting immediately
-        task_result = start_live_reporting.delay(str(match.match_id))
+        # Start live reporting immediately (V2 if available, otherwise robust)
+        if v2_available:
+            logger.info(f"🚀 [ADMIN] Starting V2 live reporting for match {match.match_id} in thread {match.discord_thread_id}")
+            task_result = start_live_reporting_v2.delay(
+                str(match.match_id),
+                str(match.discord_thread_id),
+                match.competition or 'usa.1'
+            )
+            reporting_type = "V2"
+        else:
+            logger.warning(f"⚠️  [ADMIN] V2 not available, falling back to Robust system for match {match.match_id} in thread {match.discord_thread_id}")
+            task_result = start_robust_live_reporting.delay(
+                str(match.match_id),
+                str(match.discord_thread_id),
+                match.competition or 'usa.1'
+            )
+            reporting_type = "Robust"
         
         # Update match status
         match.live_reporting_status = 'scheduled'
@@ -1097,3 +1250,79 @@ def schedule_all_mls_threads():
         show_error(f'Error scheduling all threads: {str(e)}')
     
     return redirect(url_for('admin.view_mls_matches'))
+
+
+@admin_bp.route('/admin/match_management/cache-status', endpoint='get_cache_status', methods=['GET'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def get_cache_status():
+    """Get cache system status and statistics."""
+    try:
+        from app.services.task_status_cache import task_status_cache
+        
+        redis_client = task_status_cache.get_redis_client()
+        
+        # Get cache statistics
+        cache_keys = redis_client.keys(f"{task_status_cache.CACHE_PREFIX}:*")
+        cache_count = len(cache_keys)
+        
+        # Sample cache entries for health check
+        sample_size = min(10, cache_count)
+        valid_entries = 0
+        total_size_bytes = 0
+        
+        if sample_size > 0:
+            import random
+            sample_keys = random.sample(cache_keys, sample_size)
+            
+            for key in sample_keys:
+                try:
+                    data = redis_client.get(key)
+                    if data:
+                        import json
+                        json.loads(data)  # Validate JSON
+                        valid_entries += 1
+                        total_size_bytes += len(data)
+                except Exception:
+                    pass
+        
+        avg_entry_size = (total_size_bytes / sample_size) if sample_size > 0 else 0
+        health_score = (valid_entries / sample_size * 100) if sample_size > 0 else 100
+        estimated_total_size = avg_entry_size * cache_count
+        
+        # Get active matches count for comparison
+        from app.models import MLSMatch
+        from app.core.session_manager import managed_session
+        from datetime import datetime, timedelta
+        
+        with managed_session() as session:
+            now = datetime.utcnow()
+            active_matches = session.query(MLSMatch).filter(
+                MLSMatch.date_time >= now - timedelta(days=2),
+                MLSMatch.date_time <= now + timedelta(days=7)
+            ).count()
+        
+        cache_coverage = (cache_count / active_matches * 100) if active_matches > 0 else 0
+        
+        return jsonify({
+            'success': True,
+            'cache_stats': {
+                'total_entries': cache_count,
+                'active_matches': active_matches,
+                'cache_coverage_percent': cache_coverage,
+                'health_score_percent': health_score,
+                'sample_size': sample_size,
+                'valid_entries': valid_entries,
+                'avg_entry_size_bytes': int(avg_entry_size),
+                'estimated_total_size_bytes': int(estimated_total_size),
+                'ttl_seconds': task_status_cache.CACHE_TTL
+            },
+            'timestamp': datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting cache status: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

@@ -56,6 +56,10 @@ from .external import (
     help_topic_roles
 )
 
+from .live_reporting_session import (
+    LiveReportingSession
+)
+
 from .ecs_fc import (
     EcsFcMatch, EcsFcAvailability, EcsFcScheduleTemplate,
     get_ecs_fc_teams, is_ecs_fc_team, get_ecs_fc_matches_for_team,
@@ -126,6 +130,9 @@ __all__ = [
     
     # External integration models
     'Token', 'MLSMatch', 'Progress', 'HelpTopic', 'Prediction',
+    
+    # Live reporting models
+    'LiveReportingSession',
     
     # ECS FC models
     'EcsFcMatch', 'EcsFcAvailability', 'EcsFcScheduleTemplate',

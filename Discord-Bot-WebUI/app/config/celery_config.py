@@ -28,7 +28,12 @@ class CeleryConfig:
     broker_transport_options = {
         'visibility_timeout': 3600,  # 1 hour
         'socket_timeout': 5,
-        'socket_connect_timeout': 5
+        'socket_connect_timeout': 5,
+        # Automatically expire unprocessed messages
+        'fanout_prefix': True,
+        'fanout_patterns': True,
+        # Set default message TTL in Redis
+        'master_name': None
     }
     result_backend = os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/0')
     result_backend_transport_options = {
@@ -40,6 +45,8 @@ class CeleryConfig:
     imports = (
         'app.tasks.tasks_core',
         'app.tasks.tasks_live_reporting',
+        'app.tasks.tasks_robust_live_reporting',
+        'app.tasks.tasks_live_reporting_v2',
         'app.tasks.tasks_match_updates',
         'app.tasks.tasks_rsvp',
         'app.tasks.tasks_rsvp_ecs',
@@ -61,13 +68,41 @@ class CeleryConfig:
     task_track_started = True
     task_time_limit = 30 * 60  # 30 minutes
     task_soft_time_limit = 15 * 60  # 15 minutes
+    
+    # Advanced Task Settings for Production
+    task_always_eager = False  # Never run tasks synchronously in production
+    task_eager_propagates = False  # Don't propagate exceptions in eager mode
+    task_ignore_result = False  # Keep results for monitoring
+    task_store_eager_result = False  # Don't store results when eager
+    task_default_retry_delay = 60  # Default retry delay (1 minute)
+    task_max_retries = 3  # Default max retries
+    
+    # Task Result Settings
+    result_expires = 3600  # Results expire after 1 hour
+    result_compression = 'gzip'  # Compress results to save memory
+    result_accept_content = ['json']
+    
+    # Task Execution Settings
+    task_send_sent_event = True  # Send task-sent events for monitoring
+    task_send_events = True  # Enable event monitoring
 
     # Worker Settings
     worker_prefetch_multiplier = 1
-    worker_max_tasks_per_child = 100  # Increased from 50 - restart worker after 100 tasks
+    worker_max_tasks_per_child = 100  # Restart worker after 100 tasks
     worker_max_memory_per_child = 150000  # 150MB memory limit per worker
     worker_concurrency = 4
     broker_connection_retry_on_startup = True
+    
+    # Production Worker Optimizations
+    worker_disable_rate_limits = False  # Keep rate limiting enabled
+    worker_pool_restarts = True  # Allow pool restarts for memory management
+    worker_autoscaler_max_memory_per_child = 200000  # 200MB absolute max
+    worker_lost_wait = 10.0  # Wait 10 seconds for lost worker cleanup
+    
+    # Connection Pool Settings for High Load
+    broker_pool_limit = 10  # Connection pool size
+    broker_connection_retry = True
+    broker_connection_max_retries = 3
 
     # Serialization Settings
     accept_content = ['json']
@@ -79,22 +114,38 @@ class CeleryConfig:
         'live_reporting': {
             'exchange': 'live_reporting',
             'routing_key': 'live_reporting',
-            'queue_arguments': {'x-max-priority': 10}
+            'queue_arguments': {
+                'x-max-priority': 10,
+                'x-message-ttl': 300000,  # 5 minutes TTL for live reporting tasks
+                'x-max-length': 1000  # Prevent queue from growing too large
+            }
         },
         'discord': {
             'exchange': 'discord',
             'routing_key': 'discord',
-            'queue_arguments': {'x-max-priority': 10}
+            'queue_arguments': {
+                'x-max-priority': 10,
+                'x-message-ttl': 3600000,  # 1 hour TTL for Discord tasks
+                'x-max-length': 500
+            }
         },
         'celery': {
             'exchange': 'celery',
             'routing_key': 'celery',
-            'queue_arguments': {'x-max-priority': 10}
+            'queue_arguments': {
+                'x-max-priority': 10,
+                'x-message-ttl': 1800000,  # 30 minutes TTL for general tasks
+                'x-max-length': 1000
+            }
         },
         'player_sync': {
             'exchange': 'player_sync',
             'routing_key': 'player_sync',
-            'queue_arguments': {'x-max-priority': 10}
+            'queue_arguments': {
+                'x-max-priority': 10,
+                'x-message-ttl': 7200000,  # 2 hours TTL for player sync
+                'x-max-length': 200
+            }
         }
     }
 
@@ -221,6 +272,67 @@ class CeleryConfig:
             'options': {
                 'queue': 'celery',
                 'expires': 3540  # Task expires after 59 minutes
+            }
+        },
+        # V2 Live Reporting - Process all active sessions every 30 seconds
+        'process-active-live-sessions-v2': {
+            'task': 'app.tasks.tasks_live_reporting_v2.process_all_active_sessions_v2',
+            'schedule': 30.0,  # Every 30 seconds
+            'options': {
+                'queue': 'live_reporting',
+                'expires': 60  # Task expires after 60 seconds (allows for processing delays)
+            }
+        },
+        # Legacy Robust Live Reporting - DISABLED (V2 is now active)
+        # 'process-active-live-sessions-legacy': {
+        #     'task': 'app.tasks.tasks_robust_live_reporting.process_all_active_sessions',
+        #     'schedule': crontab(minute='*/30'),  # Every 30 minutes (disabled)
+        #     'options': {
+        #         'queue': 'live_reporting',
+        #         'expires': 25
+        #     }
+        # },
+        # Clean up old live reporting sessions daily
+        'cleanup-old-live-sessions': {
+            'task': 'app.tasks.tasks_robust_live_reporting.cleanup_old_sessions',
+            'schedule': crontab(hour=3, minute=30),  # Daily at 3:30 AM PST
+            'options': {
+                'queue': 'live_reporting',
+                'expires': 1740  # Task expires after 29 minutes
+            }
+        },
+        # Clean expired tasks from queues
+        'cleanup-expired-queue-tasks': {
+            'task': 'app.tasks.tasks_maintenance.cleanup_expired_queue_tasks',
+            'schedule': crontab(minute='*/15'),  # Every 15 minutes
+            'options': {
+                'queue': 'celery',
+                'expires': 840  # Task expires after 14 minutes
+            }
+        },
+        # Monitor Celery system health
+        'monitor-celery-health': {
+            'task': 'app.tasks.tasks_maintenance.monitor_celery_health',
+            'schedule': crontab(minute='*/5'),  # Every 5 minutes
+            'options': {
+                'queue': 'celery',
+                'expires': 240  # Task expires after 4 minutes
+            }
+        },
+        'update-task-status-cache': {
+            'task': 'app.tasks.tasks_cache_management.update_task_status_cache',
+            'schedule': crontab(minute='*/3'),  # Every 3 minutes
+            'options': {
+                'queue': 'celery',
+                'expires': 150  # Task expires after 2.5 minutes
+            }
+        },
+        'cache-health-check': {
+            'task': 'app.tasks.tasks_cache_management.cache_health_check',
+            'schedule': crontab(minute='*/10'),  # Every 10 minutes
+            'options': {
+                'queue': 'celery',
+                'expires': 540  # Task expires after 9 minutes
             }
         }
     }

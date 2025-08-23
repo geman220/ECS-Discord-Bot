@@ -25,9 +25,13 @@ from flask_login import login_required
 
 # Local application imports
 from app.core import celery
-from app.tasks.tasks_live_reporting import (
-    start_live_reporting, force_create_mls_thread_task
-)
+from app.tasks.tasks_live_reporting import force_create_mls_thread_task
+try:
+    from app.tasks.tasks_live_reporting_v2 import start_live_reporting_v2
+    V2_AVAILABLE = True
+except ImportError:
+    V2_AVAILABLE = False
+    start_live_reporting_v2 = None
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.db_utils import load_match_dates_from_db, insert_mls_match, update_mls_match
 from app.api_utils import async_to_sync, extract_match_details
@@ -37,6 +41,12 @@ from app.models import Match, MLSMatch, Player
 from app.match_scheduler import MatchScheduler
 
 logger = logging.getLogger(__name__)
+
+# Log V2 availability after logger is defined
+if V2_AVAILABLE:
+    logger.info("✅ Live Reporting V2 system is AVAILABLE for bot admin operations")
+else:
+    logger.warning("⚠️  Live Reporting V2 system NOT AVAILABLE for bot admin - using Robust system")
 bot_admin_bp = Blueprint('bot_admin', __name__, url_prefix='/bot/admin')
 
 # ------------------------
@@ -154,7 +164,24 @@ def start_live_reporting_route(match_id):
             logger.warning(f"Match {match_id} already running")
             return jsonify({'success': False, 'message': 'Live reporting already running'}), 400
 
-        task = start_live_reporting.delay(str(match.match_id))
+        # Use V2 live reporting if available, fallback to robust
+        if V2_AVAILABLE:
+            logger.info(f"🚀 [BOT_ADMIN] Starting V2 live reporting for match {match.match_id} in thread {match.discord_thread_id}")
+            task = start_live_reporting_v2.delay(
+                str(match.match_id), 
+                str(match.discord_thread_id), 
+                match.competition or 'usa.1'
+            )
+            reporting_type = "V2"
+        else:
+            logger.warning(f"⚠️  [BOT_ADMIN] V2 not available, falling back to Robust system for match {match.match_id} in thread {match.discord_thread_id}")
+            from app.tasks.tasks_robust_live_reporting import start_robust_live_reporting
+            task = start_robust_live_reporting.delay(
+                str(match.match_id), 
+                str(match.discord_thread_id), 
+                match.competition or 'usa.1'
+            )
+            reporting_type = "Robust"
         match.live_reporting_status = 'scheduled'
         match.live_reporting_task_id = task.id
         match.live_reporting_scheduled = True

@@ -24,6 +24,7 @@ from .event_consumer import (
 from .espn_service import get_espn_service, fetch_espn_data
 from .discord_service import get_discord_service, create_match_thread_via_bot
 from .enhanced_match_events import get_enhanced_events_service
+from .ai_commentary import get_ai_commentary_service, generate_ai_commentary
 
 __all__ = [
     'RSVPService',
@@ -39,5 +40,7 @@ __all__ = [
     'fetch_espn_data',
     'get_discord_service',
     'create_match_thread_via_bot',
-    'get_enhanced_events_service'
+    'get_enhanced_events_service',
+    'get_ai_commentary_service',
+    'generate_ai_commentary'
 ]
