@@ -285,7 +285,7 @@ class CeleryConfig:
                 'expires': 3540  # Task expires after 59 minutes
             }
         },
-        # V2 Live Reporting - Process all active sessions every 30 seconds
+        # V2 Live Reporting - Process all active sessions every 30 seconds (FIXED: reduced connection pool)
         'process-active-live-sessions-v2': {
             'task': 'app.tasks.tasks_live_reporting_v2.process_all_active_sessions_v2',
             'schedule': 30.0,  # Every 30 seconds
@@ -312,36 +312,38 @@ class CeleryConfig:
                 'expires': 1740  # Task expires after 29 minutes
             }
         },
+        # TEMPORARILY DISABLED - These new maintenance tasks may be causing connection issues
         # Clean expired tasks from queues - More Aggressive
-        'cleanup-expired-queue-tasks': {
-            'task': 'app.tasks.tasks_maintenance.cleanup_expired_queue_tasks',
-            'schedule': crontab(minute='*/10'),  # Every 10 minutes (more frequent)
-            'options': {
-                'queue': 'celery',
-                'expires': 540,  # Task expires after 9 minutes
-                'priority': 9  # High priority cleanup
-            }
-        },
-        # Monitor Celery system health
-        'monitor-celery-health': {
-            'task': 'app.tasks.tasks_maintenance.monitor_celery_health',
-            'schedule': crontab(minute='*/3'),  # Every 3 minutes (more frequent monitoring)
-            'options': {
-                'queue': 'celery',
-                'expires': 150,  # Task expires after 2.5 minutes
-                'priority': 8  # High priority monitoring
-            }
-        },
-        # Auto-purge stuck queues (emergency cleanup)
-        'emergency-queue-purge': {
-            'task': 'app.tasks.tasks_maintenance.emergency_queue_purge',
-            'schedule': crontab(minute='*/30'),  # Every 30 minutes
-            'options': {
-                'queue': 'celery',
-                'expires': 1740,  # Task expires after 29 minutes
-                'priority': 10  # Highest priority
-            }
-        },
+        # 'cleanup-expired-queue-tasks': {
+        #     'task': 'app.tasks.tasks_maintenance.cleanup_expired_queue_tasks',
+        #     'schedule': crontab(minute='*/10'),  # Every 10 minutes (more frequent)
+        #     'options': {
+        #         'queue': 'celery',
+        #         'expires': 540,  # Task expires after 9 minutes
+        #         'priority': 9  # High priority cleanup
+        #     }
+        # },
+        # # Monitor Celery system health
+        # 'monitor-celery-health': {
+        #     'task': 'app.tasks.tasks_maintenance.monitor_celery_health',
+        #     'schedule': crontab(minute='*/3'),  # Every 3 minutes (more frequent monitoring)
+        #     'options': {
+        #         'queue': 'celery',
+        #         'expires': 150,  # Task expires after 2.5 minutes
+        #         'priority': 8  # High priority monitoring
+        #     }
+        # },
+        # # Auto-purge stuck queues (emergency cleanup)
+        # 'emergency-queue-purge': {
+        #     'task': 'app.tasks.tasks_maintenance.emergency_queue_purge',
+        #     'schedule': crontab(minute='*/30'),  # Every 30 minutes
+        #     'options': {
+        #         'queue': 'celery',
+        #         'expires': 1740,  # Task expires after 29 minutes
+        #         'priority': 10  # Highest priority
+        #     }
+        # },
+        # Cache tasks (FIXED: removed double session usage)
         'update-task-status-cache': {
             'task': 'app.tasks.tasks_cache_management.update_task_status_cache',
             'schedule': crontab(minute='*/3'),  # Every 3 minutes

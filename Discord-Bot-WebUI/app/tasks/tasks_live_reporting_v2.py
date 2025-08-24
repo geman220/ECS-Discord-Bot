@@ -12,7 +12,7 @@ import asyncio
 from typing import Dict, Any, List
 from datetime import datetime
 
-from app.decorators import celery_task
+from app.core import celery
 from app.services.live_reporting import (
     LiveReportingOrchestrator,
     LiveReportingConfig,
@@ -42,13 +42,13 @@ def run_async_in_celery(coro):
         return asyncio.run(coro)
 
 
-@celery_task(
+@celery.task(
     name='app.tasks.tasks_live_reporting_v2.process_all_active_sessions_v2',
     bind=True,
     queue='live_reporting',
     max_retries=3
 )
-def process_all_active_sessions_v2(self, session) -> Dict[str, Any]:
+def process_all_active_sessions_v2(self) -> Dict[str, Any]:
     """
     Process all active live reporting sessions using new architecture.
     
@@ -217,13 +217,13 @@ async def _process_single_session(
         raise e
 
 
-@celery_task(
+@celery.task(
     name='app.tasks.tasks_live_reporting_v2.start_live_reporting_v2',
     bind=True,
     queue='live_reporting',
     max_retries=3
 )
-def start_live_reporting_v2(self, session, match_id: str, thread_id: str, competition: str = "usa.1") -> Dict[str, Any]:
+def start_live_reporting_v2(self, match_id: str, thread_id: str, competition: str = "usa.1") -> Dict[str, Any]:
     """
     Start live reporting using new architecture.
     
@@ -342,12 +342,12 @@ async def _start_live_reporting_async(match_id: str, thread_id: str, competition
         }
 
 
-@celery_task(
+@celery.task(
     name='app.tasks.tasks_live_reporting_v2.stop_live_reporting_v2',
     bind=True,
     queue='live_reporting'
 )
-def stop_live_reporting_v2(self, session, match_id: str) -> Dict[str, Any]:
+def stop_live_reporting_v2(self, match_id: str) -> Dict[str, Any]:
     """
     Stop live reporting using new architecture.
     
@@ -412,12 +412,12 @@ async def _stop_live_reporting_async(match_id: str) -> Dict[str, Any]:
         }
 
 
-@celery_task(
+@celery.task(
     name='app.tasks.tasks_live_reporting_v2.health_check_v2',
     bind=True,
     queue='live_reporting'
 )
-def health_check_v2(self, session) -> Dict[str, Any]:
+def health_check_v2(self) -> Dict[str, Any]:
     """
     Health check for V2 live reporting system.
     
