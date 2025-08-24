@@ -54,6 +54,7 @@ class CeleryConfig:
         'app.tasks.tasks_discord',
         'app.tasks.monitoring_tasks',
         'app.tasks.tasks_maintenance',
+        'app.tasks.tasks_cache_management',
         'app.tasks.player_sync',
         'app.tasks.tasks_substitute_pools',
         'app.tasks.tasks_image_optimization',
@@ -77,10 +78,12 @@ class CeleryConfig:
     task_default_retry_delay = 60  # Default retry delay (1 minute)
     task_max_retries = 3  # Default max retries
     
-    # Task Result Settings
-    result_expires = 3600  # Results expire after 1 hour
+    # Task Result Settings - Industry Best Practices
+    result_expires = 1800  # Results expire after 30 minutes (faster cleanup)
     result_compression = 'gzip'  # Compress results to save memory
     result_accept_content = ['json']
+    result_persistent = False  # Don't persist results beyond expiry
+    result_backend_always_retry = True  # Auto-retry result backend connections
     
     # Task Execution Settings
     task_send_sent_event = True  # Send task-sent events for monitoring
@@ -301,22 +304,34 @@ class CeleryConfig:
                 'expires': 1740  # Task expires after 29 minutes
             }
         },
-        # Clean expired tasks from queues
+        # Clean expired tasks from queues - More Aggressive
         'cleanup-expired-queue-tasks': {
             'task': 'app.tasks.tasks_maintenance.cleanup_expired_queue_tasks',
-            'schedule': crontab(minute='*/15'),  # Every 15 minutes
+            'schedule': crontab(minute='*/10'),  # Every 10 minutes (more frequent)
             'options': {
                 'queue': 'celery',
-                'expires': 840  # Task expires after 14 minutes
+                'expires': 540,  # Task expires after 9 minutes
+                'priority': 9  # High priority cleanup
             }
         },
         # Monitor Celery system health
         'monitor-celery-health': {
             'task': 'app.tasks.tasks_maintenance.monitor_celery_health',
-            'schedule': crontab(minute='*/5'),  # Every 5 minutes
+            'schedule': crontab(minute='*/3'),  # Every 3 minutes (more frequent monitoring)
             'options': {
                 'queue': 'celery',
-                'expires': 240  # Task expires after 4 minutes
+                'expires': 150,  # Task expires after 2.5 minutes
+                'priority': 8  # High priority monitoring
+            }
+        },
+        # Auto-purge stuck queues (emergency cleanup)
+        'emergency-queue-purge': {
+            'task': 'app.tasks.tasks_maintenance.emergency_queue_purge',
+            'schedule': crontab(minute='*/30'),  # Every 30 minutes
+            'options': {
+                'queue': 'celery',
+                'expires': 1740,  # Task expires after 29 minutes
+                'priority': 10  # Highest priority
             }
         },
         'update-task-status-cache': {

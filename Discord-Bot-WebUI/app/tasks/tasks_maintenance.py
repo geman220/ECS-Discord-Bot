@@ -381,3 +381,88 @@ def monitor_celery_health(self, session):
     except Exception as e:
         logger.error(f"Error during Celery health monitoring: {str(e)}", exc_info=True)
         return {"status": "error", "message": str(e)}
+
+
+@celery_task(
+    name='app.tasks.tasks_maintenance.emergency_queue_purge',
+    bind=True,
+    queue='celery',
+    max_retries=1
+)
+def emergency_queue_purge(self, session):
+    """
+    Emergency queue purge when queues exceed critical thresholds.
+    
+    This is the industry-standard approach for preventing queue buildup.
+    Automatically purges queues that exceed emergency thresholds to prevent
+    system overload and ensure continued operation.
+    """
+    try:
+        redis = get_safe_redis()
+        if not redis or not hasattr(redis, 'is_available') or not redis.is_available:
+            logger.warning("Redis not available for emergency queue purge")
+            return {"status": "skipped", "message": "Redis not available"}
+        
+        # Emergency thresholds (much higher than warning thresholds)
+        emergency_thresholds = {
+            'live_reporting': 500,  # Purge if > 500 tasks
+            'discord': 300,         # Purge if > 300 tasks  
+            'celery': 1000,         # Purge if > 1000 tasks
+            'player_sync': 200      # Purge if > 200 tasks
+        }
+        
+        purge_stats = {}
+        total_purged = 0
+        
+        for queue_name, threshold in emergency_thresholds.items():
+            try:
+                queue_length = redis.llen(queue_name)
+                
+                if queue_length > threshold:
+                    logger.warning(f"EMERGENCY: Queue {queue_name} has {queue_length} tasks, purging...")
+                    
+                    # Keep only the most recent tasks (last 10% or minimum 10)
+                    keep_count = max(10, int(queue_length * 0.1))
+                    purged_count = queue_length - keep_count
+                    
+                    # Keep most recent tasks at the end of the queue
+                    redis.ltrim(queue_name, -keep_count, -1)
+                    
+                    total_purged += purged_count
+                    purge_stats[queue_name] = {
+                        'original_length': queue_length,
+                        'purged': purged_count,
+                        'kept': keep_count,
+                        'threshold': threshold,
+                        'action': 'purged'
+                    }
+                    
+                    logger.error(f"EMERGENCY PURGE: Queue {queue_name} purged {purged_count} old tasks, kept {keep_count} recent tasks")
+                
+                else:
+                    purge_stats[queue_name] = {
+                        'original_length': queue_length,
+                        'threshold': threshold,
+                        'action': 'no_action_needed'
+                    }
+                
+            except Exception as e:
+                logger.error(f"Error during emergency purge of queue {queue_name}: {e}")
+                purge_stats[queue_name] = {'error': str(e)}
+        
+        if total_purged > 0:
+            logger.error(f"EMERGENCY QUEUE PURGE COMPLETED: {total_purged} tasks removed across all queues")
+        else:
+            logger.info("Emergency queue check: All queues within acceptable limits")
+        
+        return {
+            "status": "success",
+            "message": f"Emergency purge completed: {total_purged} tasks removed",
+            "total_purged": total_purged,
+            "purge_stats": purge_stats,
+            "emergency_action": total_purged > 0
+        }
+        
+    except Exception as e:
+        logger.error(f"Error during emergency queue purge: {str(e)}", exc_info=True)
+        return {"status": "error", "message": str(e)}
