@@ -16,7 +16,7 @@ from app.services.task_status_cache import task_status_cache
 logger = logging.getLogger(__name__)
 
 
-@celery.task(bind=True, name='update_task_status_cache')
+@celery.task(bind=True, name='app.tasks.tasks_cache_management.update_task_status_cache')
 def update_task_status_cache(self):
     """
     Background task to update task status cache for all active matches.
@@ -98,7 +98,7 @@ def update_task_status_cache(self):
         }
 
 
-@celery.task(bind=True, name='invalidate_match_cache')
+@celery.task(bind=True, name='app.tasks.tasks_cache_management.invalidate_match_cache')
 def invalidate_match_cache(self, match_id: int):
     """
     Task to invalidate cache for a specific match.
@@ -140,7 +140,7 @@ def invalidate_match_cache(self, match_id: int):
         }
 
 
-@celery.task(bind=True, name='warm_cache_for_match')
+@celery.task(bind=True, name='app.tasks.tasks_cache_management.warm_cache_for_match')
 def warm_cache_for_match(self, match_id: int):
     """
     Task to proactively warm cache for a specific match.
@@ -188,7 +188,7 @@ def warm_cache_for_match(self, match_id: int):
         }
 
 
-@celery.task(bind=True, name='cache_health_check')
+@celery.task(bind=True, name='app.tasks.tasks_cache_management.cache_health_check')
 def cache_health_check(self):
     """
     Health check task for cache system.
