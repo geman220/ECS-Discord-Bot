@@ -62,21 +62,23 @@ class CeleryConfig:
         'app.tasks.mobile_analytics_cleanup'
     )
 
-    # Task Settings
-    task_acks_late = True
-    task_reject_on_worker_lost = True
-    task_acks_on_failure_or_timeout = True
+    # Task Settings - Industry Best Practices
+    task_acks_late = True  # Acknowledge tasks after completion
+    task_reject_on_worker_lost = True  # Reject tasks when worker is lost
+    task_acks_on_failure_or_timeout = True  # Clean up failed tasks
     task_track_started = True
     task_time_limit = 30 * 60  # 30 minutes
     task_soft_time_limit = 15 * 60  # 15 minutes
-    
-    # Advanced Task Settings for Production
     task_always_eager = False  # Never run tasks synchronously in production
     task_eager_propagates = False  # Don't propagate exceptions in eager mode
     task_ignore_result = False  # Keep results for monitoring
     task_store_eager_result = False  # Don't store results when eager
     task_default_retry_delay = 60  # Default retry delay (1 minute)
     task_max_retries = 3  # Default max retries
+    task_serializer_kwargs = {
+        'ensure_ascii': True,
+        'sort_keys': True
+    }
     
     # Task Result Settings - Industry Best Practices
     result_expires = 1800  # Results expire after 30 minutes (faster cleanup)
@@ -84,6 +86,12 @@ class CeleryConfig:
     result_accept_content = ['json']
     result_persistent = False  # Don't persist results beyond expiry
     result_backend_always_retry = True  # Auto-retry result backend connections
+    result_extended = True  # Store additional task metadata safely
+    result_serializer_kwargs = {
+        'ensure_ascii': True,
+        'sort_keys': True,
+        'separators': (',', ':')
+    }
     
     # Task Execution Settings
     task_send_sent_event = True  # Send task-sent events for monitoring

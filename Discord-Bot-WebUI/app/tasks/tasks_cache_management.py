@@ -81,21 +81,25 @@ def update_task_status_cache(self):
     except Exception as e:
         logger.error(f"Error in update_task_status_cache: {e}", exc_info=True)
         
+        error_result = {
+            'success': False,
+            'error': str(e)[:500],  # Limit error message length for serialization
+            'error_type': type(e).__name__,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
         if current_task:
             current_task.update_state(
                 state='FAILURE',
                 meta={
                     'stage': 'exception',
-                    'error': str(e),
+                    'error': str(e)[:500],
+                    'error_type': type(e).__name__,
                     'timestamp': datetime.utcnow().isoformat()
                 }
             )
         
-        return {
-            'success': False,
-            'error': str(e),
-            'timestamp': datetime.utcnow().isoformat()
-        }
+        return error_result
 
 
 @celery.task(bind=True, name='app.tasks.tasks_cache_management.invalidate_match_cache')
@@ -244,7 +248,8 @@ def cache_health_check(self):
         logger.error(f"Cache health check failed: {e}", exc_info=True)
         return {
             'success': False,
-            'error': str(e),
+            'error': str(e)[:500],  # Limit error message length for serialization
+            'error_type': type(e).__name__,
             'redis_connected': False,
             'timestamp': datetime.utcnow().isoformat()
         }
