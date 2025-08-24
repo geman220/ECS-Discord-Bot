@@ -24,8 +24,8 @@ class LiveReportingConfig(BaseSettings):
     
     # Database Configuration
     database_url: str = Field(..., env="DATABASE_URL")
-    database_pool_size: int = Field(default=10, env="DATABASE_POOL_SIZE")
-    database_max_overflow: int = Field(default=5, env="DATABASE_MAX_OVERFLOW")
+    database_pool_size: int = Field(default=2, env="LIVE_REPORTING_DATABASE_POOL_SIZE")  # Much smaller for V2
+    database_max_overflow: int = Field(default=1, env="LIVE_REPORTING_DATABASE_MAX_OVERFLOW")  # Much smaller for V2
     database_pool_timeout: int = Field(default=30, env="DATABASE_POOL_TIMEOUT")
     
     # Redis Configuration

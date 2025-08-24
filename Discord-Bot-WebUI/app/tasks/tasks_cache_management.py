@@ -118,15 +118,13 @@ def invalidate_match_cache(self, match_id: int):
         if success:
             logger.info(f"Successfully invalidated cache for match {match_id}")
             
-            # Immediately refresh the cache for this match
+            # Immediately refresh the cache for this match using provided session
             from app.models import MLSMatch
-            from app.core.session_manager import managed_session
             
-            with managed_session() as session:
-                match = session.query(MLSMatch).filter_by(id=match_id).first()
-                if match:
-                    task_status_cache.update_match_cache(match)
-                    logger.info(f"Refreshed cache for match {match_id}")
+            match = session.query(MLSMatch).filter_by(id=match_id).first()
+            if match:
+                task_status_cache.update_match_cache(match)
+                logger.info(f"Refreshed cache for match {match_id}")
         
         return {
             'success': success,
@@ -156,25 +154,23 @@ def warm_cache_for_match(self, match_id: int):
         logger.info(f"Warming cache for match {match_id}")
         
         from app.models import MLSMatch
-        from app.core.session_manager import managed_session
         
-        with managed_session() as session:
-            match = session.query(MLSMatch).filter_by(id=match_id).first()
-            if not match:
-                logger.warning(f"Match {match_id} not found for cache warming")
-                return {
-                    'success': False,
-                    'error': f'Match {match_id} not found',
-                    'match_id': match_id,
-                    'timestamp': datetime.utcnow().isoformat()
-                }
-            
-            success = task_status_cache.update_match_cache(match)
-            
-            if success:
-                logger.info(f"Successfully warmed cache for match {match_id}")
-            else:
-                logger.error(f"Failed to warm cache for match {match_id}")
+        match = session.query(MLSMatch).filter_by(id=match_id).first()
+        if not match:
+            logger.warning(f"Match {match_id} not found for cache warming")
+            return {
+                'success': False,
+                'error': f'Match {match_id} not found',
+                'match_id': match_id,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+        
+        success = task_status_cache.update_match_cache(match)
+        
+        if success:
+            logger.info(f"Successfully warmed cache for match {match_id}")
+        else:
+            logger.error(f"Failed to warm cache for match {match_id}")
         
         return {
             'success': success,

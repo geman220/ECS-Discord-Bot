@@ -81,9 +81,6 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=6
-      - SQLALCHEMY_MAX_OVERFLOW=4
-      - SQLALCHEMY_POOL_TIMEOUT=10
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_data:/tmp/celery
@@ -118,9 +115,6 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=6
-      - SQLALCHEMY_MAX_OVERFLOW=4
-      - SQLALCHEMY_POOL_TIMEOUT=10
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_sync_data:/tmp/celery_sync
@@ -153,9 +147,6 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=6
-      - SQLALCHEMY_MAX_OVERFLOW=4
-      - SQLALCHEMY_POOL_TIMEOUT=10
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_live_data:/tmp/celery_live
@@ -188,9 +179,6 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=6
-      - SQLALCHEMY_MAX_OVERFLOW=4
-      - SQLALCHEMY_POOL_TIMEOUT=10
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_live_data:/tmp/celery_live
@@ -225,9 +213,6 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=6
-      - SQLALCHEMY_MAX_OVERFLOW=4
-      - SQLALCHEMY_POOL_TIMEOUT=10
       - CELERY_WORKER=1  # Prevent Flask initialization in worker
     volumes:
       - ./Discord-Bot-WebUI:/app
@@ -265,9 +250,6 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=6
-      - SQLALCHEMY_MAX_OVERFLOW=4
-      - SQLALCHEMY_POOL_TIMEOUT=10
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_beat_data:/tmp/celerybeat
@@ -320,14 +302,6 @@ services:
       - FLASK_DEBUG=1
       - FLASK_ENV=development
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=6
-      - SQLALCHEMY_MAX_OVERFLOW=4
-      - SQLALCHEMY_POOL_TIMEOUT=10
-      - SQLALCHEMY_POOL_RECYCLE=300
-      - SQLALCHEMY_ENGINE_OPTIONS_CONNECT_TIMEOUT=10
-      - SQLALCHEMY_ENGINE_OPTIONS_STATEMENT_TIMEOUT=5000
-      - SQLALCHEMY_ENGINE_OPTIONS_IDLE_IN_TRANSACTION_SESSION_TIMEOUT=10000
-      - SQLALCHEMY_ENGINE_OPTIONS_QUERY_TIMEOUT=5000
     env_file:
       - .env
     volumes:
@@ -396,11 +370,6 @@ services:
       - .env
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=6
-      - SQLALCHEMY_MAX_OVERFLOW=4
-      - SQLALCHEMY_POOL_TIMEOUT=10
-      - SQLALCHEMY_POOL_RECYCLE=300
-      - SQLALCHEMY_ENGINE_OPTIONS_CONNECT_TIMEOUT=10
       - BOT_RESTART_ATTEMPT=0  # Track restart attempts
     volumes:
       - .:/app
