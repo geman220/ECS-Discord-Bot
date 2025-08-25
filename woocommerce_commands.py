@@ -243,6 +243,9 @@ async def generate_csv_from_orders(orders, product_ids):
                 item_meta_data = item.get("meta_data")
                 if item_meta_data:
                     for meta in item_meta_data:
+                        # in the get_orders_for_product_ids, we filter out orders where the item
+                        # was completely returned/refunded. We only need to pay attention to the 
+                        # _reduced_stock metadata item
                         if (meta["key"]=="_reduced_stock"):
                             item_quantity = meta["value"]
                 else:
@@ -269,12 +272,9 @@ async def generate_csv_from_orders(orders, product_ids):
                     "",  # alias 2 type placeholder
                     ""   # Email Sent placeholder
                 ]
-#                variation_detail = extract_variation_detail(order)
-#                row.append(variation_detail)
 
                 rows.append(row)
                 if debug: print(f"[DEBUG] Processed order id {order.get('id')} into CSV row.")
-                #previous_email = billing.get("email", "")
                 break
 
     if debug: print(f"[DEBUG] Sorting {len(rows)} rows.")
@@ -376,7 +376,7 @@ class WooCommerceCommands(commands.Cog):
                     offset = compare_date - datetime.datetime.now()
 
                     # Clamp offset to the allowed range
-                    if not (datetime.timedelta(days=-1) < offset): # < datetime.timedelta(days=14)):
+                    if not (datetime.timedelta(days=-1) < offset < datetime.timedelta(days=180)):
                         continue
 
                     decoration = "**" if offset <= datetime.timedelta(days=14) else ""
@@ -388,12 +388,6 @@ class WooCommerceCommands(commands.Cog):
                     continue
         else:
             message_content += ("No home tickets found.\n")
-
-#        message_content += (
-#            "\n".join(f"{product['name']} ({product['stock_quantity']})" for product in home_tickets) 
-#            if home_tickets
-#            else "No home tickets found."
-#        )
 
         away_tickets = []
         away_tickets_url = wc_url.replace("orders/", f"products?category={away_tickets_category}&per_page=50&search={current_year}")
@@ -415,8 +409,8 @@ class WooCommerceCommands(commands.Cog):
                     compare_date = parser.parse(product['name'], fuzzy=True)
                     offset = compare_date - datetime.datetime.now()
 
-                    # Clamp offset to the allowed range
-                    if not (datetime.timedelta(days=-1) < offset): # < datetime.timedelta(days=14)):
+                    # Clamp offset to the allowed range; only show six months of tickets to avoid too many characters
+                    if not (datetime.timedelta(days=-1) < offset < datetime.timedelta(days=180)):
                         continue
 
                     decoration = "**" if offset <= datetime.timedelta(days=14) else ""
