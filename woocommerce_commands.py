@@ -39,6 +39,8 @@ from database import (
     reset_woo_orders_db,
 )
 import logging
+import tempfile
+import os
 
 debug = False
 
@@ -220,7 +222,8 @@ async def generate_csv_from_orders(orders, product_ids):
         "Alias 1 recipient",
         "Alias 1 type",
         "Alias 2 recipient",
-        "Alias 2 type"
+        "Alias 2 type",
+        "Email Sent"
     ]
     csv_writer.writerow(headers)
 
@@ -240,6 +243,9 @@ async def generate_csv_from_orders(orders, product_ids):
                 item_meta_data = item.get("meta_data")
                 if item_meta_data:
                     for meta in item_meta_data:
+                        # in the get_orders_for_product_ids, we filter out orders where the item
+                        # was completely returned/refunded. We only need to pay attention to the 
+                        # _reduced_stock metadata item
                         if (meta["key"]=="_reduced_stock"):
                             item_quantity = meta["value"]
                 else:
@@ -264,13 +270,11 @@ async def generate_csv_from_orders(orders, product_ids):
                     "",  # alias 1 type placeholder
                     "",  # alias 2 recipient placeholder
                     "",  # alias 2 type placeholder
+                    ""   # Email Sent placeholder
                 ]
-#                variation_detail = extract_variation_detail(order)
-#                row.append(variation_detail)
 
                 rows.append(row)
                 if debug: print(f"[DEBUG] Processed order id {order.get('id')} into CSV row.")
-                #previous_email = billing.get("email", "")
                 break
 
     if debug: print(f"[DEBUG] Sorting {len(rows)} rows.")
@@ -355,56 +359,69 @@ class WooCommerceCommands(commands.Cog):
         home_tickets_url = wc_url.replace("orders/", f"products?category={home_tickets_category}&per_page=50&search={current_year}")
         home_tickets = await call_woocommerce_api(home_tickets_url)
         if home_tickets is not None:
-            home_tickets.sort(key=lambda x: parser.parse(x['name'], fuzzy=True))
+            try:
+                home_tickets.sort(
+                    key=lambda x: parser.parse(x['name'], fuzzy=True)
+                    if 'name' in x else datetime.datetime.min
+                )
+            except ValueError:
+                # Skip sorting if any invalid date is encountered
+                pass
 
         message_content = "🏠 **Home Tickets:** (sold, remaining)\n"
         if home_tickets:
             for product in home_tickets:
-                compare_date = parser.parse(product['name'], fuzzy=True)
-                if compare_date - datetime.datetime.now() <= datetime.timedelta(days=-1):
+                try:
+                    compare_date = parser.parse(product['name'], fuzzy=True)
+                    offset = compare_date - datetime.datetime.now()
+
+                    # Clamp offset to the allowed range
+                    if not (datetime.timedelta(days=-1) < offset < datetime.timedelta(days=180)):
+                        continue
+
+                    decoration = "**" if offset <= datetime.timedelta(days=14) else ""
+                    message_content += (
+                        f"{decoration}{product['name']}{decoration} ({product['total_sales']}, {product['stock_quantity']})\n"
+                    )
+                except (ValueError, TypeError):
+                    # Skip products with invalid dates
                     continue
-                elif compare_date - datetime.datetime.now() <= datetime.timedelta(days=14):
-                    decoration = "**"
-                else:
-                    decoration = ""
-                message_content += (
-                (f"{decoration}{product['name']}{decoration} ({product['total_sales']}, {product['stock_quantity']})\n"))
         else:
             message_content += ("No home tickets found.\n")
-
-#        message_content += (
-#            "\n".join(f"{product['name']} ({product['stock_quantity']})" for product in home_tickets) 
-#            if home_tickets
-#            else "No home tickets found."
-#        )
 
         away_tickets = []
         away_tickets_url = wc_url.replace("orders/", f"products?category={away_tickets_category}&per_page=50&search={current_year}")
         away_tickets = await call_woocommerce_api(away_tickets_url)
         if away_tickets is not None:
-            away_tickets.sort(key=lambda x: parser.parse(x['name'], fuzzy=True))
+            try:
+                away_tickets.sort(
+                    key=lambda x: parser.parse(x['name'], fuzzy=True)
+                    if 'name' in x else datetime.datetime.min
+                )
+            except ValueError:
+                # Skip sorting if any invalid date is encountered
+                pass
 
         message_content += "\n🚗 **Away Tickets:** (sold, remaining)\n"
         if away_tickets:
             for product in away_tickets:
-                compare_date = parser.parse(product['name'], fuzzy=True)
-                if compare_date - datetime.datetime.now() <= datetime.timedelta(days=-1):
+                try:
+                    compare_date = parser.parse(product['name'], fuzzy=True)
+                    offset = compare_date - datetime.datetime.now()
+
+                    # Clamp offset to the allowed range; only show six months of tickets to avoid too many characters
+                    if not (datetime.timedelta(days=-1) < offset < datetime.timedelta(days=180)):
+                        continue
+
+                    decoration = "**" if offset <= datetime.timedelta(days=14) else ""
+                    message_content += (
+                        f"{decoration}{product['name']}{decoration} ({product['total_sales']}, {product['stock_quantity']})\n"
+                    )
+                except (ValueError, TypeError):
+                    # Skip products with invalid dates
                     continue
-                elif compare_date - datetime.datetime.now() <= datetime.timedelta(days=14):
-                    decoration = "**"
-                else:
-                    decoration = ""
-                message_content += (
-                (f"{decoration}{product['name']}{decoration} ({product['total_sales']}, {product['stock_quantity']})\n"))
         else:
             message_content += ("No away tickets found.\n")
-
-#        message_content += "\n🚗 **Away Tickets:**\n"
-#        message_content += (
-#            "\n".join(f"{product['name']} ({product['stock_quantity']})" for product in away_tickets)
-#            if away_tickets
-#            else "No away tickets found."
-#        )
 
         await interaction.followup.send(message_content, ephemeral=True)
         
@@ -450,9 +467,16 @@ class WooCommerceCommands(commands.Cog):
         csv_output = await generate_csv_from_orders(relevant_orders, product_ids)
         if debug: print("[DEBUG] CSV generation complete.")
 
-        csv_output.seek(0)
-        csv_filename = f"{product_title.replace('/', '_')}_orders.csv"
-        csv_file = discord.File(fp=csv_output, filename=csv_filename)
+        # Save StringIO content to a temporary file
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_file.write(csv_output.getvalue().encode())
+            temp_file.flush()
+            csv_filename = f"{product_title.replace('/', '_')}_orders.csv"
+            csv_file = discord.File(fp=temp_file.name, filename=csv_filename)
+
+        # Ensure temporary file is cleaned up after use
+        import atexit
+        atexit.register(lambda: os.remove(temp_file.name))
 
         await interaction.followup.send(
             f"Orders for product '{product_title}':", file=csv_file, ephemeral=True
@@ -611,7 +635,8 @@ class WooCommerceCommands(commands.Cog):
 
             csv_output.seek(0)
             filename = f"subgroup_members_list_{year}.csv"
-            csv_file = discord.File(fp=csv_output, filename=filename)
+            csv_bytes = io.BytesIO(csv_output.getvalue().encode('utf-8'))
+            csv_file = discord.File(fp=csv_bytes, filename=filename)
 
             # Send the CSV file as a follow-up message.
             await interaction.followup.send(
@@ -620,6 +645,7 @@ class WooCommerceCommands(commands.Cog):
                 ephemeral=True
             )
             csv_output.close()
+            csv_bytes.close()
 
         except Exception as e:
             logger.error(f"An error occurred: {str(e)}")
@@ -659,3 +685,4 @@ class WooCommerceCommands(commands.Cog):
         
 async def setup(bot):
     await bot.add_cog(WooCommerceCommands(bot))
+
