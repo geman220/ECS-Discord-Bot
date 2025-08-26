@@ -560,28 +560,44 @@ def create_app(config_object='web_config.Config'):
     @app.context_processor
     def inject_current_pub_league_season():
         """Inject the current Pub League season into every template's context."""
-        # Always create a separate short-lived session for context processors
-        # to avoid keeping the main request transaction open during template rendering
-        session = app.SessionLocal()
+        from flask import g, has_request_context
+        
+        # Check if we're in degraded mode or have no Flask request session
+        if (has_request_context() and 
+            hasattr(g, '_session_creation_failed') and g._session_creation_failed):
+            # Degraded mode - return default
+            return dict(current_pub_league_season=None)
+        
+        # Try to use Flask's request session first to avoid creating competing sessions
+        if has_request_context() and hasattr(g, 'db_session'):
+            try:
+                season = g.db_session.query(Season).filter_by(
+                    league_type='Pub League',
+                    is_current=True
+                ).first()
+                # Don't expunge since we're using the request session
+                return dict(current_pub_league_season=season)
+            except Exception as e:
+                logger.warning(f"Error fetching pub league season from request session: {e}")
+                # Fall through to managed session approach
+        
+        # Fallback: Use managed_session for non-request contexts or when request session fails
         try:
-            season = session.query(Season).filter_by(
-                league_type='Pub League',
-                is_current=True
-            ).first()
-            if season:
-                # Trigger loading of all needed attributes before expunging
-                _ = season.id, season.name, season.league_type, season.is_current
-                # Expunge the object so it's no longer bound to this session
-                session.expunge(season)
-            # Commit and close quickly
-            session.commit()
+            from app.core.session_manager import managed_session
+            with managed_session() as session:
+                season = session.query(Season).filter_by(
+                    league_type='Pub League',
+                    is_current=True
+                ).first()
+                if season:
+                    # Trigger loading of all needed attributes before session closes
+                    _ = season.id, season.name, season.league_type, season.is_current
+                    session.expunge(season)
+            return dict(current_pub_league_season=season)
         except Exception as e:
             logger.error(f"Error fetching pub league season: {e}", exc_info=True)
-            season = None
-            session.rollback()
-        finally:
-            session.close()
-        return dict(current_pub_league_season=season)
+            # Return None instead of failing the entire template context
+            return dict(current_pub_league_season=None)
 
     # Register template filter and global functions for display formatting
     @app.template_filter('format_position')
