@@ -77,8 +77,17 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
         # Get match details for fallback logic
         from app.core.helpers import get_match
         from app.core.session_manager import managed_session
+        match_data = None
         with managed_session() as session:
             match = get_match(session, match_id)
+            if match:
+                # Extract data while session is active to prevent lazy loading issues
+                match_data = {
+                    'discord_thread_id': match.discord_thread_id,
+                    'date_time': match.date_time,
+                    'opponent': match.opponent,
+                    'is_home_game': match.is_home_game
+                }
         
         # Check for thread creation task
         thread_key = f"match_scheduler:{match_id}:thread"
@@ -111,23 +120,23 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
                 }
         else:
             # Fallback logic for thread creation
-            if match and match.discord_thread_id:
+            if match_data and match_data.get('discord_thread_id'):
                 # Thread exists, so task completed successfully
                 tasks['thread'] = {
                     'task_id': 'unknown',
                     'eta': 'completed',
                     'status': 'SUCCESS',
-                    'result': f'Thread created: {match.discord_thread_id}',
+                    'result': f'Thread created: {match_data["discord_thread_id"]}',
                     'type': 'Thread Creation',
                     'fallback': True,
-                    'message': f'{"Sounders vs " + match.opponent if match.is_home_game else match.opponent + " vs Sounders"} thread created'
+                    'message': f'{"Sounders vs " + match_data["opponent"] if match_data["is_home_game"] else match_data["opponent"] + " vs Sounders"} thread created'
                 }
-            elif match:
+            elif match_data:
                 # Check if thread creation should have happened by now
                 from datetime import datetime, timedelta
                 import pytz
                 utc_tz = pytz.UTC
-                match_time = match.date_time.replace(tzinfo=utc_tz) if match.date_time else None
+                match_time = match_data['date_time'].replace(tzinfo=utc_tz) if match_data['date_time'] else None
                 if match_time:
                     thread_time = match_time - timedelta(hours=48)  # 48 hours before
                     now = datetime.now(utc_tz)
@@ -140,7 +149,7 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
                             'result': 'Thread creation task should have run but no thread found',
                             'type': 'Thread Creation',
                             'fallback': True,
-                            'message': f'{"Sounders vs " + match.opponent if match.is_home_game else match.opponent + " vs Sounders"} - thread creation overdue'
+                            'message': f'{"Sounders vs " + match_data["opponent"] if match_data["is_home_game"] else match_data["opponent"] + " vs Sounders"} - thread creation overdue'
                         }
                     else:
                         # Thread not due yet
@@ -151,7 +160,7 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
                             'result': f'Scheduled for {thread_time.strftime("%Y-%m-%d %H:%M UTC")}',
                             'type': 'Thread Creation',
                             'fallback': True,
-                            'message': f'{"Sounders vs " + match.opponent if match.is_home_game else match.opponent + " vs Sounders"} - thread scheduled'
+                            'message': f'{"Sounders vs " + match_data["opponent"] if match_data["is_home_game"] else match_data["opponent"] + " vs Sounders"} - thread scheduled'
                         }
         
         # Check for live reporting task
@@ -185,11 +194,11 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
                 }
         else:
             # Fallback logic for live reporting
-            if match:
+            if match_data:
                 from datetime import datetime, timedelta
                 import pytz
                 utc_tz = pytz.UTC
-                match_time = match.date_time.replace(tzinfo=utc_tz) if match.date_time else None
+                match_time = match_data['date_time'].replace(tzinfo=utc_tz) if match_data['date_time'] else None
                 if match_time:
                     reporting_time = match_time - timedelta(minutes=5)  # 5 minutes before
                     now = datetime.now(utc_tz)
@@ -203,7 +212,7 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
                             'result': 'Match has ended',
                             'type': 'Live Reporting',
                             'fallback': True,
-                            'message': f'{"Sounders vs " + match.opponent if match.is_home_game else match.opponent + " vs Sounders"} - match completed'
+                            'message': f'{"Sounders vs " + match_data["opponent"] if match_data["is_home_game"] else match_data["opponent"] + " vs Sounders"} - match completed'
                         }
                     elif now > reporting_time:
                         # Reporting should have started
@@ -214,7 +223,7 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
                             'result': 'Live reporting should be active',
                             'type': 'Live Reporting',
                             'fallback': True,
-                            'message': f'{"Sounders vs " + match.opponent if match.is_home_game else match.opponent + " vs Sounders"} - live reporting active'
+                            'message': f'{"Sounders vs " + match_data["opponent"] if match_data["is_home_game"] else match_data["opponent"] + " vs Sounders"} - live reporting active'
                         }
                     else:
                         # Reporting not due yet
@@ -225,7 +234,7 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
                             'result': f'Scheduled for {reporting_time.strftime("%Y-%m-%d %H:%M UTC")}',
                             'type': 'Live Reporting',
                             'fallback': True,
-                            'message': f'{"Sounders vs " + match.opponent if match.is_home_game else match.opponent + " vs Sounders"} - reporting scheduled'
+                            'message': f'{"Sounders vs " + match_data["opponent"] if match_data["is_home_game"] else match_data["opponent"] + " vs Sounders"} - reporting scheduled'
                         }
         
         return {
