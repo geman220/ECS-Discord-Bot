@@ -72,15 +72,10 @@ def query_session():
             user = session.query(User).get(user_id)
             # Session automatically closed after this block
     """
-    session = current_app.SessionLocal()
-    try:
+    # Use the same managed_session to prevent connection pool exhaustion
+    from app.core.session_manager import managed_session
+    with managed_session() as session:
         yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
 
 @contextmanager  
 def bulk_operation_session():
@@ -94,18 +89,13 @@ def bulk_operation_session():
     
     Has longer timeout (30s) but ensures proper cleanup.
     """
-    session = current_app.SessionLocal()
-    try:
+    # Use managed_session with longer timeout to prevent connection leaks
+    from app.core.session_manager import managed_session
+    with managed_session() as session:
         # Set longer timeout for bulk operations (if not using PgBouncer)
         from app.utils.pgbouncer_utils import set_session_timeout
         set_session_timeout(session, statement_timeout_seconds=30)
         yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
 
 def get_efficient_session():
     """

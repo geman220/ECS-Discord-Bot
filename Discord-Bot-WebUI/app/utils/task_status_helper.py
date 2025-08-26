@@ -223,7 +223,7 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
         # Get match details for fallback logic with proper session handling
         from app.core.helpers import get_match
         from app.core.session_manager import managed_session
-        from app.models.mls_match import MLSMatch
+        from app.models.external import MLSMatch
         match_data = None
         
         try:

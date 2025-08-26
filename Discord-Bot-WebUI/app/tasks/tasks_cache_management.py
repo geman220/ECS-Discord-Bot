@@ -121,7 +121,7 @@ def invalidate_match_cache(self, match_id: int):
             
             # Immediately refresh the cache for this match using managed session
             try:
-                from app.models.mls_match import MLSMatch
+                from app.models.external import MLSMatch
                 from app.core.session_manager import managed_session
                 
                 with managed_session() as session:
@@ -171,7 +171,7 @@ def warm_cache_for_match(self, match_id: int):
     try:
         logger.info(f"Warming cache for match {match_id}")
         
-        from app.models.mls_match import MLSMatch
+        from app.models.external import MLSMatch
         from app.core.session_manager import managed_session
         
         with managed_session() as session:
