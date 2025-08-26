@@ -290,8 +290,8 @@ def _get_connect_args():
 
 ENGINE_OPTIONS = {
     'pool_pre_ping': True,
-    'pool_size': int(os.getenv('SQLALCHEMY_POOL_SIZE', 8)),  # Increased from 5 for better concurrency
-    'max_overflow': int(os.getenv('SQLALCHEMY_MAX_OVERFLOW', 15)),  # Increased from 10 for burst capacity
+    'pool_size': int(os.getenv('SQLALCHEMY_POOL_SIZE', 2)),  # Conservative for DigitalOcean limits
+    'max_overflow': int(os.getenv('SQLALCHEMY_MAX_OVERFLOW', 2)),  # Total max: 4 connections
     'pool_recycle': int(os.getenv('SQLALCHEMY_POOL_RECYCLE', 1800)),
     'pool_timeout': int(os.getenv('SQLALCHEMY_POOL_TIMEOUT', 10)),  # Reduced from 20 for faster failure detection
     'poolclass': RateLimitedPool,

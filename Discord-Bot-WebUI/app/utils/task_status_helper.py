@@ -220,20 +220,29 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
         
         tasks = {}
         
-        # Get match details for fallback logic
+        # Get match details for fallback logic with proper session handling
         from app.core.helpers import get_match
         from app.core.session_manager import managed_session
+        from app.models.mls_match import MLSMatch
         match_data = None
-        with managed_session() as session:
-            match = get_match(session, match_id)
-            if match:
-                # Extract data while session is active to prevent lazy loading issues
-                match_data = {
-                    'discord_thread_id': match.discord_thread_id,
-                    'date_time': match.date_time,
-                    'opponent': match.opponent,
-                    'is_home_game': match.is_home_game
-                }
+        
+        try:
+            with managed_session() as session:
+                # Use explicit query instead of get_match to avoid dependency issues
+                match = session.query(MLSMatch).filter_by(id=match_id).first()
+                if match:
+                    # Extract ALL needed data while session is active to prevent lazy loading
+                    match_data = {
+                        'discord_thread_id': getattr(match, 'discord_thread_id', None),
+                        'date_time': getattr(match, 'date_time', None),
+                        'opponent': getattr(match, 'opponent', None),
+                        'is_home_game': getattr(match, 'is_home_game', None)
+                    }
+                    # Force evaluation of any lazy-loaded attributes
+                    session.flush()
+        except Exception as e:
+            logger.error(f"Error loading match {match_id}: {e}")
+            match_data = None
         
         # Check for thread creation task
         thread_key = f"match_scheduler:{match_id}:thread"

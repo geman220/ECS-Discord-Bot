@@ -8,10 +8,16 @@ Since pg_cron requires superuser privileges, we use Celery for scheduling.
 """
 
 from datetime import datetime, timedelta
-from app.core import celery
-from app import db
-from app.models_mobile_analytics import MobileErrorAnalytics, MobileErrorPatterns, MobileLogs
 import logging
+
+# Import database and models
+try:
+    from app import db
+    from app.models_mobile_analytics import MobileErrorAnalytics, MobileErrorPatterns, MobileLogs
+except ImportError as e:
+    logger = logging.getLogger(__name__)
+    logger.error(f"Failed to import database models: {e}")
+    db = None
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +37,13 @@ def cleanup_mobile_analytics():
     try:
         from sqlalchemy import text
         
-        # Call the PostgreSQL cleanup function
-        result = db.session.execute(text("SELECT cleanup_mobile_analytics()"))
-        cleanup_data = result.scalar()
+        # Use managed_session for proper connection management
+        from app.core.session_manager import managed_session
+        
+        with managed_session() as session:
+            # Call the PostgreSQL cleanup function
+            result = session.execute(text("SELECT cleanup_mobile_analytics()"))
+            cleanup_data = result.scalar()
         
         # The function returns JSONB, which SQLAlchemy converts to dict
         if isinstance(cleanup_data, dict):
@@ -74,31 +84,35 @@ def get_cleanup_preview():
         logs_cutoff = datetime.utcnow() - timedelta(days=7)
         patterns_cutoff = datetime.utcnow() - timedelta(days=60)
         
-        # Count records that would be deleted
-        analytics_count = db.session.query(MobileErrorAnalytics).filter(
-            MobileErrorAnalytics.created_at < analytics_cutoff
-        ).count()
+        # Use managed_session for proper connection management
+        from app.core.session_manager import managed_session
         
-        logs_count = db.session.query(MobileLogs).filter(
-            MobileLogs.created_at < logs_cutoff
-        ).count()
-        
-        patterns_count = db.session.query(MobileErrorPatterns).filter(
-            MobileErrorPatterns.last_seen < patterns_cutoff
-        ).count()
-        
-        # Get oldest records in each table
-        oldest_analytics = db.session.query(MobileErrorAnalytics.created_at).order_by(
-            MobileErrorAnalytics.created_at.asc()
-        ).first()
-        
-        oldest_logs = db.session.query(MobileLogs.created_at).order_by(
-            MobileLogs.created_at.asc()
-        ).first()
-        
-        oldest_patterns = db.session.query(MobileErrorPatterns.last_seen).order_by(
-            MobileErrorPatterns.last_seen.asc()
-        ).first()
+        with managed_session() as session:
+            # Count records that would be deleted
+            analytics_count = session.query(MobileErrorAnalytics).filter(
+                MobileErrorAnalytics.created_at < analytics_cutoff
+            ).count()
+            
+            logs_count = session.query(MobileLogs).filter(
+                MobileLogs.created_at < logs_cutoff
+            ).count()
+            
+            patterns_count = session.query(MobileErrorPatterns).filter(
+                MobileErrorPatterns.last_seen < patterns_cutoff
+            ).count()
+            
+            # Get oldest records in each table
+            oldest_analytics = session.query(MobileErrorAnalytics.created_at).order_by(
+                MobileErrorAnalytics.created_at.asc()
+            ).first()
+            
+            oldest_logs = session.query(MobileLogs.created_at).order_by(
+                MobileLogs.created_at.asc()
+            ).first()
+            
+            oldest_patterns = session.query(MobileErrorPatterns.last_seen).order_by(
+                MobileErrorPatterns.last_seen.asc()
+            ).first()
         
         return {
             'preview_date': datetime.utcnow().isoformat(),
@@ -150,13 +164,17 @@ def get_analytics_storage_stats():
             ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
         """)
         
-        result = db.session.execute(size_query)
-        table_sizes = [dict(row) for row in result]
+        # Use managed_session for proper connection management
+        from app.core.session_manager import managed_session
         
-        # Get record counts
-        analytics_count = db.session.query(MobileErrorAnalytics).count()
-        logs_count = db.session.query(MobileLogs).count()
-        patterns_count = db.session.query(MobileErrorPatterns).count()
+        with managed_session() as session:
+            result = session.execute(size_query)
+            table_sizes = [dict(row) for row in result]
+            
+            # Get record counts
+            analytics_count = session.query(MobileErrorAnalytics).count()
+            logs_count = session.query(MobileLogs).count()
+            patterns_count = session.query(MobileErrorPatterns).count()
         
         return {
             'record_counts': {
@@ -179,6 +197,7 @@ def get_analytics_storage_stats():
 
 # Celery task definitions
 try:
+    from app.core import celery
     
     @celery.task(name='app.tasks.mobile_analytics_cleanup.cleanup_mobile_analytics_task')
     def cleanup_mobile_analytics_task():
@@ -199,6 +218,7 @@ try:
         return get_analytics_storage_stats()
         
 except ImportError:
+    logger = logging.getLogger(__name__)
     logger.info("Celery not available, tasks will run synchronously")
 
 

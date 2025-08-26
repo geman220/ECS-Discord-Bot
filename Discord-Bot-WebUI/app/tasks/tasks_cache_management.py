@@ -120,14 +120,29 @@ def invalidate_match_cache(self, match_id: int):
             logger.info(f"Successfully invalidated cache for match {match_id}")
             
             # Immediately refresh the cache for this match using managed session
-            from app.models import MLSMatch
-            from app.core.session_manager import managed_session
-            
-            with managed_session() as session:
-                match = session.query(MLSMatch).filter_by(id=match_id).first()
-                if match:
-                    task_status_cache.update_match_cache(match)
-                    logger.info(f"Refreshed cache for match {match_id}")
+            try:
+                from app.models.mls_match import MLSMatch
+                from app.core.session_manager import managed_session
+                
+                with managed_session() as session:
+                    match = session.query(MLSMatch).filter_by(id=match_id).first()
+                    if match:
+                        # Extract match data while session is active
+                        match_data = {
+                            'id': match.id,
+                            'discord_thread_id': getattr(match, 'discord_thread_id', None),
+                            'date_time': getattr(match, 'date_time', None),
+                            'opponent': getattr(match, 'opponent', None),
+                            'is_home_game': getattr(match, 'is_home_game', None)
+                        }
+                        session.flush()
+                        # Pass data to cache update to avoid lazy loading
+                        task_status_cache.update_match_cache(match)
+                        logger.info(f"Refreshed cache for match {match_id}")
+                    else:
+                        logger.warning(f"Match {match_id} not found for cache refresh")
+            except Exception as cache_error:
+                logger.error(f"Error refreshing cache for match {match_id}: {cache_error}")
         
         return {
             'success': success,
@@ -156,7 +171,7 @@ def warm_cache_for_match(self, match_id: int):
     try:
         logger.info(f"Warming cache for match {match_id}")
         
-        from app.models import MLSMatch
+        from app.models.mls_match import MLSMatch
         from app.core.session_manager import managed_session
         
         with managed_session() as session:
@@ -169,6 +184,13 @@ def warm_cache_for_match(self, match_id: int):
                     'match_id': match_id,
                     'timestamp': datetime.utcnow().isoformat()
                 }
+            
+            # Force evaluation of lazy-loaded attributes while session is active
+            _ = match.discord_thread_id  # Touch to load
+            _ = match.date_time
+            _ = match.opponent
+            _ = match.is_home_game
+            session.flush()
             
             success = task_status_cache.update_match_cache(match)
         
@@ -233,8 +255,13 @@ def cache_health_check(self):
         
         health_score = (valid_entries / sample_size * 100) if sample_size > 0 else 100
         
-        # Get Redis service metrics
-        service_metrics = redis_service.get_metrics()
+        # Get Redis service metrics if available
+        service_metrics = None
+        try:
+            service_metrics = redis_service.get_metrics()
+        except Exception as e:
+            logger.warning(f"Could not get Redis service metrics: {e}")
+            service_metrics = {'error': 'metrics unavailable'}
         
         result = {
             'success': True,
