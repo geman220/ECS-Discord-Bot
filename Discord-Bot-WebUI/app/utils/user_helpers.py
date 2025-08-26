@@ -79,19 +79,24 @@ def get_user():
         if not current_user.is_authenticated:
             user = UserWrapper()
         else:
-            session = getattr(g, 'db_session', None)
-            if session is None:
-                logger.error("No database session available to load authenticated user.")
+            # Check if we're in degraded mode (no session due to pool exhaustion)
+            if hasattr(g, '_session_creation_failed') and g._session_creation_failed:
+                logger.debug("Using minimal user wrapper - in degraded mode due to database pool exhaustion")
                 user = UserWrapper()
             else:
-                # Import user-related models; eager-load frequently used relationships.
-                from app.models import Player, Team
-                db_user = session.query(User).options(
-                    selectinload(User.roles).selectinload(Role.permissions),
-                    selectinload(User.player).selectinload(Player.teams)
-                ).get(current_user.id)
-                # Wrap the user; do not detach to allow lazy loading of additional attributes.
-                user = UserWrapper(db_user)
+                session = getattr(g, 'db_session', None)
+                if session is None:
+                    logger.error("No database session available to load authenticated user.")
+                    user = UserWrapper()
+                else:
+                    # Import user-related models; eager-load frequently used relationships.
+                    from app.models import Player, Team
+                    db_user = session.query(User).options(
+                        selectinload(User.roles).selectinload(Role.permissions),
+                        selectinload(User.player).selectinload(Player.teams)
+                    ).get(current_user.id)
+                    # Wrap the user; do not detach to allow lazy loading of additional attributes.
+                    user = UserWrapper(db_user)
         g._safe_current_user = user
         return user
     except Exception as e:

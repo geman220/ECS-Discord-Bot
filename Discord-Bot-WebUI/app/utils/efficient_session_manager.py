@@ -121,18 +121,22 @@ class EfficientQuery:
         """
         Optimized user loading for authentication.
         Returns a lightweight user object with only essential data loaded.
+        Uses Flask request session when available to prevent session conflicts.
         """
-        with query_session() as session:
-            from app.models import User, Role, Player
-            from sqlalchemy.orm import selectinload
-            
+        from app.models import User, Role, Player
+        from sqlalchemy.orm import selectinload
+        from flask import g, has_request_context
+        
+        # Use Flask's request session if available to prevent session conflicts
+        if has_request_context() and hasattr(g, 'db_session'):
+            session = g.db_session
             user = session.query(User).options(
                 selectinload(User.roles),
                 selectinload(User.player)
             ).get(int(user_id))
             
             if user:
-                # Create a minimal data structure instead of detaching
+                # Create a minimal data structure to avoid DetachedInstanceError
                 return UserAuthData(
                     id=user.id,
                     username=user.username,
@@ -144,6 +148,27 @@ class EfficientQuery:
                     has_skipped_profile_creation=user.has_skipped_profile_creation
                 )
             return None
+        else:
+            # Fallback to managed_session for non-request contexts (like Celery)
+            with query_session() as session:
+                user = session.query(User).options(
+                    selectinload(User.roles),
+                    selectinload(User.player)
+                ).get(int(user_id))
+                
+                if user:
+                    # Create a minimal data structure instead of detaching
+                    return UserAuthData(
+                        id=user.id,
+                        username=user.username,
+                        is_active=user.is_active,
+                        roles=[role.name for role in user.roles],
+                        player_id=user.player.id if user.player else None,
+                        player_name=user.player.name if user.player else None,
+                        has_completed_onboarding=user.has_completed_onboarding,
+                        has_skipped_profile_creation=user.has_skipped_profile_creation
+                    )
+                return None
     
     @staticmethod
     def get_player_profile(player_id):

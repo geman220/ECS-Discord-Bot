@@ -459,44 +459,84 @@ def create_app(config_object='web_config.Config'):
         
         # Create a new database session for each request (excluding static assets).
         if not request.path.startswith('/static/'):
-            g.db_session = app.SessionLocal()
+            # Try to create session with retry logic for pool exhaustion
+            session_created = False
+            max_retries = 3
+            retry_delay = 0.1  # 100ms
             
-            # CRITICAL: Register the underlying connection for tracking
-            try:
-                # Get the actual database connection
-                conn = g.db_session.connection()
-                if hasattr(conn, 'connection') and hasattr(conn.connection, 'dbapi_connection'):
-                    dbapi_conn = conn.connection.dbapi_connection
-                    conn_id = id(dbapi_conn)
-                    from app.utils.db_connection_monitor import register_connection
-                    register_connection(conn_id, "flask_request")
-                    # Connection registered silently
-            except Exception as e:
-                logger.error(f"Failed to register Flask connection: {e}", exc_info=True)
+            for attempt in range(max_retries):
+                try:
+                    g.db_session = app.SessionLocal()
+                    session_created = True
+                    break
+                except Exception as e:
+                    if "pool" in str(e).lower() or "timeout" in str(e).lower():
+                        logger.warning(f"Session creation attempt {attempt + 1}/{max_retries} failed: {e}")
+                        if attempt < max_retries - 1:
+                            import time
+                            time.sleep(retry_delay)
+                            retry_delay *= 2  # Exponential backoff
+                        else:
+                            logger.error(f"Failed to create session after {max_retries} attempts: {e}")
+                            # Set a flag to indicate degraded mode
+                            g._session_creation_failed = True
+                            break
+                    else:
+                        # Non-pool related error, don't retry
+                        logger.error(f"Session creation failed with non-pool error: {e}", exc_info=True)
+                        g._session_creation_failed = True
+                        break
             
-            # Register session with monitor
-            session_id = str(id(g.db_session))
-            from app.utils.session_monitor import get_session_monitor
-            from app.utils.user_helpers import safe_current_user
+            # Only proceed with connection tracking if session was created
+            if session_created and hasattr(g, 'db_session'):
+                # CRITICAL: Register the underlying connection for tracking
+                try:
+                    # Get the actual database connection
+                    conn = g.db_session.connection()
+                    if hasattr(conn, 'connection') and hasattr(conn.connection, 'dbapi_connection'):
+                        dbapi_conn = conn.connection.dbapi_connection
+                        conn_id = id(dbapi_conn)
+                        from app.utils.db_connection_monitor import register_connection
+                        register_connection(conn_id, "flask_request")
+                        # Connection registered silently
+                except Exception as e:
+                    logger.error(f"Failed to register Flask connection: {e}", exc_info=True)
             
-            user_id = None
-            if safe_current_user and safe_current_user.is_authenticated:
-                user_id = safe_current_user.id
+            # Register session with monitor only if session was created successfully
+            if session_created and hasattr(g, 'db_session'):
+                session_id = str(id(g.db_session))
+                from app.utils.session_monitor import get_session_monitor
+                from app.utils.user_helpers import safe_current_user
                 
-            get_session_monitor().register_session_start(session_id, request.path, user_id)
-            g.session_id = session_id
-            
-            # Set appropriate timeouts for this session based on request type
-            # This will automatically skip timeout settings when using PgBouncer
-            if request.path.startswith('/admin/'):
-                # Admin routes may need longer timeouts for complex operations
-                set_session_timeout(g.db_session, statement_timeout_seconds=15, idle_timeout_seconds=10)
-            elif request.path.startswith('/api/'):
-                # API routes should be fast
-                set_session_timeout(g.db_session, statement_timeout_seconds=5, idle_timeout_seconds=3)
+                user_id = None
+                try:
+                    if safe_current_user and safe_current_user.is_authenticated:
+                        user_id = safe_current_user.id
+                except Exception as e:
+                    # Don't fail the entire request if user lookup fails
+                    logger.warning(f"Could not get user ID for session monitoring: {e}")
+                    
+                get_session_monitor().register_session_start(session_id, request.path, user_id)
+                g.session_id = session_id
+                
+                # Set appropriate timeouts for this session based on request type
+                # This will automatically skip timeout settings when using PgBouncer
+                try:
+                    if request.path.startswith('/admin/'):
+                        # Admin routes may need longer timeouts for complex operations
+                        set_session_timeout(g.db_session, statement_timeout_seconds=15, idle_timeout_seconds=10)
+                    elif request.path.startswith('/api/'):
+                        # API routes should be fast
+                        set_session_timeout(g.db_session, statement_timeout_seconds=5, idle_timeout_seconds=3)
+                    else:
+                        # Regular routes get standard timeouts
+                        set_session_timeout(g.db_session, statement_timeout_seconds=8, idle_timeout_seconds=5)
+                except Exception as e:
+                    logger.warning(f"Could not set session timeouts: {e}")
             else:
-                # Regular routes get standard timeouts
-                set_session_timeout(g.db_session, statement_timeout_seconds=8, idle_timeout_seconds=5)
+                # No session created - set degraded mode flag
+                logger.warning(f"Request {request.path} proceeding without database session due to pool exhaustion")
+                g.session_id = "no-session"
             
             # Pre-load and cache user roles early in the request to avoid session binding issues during template rendering
             from app.utils.user_helpers import safe_current_user

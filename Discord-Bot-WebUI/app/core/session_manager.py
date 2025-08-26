@@ -64,6 +64,11 @@ def cleanup_request(exception=None):
     
     :param exception: An optional exception that occurred during the request.
     """
+    # Skip cleanup if session creation failed (degraded mode)
+    if hasattr(g, '_session_creation_failed') and g._session_creation_failed:
+        logger.debug("Skipping session cleanup - request was in degraded mode (no session created)")
+        return
+        
     if hasattr(g, 'db_session'):
         # Generate a session ID for logging
         session_id = str(id(g.db_session))
