@@ -9,10 +9,141 @@ the application, including match management and monitoring pages.
 
 import json
 import logging
+import time
+import redis
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
 
 logger = logging.getLogger(__name__)
+
+# Simple in-memory cache to prevent concurrent requests to same match
+_request_cache = {}
+_CACHE_TTL = 30  # 30 seconds
+
+# Redis connection pool for reliable connections
+_redis_pool = None
+_redis_connection_failures = 0
+_max_redis_failures = 3  # Circuit breaker threshold
+_redis_operation_metrics = {
+    'total_requests': 0,
+    'successful_requests': 0,
+    'failed_requests': 0,
+    'cache_hits': 0,
+    'cache_misses': 0,
+    'last_reset': time.time()
+}
+
+
+def _get_redis_connection() -> Optional[redis.Redis]:
+    """Get a Redis connection with proper pooling and circuit breaker pattern."""
+    global _redis_pool, _redis_connection_failures
+    
+    # Circuit breaker: if too many failures, don't attempt connections
+    if _redis_connection_failures >= _max_redis_failures:
+        logger.warning(f"Redis circuit breaker open: {_redis_connection_failures} failures")
+        return None
+    
+    try:
+        # Initialize connection pool on first use
+        if _redis_pool is None:
+            _redis_pool = redis.ConnectionPool(
+                host='redis',
+                port=6379,
+                db=0,
+                decode_responses=True,
+                socket_timeout=5,
+                socket_connect_timeout=5,
+                max_connections=10,
+                retry_on_timeout=True,
+                health_check_interval=30
+            )
+            logger.debug("Initialized Redis connection pool")
+        
+        # Get connection from pool
+        redis_client = redis.Redis(connection_pool=_redis_pool)
+        
+        # Test connection with ping
+        redis_client.ping()
+        
+        # Reset failure count on successful connection
+        _redis_connection_failures = 0
+        
+        return redis_client
+        
+    except Exception as e:
+        _redis_connection_failures += 1
+        logger.error(f"Redis connection failed (attempt {_redis_connection_failures}/{_max_redis_failures}): {e}")
+        
+        # If we've hit the failure threshold, reset pool to force recreation
+        if _redis_connection_failures >= _max_redis_failures:
+            _redis_pool = None
+            logger.warning("Resetting Redis pool due to connection failures")
+        
+        return None
+
+
+def _safe_redis_operation(redis_client: redis.Redis, operation: str, *args, **kwargs):
+    """Execute Redis operation with proper error handling and logging."""
+    global _redis_operation_metrics
+    
+    try:
+        method = getattr(redis_client, operation)
+        result = method(*args, **kwargs)
+        _redis_operation_metrics['successful_requests'] += 1
+        return result
+    except redis.ConnectionError as e:
+        _redis_operation_metrics['failed_requests'] += 1
+        logger.error(f"Redis connection error during {operation}: {e}")
+        return None
+    except redis.TimeoutError as e:
+        _redis_operation_metrics['failed_requests'] += 1
+        logger.error(f"Redis timeout during {operation}: {e}")
+        return None
+    except Exception as e:
+        _redis_operation_metrics['failed_requests'] += 1
+        logger.error(f"Redis error during {operation}: {e}")
+        return None
+
+
+def get_task_status_metrics() -> Dict[str, Any]:
+    """Get comprehensive metrics about task status system health."""
+    global _redis_operation_metrics, _redis_connection_failures, _request_cache
+    
+    current_time = time.time()
+    uptime = current_time - _redis_operation_metrics['last_reset']
+    
+    # Calculate success rate
+    total_ops = _redis_operation_metrics['successful_requests'] + _redis_operation_metrics['failed_requests']
+    success_rate = (_redis_operation_metrics['successful_requests'] / total_ops * 100) if total_ops > 0 else 0
+    
+    # Cache statistics
+    cache_total = _redis_operation_metrics['cache_hits'] + _redis_operation_metrics['cache_misses']
+    cache_hit_rate = (_redis_operation_metrics['cache_hits'] / cache_total * 100) if cache_total > 0 else 0
+    
+    return {
+        'redis_pool_status': {
+            'pool_initialized': _redis_pool is not None,
+            'connection_failures': _redis_connection_failures,
+            'circuit_breaker_open': _redis_connection_failures >= _max_redis_failures,
+            'max_connections': 10 if _redis_pool else None,
+        },
+        'operation_metrics': {
+            'total_requests': _redis_operation_metrics['total_requests'],
+            'successful_requests': _redis_operation_metrics['successful_requests'],
+            'failed_requests': _redis_operation_metrics['failed_requests'],
+            'success_rate_percent': round(success_rate, 2),
+            'uptime_seconds': round(uptime, 2)
+        },
+        'cache_metrics': {
+            'in_memory_cache_size': len(_request_cache),
+            'cache_hits': _redis_operation_metrics['cache_hits'],
+            'cache_misses': _redis_operation_metrics['cache_misses'],
+            'cache_hit_rate_percent': round(cache_hit_rate, 2),
+            'cache_ttl_seconds': _CACHE_TTL
+        },
+        'timestamp': current_time,
+        'healthy': _redis_connection_failures < _max_redis_failures and success_rate > 80
+    }
 
 
 def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dict[str, Any]:
@@ -29,6 +160,24 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
     Returns:
         Dictionary with success flag, match_id, tasks dict, timestamp, and cache info
     """
+    global _redis_operation_metrics
+    
+    # Track total requests
+    _redis_operation_metrics['total_requests'] += 1
+    
+    # Check in-memory request cache first to prevent concurrent duplicate requests
+    current_time = time.time()
+    cache_key = f"task_status_{match_id}"
+    
+    if cache_key in _request_cache:
+        cached_data, cached_time = _request_cache[cache_key]
+        if current_time - cached_time < _CACHE_TTL:
+            _redis_operation_metrics['cache_hits'] += 1
+            logger.debug(f"Serving match {match_id} from in-memory cache")
+            return cached_data
+    
+    # Track cache miss for in-memory cache
+    _redis_operation_metrics['cache_misses'] += 1
     
     # Try cache first if enabled
     if use_cache:
@@ -37,7 +186,7 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
             cached_result = task_status_cache.get_cached_status(match_id)
             
             if cached_result:
-                logger.debug(f"Serving task status for match {match_id} from cache")
+                logger.debug(f"Serving task status for match {match_id} from background cache")
                 return cached_result
             
             logger.debug(f"Cache miss for match {match_id}, falling back to real-time calculation")
@@ -45,32 +194,29 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
         except Exception as e:
             logger.warning(f"Cache lookup failed for match {match_id}: {e}, falling back to real-time")
     
-    # Real-time calculation (original logic)
+    # Real-time calculation with robust Redis connection handling
     try:
-        # Import here to avoid circular imports
-        from app.utils.safe_redis import get_safe_redis
-        from datetime import datetime
+        # Get Redis connection using connection pool
+        redis_client = _get_redis_connection()
         
-        # Try direct Redis connection first
-        try:
-            import redis
-            direct_redis = redis.Redis(host='redis', port=6379, db=0, decode_responses=True, socket_timeout=5)
-            direct_redis.ping()
-            redis_client = direct_redis
-            
-            # Helper function for decoding Redis data
-            def safe_decode(data):
-                if data is None:
-                    return None
-                return data if isinstance(data, str) else data.decode('utf-8')
-                
-        except Exception as e:
+        # If Redis is unavailable, return graceful degradation
+        if redis_client is None:
+            logger.warning(f"Redis unavailable for match {match_id}, returning minimal status")
             return {
-                'success': False,
-                'error': f'Redis connection failed: {str(e)}',
+                'success': True,
+                'match_id': match_id,
                 'tasks': {},
-                'match_id': match_id
+                'timestamp': datetime.utcnow().isoformat(),
+                'cached': False,
+                'source': 'redis-unavailable',
+                'message': 'Redis unavailable - task details not available'
             }
+        
+        # Helper function for decoding Redis data
+        def safe_decode(data):
+            if data is None:
+                return None
+            return data if isinstance(data, str) else data.decode('utf-8')
         
         tasks = {}
         
@@ -91,8 +237,8 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
         
         # Check for thread creation task
         thread_key = f"match_scheduler:{match_id}:thread"
-        thread_data = redis_client.get(thread_key)
-        thread_ttl = redis_client.ttl(thread_key)
+        thread_data = _safe_redis_operation(redis_client, 'get', thread_key)
+        thread_ttl = _safe_redis_operation(redis_client, 'ttl', thread_key)
         
         if thread_data:
             try:
@@ -165,8 +311,8 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
         
         # Check for live reporting task
         reporting_key = f"match_scheduler:{match_id}:reporting"
-        reporting_data = redis_client.get(reporting_key)
-        reporting_ttl = redis_client.ttl(reporting_key)
+        reporting_data = _safe_redis_operation(redis_client, 'get', reporting_key)
+        reporting_ttl = _safe_redis_operation(redis_client, 'ttl', reporting_key)
         
         if reporting_data:
             try:
@@ -237,7 +383,7 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
                             'message': f'{"Sounders vs " + match_data["opponent"] if match_data["is_home_game"] else match_data["opponent"] + " vs Sounders"} - reporting scheduled'
                         }
         
-        return {
+        result = {
             'success': True,
             'match_id': match_id,
             'tasks': tasks,
@@ -246,9 +392,23 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
             'source': 'real-time'
         }
         
+        # Cache the result to prevent duplicate requests
+        _request_cache[cache_key] = (result, current_time)
+        
+        # Clean up old cache entries periodically
+        if len(_request_cache) > 100:  # Simple cleanup when cache gets large
+            cutoff_time = current_time - _CACHE_TTL
+            keys_to_remove = [k for k, (_, cached_time) in _request_cache.items() 
+                             if current_time - cached_time > _CACHE_TTL]
+            for k in keys_to_remove:
+                del _request_cache[k]
+            logger.debug(f"Cleaned up {len(keys_to_remove)} expired cache entries")
+            
+        return result
+        
     except Exception as e:
         logger.error(f"Error getting enhanced match tasks for {match_id}: {str(e)}", exc_info=True)
-        return {
+        error_result = {
             'success': False,
             'error': str(e),
             'match_id': match_id,
@@ -256,3 +416,8 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
             'cached': False,
             'source': 'error'
         }
+        
+        # Cache error results briefly to prevent repeated failures
+        _request_cache[cache_key] = (error_result, current_time)
+        
+        return error_result

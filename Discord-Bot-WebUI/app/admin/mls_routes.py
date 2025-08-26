@@ -262,13 +262,13 @@ def match_management():
 def get_match_tasks(match_id):
     """Get detailed task information for a specific match."""
     try:
-        # Use the shared enhanced task status function
+        # Use the shared enhanced task status function with cache-first approach
         from app.utils.task_status_helper import get_enhanced_match_task_status
         
-        result = get_enhanced_match_task_status(match_id)
+        result = get_enhanced_match_task_status(match_id, use_cache=True)
         response = jsonify(result)
-        # Cache for 30 seconds to prevent inconsistent refreshes
-        response.headers['Cache-Control'] = 'max-age=30, public'
+        # Cache for 60 seconds to reduce load
+        response.headers['Cache-Control'] = 'max-age=60, public'
         return response
         
     except Exception as e:
@@ -277,6 +277,52 @@ def get_match_tasks(match_id):
             'success': False,
             'error': str(e),
             'match_id': match_id
+        }), 500
+
+
+@admin_bp.route('/admin/match_management/system-health', endpoint='system_health', methods=['GET'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def get_system_health():
+    """Get comprehensive system health metrics for monitoring."""
+    try:
+        from app.utils.task_status_helper import get_task_status_metrics
+        
+        metrics = get_task_status_metrics()
+        
+        # Add database connection pool info
+        try:
+            from app.core import db
+            engine = db.engine
+            pool = engine.pool
+            
+            metrics['database_pool'] = {
+                'pool_size': pool.size(),
+                'checked_in': pool.checkedin(),
+                'checked_out': pool.checkedout(),
+                'overflow': pool.overflow(),
+                'invalidated': pool.invalid(),
+                'healthy': pool.checkedout() < pool.size() + pool.overflow()
+            }
+        except Exception as e:
+            metrics['database_pool'] = {'error': str(e), 'healthy': False}
+        
+        # Overall system health
+        metrics['system_healthy'] = (
+            metrics['healthy'] and 
+            metrics['database_pool'].get('healthy', False)
+        )
+        
+        response = jsonify(metrics)
+        response.headers['Cache-Control'] = 'no-cache'
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error getting system health: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'system_healthy': False
         }), 500
 
 
