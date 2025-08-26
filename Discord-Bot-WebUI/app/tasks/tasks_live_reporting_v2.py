@@ -19,6 +19,7 @@ from app.services.live_reporting import (
     get_config,
     setup_metrics
 )
+from app.services.redis_connection_service import get_redis_service
 
 logger = logging.getLogger(__name__)
 

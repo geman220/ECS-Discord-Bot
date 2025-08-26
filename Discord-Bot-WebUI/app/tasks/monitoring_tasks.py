@@ -19,7 +19,7 @@ from app.core import celery
 from app.database.db_models import DBMonitoringSnapshot
 from app.utils.redis_manager import RedisManager
 from app.utils.task_session_manager import task_session
-from app.utils.safe_redis import get_safe_redis
+from app.services.redis_connection_service import get_redis_service
 
 # Configure logger for this module.
 logger = logging.getLogger(__name__)
@@ -215,8 +215,8 @@ def monitor_redis_connections():
     Monitor Redis connection usage and detect potential leaks.
     
     This task:
-    - Retrieves the current Redis connection pool statistics
-    - Logs warnings if connection usage is approaching capacity
+    - Retrieves the current Redis connection pool statistics from the centralized service
+    - Logs warnings if connection usage is approaching capacity  
     - Returns detailed statistics for monitoring
     
     Returns:
@@ -228,13 +228,22 @@ def monitor_redis_connections():
     
     with app.app_context():
         try:
-            redis_manager = RedisManager()
+            # Use centralized Redis service for consistent monitoring
+            redis_service = get_redis_service()
             
-            # Get connection pool stats
-            stats = redis_manager.get_connection_stats()
+            # Get comprehensive service metrics
+            service_metrics = redis_service.get_metrics()
             
-            # Extract pool stats
-            pool_stats = stats.get('pool_stats', {})
+            # Also get legacy RedisManager stats for comparison/compatibility
+            try:
+                redis_manager = RedisManager()
+                legacy_stats = redis_manager.get_connection_stats()
+            except Exception as e:
+                logger.warning(f"Could not get legacy Redis manager stats: {e}")
+                legacy_stats = {}
+            
+            # Extract pool stats from centralized service
+            pool_stats = service_metrics.get('connection_pool', {})
             
             # Log warning if connection pool usage is high
             max_conn = pool_stats.get('max_connections', 0)
@@ -253,7 +262,19 @@ def monitor_redis_connections():
                 f"{pool_stats.get('created_connections', 0)} created, {max_conn} max"
             )
             
-            return stats
+            # Include circuit breaker status
+            service_status = service_metrics.get('service_status', {})
+            if service_status.get('circuit_state') != 'closed':
+                logger.warning(f"Redis circuit breaker is {service_status.get('circuit_state')}")
+            
+            # Combine all stats for comprehensive monitoring
+            combined_stats = {
+                'centralized_service': service_metrics,
+                'legacy_manager': legacy_stats,
+                'monitoring_timestamp': datetime.utcnow().isoformat()
+            }
+            
+            return combined_stats
             
         except Exception as e:
             logger.error(f"Error monitoring Redis connections: {e}", exc_info=True)
@@ -274,10 +295,10 @@ def monitor_queue_backlogs():
     logger.info("Starting queue backlog monitoring task")
     
     try:
-        redis_client = get_safe_redis()
-        if not redis_client.is_available:
-            logger.warning("Redis not available for queue monitoring - using fallback behavior")
-            return {'success': False, 'message': 'Redis unavailable'}
+        redis_service = get_redis_service()
+        if not redis_service.is_healthy():
+            logger.warning("Redis service not healthy for queue monitoring")
+            return {'success': False, 'message': 'Redis service unhealthy'}
         
         # Define queue thresholds
         QUEUE_THRESHOLDS = {
@@ -291,41 +312,46 @@ def monitor_queue_backlogs():
         queue_stats = {}
         alerts = []
         
-        for queue_name, thresholds in QUEUE_THRESHOLDS.items():
-            try:
-                queue_length = redis_client.llen(queue_name)
-                queue_stats[queue_name] = queue_length
-                
-                if queue_length >= thresholds['critical']:
-                    alert = f"CRITICAL: Queue '{queue_name}' has {queue_length} tasks (threshold: {thresholds['critical']})"
-                    logger.error(alert)
-                    alerts.append(alert)
-                elif queue_length >= thresholds['warning']:
-                    alert = f"WARNING: Queue '{queue_name}' has {queue_length} tasks (threshold: {thresholds['warning']})"
-                    logger.warning(alert)
-                    alerts.append(alert)
-                else:
-                    logger.info(f"Queue '{queue_name}': {queue_length} tasks (healthy)")
+        with redis_service.get_connection() as redis_client:
+            for queue_name, thresholds in QUEUE_THRESHOLDS.items():
+                try:
+                    queue_length = redis_client.llen(queue_name)
+                    queue_stats[queue_name] = queue_length
                     
-            except Exception as e:
-                error = f"Error checking queue '{queue_name}': {e}"
-                logger.error(error)
-                alerts.append(error)
+                    if queue_length >= thresholds['critical']:
+                        alert = f"CRITICAL: Queue '{queue_name}' has {queue_length} tasks (threshold: {thresholds['critical']})"
+                        logger.error(alert)
+                        alerts.append(alert)
+                    elif queue_length >= thresholds['warning']:
+                        alert = f"WARNING: Queue '{queue_name}' has {queue_length} tasks (threshold: {thresholds['warning']})"
+                        logger.warning(alert)
+                        alerts.append(alert)
+                    else:
+                        logger.info(f"Queue '{queue_name}': {queue_length} tasks (healthy)")
+                        
+                except Exception as e:
+                    error = f"Error checking queue '{queue_name}': {e}"
+                    logger.error(error)
+                    alerts.append(error)
+            
+            # Special handling for live_reporting queue - clear expired process_all_active_sessions_v2 tasks
+            if queue_stats.get('live_reporting', 0) > 100:
+                try:
+                    cleared_count = _clear_expired_live_reporting_tasks(redis_client)
+                    if cleared_count > 0:
+                        logger.info(f"Cleared {cleared_count} expired live_reporting tasks")
+                        queue_stats['live_reporting_cleared'] = cleared_count
+                except Exception as e:
+                    logger.error(f"Error clearing expired live_reporting tasks: {e}")
         
-        # Special handling for live_reporting queue - clear expired process_all_active_sessions_v2 tasks
-        if queue_stats.get('live_reporting', 0) > 100:
-            try:
-                cleared_count = _clear_expired_live_reporting_tasks(redis_client)
-                if cleared_count > 0:
-                    logger.info(f"Cleared {cleared_count} expired live_reporting tasks")
-                    queue_stats['live_reporting_cleared'] = cleared_count
-            except Exception as e:
-                logger.error(f"Error clearing expired live_reporting tasks: {e}")
+        # Get Redis service metrics for enhanced monitoring
+        redis_metrics = redis_service.get_metrics()
         
         result = {
             'success': True,
             'queue_stats': queue_stats,
             'alerts': alerts,
+            'redis_metrics': redis_metrics,
             'timestamp': datetime.now().isoformat()
         }
         

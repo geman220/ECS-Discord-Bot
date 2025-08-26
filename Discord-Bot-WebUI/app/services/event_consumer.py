@@ -22,8 +22,8 @@ from typing import Dict, Any, List, Optional, Set
 from dataclasses import dataclass
 
 from app.events.rsvp_events import RSVPEvent, RSVPSource
-from app.utils.redis_manager import get_redis_connection
-from app.utils.safe_redis import get_safe_redis, get_safe_redis_with_retry
+from app.services.redis_connection_service import get_redis_service
+from app.utils.safe_redis import get_safe_redis
 from app.utils.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from app.sockets.rsvp import emit_rsvp_update
 from app import socketio
@@ -114,9 +114,9 @@ class EventConsumer(ABC):
     - Comprehensive metrics and observability
     """
     
-    def __init__(self, config: ConsumerConfig, redis_client=None):
+    def __init__(self, config: ConsumerConfig, redis_service=None):
         self.config = config
-        self.redis = redis_client or get_redis_connection()
+        self.redis_service = redis_service or get_redis_service()
         self.metrics = ProcessingMetrics()
         self.running = False
         self.consumer_task = None
@@ -198,32 +198,26 @@ class EventConsumer(ABC):
     async def _initialize_consumer_group(self):
         """Initialize Redis consumer group if it doesn't exist."""
         try:
-            # Use retry mechanism during startup to handle timing issues
-            safe_redis = get_safe_redis_with_retry(max_retries=3, retry_delay=1.0)
-            
-            # Check if Redis is actually available
-            if not safe_redis.is_available:
-                logger.warning(f"⚠️ Redis is not available for consumer group creation - will retry during consumption")
+            # Check if Redis service is healthy
+            if not self.redis_service.is_healthy():
+                logger.warning(f"⚠️ Redis service is not healthy for consumer group creation - will retry during consumption")
                 return  # Don't fail startup, just skip group creation
             
-            if safe_redis.client is None:
-                logger.warning(f"⚠️ Redis client is None - will retry during consumption")
-                return  # Don't fail startup, just skip group creation
-            
-            try:
-                safe_redis.client.xgroup_create(
-                    self.config.stream_name,
-                    self.config.consumer_group,
-                    id='0',
-                    mkstream=True
-                )
-                logger.debug(f"✅ Created consumer group '{self.config.consumer_group}' for stream '{self.config.stream_name}'")
-            except Exception as e:
-                if "BUSYGROUP" not in str(e):
-                    logger.warning(f"⚠️ Failed to create consumer group '{self.config.consumer_group}': {e}")
-                    return  # Don't fail startup, just skip group creation
-                else:
-                    logger.debug(f"📋 Consumer group '{self.config.consumer_group}' already exists")
+            with self.redis_service.get_connection() as redis_client:
+                try:
+                    redis_client.xgroup_create(
+                        self.config.stream_name,
+                        self.config.consumer_group,
+                        id='0',
+                        mkstream=True
+                    )
+                    logger.debug(f"✅ Created consumer group '{self.config.consumer_group}' for stream '{self.config.stream_name}'")
+                except Exception as e:
+                    if "BUSYGROUP" not in str(e):
+                        logger.warning(f"⚠️ Failed to create consumer group '{self.config.consumer_group}': {e}")
+                        return  # Don't fail startup, just skip group creation
+                    else:
+                        logger.debug(f"📋 Consumer group '{self.config.consumer_group}' already exists")
                     
         except Exception as e:
             logger.warning(f"⚠️ Consumer group initialization failed: {e} - will retry during consumption")
@@ -258,11 +252,14 @@ class EventConsumer(ABC):
         """Process pending messages that haven't been acknowledged."""
         try:
             # Check for pending messages (claimed but not acknowledged)
-            safe_redis = get_safe_redis()
+            if not self.redis_service.is_healthy():
+                logger.warning("Redis service not healthy, skipping pending messages")
+                return
+            
             pending = []
-            if safe_redis.is_available:
+            with self.redis_service.get_connection() as redis_client:
                 try:
-                    pending = safe_redis.client.xpending_range(
+                    pending = redis_client.xpending_range(
                         self.config.stream_name,
                         self.config.consumer_group,
                         '-',
@@ -286,11 +283,10 @@ class EventConsumer(ABC):
                         continue
                     
                     # Try to claim and process the message
-                    safe_redis = get_safe_redis()
                     claimed = []
-                    if safe_redis.is_available:
+                    with self.redis_service.get_connection() as redis_client:
                         try:
-                            claimed = safe_redis.client.xclaim(
+                            claimed = redis_client.xclaim(
                                 self.config.stream_name,
                                 self.config.consumer_group,
                                 self.config.consumer_name,
@@ -310,11 +306,14 @@ class EventConsumer(ABC):
         """Read and process new messages from the stream."""
         try:
             # Read new messages
-            safe_redis = get_safe_redis()
+            if not self.redis_service.is_healthy():
+                logger.warning("Redis service not healthy, skipping new messages")
+                return
+            
             messages = []
-            if safe_redis.is_available:
+            with self.redis_service.get_connection() as redis_client:
                 try:
-                    messages = safe_redis.client.xreadgroup(
+                    messages = redis_client.xreadgroup(
                         self.config.consumer_group,
                         self.config.consumer_name,
                         streams={self.config.stream_name: '>'},
@@ -326,7 +325,7 @@ class EventConsumer(ABC):
                     if "NOGROUP" in str(e):
                         logger.info(f"🔧 Consumer group '{self.config.consumer_group}' doesn't exist, creating it now...")
                         try:
-                            safe_redis.client.xgroup_create(
+                            redis_client.xgroup_create(
                                 self.config.stream_name,
                                 self.config.consumer_group,
                                 id='0',
@@ -334,7 +333,7 @@ class EventConsumer(ABC):
                             )
                             logger.info(f"✅ Created consumer group '{self.config.consumer_group}' during consumption")
                             # Retry reading after creating the group
-                            messages = safe_redis.client.xreadgroup(
+                            messages = redis_client.xreadgroup(
                                 self.config.consumer_group,
                                 self.config.consumer_name,
                                 streams={self.config.stream_name: '>'},
@@ -442,10 +441,9 @@ class EventConsumer(ABC):
     async def _acknowledge_message(self, message_id: str):
         """Acknowledge successful message processing."""
         try:
-            safe_redis = get_safe_redis()
-            if safe_redis.is_available:
+            with self.redis_service.get_connection() as redis_client:
                 try:
-                    safe_redis.client.xack(
+                    redis_client.xack(
                         self.config.stream_name,
                         self.config.consumer_group,
                         message_id
@@ -468,10 +466,9 @@ class EventConsumer(ABC):
                 'failed_at': datetime.utcnow().isoformat()
             }
             
-            safe_redis = get_safe_redis()
-            if safe_redis.is_available:
+            with self.redis_service.get_connection() as redis_client:
                 try:
-                    safe_redis.client.xadd(
+                    redis_client.xadd(
                         'rsvp:dlq',
                         dlq_data,
                         maxlen=10000
@@ -532,7 +529,7 @@ class WebSocketBroadcaster(EventConsumer):
     Replaces direct WebSocket calls with reliable, event-driven approach.
     """
     
-    def __init__(self, redis_client=None):
+    def __init__(self, redis_service=None):
         config = ConsumerConfig(
             consumer_name="websocket_broadcaster",
             consumer_group="websocket_broadcasters",
@@ -541,7 +538,7 @@ class WebSocketBroadcaster(EventConsumer):
             poll_timeout=1000,  # Faster polling for real-time
             processing_timeout=5  # Quick processing for UI updates
         )
-        super().__init__(config, redis_client)
+        super().__init__(config, redis_service)
     
     async def process_event(self, event: RSVPEvent, raw_data: Dict[str, Any]) -> bool:
         """Broadcast RSVP update to connected WebSocket clients."""
@@ -578,7 +575,7 @@ class DiscordEmbedUpdater(EventConsumer):
     Provides reliable Discord integration with circuit breaker protection.
     """
     
-    def __init__(self, redis_client=None):
+    def __init__(self, redis_service=None):
         config = ConsumerConfig(
             consumer_name="discord_embed_updater",
             consumer_group="discord_embed_updaters", 
@@ -588,7 +585,7 @@ class DiscordEmbedUpdater(EventConsumer):
             processing_timeout=30,  # Allow time for Discord API calls
             max_retries=5  # More retries for network issues
         )
-        super().__init__(config, redis_client)
+        super().__init__(config, redis_service)
     
     def get_circuit_breaker_config(self) -> CircuitBreakerConfig:
         """Configure circuit breaker for Discord API protection."""

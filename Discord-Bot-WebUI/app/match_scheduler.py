@@ -17,7 +17,7 @@ from typing import Dict, Any, Optional, List
 
 from flask import g
 from app.models import MLSMatch
-from app.utils.safe_redis import get_safe_redis
+from app.services.redis_connection_service import get_redis_service
 from app.core import celery as celery_app
 from app.core.helpers import get_match
 from app.core.session_manager import managed_session
@@ -34,14 +34,12 @@ class MatchScheduler:
     REDIS_KEY_PREFIX = "match_scheduler:"
 
     def __init__(self):
-        self._redis = None
+        self._redis_service = get_redis_service()
     
     @property
-    def redis(self):
-        """Get safe Redis client."""
-        if self._redis is None:
-            self._redis = get_safe_redis()
-        return self._redis
+    def redis_service(self):
+        """Get centralized Redis service with connection pooling."""
+        return self._redis_service
 
     def _get_match(self, match_id: int) -> Optional[MLSMatch]:
         """
@@ -174,33 +172,34 @@ class MatchScheduler:
         if is_past_due:
             logger.info(f"Thread time {thread_time} is past due (now: {now}), will execute immediately")
     
-        if force and self.redis.exists(thread_key):
-            existing_data = self.redis.get(thread_key)
-            if existing_data:
+        with self.redis_service.get_connection() as redis_client:
+            if force and redis_client.exists(thread_key):
+                existing_data = redis_client.get(thread_key)
+                if existing_data:
+                    try:
+                        existing_obj = json.loads(existing_data)
+                        existing_task = existing_obj.get("task_id")
+                    except Exception:
+                        existing_task = existing_data
                 try:
-                    existing_obj = json.loads(existing_data.decode('utf-8'))
-                    existing_task = existing_obj.get("task_id")
-                except Exception:
-                    existing_task = existing_data.decode('utf-8')
-            try:
-                celery_app.control.revoke(existing_task, terminate=True)
-            except Exception as e:
-                logger.error(f"Error revoking existing thread task: {e}")
-            self.redis.delete(thread_key)
-            logger.info("Existing thread task revoked and key cleared.")
-    
-        if self.redis.exists(thread_key):
-            existing_data = self.redis.get(thread_key)
-            if existing_data:
-                try:
-                    existing_obj = json.loads(existing_data.decode('utf-8'))
-                    existing_task = existing_obj.get("task_id")
-                    existing_eta = existing_obj.get("eta")
-                except Exception:
-                    existing_task = existing_data.decode('utf-8')
-                    existing_eta = None
-            logger.info(f"Found existing thread task: {existing_task}")
-            return {'scheduled': False, 'existing_task': existing_task, 'eta': existing_eta}
+                    celery_app.control.revoke(existing_task, terminate=True)
+                except Exception as e:
+                    logger.error(f"Error revoking existing thread task: {e}")
+                redis_client.delete(thread_key)
+                logger.info("Existing thread task revoked and key cleared.")
+        
+            if redis_client.exists(thread_key):
+                existing_data = redis_client.get(thread_key)
+                if existing_data:
+                    try:
+                        existing_obj = json.loads(existing_data)
+                        existing_task = existing_obj.get("task_id")
+                        existing_eta = existing_obj.get("eta")
+                    except Exception:
+                        existing_task = existing_data
+                        existing_eta = None
+                    logger.info(f"Found existing thread task: {existing_task}")
+                    return {'scheduled': False, 'existing_task': existing_task, 'eta': existing_eta}
     
         try:
             # If the time is past due, execute immediately without eta
@@ -216,7 +215,9 @@ class MatchScheduler:
                 "task_id": thread_task.id,
                 "eta": thread_time.isoformat()
             })
-            self.redis.setex(thread_key, expiry, data_to_store)
+            
+            with self.redis_service.get_connection() as redis_client:
+                redis_client.setex(thread_key, expiry, data_to_store)
             return {
                 'scheduled': True,
                 'task_id': thread_task.id,
@@ -254,33 +255,34 @@ class MatchScheduler:
         if is_past_due:
             logger.info(f"Reporting time {reporting_time} is past due (now: {now}), will execute immediately")
     
-        if force and self.redis.exists(reporting_key):
-            existing_data = self.redis.get(reporting_key)
-            if existing_data:
+        with self.redis_service.get_connection() as redis_client:
+            if force and redis_client.exists(reporting_key):
+                existing_data = redis_client.get(reporting_key)
+                if existing_data:
+                    try:
+                        existing_obj = json.loads(existing_data)
+                        existing_task = existing_obj.get("task_id")
+                    except Exception:
+                        existing_task = existing_data
                 try:
-                    existing_obj = json.loads(existing_data.decode('utf-8'))
-                    existing_task = existing_obj.get("task_id")
-                except Exception:
-                    existing_task = existing_data.decode('utf-8')
-            try:
-                celery_app.control.revoke(existing_task, terminate=True)
-            except Exception as e:
-                logger.error(f"Error revoking existing reporting task: {e}")
-            self.redis.delete(reporting_key)
-            logger.info("Existing reporting task revoked and key cleared.")
-    
-        if self.redis.exists(reporting_key):
-            existing_data = self.redis.get(reporting_key)
-            if existing_data:
-                try:
-                    existing_obj = json.loads(existing_data.decode('utf-8'))
-                    existing_task = existing_obj.get("task_id")
-                    existing_eta = existing_obj.get("eta")
-                except Exception:
-                    existing_task = existing_data.decode('utf-8')
-                    existing_eta = None
-            logger.info(f"Found existing reporting task: {existing_task}")
-            return {'scheduled': False, 'existing_task': existing_task, 'eta': existing_eta}
+                    celery_app.control.revoke(existing_task, terminate=True)
+                except Exception as e:
+                    logger.error(f"Error revoking existing reporting task: {e}")
+                redis_client.delete(reporting_key)
+                logger.info("Existing reporting task revoked and key cleared.")
+        
+            if redis_client.exists(reporting_key):
+                existing_data = redis_client.get(reporting_key)
+                if existing_data:
+                    try:
+                        existing_obj = json.loads(existing_data)
+                        existing_task = existing_obj.get("task_id")
+                        existing_eta = existing_obj.get("eta")
+                    except Exception:
+                        existing_task = existing_data
+                        existing_eta = None
+                    logger.info(f"Found existing reporting task: {existing_task}")
+                    return {'scheduled': False, 'existing_task': existing_task, 'eta': existing_eta}
     
         try:
             # If the time is past due, execute immediately without eta
@@ -296,7 +298,9 @@ class MatchScheduler:
                 "task_id": reporting_task.id,
                 "eta": reporting_time.isoformat()
             })
-            self.redis.setex(reporting_key, expiry, data_to_store)
+            
+            with self.redis_service.get_connection() as redis_client:
+                redis_client.setex(reporting_key, expiry, data_to_store)
             return {
                 'scheduled': True,
                 'task_id': reporting_task.id,
@@ -330,29 +334,30 @@ class MatchScheduler:
             thread_key = f"{self.REDIS_KEY_PREFIX}{match_id}:thread"
             reporting_key = f"{self.REDIS_KEY_PREFIX}{match_id}:reporting"
             
-            # Extract and revoke task IDs
-            for key_name, redis_key in [("thread", thread_key), ("reporting", reporting_key)]:
-                try:
-                    value = self.redis.get(redis_key)
-                    if value:
-                        import json
-                        data = json.loads(value.decode('utf-8') if isinstance(value, bytes) else value)
-                        task_id = data.get('task_id')
-                        
-                        if task_id:
-                            # Revoke the task
-                            from app.core import celery
-                            celery.control.revoke(task_id, terminate=True)
-                            results['unscheduled_tasks'] += 1
-                            results['details'].append(f"Revoked {key_name} task {task_id}")
-                        
-                        # Delete the Redis key
-                        self.redis.delete(redis_key)
-                        results['cleaned_redis_keys'] += 1
-                        results['details'].append(f"Deleted Redis key {redis_key}")
-                        
-                except Exception as e:
-                    results['details'].append(f"Error processing {key_name} task: {str(e)}")
+            # Extract and revoke task IDs using centralized Redis service
+            with self.redis_service.get_connection() as redis_client:
+                for key_name, redis_key in [("thread", thread_key), ("reporting", reporting_key)]:
+                    try:
+                        value = redis_client.get(redis_key)
+                        if value:
+                            import json
+                            data = json.loads(value)
+                            task_id = data.get('task_id')
+                            
+                            if task_id:
+                                # Revoke the task
+                                from app.core import celery
+                                celery.control.revoke(task_id, terminate=True)
+                                results['unscheduled_tasks'] += 1
+                                results['details'].append(f"Revoked {key_name} task {task_id}")
+                            
+                            # Delete the Redis key
+                            redis_client.delete(redis_key)
+                            results['cleaned_redis_keys'] += 1
+                            results['details'].append(f"Deleted Redis key {redis_key}")
+                            
+                    except Exception as e:
+                        results['details'].append(f"Error processing {key_name} task: {str(e)}")
             
             # Update database flags
             try:
@@ -408,12 +413,14 @@ class MatchScheduler:
         """
         thread_key = self._get_redis_key(str(match_id), "thread")
         reporting_key = self._get_redis_key(str(match_id), "reporting")
-        return {
-            'thread_key': bool(self.redis.exists(thread_key)),
-            'reporting_key': bool(self.redis.exists(reporting_key)),
-            'thread_ttl': self.redis.ttl(thread_key),
-            'reporting_ttl': self.redis.ttl(reporting_key)
-        }
+        
+        with self.redis_service.get_connection() as redis_client:
+            return {
+                'thread_key': bool(redis_client.exists(thread_key)),
+                'reporting_key': bool(redis_client.exists(reporting_key)),
+                'thread_ttl': redis_client.ttl(thread_key),
+                'reporting_ttl': redis_client.ttl(reporting_key)
+            }
 
     def monitor_scheduled_tasks(self) -> Dict[str, Any]:
         """
@@ -423,8 +430,9 @@ class MatchScheduler:
             Dict[str, Any]: A dictionary containing details of scheduled tasks and total keys.
         """
         try:
-            all_keys = self.redis.keys(f"{self.REDIS_KEY_PREFIX}*")
-            scheduled_tasks = self._process_redis_keys(all_keys)
+            with self.redis_service.get_connection() as redis_client:
+                all_keys = redis_client.keys(f"{self.REDIS_KEY_PREFIX}*")
+                scheduled_tasks = self._process_redis_keys(all_keys, redis_client)
         
             match_ids = list(scheduled_tasks.keys())
             session = g.db_session
@@ -451,23 +459,22 @@ class MatchScheduler:
             logger.error(f"Error monitoring scheduled tasks: {str(e)}", exc_info=True)
             return {'success': False, 'message': str(e)}
 
-    def _process_redis_keys(self, keys: List[bytes]) -> Dict[str, Dict]:
+    def _process_redis_keys(self, keys: List[bytes], redis_client) -> Dict[str, Dict]:
         """
         Process Redis keys to extract scheduled task details.
         
         Parameters:
             keys (List[bytes]): A list of Redis keys.
+            redis_client: Active Redis client connection.
         
         Returns:
             Dict[str, Dict]: A mapping of match IDs to their task details.
         """
         scheduled_tasks = {}
         for key in keys:
-            key_str = key.decode('utf-8') if isinstance(key, bytes) else str(key)
-            task_data = self.redis.get(key)
-            if task_data and isinstance(task_data, bytes):
-                task_data = task_data.decode('utf-8')
-            ttl = self.redis.ttl(key)
+            key_str = key if isinstance(key, str) else str(key)
+            task_data = redis_client.get(key)
+            ttl = redis_client.ttl(key)
             # Expected key format: match_scheduler:<match_id>:<task_type>
             _, match_id, task_type = key_str.split(':')
             if match_id not in scheduled_tasks:

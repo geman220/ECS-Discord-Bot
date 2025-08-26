@@ -12,6 +12,7 @@ from datetime import datetime
 from celery import current_task
 from app.core import celery
 from app.services.task_status_cache import task_status_cache
+from app.services.redis_connection_service import get_redis_service
 
 logger = logging.getLogger(__name__)
 
@@ -202,34 +203,38 @@ def cache_health_check(self):
     try:
         logger.info("Running cache health check")
         
-        redis_client = task_status_cache.get_redis_client()
+        redis_service = get_redis_service()
         
-        # Basic Redis health check
-        redis_client.ping()
-        
-        # Check cache statistics
-        cache_keys = redis_client.keys(f"{task_status_cache.CACHE_PREFIX}:*")
-        cache_count = len(cache_keys)
-        
-        # Sample a few cache entries to check validity
-        sample_size = min(5, cache_count)
-        valid_entries = 0
-        
-        if sample_size > 0:
-            import random
-            sample_keys = random.sample(cache_keys, sample_size)
+        with redis_service.get_connection() as redis_client:
+            # Basic Redis health check
+            redis_client.ping()
             
-            for key in sample_keys:
-                try:
-                    data = redis_client.get(key)
-                    if data:
-                        import json
-                        json.loads(data)  # Validate JSON
-                        valid_entries += 1
-                except Exception:
-                    pass
+            # Check cache statistics
+            cache_keys = redis_client.keys(f"{task_status_cache.CACHE_PREFIX}:*")
+            cache_count = len(cache_keys)
+            
+            # Sample a few cache entries to check validity
+            sample_size = min(5, cache_count)
+            valid_entries = 0
+            
+            if sample_size > 0:
+                import random
+                sample_keys = random.sample(cache_keys, sample_size)
+                
+                for key in sample_keys:
+                    try:
+                        data = redis_client.get(key)
+                        if data:
+                            import json
+                            json.loads(data)  # Validate JSON
+                            valid_entries += 1
+                    except Exception:
+                        pass
         
         health_score = (valid_entries / sample_size * 100) if sample_size > 0 else 100
+        
+        # Get Redis service metrics
+        service_metrics = redis_service.get_metrics()
         
         result = {
             'success': True,
@@ -238,6 +243,7 @@ def cache_health_check(self):
             'valid_entries': valid_entries,
             'health_score': health_score,
             'redis_connected': True,
+            'redis_metrics': service_metrics,
             'timestamp': datetime.utcnow().isoformat()
         }
         
