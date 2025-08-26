@@ -36,6 +36,10 @@ class MatchEvent:
         if self.timestamp is None:
             self.timestamp = datetime.utcnow()
     
+    def to_key(self) -> str:
+        """Generate unique key for event deduplication."""
+        return f"{self.clock}-{self.event_type}-{self.athlete_name or 'unknown'}-{self.event_id}"
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {

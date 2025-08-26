@@ -19,6 +19,7 @@ from app.core import celery
 from app.database.db_models import DBMonitoringSnapshot
 from app.utils.redis_manager import RedisManager
 from app.utils.task_session_manager import task_session
+from app.utils.safe_redis import get_safe_redis
 
 # Configure logger for this module.
 logger = logging.getLogger(__name__)
@@ -257,3 +258,150 @@ def monitor_redis_connections():
         except Exception as e:
             logger.error(f"Error monitoring Redis connections: {e}", exc_info=True)
             raise
+
+
+@celery.task(name='app.tasks.monitoring_tasks.monitor_queue_backlogs')
+def monitor_queue_backlogs():
+    """
+    Monitor Celery queues for excessive backlogs and alert when thresholds are exceeded.
+    
+    This task checks key queue lengths and logs warnings/errors when queues become backed up.
+    It also attempts to clear expired tasks from queues to prevent performance issues.
+    
+    Returns:
+        dict: Queue statistics and any alerts generated
+    """
+    logger.info("Starting queue backlog monitoring task")
+    
+    try:
+        redis_client = get_safe_redis()
+        if not redis_client.is_available:
+            logger.warning("Redis not available for queue monitoring - using fallback behavior")
+            return {'success': False, 'message': 'Redis unavailable'}
+        
+        # Define queue thresholds
+        QUEUE_THRESHOLDS = {
+            'live_reporting': {'warning': 50, 'critical': 200},
+            'discord': {'warning': 100, 'critical': 500},
+            'celery': {'warning': 200, 'critical': 1000},
+            'player_sync': {'warning': 20, 'critical': 100},
+            'enterprise_rsvp': {'warning': 50, 'critical': 200}
+        }
+        
+        queue_stats = {}
+        alerts = []
+        
+        for queue_name, thresholds in QUEUE_THRESHOLDS.items():
+            try:
+                queue_length = redis_client.llen(queue_name)
+                queue_stats[queue_name] = queue_length
+                
+                if queue_length >= thresholds['critical']:
+                    alert = f"CRITICAL: Queue '{queue_name}' has {queue_length} tasks (threshold: {thresholds['critical']})"
+                    logger.error(alert)
+                    alerts.append(alert)
+                elif queue_length >= thresholds['warning']:
+                    alert = f"WARNING: Queue '{queue_name}' has {queue_length} tasks (threshold: {thresholds['warning']})"
+                    logger.warning(alert)
+                    alerts.append(alert)
+                else:
+                    logger.info(f"Queue '{queue_name}': {queue_length} tasks (healthy)")
+                    
+            except Exception as e:
+                error = f"Error checking queue '{queue_name}': {e}"
+                logger.error(error)
+                alerts.append(error)
+        
+        # Special handling for live_reporting queue - clear expired process_all_active_sessions_v2 tasks
+        if queue_stats.get('live_reporting', 0) > 100:
+            try:
+                cleared_count = _clear_expired_live_reporting_tasks(redis_client)
+                if cleared_count > 0:
+                    logger.info(f"Cleared {cleared_count} expired live_reporting tasks")
+                    queue_stats['live_reporting_cleared'] = cleared_count
+            except Exception as e:
+                logger.error(f"Error clearing expired live_reporting tasks: {e}")
+        
+        result = {
+            'success': True,
+            'queue_stats': queue_stats,
+            'alerts': alerts,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        if alerts:
+            logger.warning(f"Queue monitoring generated {len(alerts)} alerts: {alerts}")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error in queue backlog monitoring: {e}", exc_info=True)
+        return {'success': False, 'error': str(e)}
+
+
+def _clear_expired_live_reporting_tasks(redis_client):
+    """
+    Helper function to clear expired process_all_active_sessions_v2 tasks from live_reporting queue.
+    
+    Args:
+        redis_client: Redis client instance
+        
+    Returns:
+        int: Number of tasks cleared
+    """
+    import json
+    from datetime import datetime
+    import pytz
+    from dateutil import parser
+    
+    queue_name = 'live_reporting'
+    current_time = datetime.now(pytz.UTC)
+    
+    # Get all tasks
+    all_tasks = redis_client.lrange(queue_name, 0, -1)
+    if not all_tasks:
+        return 0
+    
+    valid_tasks = []
+    expired_count = 0
+    
+    for task_json in all_tasks:
+        try:
+            task = json.loads(task_json)
+            headers = task.get('headers', {})
+            expires = headers.get('expires')
+            task_name = headers.get('task', '')
+            
+            # Only clear process_all_active_sessions_v2 tasks that are expired
+            if 'process_all_active_sessions_v2' in task_name and expires:
+                try:
+                    expires_dt = parser.parse(expires)
+                    if expires_dt < current_time:
+                        expired_count += 1
+                        continue  # Skip this task (mark as expired)
+                except:
+                    # If we can't parse the expiration, assume it's expired
+                    expired_count += 1
+                    continue
+            
+            # Keep all other tasks
+            valid_tasks.append(task_json)
+            
+        except:
+            # Keep unparseable tasks
+            valid_tasks.append(task_json)
+    
+    # Only clear if we have significant expired tasks to avoid unnecessary work
+    if expired_count > 10:
+        # Clear queue and re-add valid tasks
+        redis_client.delete(queue_name)
+        if valid_tasks:
+            # Use the raw Redis client for rpush since SafeRedisClient may not have it
+            raw_client = redis_client.client
+            for task in valid_tasks:
+                raw_client.rpush(queue_name, task)
+        
+        logger.info(f"Cleared {expired_count} expired tasks from {queue_name} queue")
+        return expired_count
+    
+    return 0

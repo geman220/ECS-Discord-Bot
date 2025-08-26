@@ -35,7 +35,7 @@ class LiveReportingConfig(BaseSettings):
     
     # ESPN API Configuration
     espn_api_base: str = Field(default="https://site.api.espn.com/apis/site/v2", env="ESPN_API_BASE")
-    espn_timeout: int = Field(default=30, env="ESPN_TIMEOUT")
+    espn_timeout: int = Field(default=15, env="ESPN_TIMEOUT")  # Faster timeout for live sports
     espn_max_retries: int = Field(default=3, env="ESPN_MAX_RETRIES")
     espn_cache_ttl: int = Field(default=300, env="ESPN_CACHE_TTL")  # 5 minutes
     
@@ -47,11 +47,12 @@ class LiveReportingConfig(BaseSettings):
     # OpenAI Configuration (compatible with legacy environment variables)
     openai_api_key: Optional[str] = Field(default=None)  # Will be populated by model_post_init
     openai_model: str = Field(default="gpt-4o-mini", env="OPENAI_MODEL")
-    openai_timeout: int = Field(default=30, env="OPENAI_TIMEOUT")
+    openai_timeout: int = Field(default=15, env="OPENAI_TIMEOUT")  # Faster AI responses
     openai_max_retries: int = Field(default=2, env="OPENAI_MAX_RETRIES")
     
     # Live Reporting Settings
-    update_interval: int = Field(default=30, env="LIVE_REPORTING_UPDATE_INTERVAL")
+    update_interval: int = Field(default=10, env="LIVE_REPORTING_UPDATE_INTERVAL")  # Base polling interval
+    burst_mode_interval: int = Field(default=7, env="LIVE_REPORTING_BURST_INTERVAL")  # Ultra-fast for active matches
     max_error_count: int = Field(default=10, env="LIVE_REPORTING_MAX_ERRORS")
     session_timeout: int = Field(default=3600, env="LIVE_REPORTING_SESSION_TIMEOUT")  # 1 hour
     

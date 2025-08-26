@@ -361,18 +361,25 @@ class ESPNClient:
             
             # Extract events with enhanced substitution and player info
             events = []
-            for event in competition_data.get('details', []):
+            for event_idx, event in enumerate(competition_data.get('details', [])):
                 event_type = event.get('type', {}).get('text', '')
                 event_text = event.get('text', '')
                 athletes_involved = event.get('athletesInvolved', [])
+                clock_value = event.get('clock', {}).get('displayValue', '')
+                team_id = event.get('team', {}).get('id', '')
+                
+                # Generate unique event ID using multiple data points
+                # Format: matchId_teamId_eventType_clockValue_athleteId
+                primary_athlete_id = athletes_involved[0].get('id', '') if athletes_involved else ''
+                unique_id = f"{match_id}_{team_id}_{event_type.replace(' ', '')}_{clock_value}_{primary_athlete_id}_{event_idx}"
                 
                 # Basic event info
                 event_data = {
-                    'id': event.get('id', ''),
+                    'id': unique_id,
                     'type': event_type,
                     'text': event_text,
-                    'clock': event.get('clock', {}).get('displayValue', ''),
-                    'team_id': event.get('team', {}).get('id', ''),
+                    'clock': clock_value,
+                    'team_id': team_id,
                 }
                 
                 # Enhanced player information
@@ -434,15 +441,23 @@ class ESPNClient:
                         event_data['is_card'] = False
                         event_data['is_goal'] = True
                         
+                        # Get scorer info
+                        scorer_name = event_data.get('athlete_name', 'Unknown')
+                        scorer_jersey = event_data.get('athlete_jersey', '')
+                        jersey_text = f" #{scorer_jersey}" if scorer_jersey else ""
+                        
                         if 'penalty' in event_text.lower() or 'penalty' in event_type.lower():
                             event_data['goal_type'] = 'penalty'
                             event_data['goal_emoji'] = '⚽🥅'
+                            event_data['text'] = f"GOAL! {scorer_name}{jersey_text} scores from the penalty spot! {clock_value}"
                         elif 'own goal' in event_text.lower() or 'own goal' in event_type.lower():
-                            event_data['goal_type'] = 'own_goal'
+                            event_data['goal_type'] = 'own_goal' 
                             event_data['goal_emoji'] = '🤦'
+                            event_data['text'] = f"Own Goal by {scorer_name}{jersey_text} {clock_value}"
                         else:
                             event_data['goal_type'] = 'regular'
                             event_data['goal_emoji'] = '⚽'
+                            event_data['text'] = f"GOAL! {scorer_name}{jersey_text} finds the net! {clock_value}"
                     else:
                         event_data['is_substitution'] = False
                         event_data['is_card'] = False
@@ -471,7 +486,7 @@ class ESPNClient:
                 score=score,
                 events=events,
                 competition=competition,
-                venue=competition_data.get('venue', {}).get('fullName'),
+                venue=competition_data.get('venue', {}).get('fullName', 'Unknown Venue'),
                 date=raw_data.get('date'),
                 raw_data=raw_data
             )

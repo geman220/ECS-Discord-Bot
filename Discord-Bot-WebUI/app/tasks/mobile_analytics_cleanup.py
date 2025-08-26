@@ -8,7 +8,7 @@ Since pg_cron requires superuser privileges, we use Celery for scheduling.
 """
 
 from datetime import datetime, timedelta
-from celery import Celery
+from app.core import celery
 from app import db
 from app.models_mobile_analytics import MobileErrorAnalytics, MobileErrorPatterns, MobileLogs
 import logging
@@ -179,7 +179,6 @@ def get_analytics_storage_stats():
 
 # Celery task definitions
 try:
-    from app import celery
     
     @celery.task(name='app.tasks.mobile_analytics_cleanup.cleanup_mobile_analytics_task')
     def cleanup_mobile_analytics_task():

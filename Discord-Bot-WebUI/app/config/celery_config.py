@@ -285,10 +285,10 @@ class CeleryConfig:
                 'expires': 3540  # Task expires after 59 minutes
             }
         },
-        # V2 Live Reporting - Process all active sessions every 30 seconds (FIXED: reduced connection pool)
+        # V2 Live Reporting - Process all active sessions every 10 seconds for near real-time
         'process-active-live-sessions-v2': {
             'task': 'app.tasks.tasks_live_reporting_v2.process_all_active_sessions_v2',
-            'schedule': 30.0,  # Every 30 seconds
+            'schedule': 10.0,  # Every 10 seconds for near real-time updates
             'options': {
                 'queue': 'live_reporting',
                 'expires': 60  # Task expires after 60 seconds (allows for processing delays)

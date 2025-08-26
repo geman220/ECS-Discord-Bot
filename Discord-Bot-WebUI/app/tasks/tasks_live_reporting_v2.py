@@ -260,24 +260,69 @@ async def _start_live_reporting_async(match_id: str, thread_id: str, competition
     Creates or reactivates live reporting session using the new architecture.
     """
     try:
+        # First, ensure session exists using synchronous database operations
+        # This ensures compatibility with the rest of the application
+        from app.models import LiveReportingSession
+        from app.core.session_manager import managed_session
+        import json
+        
+        session_id = None
+        reactivated = False
+        
+        with managed_session() as db_session:
+            # Check for existing session
+            existing = db_session.query(LiveReportingSession).filter_by(
+                match_id=match_id
+            ).first()
+            
+            if existing:
+                if existing.is_active:
+                    logger.info(f"Live reporting already active for match {match_id}")
+                    return {
+                        'success': True,
+                        'message': f'Live reporting already active for match {match_id}',
+                        'match_id': match_id,
+                        'session_id': existing.id,
+                        'reactivated': False
+                    }
+                else:
+                    # Reactivate existing session
+                    existing.is_active = True
+                    existing.started_at = datetime.utcnow()
+                    existing.ended_at = None
+                    existing.thread_id = thread_id
+                    existing.competition = competition
+                    existing.error_count = 0
+                    existing.last_error = None
+                    existing.last_status = "STATUS_SCHEDULED"
+                    existing.last_score = "0-0"
+                    db_session.commit()
+                    session_id = existing.id
+                    reactivated = True
+                    logger.info(f"Reactivated session {existing.id} for match {match_id}")
+            else:
+                # Create new session
+                new_session = LiveReportingSession(
+                    match_id=match_id,
+                    competition=competition,
+                    thread_id=thread_id,
+                    is_active=True,
+                    started_at=datetime.utcnow(),
+                    last_status="STATUS_SCHEDULED",
+                    last_score="0-0",
+                    last_event_keys=json.dumps([]),
+                    update_count=0,
+                    error_count=0
+                )
+                db_session.add(new_session)
+                db_session.commit()
+                session_id = new_session.id
+                logger.info(f"Created session {new_session.id} for match {match_id}")
+        
+        # Now use the orchestrator for any additional setup if needed
         config = get_config()
         
         async with LiveReportingOrchestrator(config) as orchestrator:
-            
-            # Get or create live reporting session
-            live_repo = orchestrator._live_repo
-            existing_session = await live_repo.get_session(match_id)
-            
-            if existing_session and existing_session.is_active:
-                logger.info(f"Live reporting already active for match {match_id}")
-                return {
-                    'success': True,
-                    'message': f'Live reporting already active for match {match_id}',
-                    'match_id': match_id,
-                    'session_id': existing_session.id,
-                    'reactivated': False
-                }
-            
             # Create match context
             from app.services.live_reporting import MatchEventContext
             context = MatchEventContext(
@@ -286,52 +331,20 @@ async def _start_live_reporting_async(match_id: str, thread_id: str, competition
                 thread_id=thread_id
             )
             
-            if existing_session:
-                # Reactivate existing session
-                existing_session.is_active = True
-                existing_session.started_at = datetime.utcnow()
-                existing_session.ended_at = None
-                existing_session.thread_id = thread_id
-                existing_session.error_count = 0
-                existing_session.last_error = None
-                
-                # Update in database
-                await live_repo.update_session(
-                    match_id=match_id,
-                    status=None,  # Will be updated on first monitoring cycle
-                    score="0-0",  # Will be updated on first monitoring cycle
-                    event_keys=[],
-                    increment_updates=False,
-                    is_active=True  # Important: actually set is_active in database
-                )
-                
-                logger.info(f"Reactivated live reporting session for match {match_id}")
-                return {
-                    'success': True,
-                    'message': f'Reactivated live reporting for match {match_id}',
-                    'match_id': match_id,
-                    'session_id': existing_session.id,
-                    'reactivated': True
-                }
-            else:
-                # Create new session
-                new_session = await live_repo.create_session(context)
-                
-                # Auto-create match record if needed
-                match_repo = orchestrator._match_repo
-                existing_match = await match_repo.get_match(match_id)
-                if not existing_match:
-                    await match_repo.create_match(context)
-                    logger.info(f"Auto-created match record for {match_id}")
-                
-                logger.info(f"Created new live reporting session for match {match_id}")
-                return {
-                    'success': True,
-                    'message': f'Started live reporting for match {match_id}',
-                    'match_id': match_id,
-                    'session_id': new_session.id,
-                    'reactivated': False
-                }
+            # Auto-create match record if needed
+            match_repo = orchestrator._match_repo
+            existing_match = await match_repo.get_match(match_id)
+            if not existing_match:
+                await match_repo.create_match(context)
+                logger.info(f"Auto-created match record for {match_id}")
+        
+        return {
+            'success': True,
+            'message': f'{"Reactivated" if reactivated else "Started"} live reporting for match {match_id}',
+            'match_id': match_id,
+            'session_id': session_id,
+            'reactivated': reactivated
+        }
                 
     except Exception as e:
         logger.error(f"Error in async live reporting start: {e}", exc_info=True)

@@ -425,11 +425,22 @@ def schedule_live_reporting(self, session) -> Dict[str, Any]:
                 continue
             
             # Schedule with ETA and store task ID
-            task = start_live_reporting.apply_async(
-                args=[str(match.match_id)],
-                eta=reporting_time,
-                queue='live_reporting'
-            )
+            # Use V2 task if available, otherwise fallback to V1
+            try:
+                from app.tasks.tasks_live_reporting_v2 import start_live_reporting_v2
+                task = start_live_reporting_v2.apply_async(
+                    args=[str(match.match_id), str(match.discord_thread_id), match.competition or 'usa.1'],
+                    eta=reporting_time,
+                    queue='live_reporting'
+                )
+                logger.info(f"Scheduled V2 live reporting for match {match.match_id}")
+            except ImportError:
+                logger.warning("V2 live reporting not available, using V1")
+                task = start_live_reporting.apply_async(
+                    args=[str(match.match_id)],
+                    eta=reporting_time,
+                    queue='live_reporting'
+                )
             
             # Store task ID in Redis for tracking
             import json

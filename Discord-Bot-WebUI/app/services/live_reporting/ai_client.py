@@ -287,18 +287,52 @@ Remember: You're a real fan in the stands, not a neutral commentator."""
         if len(self._match_contexts[match_id]) > 20:
             self._match_contexts[match_id] = self._match_contexts[match_id][-20:]
     
+    async def _get_prompt_config(self, prompt_type: str, competition: str) -> Optional[Dict]:
+        """
+        Fetch AI prompt configuration from the API.
+        
+        Args:
+            prompt_type: Type of prompt (goal, opponent_goal, card, etc.)
+            competition: Competition identifier (e.g., 'usa.1')
+            
+        Returns:
+            Prompt configuration dict or None if not found
+        """
+        try:
+            api_url = f"http://host.docker.internal:5000/ai-prompts/active/{prompt_type}"
+            params = {'competition': competition} if competition else {}
+            
+            timeout = ClientTimeout(total=5)  # Short timeout for quick response
+            async with ClientSession(timeout=timeout) as session:
+                async with session.get(api_url, params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if data.get('success') and data.get('prompt'):
+                            logger.info(f"Retrieved AI prompt config for {prompt_type}")
+                            return data['prompt']
+                        else:
+                            logger.info(f"No active prompt config found for {prompt_type}")
+                            return None
+                    else:
+                        logger.warning(f"Failed to fetch prompt config: HTTP {response.status}")
+                        return None
+                        
+        except Exception as e:
+            logger.error(f"Error fetching prompt config for {prompt_type}: {e}")
+            return None
+    
     async def generate_commentary(
         self,
         match_data: MatchData,
-        new_events: List[Dict],
+        single_event: Dict,
         context: Optional[MatchEventContext] = None
     ) -> str:
         """
-        Generate AI commentary for match events.
+        Generate AI commentary for a single match event.
         
         Args:
             match_data: Current match data
-            new_events: New events to comment on
+            single_event: Single event to comment on
             context: Optional match context
             
         Returns:
@@ -308,7 +342,7 @@ Remember: You're a real fan in the stands, not a neutral commentator."""
             logger.info("AI commentary disabled, using fallback")
             if self.metrics:
                 self.metrics.ai_fallback_used.labels(reason='disabled').inc()
-            return self._generate_fallback_commentary(match_data, new_events)
+            return self._generate_fallback_commentary(match_data, [single_event])
         
         try:
             # Check circuit breaker
@@ -316,41 +350,83 @@ Remember: You're a real fan in the stands, not a neutral commentator."""
                 logger.warning("AI commentary circuit breaker is open")
                 if self.metrics:
                     self.metrics.ai_fallback_used.labels(reason='circuit_breaker').inc()
-                return self._generate_fallback_commentary(match_data, new_events)
+                return self._generate_fallback_commentary(match_data, [single_event])
             
-            # Get match context for continuity
+            # Get match context for continuity (AI memory)
             match_context = self._get_match_context(match_data.match_id)
-            recent_events = [ctx['event'] for ctx in match_context[-5:]]  # Last 5 events
+            recent_events = [ctx['event'] for ctx in match_context[-5:]]  # Last 5 events for AI context
             
-            # Build the prompt
-            system_prompt = self._build_system_prompt()
+            # Determine event type and team for prompt selection
+            event_type = single_event.get('type', 'Unknown').lower()
+            team_id = single_event.get('team_id', '')
+            # ALWAYS check for Seattle Sounders, regardless of home/away status
+            sounders_team_id = '9726'  # Seattle Sounders FC
+            is_sounders_event = (team_id == sounders_team_id)
+            
+            # Determine prompt type based on event and team
+            if 'goal' in event_type or ('penalty' in event_type and 'scored' in event_type):
+                prompt_type = 'goal' if is_sounders_event else 'opponent_goal'
+            elif 'penalty' in event_type and ('missed' in event_type or 'saved' in event_type):
+                # Penalty miss/save: celebrate if opponent misses, frustrated if we miss
+                prompt_type = 'opponent_penalty_miss' if not is_sounders_event else 'sounders_penalty_miss'
+            elif 'red card' in event_type or event_type == 'red card':
+                # Red cards get dramatic responses
+                prompt_type = 'sounders_red_card' if is_sounders_event else 'opponent_red_card'
+            elif 'card' in event_type or 'yellow card' in event_type:
+                # Yellow cards and generic cards
+                prompt_type = 'yellow_card' if is_sounders_event else 'opponent_yellow_card'
+            elif 'substitution' in event_type:
+                prompt_type = 'substitution' if is_sounders_event else 'opponent_substitution'
+            else:
+                prompt_type = 'match_commentary'
+            
+            # Fetch AI prompt configuration from API
+            prompt_config = await self._get_prompt_config(prompt_type, match_data.competition)
+            
+            if not prompt_config:
+                logger.warning(f"No AI prompt config found for {prompt_type}, using fallback")
+                if self.metrics:
+                    self.metrics.ai_fallback_used.labels(reason='no_prompt_config').inc()
+                return self._generate_fallback_commentary(match_data, [single_event])
+            
+            # Build match context string for AI
             match_context_str = self._build_match_context(match_data, recent_events)
             
-            # Describe the new events
-            event_descriptions = []
-            for event in new_events:
-                desc = event.get('text', 'Unknown event')
-                event_type = event.get('type', 'Unknown')
-                clock = event.get('clock', 'Unknown time')
-                event_descriptions.append(f"{clock}: {event_type} - {desc}")
+            # Use the configured template or build basic prompt
+            user_prompt_template = prompt_config.get('user_prompt_template')
+            system_prompt = prompt_config.get('system_prompt', self._build_system_prompt())
             
-            user_prompt = f"""MATCH CONTEXT:
+            if user_prompt_template:
+                # Use template with variable substitution
+                event_desc = single_event.get('text', 'Unknown event')
+                user_prompt = user_prompt_template.format(
+                    match_context=match_context_str,
+                    event_description=event_desc,
+                    score=match_data.score,
+                    clock=single_event.get('clock', 'Unknown time'),
+                    event_type=single_event.get('type', 'Unknown'),
+                    athlete_name=single_event.get('athlete_name', 'Unknown player')
+                )
+            else:
+                # Fallback prompt construction
+                event_desc = single_event.get('text', 'Unknown event')
+                user_prompt = f"""MATCH CONTEXT:
 {match_context_str}
 
-NEW EVENTS TO COMMENT ON:
-{chr(10).join(event_descriptions)}
+EVENT TO COMMENT ON:
+{single_event.get('clock', 'Unknown time')}: {event_desc}
 
-Provide a brief, passionate commentary on these new events as a Seattle Sounders supporter. Keep it under 200 characters and be authentic to how a real fan would react."""
+Provide commentary on this event. Current score: {match_data.score}"""
             
-            # Make API request
+            # Make API request with prompt configuration
             request_data = {
                 "model": self.config.openai_model,
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                "max_tokens": 100,
-                "temperature": 0.8,
+                "max_tokens": prompt_config.get('max_tokens', 100),
+                "temperature": prompt_config.get('temperature', 0.8),
                 "presence_penalty": 0.1,
                 "frequency_penalty": 0.1
             }
@@ -360,9 +436,8 @@ Provide a brief, passionate commentary on these new events as a Seattle Sounders
             if response and 'choices' in response and response['choices']:
                 commentary = response['choices'][0]['message']['content'].strip()
                 
-                # Update match context
-                for event in new_events:
-                    self._update_match_context(match_data.match_id, event)
+                # Update match context with the single event
+                self._update_match_context(match_data.match_id, single_event)
                 
                 # Record success
                 await self._circuit_breaker.record_success()
@@ -373,20 +448,20 @@ Provide a brief, passionate commentary on these new events as a Seattle Sounders
                 logger.warning("No valid response from OpenAI API")
                 if self.metrics:
                     self.metrics.ai_fallback_used.labels(reason='no_response').inc()
-                return self._generate_fallback_commentary(match_data, new_events)
+                return self._generate_fallback_commentary(match_data, [single_event])
             
         except (AICommentaryError, CircuitBreakerError) as e:
             await self._circuit_breaker.record_failure()
             logger.error(f"AI commentary generation failed: {e}")
             if self.metrics:
                 self.metrics.ai_fallback_used.labels(reason='api_error').inc()
-            return self._generate_fallback_commentary(match_data, new_events)
+            return self._generate_fallback_commentary(match_data, [single_event])
         except Exception as e:
             await self._circuit_breaker.record_failure()
             logger.error(f"Unexpected error in AI commentary: {e}")
             if self.metrics:
                 self.metrics.ai_fallback_used.labels(reason='unexpected_error').inc()
-            return self._generate_fallback_commentary(match_data, new_events)
+            return self._generate_fallback_commentary(match_data, [single_event])
     
     def _generate_fallback_commentary(self, match_data: MatchData, new_events: List[Dict]) -> str:
         """Generate fallback commentary when AI is unavailable."""
@@ -404,6 +479,26 @@ Provide a brief, passionate commentary on these new events as a Seattle Sounders
                 f"GOAL! {athlete_name} finds the net! {clock}",
                 f"{athlete_name} scores! What a strike! {clock}",
                 f"It's in the back of the net! {athlete_name} with the goal {clock}"
+            ],
+            'penalty': [
+                f"PENALTY GOAL! {athlete_name} converts from the spot! {clock}",
+                f"{athlete_name} scores from the penalty spot! {clock}",
+                f"PENALTY! {athlete_name} makes no mistake from 12 yards {clock}"
+            ],
+            'penalty - scored': [
+                f"PENALTY GOAL! {athlete_name} converts from the spot! {clock}",
+                f"{athlete_name} scores from the penalty spot! {clock}",
+                f"PENALTY! {athlete_name} makes no mistake from 12 yards {clock}"
+            ],
+            'penalty - missed': [
+                f"PENALTY MISS! {athlete_name} sends it wide! {clock}",
+                f"{athlete_name} misses from the spot! {clock}",
+                f"PENALTY SAVED! Great keeping to deny {athlete_name} {clock}"
+            ],
+            'penalty - saved': [
+                f"PENALTY SAVED! Keeper denies {athlete_name}! {clock}",
+                f"BRILLIANT SAVE! {athlete_name} denied from the spot {clock}",
+                f"PENALTY MISS! {athlete_name} can't convert {clock}"
             ],
             'yellow card': [
                 f"Yellow card for {athlete_name} at {clock}",

@@ -8,6 +8,7 @@ across container restarts. Each session represents a match that should
 be monitored for live updates.
 """
 
+import json
 from datetime import datetime
 from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text
 from app.core import db
@@ -46,6 +47,25 @@ class LiveReportingSession(db.Model):
     update_count = db.Column(db.Integer, default=0, nullable=False)
     error_count = db.Column(db.Integer, default=0, nullable=False)
     last_error = db.Column(db.Text, nullable=True)
+    
+    @property
+    def parsed_event_keys(self):
+        """Parse last_event_keys from JSON string to list."""
+        if not self.last_event_keys:
+            return []
+        try:
+            # Handle JSON format (from repository)
+            parsed = json.loads(self.last_event_keys)
+            if isinstance(parsed, list):
+                return parsed
+            # Handle Python string format (from old model method)
+            elif isinstance(parsed, str):
+                return [parsed]
+            else:
+                return []
+        except (json.JSONDecodeError, TypeError):
+            # Fallback for malformed data
+            return []
     
     def __repr__(self):
         return f'<LiveReportingSession {self.match_id} ({self.competition}) - {"Active" if self.is_active else "Inactive"}>'

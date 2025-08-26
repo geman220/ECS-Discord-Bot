@@ -25,31 +25,13 @@ from .espn_client import ESPNClient, MatchData
 from .discord_client import DiscordClient
 from .ai_client import AICommentaryClient
 from .metrics import MetricsCollector, get_metrics
+from .models import MatchEvent
 from app.models import LiveReportingSession
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True)
-class MatchEvent:
-    """Immutable match event."""
-    match_id: str
-    event_id: str
-    event_type: str
-    description: str
-    clock: str
-    team_id: Optional[str] = None
-    athlete_id: Optional[str] = None
-    athlete_name: Optional[str] = None
-    timestamp: datetime = None
-    
-    def __post_init__(self):
-        if self.timestamp is None:
-            object.__setattr__(self, 'timestamp', datetime.utcnow())
-    
-    def to_key(self) -> str:
-        """Generate unique key for event deduplication."""
-        return f"{self.clock}-{self.event_type}-{self.athlete_name or 'unknown'}-{self.event_id}"
+# MatchEvent is imported from .models below
 
 
 @dataclass
@@ -149,6 +131,29 @@ class MatchMonitoringService:
                     error_message="Failed to fetch ESPN data"
                 )
             
+            # Handle pre-match state (5 minutes before kickoff)
+            if match_data.status == 'STATUS_SCHEDULED':
+                # Check if we should post pre-match hype
+                if await self._should_post_pre_match(session, match_data):
+                    logger.info(f"Posting pre-match hype for match {match_id}")
+                    if thread_id and self.config.enable_discord_posting:
+                        await self._post_pre_match_hype(match_data, thread_id)
+                        # Update session to mark pre-match as posted
+                        await self.live_repo.update_session(
+                            match_id=match_id,
+                            status='PRE_MATCH_POSTED'
+                        )
+                
+                # Continue monitoring but don't process events yet
+                return MonitoringResult(
+                    success=True,
+                    match_id=match_id,
+                    status=match_data.status,
+                    score="0-0",
+                    events_processed=0,
+                    new_events=[]
+                )
+            
             # Check if match has ended
             if self._is_match_ended(match_data.status):
                 logger.info(f"Match {match_id} has ended with status {match_data.status}")
@@ -181,12 +186,16 @@ class MatchMonitoringService:
             if new_events and thread_id and self.config.enable_discord_posting:
                 await self._post_match_updates(match_data, new_events, thread_id)
             
-            # Update session in database
+            # Update session in database with accumulated event keys
+            previous_keys = set(session.parsed_event_keys)
+            new_event_keys = [event.to_key() for event in new_events] if new_events else []
+            all_event_keys = list(previous_keys.union(set(new_event_keys)))
+            
             await self.live_repo.update_session(
                 match_id=match_id,
                 status=match_data.status,
                 score=match_data.score,
-                event_keys=[event.to_key() for event in new_events] if new_events else None,
+                event_keys=all_event_keys,
                 increment_updates=True
             )
             
@@ -237,20 +246,30 @@ class MatchMonitoringService:
             List of new MatchEvent objects
         """
         # Get previously processed event keys
-        previous_keys = set(session.last_event_keys or [])
+        previous_keys = set(session.parsed_event_keys)
         
         # Convert ESPN events to MatchEvent objects
         current_events = []
         for espn_event in match_data.events:
+            # Extract basic event info
+            event_id = espn_event.get('id', f"event_{len(current_events)}")
+            event_type = espn_event.get('type', 'Unknown')
+            description = espn_event.get('text', '')
+            clock = espn_event.get('clock', '')
+            team_id = espn_event.get('team_id', '')
+            athlete_id = espn_event.get('athlete_id', '')
+            athlete_name = espn_event.get('athlete_name', '')
+            
+            # Create match event
             match_event = MatchEvent(
-                match_id=match_data.match_id,
-                event_id=espn_event.get('id', ''),
-                event_type=espn_event.get('type', 'Unknown'),
-                description=espn_event.get('text', ''),
-                clock=espn_event.get('clock', ''),
-                team_id=espn_event.get('team_id', ''),
-                athlete_id=espn_event.get('athlete_id', ''),
-                athlete_name=espn_event.get('athlete_name', '')
+                event_id=event_id,
+                event_type=event_type,
+                description=description,
+                clock=clock,
+                team_id=team_id,
+                athlete_id=athlete_id,
+                athlete_name=athlete_name,
+                raw_data=espn_event
             )
             current_events.append(match_event)
         
@@ -283,7 +302,7 @@ class MatchMonitoringService:
         thread_id: str
     ):
         """
-        Post match updates to Discord.
+        Post individual match updates to Discord (one embed per event).
         
         Args:
             match_data: Current match data
@@ -291,10 +310,10 @@ class MatchMonitoringService:
             thread_id: Discord thread ID
         """
         try:
-            # Convert MatchEvent objects to dict format for AI client
-            event_dicts = []
+            # Process each event individually for separate embeds
             for event in new_events:
-                event_dicts.append({
+                # Convert MatchEvent object to dict format for AI client
+                event_dict = {
                     'id': event.event_id,
                     'type': event.event_type,
                     'text': event.description,
@@ -302,28 +321,31 @@ class MatchMonitoringService:
                     'team_id': event.team_id,
                     'athlete_id': event.athlete_id,
                     'athlete_name': event.athlete_name
-                })
-            
-            # Generate AI commentary
-            commentary = await self.ai_client.generate_commentary(
-                match_data=match_data,
-                new_events=event_dicts
-            )
-            
-            # Create Discord embed
-            embed = self.discord_client.create_match_embed(match_data, commentary)
-            
-            # Post to Discord
-            message_id = await self.discord_client.post_message(
-                channel_id=thread_id,
-                embed=embed
-            )
-            
-            if message_id:
-                logger.info(f"Posted match update {message_id} to Discord thread {thread_id}")
-                self.metrics.record_match_update_posted("live_event")
-            else:
-                logger.warning(f"Failed to post match update to Discord thread {thread_id}")
+                }
+                
+                # Generate AI commentary for this single event
+                commentary = await self.ai_client.generate_commentary(
+                    match_data=match_data,
+                    single_event=event_dict
+                )
+                
+                # Create Discord embed for this single event
+                embed = self.discord_client.create_match_embed(match_data, commentary)
+                
+                # Post individual event to Discord
+                message_id = await self.discord_client.post_message(
+                    channel_id=thread_id,
+                    embed=embed
+                )
+                
+                if message_id:
+                    logger.info(f"Posted individual event update {message_id} for {event.event_type} at {event.clock}")
+                    self.metrics.record_match_update_posted("live_event")
+                else:
+                    logger.warning(f"Failed to post {event.event_type} event to Discord thread {thread_id}")
+                
+                # Minimal delay between posts for near real-time updates
+                await asyncio.sleep(0.1)
                 
         except Exception as e:
             logger.error(f"Error posting match updates: {e}", exc_info=True)
@@ -367,8 +389,7 @@ class MatchMonitoringService:
         
         logger.info(f"Status change detected for match {match_data.match_id}: {previous_status} -> {current_status}")
         
-        # Import here to avoid circular imports
-        from .models import MatchEvent
+        # MatchEvent is imported at the top of the file
         
         # Generate status change events
         event_text = ""
@@ -422,6 +443,89 @@ class MatchMonitoringService:
             'STATUS_FINAL_ET', 'STATUS_ABANDONED', 'STATUS_CANCELLED'
         ]
         return status in ended_statuses
+    
+    async def _should_post_pre_match(self, session: LiveReportingSession, match_data: MatchData) -> bool:
+        """
+        Check if we should post pre-match hype.
+        Posts when match is scheduled and we haven't posted pre-match yet,
+        and we're within 5 minutes of kickoff.
+        """
+        # Check if we've already posted pre-match
+        if session.last_status == 'PRE_MATCH_POSTED':
+            return False
+        
+        # Check if this is the first time monitoring (when live reporting starts 5 minutes before)
+        # If session was just created, it means we're in the pre-match window
+        if session.update_count == 0:
+            logger.info(f"First monitoring cycle for match {session.match_id} - posting pre-match hype")
+            return True
+        
+        return False
+    
+    async def _post_pre_match_hype(self, match_data: MatchData, thread_id: str):
+        """Post pre-match hype message to Discord."""
+        try:
+            # Extract team forms from match data
+            home_form = "N/A"
+            away_form = "N/A"
+            venue = "Unknown Venue"
+            
+            # Try to get form data from competitors
+            if match_data.raw_data and 'competitions' in match_data.raw_data:
+                competitions = match_data.raw_data['competitions']
+                if competitions and len(competitions) > 0:
+                    comp = competitions[0]
+                    if 'competitors' in comp:
+                        for competitor in comp['competitors']:
+                            if competitor.get('homeAway') == 'home':
+                                home_form = competitor.get('form', 'N/A')
+                            elif competitor.get('homeAway') == 'away':
+                                away_form = competitor.get('form', 'N/A')
+                    if 'venue' in comp:
+                        venue = comp['venue'].get('fullName', venue)
+            
+            # Create pre-match embed data
+            pre_match_data = {
+                'home_team': match_data.home_team,
+                'away_team': match_data.away_team,
+                'venue': venue,
+                'home_form': home_form,
+                'away_form': away_form
+            }
+            
+            # Generate pre-match commentary
+            is_home = match_data.home_team.get('id') == '9726'  # Seattle Sounders ID
+            team_name = "Seattle Sounders FC"
+            opponent_name = match_data.away_team['name'] if is_home else match_data.home_team['name']
+            
+            pre_match_message = f"🚨 **Pre-Match Hype: {match_data.home_team['name']} vs {match_data.away_team['name']}** 🚨\n\n"
+            
+            if is_home:
+                pre_match_message += f"{team_name} is ready to dominate on home turf! Let's make Lumen Field rock! 🏟️💚\n\n"
+            else:
+                pre_match_message += f"{team_name} is ready for battle away from home—let's make it a statement! 🚀\n\n"
+            
+            pre_match_message += f"**🏟️ Venue:** {venue}\n"
+            pre_match_message += f"**🏠 Home Form:** {home_form}\n"
+            pre_match_message += f"**🛫 Away Form:** {away_form}\n\n"
+            
+            if is_home:
+                pre_match_message += "**Home Fortress** 🏰\nTime to defend our turf and show them what Seattle is made of!"
+            else:
+                pre_match_message += "**Away Day Magic** ✈️\nWe're taking our A-game to their turf! Let's make our traveling fans proud!"
+            
+            # Post to Discord
+            message_id = await self.discord_client.post_message(
+                channel_id=thread_id,
+                content=pre_match_message
+            )
+            
+            if message_id:
+                logger.info(f"Posted pre-match hype {message_id} to Discord thread {thread_id}")
+                self.metrics.record_match_update_posted("pre_match_hype")
+            
+        except Exception as e:
+            logger.error(f"Error posting pre-match hype: {e}", exc_info=True)
     
     async def _handle_monitoring_error(self, session: LiveReportingSession, error_message: str):
         """Handle monitoring errors and update session state."""
