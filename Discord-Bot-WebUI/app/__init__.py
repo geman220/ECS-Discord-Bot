@@ -569,7 +569,7 @@ def create_app(config_object='web_config.Config'):
             return dict(current_pub_league_season=None)
         
         # Try to use Flask's request session first to avoid creating competing sessions
-        if has_request_context() and hasattr(g, 'db_session'):
+        if has_request_context() and hasattr(g, 'db_session') and g.db_session:
             try:
                 season = g.db_session.query(Season).filter_by(
                     league_type='Pub League',
@@ -578,8 +578,12 @@ def create_app(config_object='web_config.Config'):
                 # Don't expunge since we're using the request session
                 return dict(current_pub_league_season=season)
             except Exception as e:
+                # If pool exhaustion or other DB errors, don't fall through - return None to prevent more sessions
+                if "pool" in str(e).lower() or "timeout" in str(e).lower():
+                    logger.warning(f"Pool exhaustion in context processor, returning default: {e}")
+                    return dict(current_pub_league_season=None)
                 logger.warning(f"Error fetching pub league season from request session: {e}")
-                # Fall through to managed session approach
+                # Fall through to managed session approach only for non-pool errors
         
         # Fallback: Use managed_session for non-request contexts or when request session fails
         try:

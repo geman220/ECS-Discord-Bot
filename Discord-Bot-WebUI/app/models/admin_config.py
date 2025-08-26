@@ -76,8 +76,18 @@ class AdminConfig(db.Model):
         Returns:
             The parsed setting value or default
         """
+        from flask import g, has_request_context
+        
         try:
-            setting = cls.query.filter_by(key=key, is_enabled=True).first()
+            # Use Flask request session when available to prevent session conflicts
+            if has_request_context() and hasattr(g, 'db_session') and g.db_session:
+                setting = g.db_session.query(cls).filter_by(key=key, is_enabled=True).first()
+            else:
+                # Fallback to managed session for non-request contexts
+                from app.core.session_manager import managed_session
+                with managed_session() as session:
+                    setting = session.query(cls).filter_by(key=key, is_enabled=True).first()
+            
             if setting:
                 return setting.parsed_value
             return default
@@ -130,8 +140,17 @@ class AdminConfig(db.Model):
     @classmethod
     def get_settings_by_category(cls, category):
         """Get all enabled settings in a category."""
+        from flask import g, has_request_context
+        
         try:
-            return cls.query.filter_by(category=category, is_enabled=True).all()
+            # Use Flask request session when available to prevent session conflicts
+            if has_request_context() and hasattr(g, 'db_session') and g.db_session:
+                return g.db_session.query(cls).filter_by(category=category, is_enabled=True).all()
+            else:
+                # Fallback to managed session for non-request contexts
+                from app.core.session_manager import managed_session
+                with managed_session() as session:
+                    return session.query(cls).filter_by(category=category, is_enabled=True).all()
         except Exception as e:
             logger.error(f"Error getting settings for category {category}: {e}")
             return []
@@ -391,9 +410,26 @@ class AdminAuditLog(db.Model):
     @classmethod
     def get_recent_logs(cls, limit=100, user_id=None, resource_type=None):
         """Get recent audit logs with optional filtering."""
+        from flask import g, has_request_context
+        
         try:
-            query = cls.query
+            # Use Flask request session when available to prevent session conflicts
+            if has_request_context() and hasattr(g, 'db_session') and g.db_session:
+                query = g.db_session.query(cls)
+            else:
+                # Fallback to managed session for non-request contexts
+                from app.core.session_manager import managed_session
+                with managed_session() as session:
+                    query = session.query(cls)
+                    
+                    if user_id:
+                        query = query.filter_by(user_id=user_id)
+                    if resource_type:
+                        query = query.filter_by(resource_type=resource_type)
+                        
+                    return query.order_by(cls.timestamp.desc()).limit(limit).all()
             
+            # This path executes when using request session
             if user_id:
                 query = query.filter_by(user_id=user_id)
             if resource_type:
