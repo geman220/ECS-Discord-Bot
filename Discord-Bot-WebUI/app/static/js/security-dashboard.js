@@ -81,12 +81,15 @@ class SecurityDashboard {
 
     async loadSecurityEvents() {
         try {
+            console.log('Loading security events...');
             const response = await fetch('/security/events');
+            console.log('Security events response:', response.status);
             if (!response.ok) {
-                throw new Error('Failed to load security events');
+                throw new Error(`Failed to load security events: ${response.status}`);
             }
             
             const data = await response.json();
+            console.log('Security events data:', data);
             this.renderSecurityEvents(data.events || []);
         } catch (error) {
             console.error('Error loading security events:', error);
@@ -96,12 +99,15 @@ class SecurityDashboard {
 
     async loadSecurityLogs() {
         try {
+            console.log('Loading security logs...');
             const response = await fetch('/security/logs');
+            console.log('Security logs response:', response.status);
             if (!response.ok) {
-                throw new Error('Failed to load security logs');
+                throw new Error(`Failed to load security logs: ${response.status}`);
             }
             
             const data = await response.json();
+            console.log('Security logs data:', data);
             this.renderSecurityLogs(data.logs || []);
         } catch (error) {
             console.error('Error loading security logs:', error);
@@ -247,7 +253,7 @@ class SecurityDashboard {
             // Get CSRF token from meta tag
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             
-            const data = {
+            const requestData = {
                 ip_address: ip
             };
             
@@ -263,7 +269,7 @@ class SecurityDashboard {
             const response = await fetch('/security/unban_ip', {
                 method: 'POST',
                 headers: headers,
-                body: JSON.stringify(data)
+                body: JSON.stringify(requestData)
             });
 
             if (!response.ok) {

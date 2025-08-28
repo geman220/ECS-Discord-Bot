@@ -28,6 +28,8 @@ class SecurityMiddleware:
         """Initialize the security middleware with Flask app."""
         app.before_request(self.security_check)
         app.after_request(self.security_response)
+        # Store reference to this middleware in the app for status checking
+        app.security_middleware = self
     
     def _load_attack_patterns(self):
         """Load common attack patterns for detection."""

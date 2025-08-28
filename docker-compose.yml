@@ -317,9 +317,6 @@ services:
       - "traefik.http.routers.webui-secure.rule=Host(`portal.ecsfc.com`)"
       - "traefik.http.routers.webui-secure.tls=true"
       - "traefik.http.routers.webui-secure.tls.certresolver=myresolver"
-      # WebSocket support
-      - "traefik.http.middlewares.websocket.headers.customrequestheaders.Connection=upgrade"
-      - "traefik.http.middlewares.websocket.headers.customrequestheaders.Upgrade=websocket"
       # HTTPS redirect
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
@@ -333,7 +330,7 @@ services:
       - "traefik.http.middlewares.secure-headers.headers.customresponseheaders.X-Content-Type-Options=nosniff"
       # Apply middlewares
       - "traefik.http.routers.webui.middlewares=${TRAEFIK_HTTP_MIDDLEWARES:-redirect-to-https,rate-limit}"
-      - "traefik.http.routers.webui-secure.middlewares=websocket,secure-headers,rate-limit"
+      - "traefik.http.routers.webui-secure.middlewares=secure-headers,rate-limit"
     depends_on:
       redis:
         condition: service_healthy

@@ -339,7 +339,7 @@ def create_app(config_object='web_config.Config'):
     
     # Add security middleware (non-breaking implementation)
     from app.security_middleware import SecurityMiddleware
-    SecurityMiddleware(app)
+    security_middleware = SecurityMiddleware(app)
     
     # Add rate limiting (with Redis backend)
     try:
@@ -479,87 +479,12 @@ def create_app(config_object='web_config.Config'):
 
     @app.errorhandler(WebsocketMismatch)
     def handle_websocket_mismatch(error):
-        """Handle WebSocket mismatch errors caused by SocketIO/HTTP conflicts in production"""
-        app.logger.warning(f"WebSocket mismatch for {request.path} - routing to HTTP handler")
+        """Handle WebSocket mismatch errors - now properly configured with Traefik"""
+        app.logger.warning(f"WebSocket mismatch for {request.path} - this should be rare now")
         
-        # This commonly happens in production with reverse proxies like Traefik
-        # when HTTP requests hit routes that are also used for WebSocket connections
-        
-        if request.path == '/':
-            # For the root path, ensure we serve the proper HTTP response
-            try:
-                # Use Flask's routing to handle the index page properly
-                # This avoids importing and calling the route function directly
-                with app.test_request_context(request.path, method=request.method):
-                    try:
-                        # Try to find and execute the main.index route
-                        endpoint, values = app.url_map.bind(request.environ['SERVER_NAME']).match(
-                            request.path, method=request.method
-                        )
-                        if endpoint == 'main.index':
-                            return app.view_functions[endpoint](**values)
-                    except:
-                        pass
-                
-                # Fallback: redirect to index if we can't execute directly
-                return redirect(url_for('main.index'))
-                
-            except Exception as e:
-                app.logger.error(f"Error handling root path WebSocket mismatch: {e}")
-                # Last resort: return a basic HTML response
-                return '''
-                <!DOCTYPE html>
-                <html>
-                <head><title>ECS Portal</title></head>
-                <body>
-                    <h1>ECS Portal</h1>
-                    <p>Please <a href="/auth/login">log in</a> to continue.</p>
-                </body>
-                </html>
-                ''', 200
-        
-        elif request.path.startswith('/static/'):
-            # For static files, try to serve them normally or return 404
-            try:
-                # Let Flask's static file handler deal with this
-                from flask import send_from_directory
-                filename = request.path[8:]  # Remove '/static/'
-                return send_from_directory(app.static_folder, filename)
-            except Exception as e:
-                # Log the static file error but don't cause a 500
-                app.logger.debug(f"Static file not found: {request.path}")
-                abort(404)
-            
-        else:
-            # For other HTTP paths, try to route them normally
-            try:
-                # Attempt to handle the request with normal Flask routing
-                # Convert immutable headers to a mutable dictionary to avoid EnvironHeaders error
-                headers_dict = dict(request.headers) if hasattr(request.headers, 'items') else {}
-                # Convert query_string to proper format - it might be bytes or other types
-                query_string = request.query_string
-                if isinstance(query_string, bytes):
-                    query_string = query_string.decode('utf-8')
-                elif not isinstance(query_string, (str, dict, list)):
-                    query_string = str(query_string) if query_string else ''
-                    
-                with app.test_request_context(request.path, method=request.method, 
-                                               query_string=query_string,
-                                               headers=headers_dict):
-                    try:
-                        endpoint, values = app.url_map.bind(request.environ.get('SERVER_NAME', 'localhost')).match(
-                            request.path, method=request.method
-                        )
-                        if endpoint in app.view_functions:
-                            return app.view_functions[endpoint](**values)
-                    except Exception:
-                        pass
-                        
-                # If routing fails, return 404
-                abort(404)
-            except Exception as e:
-                app.logger.error(f"Error in WebSocket mismatch handler for {request.path}: {e}")
-                abort(404)
+        # With proper Traefik configuration, let Flask-SocketIO handle this normally
+        # Returning None tells Flask-SocketIO to pass the request through
+        return None
 
     @app.errorhandler(Exception)
     def handle_unexpected_error(error):
