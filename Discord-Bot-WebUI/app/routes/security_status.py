@@ -250,9 +250,12 @@ def security_dashboard():
                 logger.error(f"Error getting security stats: {e}")
         
         try:
+            # Add current timestamp for initial page load
+            current_time = datetime.now().strftime('%H:%M:%S')
             return render_template('security/dashboard.html', 
                                  stats=stats, 
                                  blacklisted_ips=blacklisted_ips,
+                                 current_time=current_time,
                                  title="Security Dashboard")
         except Exception as template_error:
             logger.error(f"Template rendering error: {template_error}")

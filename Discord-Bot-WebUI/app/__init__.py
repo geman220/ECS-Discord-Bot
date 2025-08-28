@@ -532,9 +532,11 @@ def create_app(config_object='web_config.Config'):
             # For other HTTP paths, try to route them normally
             try:
                 # Attempt to handle the request with normal Flask routing
+                # Convert immutable headers to a mutable dictionary to avoid EnvironHeaders error
+                headers_dict = dict(request.headers) if hasattr(request.headers, 'items') else {}
                 with app.test_request_context(request.path, method=request.method, 
                                                query_string=request.query_string,
-                                               headers=request.headers):
+                                               headers=headers_dict):
                     try:
                         endpoint, values = app.url_map.bind(request.environ.get('SERVER_NAME', 'localhost')).match(
                             request.path, method=request.method

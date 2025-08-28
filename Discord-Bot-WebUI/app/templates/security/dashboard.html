@@ -89,7 +89,7 @@
                             </button>
                             <span class="badge bg-light-success text-success">
                                 <i class="ti ti-clock me-1"></i>
-                                Last updated: <span id="lastUpdated">{{ moment().format('HH:mm:ss') }}</span>
+                                Last updated: <span id="lastUpdated">{{ current_time or 'Loading...' }}</span>
                             </span>
                         </div>
                     </div>
