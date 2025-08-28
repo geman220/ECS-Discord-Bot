@@ -525,7 +525,9 @@ def create_app(config_object='web_config.Config'):
                 from flask import send_from_directory
                 filename = request.path[8:]  # Remove '/static/'
                 return send_from_directory(app.static_folder, filename)
-            except:
+            except Exception as e:
+                # Log the static file error but don't cause a 500
+                app.logger.debug(f"Static file not found: {request.path}")
                 abort(404)
             
         else:
@@ -534,8 +536,15 @@ def create_app(config_object='web_config.Config'):
                 # Attempt to handle the request with normal Flask routing
                 # Convert immutable headers to a mutable dictionary to avoid EnvironHeaders error
                 headers_dict = dict(request.headers) if hasattr(request.headers, 'items') else {}
+                # Convert query_string to proper format - it might be bytes or other types
+                query_string = request.query_string
+                if isinstance(query_string, bytes):
+                    query_string = query_string.decode('utf-8')
+                elif not isinstance(query_string, (str, dict, list)):
+                    query_string = str(query_string) if query_string else ''
+                    
                 with app.test_request_context(request.path, method=request.method, 
-                                               query_string=request.query_string,
+                                               query_string=query_string,
                                                headers=headers_dict):
                     try:
                         endpoint, values = app.url_map.bind(request.environ.get('SERVER_NAME', 'localhost')).match(
