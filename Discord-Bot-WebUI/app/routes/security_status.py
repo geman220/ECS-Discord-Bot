@@ -37,13 +37,27 @@ def require_admin_or_internal(f):
             if not (safe_current_user and safe_current_user.is_authenticated):
                 return jsonify({'error': 'Authentication required'}), 401
             
-            # Check for admin roles
+            # Check for admin roles with fallback for production
             try:
                 from app.role_impersonation import get_effective_roles
                 user_roles = get_effective_roles()
                 has_admin = 'Global Admin' in user_roles or 'Pub League Admin' in user_roles
                 if not has_admin:
                     return jsonify({'error': 'Admin access required'}), 403
+            except ImportError as ie:
+                logger.error(f"Import error in role_impersonation (production issue): {ie}")
+                # Fallback: Check user roles directly without impersonation
+                try:
+                    if hasattr(safe_current_user, 'roles'):
+                        user_role_names = [role.name for role in safe_current_user.roles]
+                        has_admin = 'Global Admin' in user_role_names or 'Pub League Admin' in user_role_names
+                        if not has_admin:
+                            return jsonify({'error': 'Admin access required'}), 403
+                    else:
+                        return jsonify({'error': 'Unable to verify admin access'}), 500
+                except Exception as fallback_error:
+                    logger.error(f"Fallback role check failed: {fallback_error}")
+                    return jsonify({'error': 'Authorization check failed'}), 500
             except Exception as e:
                 logger.error(f"Error checking admin roles: {e}")
                 return jsonify({'error': 'Authorization check failed'}), 500
@@ -235,10 +249,19 @@ def security_dashboard():
             except Exception as e:
                 logger.error(f"Error getting security stats: {e}")
         
-        return render_template('security/dashboard.html', 
-                             stats=stats, 
-                             blacklisted_ips=blacklisted_ips,
-                             title="Security Dashboard")
+        try:
+            return render_template('security/dashboard.html', 
+                                 stats=stats, 
+                                 blacklisted_ips=blacklisted_ips,
+                                 title="Security Dashboard")
+        except Exception as template_error:
+            logger.error(f"Template rendering error: {template_error}")
+            # Fallback to JSON response if template fails
+            return jsonify({
+                'message': 'Security Dashboard (Fallback Mode)',
+                'stats': stats,
+                'blacklisted_ips': blacklisted_ips
+            })
         
     except Exception as e:
         logger.error(f"Error loading security dashboard: {e}")

@@ -519,12 +519,36 @@ def create_app(config_object='web_config.Config'):
                 ''', 200
         
         elif request.path.startswith('/static/'):
-            # For static files, return 404 since they shouldn't have WebSocket routes
-            abort(404)
+            # For static files, try to serve them normally or return 404
+            try:
+                # Let Flask's static file handler deal with this
+                from flask import send_from_directory
+                filename = request.path[8:]  # Remove '/static/'
+                return send_from_directory(app.static_folder, filename)
+            except:
+                abort(404)
             
         else:
-            # For other paths, return a proper 404
-            abort(404)
+            # For other HTTP paths, try to route them normally
+            try:
+                # Attempt to handle the request with normal Flask routing
+                with app.test_request_context(request.path, method=request.method, 
+                                               query_string=request.query_string,
+                                               headers=request.headers):
+                    try:
+                        endpoint, values = app.url_map.bind(request.environ.get('SERVER_NAME', 'localhost')).match(
+                            request.path, method=request.method
+                        )
+                        if endpoint in app.view_functions:
+                            return app.view_functions[endpoint](**values)
+                    except Exception:
+                        pass
+                        
+                # If routing fails, return 404
+                abort(404)
+            except Exception as e:
+                app.logger.error(f"Error in WebSocket mismatch handler for {request.path}: {e}")
+                abort(404)
 
     @app.errorhandler(Exception)
     def handle_unexpected_error(error):
@@ -1026,8 +1050,33 @@ def init_blueprints(app):
     app.register_blueprint(ai_enhancement_bp)
     
     # Register Security Status Routes
-    from app.routes.security_status import security_status_bp
-    app.register_blueprint(security_status_bp)
+    try:
+        app.logger.info("🔧 Attempting to import Security Status Blueprint...")
+        from app.routes.security_status import security_status_bp
+        app.logger.info("🔧 Security Status Blueprint imported, registering routes...")
+        app.register_blueprint(security_status_bp, url_prefix='')
+        app.logger.info("✅ Security Status Blueprint registered successfully")
+        
+        # Log the routes that were added
+        security_routes = []
+        for rule in app.url_map.iter_rules():
+            if rule.endpoint and rule.endpoint.startswith('security_status.'):
+                security_routes.append(f"{rule.rule} -> {rule.endpoint}")
+        if security_routes:
+            app.logger.info(f"🔧 Security routes registered: {security_routes}")
+        else:
+            app.logger.warning("⚠️ No security routes found after registration")
+            
+    except ImportError as ie:
+        app.logger.error(f"❌ Import error for Security Status Blueprint: {ie}")
+        app.logger.error(f"❌ This is likely a circular import or missing dependency issue in production")
+    except Exception as e:
+        app.logger.error(f"❌ Failed to register Security Status Blueprint: {e}")
+        app.logger.error(f"❌ Error type: {type(e).__name__}")
+        import traceback
+        app.logger.error(f"❌ Traceback: {traceback.format_exc()}")
+        # Don't let this prevent the app from starting
+        pass
 
 def init_context_processors(app):
     """
