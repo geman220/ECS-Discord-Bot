@@ -24,7 +24,7 @@ except ImportError:
     pass
 
 from datetime import timedelta
-from flask import Flask, request, session, redirect, url_for, render_template, g
+from flask import Flask, request, session, redirect, url_for, render_template, g, abort
 from flask_assets import Environment
 from flask_login import LoginManager, current_user
 from flask_mail import Mail
