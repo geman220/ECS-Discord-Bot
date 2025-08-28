@@ -543,10 +543,7 @@ def register_with_discord():
     invites them if needed, assigns the SUB role, and creates
     a new user account with appropriate Discord association.
     """
-    import aiohttp
-    import asyncio
-    from app.discord_utils import assign_role_to_member, invite_user_to_server
-    from app.utils.discord_request_handler import make_discord_request
+    from app.utils.sync_discord_client import get_sync_discord_client
 
     db_session = g.db_session
     discord_email = session.get('pending_discord_email')
@@ -564,57 +561,54 @@ def register_with_discord():
                               discord_username=discord_username)
     
     try:
-        # Create a new event loop for async operations
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        # Check if user is in the Discord server
-        async def check_server_membership():
-            async with aiohttp.ClientSession() as session:
-                # Check if the user is already in the server
-                url = f"{current_app.config['BOT_API_URL']}/api/server/guilds/{current_app.config['SERVER_ID']}/members/{discord_id}"
-                result = await make_discord_request('GET', url, session)
-                
-                if not result:
-                    # User is not in the server, invite them
-                    try:
-                        invite_result = await invite_user_to_server(discord_id)
-                        if invite_result.get('success'):
-                            # Store the invite link or code in the Flask session for later use
-                            from flask import session as flask_session
-                            if invite_result.get('invite_code'):
-                                invite_code = invite_result.get('invite_code')
-                                flask_session['discord_invite_link'] = f"https://discord.gg/{invite_code}"
-                                logger.info(f"Created personalized Discord invite: https://discord.gg/{invite_code}")
-                            elif invite_result.get('invite_link'):
-                                flask_session['discord_invite_link'] = invite_result.get('invite_link')
-                                logger.info(f"Using generic Discord invite: {invite_result.get('invite_link')}")
-                        else:
-                            logger.warning(f"Could not invite user to Discord server: {invite_result.get('message')}")
-                            # Continue despite invite failure - we'll show a message to the user later
-                    except Exception as e:
-                        logger.error(f"Error inviting user to Discord server: {str(e)}")
-                        # Continue despite invite failure - we'll handle Discord role assignment separately
-                
-                # Try to assign the ECS-FC-PL-UNVERIFIED role (previously SUB role)
+        # Discord server integration using synchronous client
+        def check_server_membership():
+            discord_client = get_sync_discord_client()
+            server_id = current_app.config['SERVER_ID']
+            
+            # Check if the user is already in the server
+            member_check = discord_client.check_member_in_server(server_id, discord_id)
+            
+            if member_check.get('success') and not member_check.get('in_server'):
+                # User is not in the server, invite them
                 try:
-                    unverified_role_id = "1357770021157212430"  # Reuse the same Discord role ID
-                    await assign_role_to_member(
-                        int(current_app.config['SERVER_ID']), 
-                        discord_id, 
-                        unverified_role_id, 
-                        session
-                    )
-                    logger.info(f"Successfully assigned ECS-FC-PL-UNVERIFIED role to Discord user {discord_id}")
+                    invite_result = discord_client.invite_user_to_server(discord_id)
+                    if invite_result.get('success'):
+                        # Store the invite link or code in the Flask session for later use
+                        if invite_result.get('invite_code'):
+                            invite_code = invite_result.get('invite_code')
+                            session['discord_invite_link'] = f"https://discord.gg/{invite_code}"
+                            logger.info(f"Created personalized Discord invite: https://discord.gg/{invite_code}")
+                        elif invite_result.get('invite_link'):
+                            session['discord_invite_link'] = invite_result.get('invite_link')
+                            logger.info(f"Using generic Discord invite: {invite_result.get('invite_link')}")
+                    else:
+                        logger.warning(f"Could not invite user to Discord server: {invite_result.get('message')}")
+                        # Continue despite invite failure - we'll show a message to the user later
                 except Exception as e:
-                    logger.error(f"Error assigning ECS-FC-PL-UNVERIFIED role to Discord user {discord_id}: {str(e)}")
-                    # Continue despite role assignment failure - registration can still proceed
-                
-                return {'success': True}
+                    logger.error(f"Error inviting user to Discord server: {str(e)}")
+                    # Continue despite invite failure - we'll handle Discord role assignment separately
+            
+            # Try to assign the ECS-FC-PL-UNVERIFIED role (previously SUB role)
+            try:
+                unverified_role_id = "1357770021157212430"  # Reuse the same Discord role ID
+                role_result = discord_client.assign_role_to_member(
+                    server_id, 
+                    discord_id, 
+                    unverified_role_id
+                )
+                if role_result.get('success'):
+                    logger.info(f"Successfully assigned ECS-FC-PL-UNVERIFIED role to Discord user {discord_id}")
+                else:
+                    logger.error(f"Failed to assign ECS-FC-PL-UNVERIFIED role: {role_result.get('message')}")
+            except Exception as e:
+                logger.error(f"Error assigning ECS-FC-PL-UNVERIFIED role to Discord user {discord_id}: {str(e)}")
+                # Continue despite role assignment failure - registration can still proceed
+            
+            return {'success': True}
         
         try:
-            discord_result = loop.run_until_complete(check_server_membership())
-            loop.close()
+            discord_result = check_server_membership()
             
             # Log Discord integration status but continue regardless
             if not discord_result.get('success'):
@@ -1370,8 +1364,6 @@ def waitlist_register_with_discord():
         show_error('Waitlist registration is currently disabled.')
         return redirect(url_for('main.index'))
     
-    import aiohttp
-    import asyncio
     from app.discord_utils import assign_role_to_member, invite_user_to_server
     from app.utils.discord_request_handler import make_discord_request
 
@@ -1438,6 +1430,9 @@ def waitlist_register_with_discord():
             
             # Get form data for player profile
             preferred_league = request.form.get('preferred_league')
+            # Map 'not_sure' to None to comply with database constraint
+            if preferred_league == 'not_sure':
+                preferred_league = None
             available_for_subbing = request.form.get('available_for_subbing') == 'true'
             
             # Personal information
@@ -1599,52 +1594,52 @@ def waitlist_register_with_discord():
             return redirect(url_for('auth.waitlist_confirmation'))
         
         # New user registration - continue with Discord integration
-        # Create a new event loop for async operations
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        from app.utils.sync_discord_client import get_sync_discord_client
         
-        # Discord server integration
-        async def handle_discord_integration():
-            async with aiohttp.ClientSession() as session:
-                # Check if user is in Discord server
-                url = f"{current_app.config['BOT_API_URL']}/api/server/guilds/{current_app.config['SERVER_ID']}/members/{discord_id}"
-                result = await make_discord_request('GET', url, session)
-                
-                if not result:
-                    # User not in server, invite them
-                    try:
-                        invite_result = await invite_user_to_server(discord_id)
-                        if invite_result.get('success'):
-                            if invite_result.get('invite_code'):
-                                invite_code = invite_result.get('invite_code')
-                                session['discord_invite_link'] = f"https://discord.gg/{invite_code}"
-                                logger.info(f"Created personalized Discord invite: https://discord.gg/{invite_code}")
-                            elif invite_result.get('invite_link'):
-                                session['discord_invite_link'] = invite_result.get('invite_link')
-                                logger.info(f"Using generic Discord invite: {invite_result.get('invite_link')}")
-                    except Exception as e:
-                        logger.error(f"Error inviting user to Discord server: {str(e)}")
-                
-                # Assign pl-waitlist Discord role
+        # Discord server integration using synchronous client
+        def handle_discord_integration():
+            discord_client = get_sync_discord_client()
+            
+            # Check if user is in Discord server
+            server_id = current_app.config['SERVER_ID']
+            member_check = discord_client.check_member_in_server(server_id, discord_id)
+            
+            if member_check.get('success') and not member_check.get('in_server'):
+                # User not in server, invite them
                 try:
-                    # For now, we'll use the same Discord role as pl-unverified
-                    # In the future, you might want to create a separate Discord role for waitlist
-                    waitlist_discord_role_id = "1357770021157212430"  # ECS-FC-PL-UNVERIFIED
-                    await assign_role_to_member(
-                        int(current_app.config['SERVER_ID']), 
-                        discord_id, 
-                        waitlist_discord_role_id, 
-                        session
-                    )
-                    logger.info(f"Successfully assigned waitlist Discord role to user {discord_id}")
+                    invite_result = discord_client.invite_user_to_server(discord_id)
+                    if invite_result.get('success'):
+                        if invite_result.get('invite_code'):
+                            invite_code = invite_result.get('invite_code')
+                            session['discord_invite_link'] = f"https://discord.gg/{invite_code}"
+                            logger.info(f"Created personalized Discord invite: https://discord.gg/{invite_code}")
+                        elif invite_result.get('invite_link'):
+                            session['discord_invite_link'] = invite_result.get('invite_link')
+                            logger.info(f"Using generic Discord invite: {invite_result.get('invite_link')}")
                 except Exception as e:
-                    logger.error(f"Error assigning Discord role to user {discord_id}: {str(e)}")
-                
-                return {'success': True}
+                    logger.error(f"Error inviting user to Discord server: {str(e)}")
+            
+            # Assign pl-waitlist Discord role
+            try:
+                # For now, we'll use the same Discord role as pl-unverified
+                # In the future, you might want to create a separate Discord role for waitlist
+                waitlist_discord_role_id = "1357770021157212430"  # ECS-FC-PL-UNVERIFIED
+                role_result = discord_client.assign_role_to_member(
+                    server_id, 
+                    discord_id, 
+                    waitlist_discord_role_id
+                )
+                if role_result.get('success'):
+                    logger.info(f"Successfully assigned waitlist Discord role to user {discord_id}")
+                else:
+                    logger.error(f"Failed to assign Discord role: {role_result.get('message')}")
+            except Exception as e:
+                logger.error(f"Error assigning Discord role to user {discord_id}: {str(e)}")
+            
+            return {'success': True}
         
         try:
-            discord_result = loop.run_until_complete(handle_discord_integration())
-            loop.close()
+            discord_result = handle_discord_integration()
         except Exception as e:
             logger.error(f"Error with Discord server integration: {str(e)}")
             show_warning("Could not connect to Discord server. Your waitlist registration will be created, but you may need to join the Discord server manually.")
@@ -1664,6 +1659,9 @@ def waitlist_register_with_discord():
         
         # Get form data - all profile fields
         preferred_league = request.form.get('preferred_league')
+        # Map 'not_sure' to None to comply with database constraint
+        if preferred_league == 'not_sure':
+            preferred_league = None
         available_for_subbing = request.form.get('available_for_subbing') == 'true'
         
         # Personal information - use the name from form as username
@@ -1827,8 +1825,41 @@ def waitlist_register_with_discord():
 def waitlist_confirmation():
     """
     Display confirmation page after successful waitlist registration.
+    
+    Checks Discord server membership and prompts user to join if needed.
     """
-    return render_template('waitlist_confirmation.html')
+    discord_membership_status = None
+    discord_error = None
+    
+    # Check if user has Discord info and check membership
+    if safe_current_user.is_authenticated and safe_current_user.player:
+        player = safe_current_user.player
+        if player.discord_id:
+            try:
+                from app.utils.sync_discord_client import get_sync_discord_client
+                discord_client = get_sync_discord_client()
+                server_id = current_app.config.get('SERVER_ID')
+                
+                if server_id:
+                    member_check = discord_client.check_member_in_server(server_id, player.discord_id)
+                    
+                    if member_check.get('success'):
+                        discord_membership_status = {
+                            'in_server': member_check.get('in_server', False),
+                            'discord_id': player.discord_id,
+                            'server_id': server_id
+                        }
+                    else:
+                        discord_error = member_check.get('message', 'Unable to check Discord server membership')
+                        logger.warning(f"Failed to check Discord membership for user {safe_current_user.id}: {discord_error}")
+                        
+            except Exception as e:
+                discord_error = f"Error checking Discord membership: {str(e)}"
+                logger.error(f"Discord membership check error for user {safe_current_user.id}: {discord_error}")
+    
+    return render_template('waitlist_confirmation.html', 
+                           discord_membership_status=discord_membership_status,
+                           discord_error=discord_error)
 
 
 # NEW ROUTES FOR DUPLICATE PREVENTION

@@ -76,7 +76,10 @@ class User(UserMixin, db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    _email = db.Column('email', db.String(120), unique=True, nullable=False)  # Private attribute for email
+    
+    # Encrypted PII fields
+    encrypted_email = db.Column(db.Text, nullable=True)
+    email_hash = db.Column(db.String(64), nullable=True, index=True)  # For searching encrypted emails
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp(), nullable=False)
@@ -128,19 +131,22 @@ class User(UserMixin, db.Model):
 
     @hybrid_property
     def email(self):
-        return self._email
+        """Get decrypted email."""
+        if self.encrypted_email:
+            from app.utils.pii_encryption import decrypt_value
+            return decrypt_value(self.encrypted_email)
+        return None
 
     @email.setter
     def email(self, value):
-        self._email = value.lower() if value else None
-
-    @email.expression
-    def email(cls):
-        return cls._email
-
-    @email.comparator
-    def email(cls):
-        return cls._email
+        """Set encrypted email."""
+        if value:
+            from app.utils.pii_encryption import encrypt_value, create_hash
+            self.encrypted_email = encrypt_value(value)
+            self.email_hash = create_hash(value)
+        else:
+            self.encrypted_email = None
+            self.email_hash = None
 
     def generate_totp_secret(self):
         """Generate a TOTP secret for 2FA."""
@@ -242,9 +248,16 @@ class DuplicateRegistrationAlert(db.Model):
     
     # New registration information
     new_discord_email = db.Column(db.String(255), nullable=False)
+    
+    # New encrypted fields for verification emails
+    encrypted_discord_email = db.Column(db.Text, nullable=True)  # Will replace new_discord_email
     new_discord_username = db.Column(db.String(100), nullable=True)
     new_name = db.Column(db.String(255), nullable=True)
     new_phone = db.Column(db.String(20), nullable=True)
+    
+    # New encrypted fields for phone numbers
+    encrypted_phone = db.Column(db.Text, nullable=True)  # Will replace new_phone
+    phone_hash = db.Column(db.String(64), nullable=True, index=True)  # For searching encrypted phones
     
     # Existing player information
     existing_player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)

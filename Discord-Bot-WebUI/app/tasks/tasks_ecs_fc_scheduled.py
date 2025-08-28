@@ -15,10 +15,8 @@ from app.models import ScheduledMessage
 from app.models_ecs import EcsFcMatch, EcsFcAvailability
 from app.ecs_fc_schedule import EcsFcScheduleManager
 from app.tasks.tasks_ecs_fc_rsvp_helpers import (
-    send_ecs_fc_rsvp_message_async,
     format_ecs_fc_match_embed_data
 )
-from app.api_utils import async_to_sync
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -135,8 +133,10 @@ def send_ecs_fc_availability_message(self, session, scheduled_message_id: int) -
                 'response_counts': rsvp_summary
             }
             
-            # Use the actual Discord API to send RSVP message
-            result = async_to_sync(send_ecs_fc_rsvp_message_async(match_data))
+            # Use synchronous Discord client to send RSVP message
+            from app.utils.sync_discord_client import get_sync_discord_client
+            discord_client = get_sync_discord_client()
+            result = discord_client.send_ecs_fc_rsvp_message(match_data)
             
             if result['success']:
                 # Update scheduled message

@@ -317,14 +317,23 @@ services:
       - "traefik.http.routers.webui-secure.rule=Host(`portal.ecsfc.com`)"
       - "traefik.http.routers.webui-secure.tls=true"
       - "traefik.http.routers.webui-secure.tls.certresolver=myresolver"
+      # WebSocket support
       - "traefik.http.middlewares.websocket.headers.customrequestheaders.Connection=upgrade"
       - "traefik.http.middlewares.websocket.headers.customrequestheaders.Upgrade=websocket"
+      # HTTPS redirect
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
-      - "traefik.http.routers.webui.middlewares=${TRAEFIK_HTTP_MIDDLEWARES:-websocket,secure-headers}"
-      - "traefik.http.routers.webui-secure.middlewares=websocket"
+      # Rate limiting middleware
+      - "traefik.http.middlewares.rate-limit.ratelimit.average=100"
+      - "traefik.http.middlewares.rate-limit.ratelimit.period=1m"
+      - "traefik.http.middlewares.rate-limit.ratelimit.burst=50"
+      # Security headers
       - "traefik.http.middlewares.secure-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
-      - "traefik.http.routers.webui-secure.middlewares=secure-headers"
+      - "traefik.http.middlewares.secure-headers.headers.customresponseheaders.X-Robots-Tag=noindex,nofollow"
+      - "traefik.http.middlewares.secure-headers.headers.customresponseheaders.X-Content-Type-Options=nosniff"
+      # Apply middlewares
+      - "traefik.http.routers.webui.middlewares=${TRAEFIK_HTTP_MIDDLEWARES:-redirect-to-https,rate-limit}"
+      - "traefik.http.routers.webui-secure.middlewares=websocket,secure-headers,rate-limit"
     depends_on:
       redis:
         condition: service_healthy

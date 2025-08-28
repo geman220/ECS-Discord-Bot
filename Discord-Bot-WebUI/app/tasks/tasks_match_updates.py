@@ -87,13 +87,14 @@ def process_match_updates(self, session, match_id: str, match_data: Dict[str, An
         match.last_update_time = datetime.utcnow()
         session.add(match)
 
-        # Use async_to_sync utility instead of creating a new event loop
-        from app.api_utils import async_to_sync
-        async_to_sync(send_discord_update(
+        # Use synchronous Discord client
+        from app.utils.sync_discord_client import get_sync_discord_client
+        discord_client = get_sync_discord_client()
+        discord_client.send_thread_update(
             match.discord_thread_id,
             update_type,
             update_message
-        ))
+        )
 
         logger.info(f"Match update sent successfully for match {match_id}")
         return {

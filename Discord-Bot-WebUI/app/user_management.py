@@ -770,9 +770,15 @@ def delete_user(user_id):
 
     username = user.username
     
+    # Import text() once at the beginning for all SQL operations
+    from sqlalchemy import text
+    
     try:
         # Start a transaction
         session.begin_nested()
+        
+        # Initialize deletion counter
+        deletion_count = 0
         
         # First, remove the player from any teams they're in
         if user.player:
@@ -782,47 +788,97 @@ def delete_user(user_id):
             # Get player ID before removing
             player_id = user.player.id
             
-            # Remove temporary sub assignments first
-            from app.models import TemporarySubAssignment
-            temp_subs = session.query(TemporarySubAssignment).filter_by(player_id=player_id).all()
-            for sub in temp_subs:
-                session.delete(sub)
-            session.flush()  # Ensure sub assignments are deleted first
+            # Delete player-related data based on actual database schema
+            # Only need to manually delete NO ACTION constraints - CASCADE will be automatic
             
-            # Remove player events (goals, cards, etc.)
-            from app.models import PlayerEvent
-            player_events = session.query(PlayerEvent).filter_by(player_id=player_id).all()
-            for event in player_events:
-                session.delete(event)
+            # Tables with NO ACTION that must be deleted before player
+            no_action_player_tables = [
+                'draft_prediction_summaries',    # NO ACTION
+                'draft_predictions',             # NO ACTION  
+                'match_events',                  # NO ACTION
+                'matches',                       # NO ACTION (ref_id column)
+                'player_league',                 # NO ACTION
+                'player_shifts',                 # NO ACTION
+                'player_team_history',           # NO ACTION
+                'substitute_pool_history',       # NO ACTION
+            ]
             
-            # Remove player match responses (RSVPs)
-            from app.models import Availability
-            match_responses = session.query(Availability).filter_by(player_id=player_id).all()
-            for response in match_responses:
-                session.delete(response)
+            logger.info(f"Deleting NO ACTION player references for player {player_id}")
+            for table in no_action_player_tables:
+                try:
+                    # Handle matches table differently since it uses ref_id column
+                    if table == 'matches':
+                        result = session.execute(text(f"DELETE FROM {table} WHERE ref_id = :player_id"), {'player_id': player_id})
+                    else:
+                        result = session.execute(text(f"DELETE FROM {table} WHERE player_id = :player_id"), {'player_id': player_id})
+                    deleted = result.rowcount
+                    if deleted > 0:
+                        logger.info(f"Deleted {deleted} records from {table} for player {player_id}")
+                        deletion_count += deleted
+                except Exception as e:
+                    logger.warning(f"Could not delete from {table} for player {player_id}: {str(e)}")
+                    if "InFailedSqlTransaction" in str(e):
+                        logger.warning(f"Transaction failed on {table}, rolling back and continuing...")
+                        try:
+                            session.rollback()
+                            session.begin_nested()
+                        except:
+                            pass
             
-            # Remove player stats
-            from app.models import PlayerSeasonStats, PlayerCareerStats
-            # Delete season stats
-            season_stats = session.query(PlayerSeasonStats).filter_by(player_id=player_id).all()
-            for stat in season_stats:
-                session.delete(stat)
-            # Delete career stats    
-            career_stats = session.query(PlayerCareerStats).filter_by(player_id=player_id).all()
-            for stat in career_stats:
-                session.delete(stat)
+            # Update NO ACTION references that should be NULLed instead of deleted
+            no_action_player_updates = [
+                ('ecs_fc_sub_slots', 'filled_by'),  # NO ACTION - should NULL
+                ('team', 'coach_id'),                # NO ACTION - should NULL  
+            ]
             
-            # Remove draft order history records
-            from app.models.league_features import DraftOrderHistory
-            draft_orders = session.query(DraftOrderHistory).filter_by(player_id=player_id).all()
-            for draft_order in draft_orders:
-                session.delete(draft_order)
+            for table, column in no_action_player_updates:
+                try:
+                    result = session.execute(text(f"UPDATE {table} SET {column} = NULL WHERE {column} = :player_id"), {'player_id': player_id})
+                    updated = result.rowcount
+                    if updated > 0:
+                        logger.info(f"Nullified {updated} {column} references in {table} for player {player_id}")
+                        deletion_count += updated
+                except Exception as e:
+                    logger.warning(f"Could not update {table}.{column} for player {player_id}: {str(e)}")
             
-            # Finally, delete the player record
-            session.delete(user.player)
+            # The following tables will CASCADE automatically when player is deleted:
+            # - availability, draft_order_history, duplicate_registration_alerts
+            # - ecs_fc_availability, ecs_fc_sub_assignments, ecs_fc_sub_pool, ecs_fc_sub_responses  
+            # - league_poll_responses, player_attendance_stats, player_career_stats
+            # - player_event, player_image_cache, player_order_history, player_season_stats
+            # - player_stat_audit, player_team_season, player_teams, stat_change_logs
+            # - substitute_assignments, substitute_pools, substitute_responses
+            # - temporary_sub_assignments, tokens
+            
+            # Finally, delete the player record using SQL to avoid ORM cascades
+            try:
+                # Store player object reference before deletion
+                player_obj = user.player
+                
+                # Clear the player reference BEFORE deleting to prevent SQLAlchemy tracking
+                user.player = None
+                
+                result = session.execute(text("DELETE FROM player WHERE id = :player_id"), {'player_id': player_id})
+                if result.rowcount > 0:
+                    logger.info(f"Deleted player record {player_id}")
+                    deletion_count += 1
+                
+                # Completely remove the player object from SQLAlchemy session tracking
+                if player_obj:
+                    try:
+                        session.expunge(player_obj)
+                    except Exception as expunge_error:
+                        logger.warning(f"Could not expunge player object: {str(expunge_error)}")
+                        
+            except Exception as e:
+                logger.warning(f"Could not delete player record {player_id}: {str(e)}")
+                # If we hit a transaction error, rollback and continue
+                if "InFailedSqlTransaction" in str(e):
+                    logger.warning(f"Transaction failed on player deletion, rolling back and continuing...")
+                    session.rollback()
+                    session.begin_nested()
         
-        # Clear roles
-        user.roles = []
+        # Roles will be cleared later before final user deletion
         
         # Delete device tokens if the table exists
         try:
@@ -833,14 +889,172 @@ def delete_user(user_id):
         except Exception as device_token_error:
             logger.warning(f"Could not delete device tokens for user {user_id}: {str(device_token_error)}")
         
-        # Delete any user-specific data from other tables
-        from app.models import Feedback
-        feedbacks = session.query(Feedback).filter_by(user_id=user_id).all()
-        for feedback in feedbacks:
-            session.delete(feedback)
+        # Delete mobile analytics data - use ORM after schema is synced
+        try:
+            from app.models_mobile_analytics import MobileErrorAnalytics, MobileLogs
+            
+            # Delete mobile error analytics
+            mobile_errors = session.query(MobileErrorAnalytics).filter_by(user_id=user_id).all()
+            for error in mobile_errors:
+                session.delete(error)
+            logger.info(f"Deleted {len(mobile_errors)} mobile error analytics records for user {user_id}")
+            
+            # Delete mobile logs
+            mobile_logs = session.query(MobileLogs).filter_by(user_id=user_id).all()
+            for log in mobile_logs:
+                session.delete(log)
+            logger.info(f"Deleted {len(mobile_logs)} mobile logs records for user {user_id}")
+            
+        except Exception as mobile_cleanup_error:
+            logger.error(f"Could not delete mobile analytics data for user {user_id}: {str(mobile_cleanup_error)}")
+            # Fallback to direct SQL if ORM fails
+            try:
+                session.execute(text("DELETE FROM mobile_error_analytics WHERE user_id = :user_id"), {'user_id': user_id})
+                session.execute(text("DELETE FROM mobile_logs WHERE user_id = :user_id"), {'user_id': user_id})
+                logger.info(f"Used fallback SQL deletion for mobile analytics data for user {user_id}")
+            except Exception as sql_fallback_error:
+                logger.error(f"Both ORM and SQL deletion failed for mobile analytics: {str(sql_fallback_error)}")
+                raise
         
-        # Delete the user
-        session.delete(user)
+        # Delete ALL user-related data based on actual database schema
+        deletion_count = 0
+        
+        # PHASE 1: Delete tables with NO ACTION constraints first (must be deleted before user)
+        no_action_user_tables = [
+            'active_match_reporters',      # NO ACTION
+            'admin_audit_log',            # NO ACTION
+            'device_tokens',              # NO ACTION
+            'draft_prediction_summaries', # NO ACTION
+            'ecs_fc_availability',        # NO ACTION
+            'feedback',                   # NO ACTION
+            'feedback_replies',           # NO ACTION
+            'notifications',              # NO ACTION
+            'user_fcm_tokens',            # NO ACTION
+            'user_roles',                 # NO ACTION
+        ]
+        
+        logger.info(f"Phase 1: Deleting NO ACTION user references for user {user_id}")
+        for table in no_action_user_tables:
+            try:
+                result = session.execute(text(f"DELETE FROM {table} WHERE user_id = :user_id"), {'user_id': user_id})
+                deleted = result.rowcount
+                if deleted > 0:
+                    logger.info(f"Deleted {deleted} records from {table} for user {user_id}")
+                    deletion_count += deleted
+            except Exception as e:
+                logger.warning(f"Could not delete from {table} for user {user_id}: {str(e)}")
+                if "InFailedSqlTransaction" in str(e):
+                    logger.warning(f"Transaction failed on {table}, rolling back and continuing...")
+                    try:
+                        session.rollback()
+                        session.begin_nested()
+                    except:
+                        pass
+        
+        # PHASE 2: Handle tables with SET NULL or CASCADE (these will be handled automatically)
+        # These don't need manual deletion as they will be handled by the database:
+        # - discord_interaction_log (CASCADE)
+        # - new_player_notifications (CASCADE)  
+        # - player_stat_audit (CASCADE)
+        # - stat_change_logs (CASCADE)
+        # - store_orders (CASCADE)
+        # - mobile_error_analytics (SET NULL)
+        # - mobile_logs (SET NULL)
+        
+        # PHASE 3: Update indirect user references (SET NULL manually)
+        indirect_updates = [
+            ('admin_config', 'updated_by'),
+            ('auto_schedule_configs', 'created_by'), 
+            ('draft_order_history', 'drafted_by'),
+            ('draft_predictions', 'coach_user_id'),
+            ('draft_seasons', 'created_by'),
+            ('ecs_fc_matches', 'created_by'),
+            ('ecs_fc_schedule_templates', 'created_by'),
+            ('ecs_fc_sub_assignments', 'assigned_by'),
+            ('ecs_fc_sub_requests', 'requested_by'),
+            ('league_polls', 'created_by'),
+            ('live_matches', 'report_submitted_by'),
+            ('match_events', 'reported_by'),
+            ('matches', 'home_team_verified_by'),
+            ('matches', 'away_team_verified_by'), 
+            ('matches', 'verified_by'),
+            ('message_templates', 'created_by'),
+            ('message_templates', 'updated_by'),
+            ('notes', 'author_id'),
+            ('player_shifts', 'updated_by'),
+            ('scheduled_message', 'created_by'),
+            ('sub_requests', 'fulfilled_by'),
+            ('sub_requests', 'requested_by'),
+            ('substitute_assignments', 'assigned_by'),
+            ('substitute_pool_history', 'performed_by'),
+            ('substitute_pools', 'approved_by'),
+            ('substitute_requests', 'requested_by'),
+            ('temporary_sub_assignments', 'assigned_by'),
+            ('users', 'approved_by'),  # Self-reference
+        ]
+        
+        logger.info(f"Phase 3: Updating indirect user references for user {user_id}")
+        for table, column in indirect_updates:
+            try:
+                result = session.execute(text(f"UPDATE {table} SET {column} = NULL WHERE {column} = :user_id"), {'user_id': user_id})
+                updated = result.rowcount
+                if updated > 0:
+                    logger.info(f"Nullified {updated} {column} references in {table} for user {user_id}")
+                    deletion_count += updated
+            except Exception as e:
+                logger.warning(f"Could not update {table}.{column} for user {user_id}: {str(e)}")
+                if "InFailedSqlTransaction" in str(e):
+                    logger.warning(f"Transaction failed on {table}.{column}, rolling back and continuing...")
+                    try:
+                        session.rollback()
+                        session.begin_nested()
+                    except:
+                        pass
+        
+        # The CASCADE and SET NULL tables will be handled automatically by the database
+        # when we delete the user record, so we don't need to explicitly handle:
+        # - duplicate_registration_alerts (SET NULL)
+        # - store_items (SET NULL) 
+        # - store_orders processed_by (SET NULL)
+        # - discord_interaction_log (CASCADE)
+        # - new_player_notifications (CASCADE)
+        # - player_stat_audit (CASCADE) 
+        # - stat_change_logs (CASCADE)
+        # - store_orders ordered_by (CASCADE)
+        
+        # Delete any remaining user-specific data from other tables using ORM
+        try:
+            from app.models import Feedback
+            feedbacks = session.query(Feedback).filter_by(user_id=user_id).all()
+            for feedback in feedbacks:
+                session.delete(feedback)
+        except Exception as e:
+            logger.warning(f"Could not delete feedback records via ORM: {str(e)}")
+        
+        logger.info(f"Total user data deletion operations: {deletion_count} for user {user_id}")
+        
+        # Refresh the user object to reflect the SQL deletions we just performed
+        # This prevents SQLAlchemy from trying to delete relationships we already deleted
+        session.expire(user)
+        
+        # Delete the user record using SQL to avoid ORM cascade issues
+        try:
+            result = session.execute(text("DELETE FROM users WHERE id = :user_id"), {'user_id': user_id})
+            if result.rowcount > 0:
+                logger.info(f"Deleted user record {user_id}")
+                deletion_count += 1
+        except Exception as e:
+            logger.warning(f"Could not delete user record {user_id}: {str(e)}")
+            # If direct SQL fails, try ORM as fallback (clear relationships first)
+            try:
+                # Clear relationships before ORM deletion to prevent stale data errors
+                user.roles = []
+                if hasattr(user, 'player') and user.player:
+                    user.player = None
+                session.delete(user)
+            except Exception as orm_error:
+                logger.error(f"Both SQL and ORM user deletion failed: {str(orm_error)}")
+                raise
         
         # Commit the transaction
         session.commit()

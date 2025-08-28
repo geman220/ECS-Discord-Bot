@@ -168,8 +168,11 @@ class Player(db.Model):
     """Model representing a player."""
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    phone = db.Column(db.String(20), nullable=True)
     is_phone_verified = db.Column(db.Boolean, default=False)
+    
+    # Encrypted PII fields
+    encrypted_phone = db.Column(db.Text, nullable=True)
+    phone_hash = db.Column(db.String(64), nullable=True, index=True)  # For searching encrypted phones
     sms_consent_given = db.Column(db.Boolean, default=False)
     sms_consent_timestamp = db.Column(db.DateTime)
     sms_opt_out_timestamp = db.Column(db.DateTime)
@@ -298,8 +301,28 @@ class Player(db.Model):
             })
         return data
 
+    @property
+    def phone(self):
+        """Get decrypted phone."""
+        if self.encrypted_phone:
+            from app.utils.pii_encryption import decrypt_value
+            return decrypt_value(self.encrypted_phone)
+        return None
+
+    @phone.setter
+    def phone(self, value):
+        """Set encrypted phone."""
+        if value:
+            from app.utils.pii_encryption import encrypt_value, create_hash
+            self.encrypted_phone = encrypt_value(value)
+            self.phone_hash = create_hash(value)
+        else:
+            self.encrypted_phone = None
+            self.phone_hash = None
+
     def __repr__(self):
-        return f'<Player {self.name} ({self.user.email})>'
+        user_email = self.user.email if self.user else "No User"
+        return f'<Player {self.name} ({user_email})>'
 
     def get_season_stat(self, season_id, stat, session=None):
         from app.models.stats import PlayerSeasonStats
@@ -446,11 +469,9 @@ class Player(db.Model):
             return False
         
         try:
-            import asyncio
-            import aiohttp
             import os
             from web_config import Config
-            from app.utils.discord_request_handler import make_discord_request
+            from app.utils.sync_discord_client import get_sync_discord_client
             
             guild_id = os.getenv('SERVER_ID')
             bot_api_url = Config.BOT_API_URL
@@ -459,37 +480,30 @@ class Player(db.Model):
                 logger.warning("Server ID or Bot API URL not configured")
                 return False
                 
-            # Check Discord member status via Discord bot API
-            async def check_user_status():
-                async with aiohttp.ClientSession() as session:
-                    # Use the new Discord bot API endpoint
-                    url = f"{bot_api_url}/api/server/guilds/{guild_id}/members/{self.discord_id}/status"
-                    response = await make_discord_request('GET', url, session)
-                    
-                    if response:
-                        # Update player information from Discord bot API response
-                        self.discord_in_server = response.get('in_server', False)
-                        
-                        if response.get('username'):
-                            self.discord_username = response.get('username')
-                        elif response.get('display_name'):
-                            self.discord_username = response.get('display_name')
-                        
-                        self.discord_last_checked = datetime.utcnow()
-                        return True
-                    else:
-                        # API call failed
-                        logger.warning(f"Discord bot API failed to check status for user {self.discord_id}")
-                        return False
+            # Check Discord member status via synchronous Discord client
+            discord_client = get_sync_discord_client()
             
-            # Run the async function
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                result = loop.run_until_complete(check_user_status())
-                return result
-            finally:
-                loop.close()
+            # Check if user is in Discord server
+            member_check = discord_client.check_member_in_server(guild_id, self.discord_id)
+            
+            if member_check.get('success'):
+                # Update player information from Discord response
+                self.discord_in_server = member_check.get('in_server', False)
+                
+                # If we got member data, update username
+                member_data = member_check.get('member_data', {})
+                if member_data:
+                    if member_data.get('username'):
+                        self.discord_username = member_data.get('username')
+                    elif member_data.get('display_name'):
+                        self.discord_username = member_data.get('display_name')
+                
+                self.discord_last_checked = datetime.utcnow()
+                return True
+            else:
+                # API call failed
+                logger.warning(f"Discord bot API failed to check status for user {self.discord_id}")
+                return False
                 
         except Exception as e:
             logger.error(f"Error checking Discord status for player {self.id}: {str(e)}")

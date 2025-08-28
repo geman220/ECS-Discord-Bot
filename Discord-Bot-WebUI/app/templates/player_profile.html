@@ -1252,6 +1252,7 @@
 <script src="{{ url_for('static', filename='custom_js/match_stats.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/modals.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/admin_actions.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/discord-membership-check.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
@@ -1379,6 +1380,46 @@
                 });
             });
         }
+        
+        // Discord membership check for profile page
+        {% if is_own_profile and not player.discord_id %}
+            // User is viewing their own profile but doesn't have Discord linked
+            setTimeout(() => {
+                Swal.fire({
+                    title: '🔗 Link Your Discord Account',
+                    html: `
+                        <div class="text-start">
+                            <p><strong>Your Discord account isn't linked yet!</strong></p>
+                            <p>Linking your Discord account is important because:</p>
+                            <ul class="text-start ms-3">
+                                <li>🔔 Receive waitlist and match notifications</li>
+                                <li>🏆 Get league announcements and updates</li>
+                                <li>💬 Connect with teammates and the community</li>
+                                <li>🤝 Be contactable for substitution requests</li>
+                            </ul>
+                            <p class="mt-3"><strong>Link your account now to stay connected!</strong></p>
+                        </div>
+                    `,
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fab fa-discord me-2"></i>Link Discord Account',
+                    cancelButtonText: 'Maybe Later',
+                    confirmButtonColor: '#5865F2',
+                    cancelButtonColor: '#6c757d'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = '{{ url_for("auth.discord_login") }}';
+                    }
+                });
+            }, 3000); // Show after 3 seconds
+        {% endif %}
+        
+        {% if is_own_profile and player.discord_id %}
+            // User has Discord linked - optionally check if they're in the server
+            // This would require passing Discord membership status from the backend
+            // For now, we'll just ensure they know about joining the server if needed
+            // The general Discord membership checker will handle this
+        {% endif %}
     });
 </script>
 {% endblock %}

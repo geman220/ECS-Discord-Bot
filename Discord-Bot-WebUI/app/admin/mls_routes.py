@@ -530,7 +530,7 @@ def start_match_reporting(match_id):
             from app.tasks.tasks_live_reporting_v2 import start_live_reporting_v2
             v2_available = True
         except ImportError:
-            from app.tasks.tasks_robust_live_reporting import start_robust_live_reporting
+            # No fallback system - V2 is the only live reporting system
             v2_available = False
         
         # Check if already running
@@ -547,13 +547,11 @@ def start_match_reporting(match_id):
             )
             reporting_type = "V2"
         else:
-            logger.warning(f"⚠️  [ADMIN] V2 not available, falling back to Robust system for match {match.match_id} in thread {match.discord_thread_id}")
-            task_result = start_robust_live_reporting.delay(
-                str(match.match_id),
-                str(match.discord_thread_id),
-                match.competition or 'usa.1'
-            )
-            reporting_type = "Robust"
+            logger.error(f"❌ [ADMIN] V2 not available, cannot start live reporting for match {match.match_id}")
+            return jsonify({
+                'success': False, 
+                'error': 'V2 live reporting system not available'
+            }), 500
         
         # Update match status
         match.live_reporting_status = 'scheduled'

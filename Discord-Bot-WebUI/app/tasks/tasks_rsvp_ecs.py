@@ -16,13 +16,11 @@ from app.models import Player, User, Team
 from app.models_ecs import EcsFcMatch, EcsFcAvailability
 from app.tasks.tasks_ecs_fc_rsvp_helpers import (
     send_ecs_fc_dm_sync,
-    send_ecs_fc_dm_batch_async,
-    update_ecs_fc_rsvp_embed_async,
     format_ecs_fc_match_embed_data
 )
+from app.utils.sync_discord_client import get_sync_discord_client
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from app.api_utils import async_to_sync
 
 logger = logging.getLogger(__name__)
 
@@ -275,7 +273,8 @@ def send_ecs_fc_rsvp_reminder(self, session, match_id: int, target_players: Opti
         # Also send a general reminder to the team channel by updating the original RSVP embed
         try:
             # Update the RSVP embed with current response counts
-            embed_result = async_to_sync(update_ecs_fc_rsvp_embed_async)(match_id)
+            discord_client = get_sync_discord_client()
+            embed_result = discord_client.update_ecs_fc_rsvp_embed(match_id)
             if embed_result['success']:
                 logger.info(f"Updated ECS FC RSVP embed for match {match_id} after sending {reminded_count} reminders")
             else:
@@ -381,7 +380,8 @@ def notify_ecs_fc_discord_of_rsvp_change_task(self, session, match_id: int) -> D
             embed["fields"].append({"name": "⏰ RSVP Deadline", "value": deadline_str, "inline": False})
 
         # Update the RSVP embed with current response counts
-        embed_result = async_to_sync(update_ecs_fc_rsvp_embed_async)(match_id)
+        discord_client = get_sync_discord_client()
+        embed_result = discord_client.update_ecs_fc_rsvp_embed(match_id)
         if embed_result['success']:
             logger.info(f"Updated ECS FC RSVP embed for match {match_id} after RSVP change")
         else:

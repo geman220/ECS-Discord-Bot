@@ -323,7 +323,8 @@ def create_engine_with_retry(*args, **kwargs):
             engine = create_engine(*args, **kwargs)
             # Test the engine by making a simple query.
             with engine.connect() as conn:
-                conn.execute("SELECT 1")
+                from sqlalchemy import text
+                conn.execute(text("SELECT 1"))
             return engine
         except Exception as e:
             if attempt == max_retries - 1:

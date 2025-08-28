@@ -332,7 +332,8 @@ def create_new_player_notification():
         
         # Insert new player notification record using raw SQL
         try:
-            db.session.execute("""
+            from sqlalchemy import text
+            db.session.execute(text("""
                 INSERT INTO new_player_notifications 
                 (user_id, discord_id, discord_username, discord_display_name, 
                  preferred_league, notification_sent, notification_sent_at, 
@@ -346,7 +347,7 @@ def create_new_player_notification():
                     discord_message_id = EXCLUDED.discord_message_id,
                     error_message = EXCLUDED.error_message,
                     updated_at = NOW()
-            """, (
+            """), (
                 user.id, discord_id, discord_username, discord_display_name,
                 user.preferred_league, notification_sent,
                 datetime.utcnow() if notification_sent else None,
@@ -448,7 +449,8 @@ def admin_onboarding_overview():
     """
     try:
         # Use the view we created in the database
-        result = db.session.execute("SELECT * FROM onboarding_status_overview ORDER BY id DESC LIMIT 50")
+        from sqlalchemy import text
+        result = db.session.execute(text("SELECT * FROM onboarding_status_overview ORDER BY id DESC LIMIT 50"))
         
         overview_data = []
         for row in result:

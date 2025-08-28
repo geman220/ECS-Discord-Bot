@@ -82,14 +82,18 @@ class AdminConfig(db.Model):
             # Use Flask request session when available to prevent session conflicts
             if has_request_context() and hasattr(g, 'db_session') and g.db_session:
                 setting = g.db_session.query(cls).filter_by(key=key, is_enabled=True).first()
+                if setting:
+                    # Access parsed_value while session is still active
+                    return setting.parsed_value
             else:
                 # Fallback to managed session for non-request contexts
                 from app.core.session_manager import managed_session
                 with managed_session() as session:
                     setting = session.query(cls).filter_by(key=key, is_enabled=True).first()
+                    if setting:
+                        # Access parsed_value while session is still active
+                        return setting.parsed_value
             
-            if setting:
-                return setting.parsed_value
             return default
         except Exception as e:
             logger.error(f"Error getting admin setting {key}: {e}")

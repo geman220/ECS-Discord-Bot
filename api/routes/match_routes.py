@@ -32,6 +32,30 @@ logger = logging.getLogger(__name__)
 # Create the router
 router = APIRouter()
 
+
+async def generate_thread_context(match_context):
+    """Generate AI-powered thread context by calling the WebUI API."""
+    try:
+        if not WEBUI_API_URL:
+            logger.warning("WEBUI_API_URL not configured - using fallback context")
+            return None
+            
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{WEBUI_API_URL}/api/ai/generate_thread_context",
+                json=match_context,
+                timeout=10
+            ) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    return result.get('context')
+                else:
+                    logger.warning(f"Failed to get AI thread context: {response.status}")
+                    return None
+    except Exception as e:
+        logger.warning(f"Error generating thread context: {e}")
+        return None
+
 # Extract channel and message ID from combined string
 def extract_channel_and_message_id(message_id_str):
     if '-' in message_id_str:
@@ -920,13 +944,24 @@ async def create_match_thread(request: dict, bot: commands.Bot = Depends(get_bot
             logger.warning(f"Error checking for existing threads: {e}")
             # Continue even if we can't check for duplicates
         
-        # Create thread content
-        content = "Match thread created! Discuss the game here and make your predictions."
+        # Generate AI-powered contextual description
+        ai_context = await generate_thread_context({
+            'home_team': {'displayName': home_team},
+            'away_team': {'displayName': away_team},
+            'competition': request.get('competition', 'MLS'),
+            'venue': request.get('venue', 'Stadium')
+        })
+        
+        # Create thread content with AI enhancement
+        if ai_context:
+            content = f"Match thread created! {ai_context} Discuss the game here and make your predictions."
+        else:
+            content = "Match thread created! This is a big one - discuss the game here and make your predictions."
         
         # Create comprehensive embed (similar to discord_utils.py template)
         embed = discord.Embed(
             title=f"Match Thread: {home_team} vs {away_team}",
-            description="**Let's go Sounders!**",
+            description=ai_context if ai_context else "**Let's go Sounders!**",
             color=0x5B9A49  # Sounders green
         )
         

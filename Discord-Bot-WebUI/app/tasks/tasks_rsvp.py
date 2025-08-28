@@ -21,11 +21,7 @@ from app.models import Match, Availability, Player, ScheduledMessage
 from app.models_ecs import EcsFcMatch, EcsFcAvailability
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from app.tasks.tasks_rsvp_helpers import (
-    _send_availability_message_async,
-    _update_discord_rsvp_async,
-    _notify_discord_async
-)
+# Old async helpers replaced with sync Discord client
 
 logger = logging.getLogger(__name__)
 
@@ -253,9 +249,10 @@ def send_availability_message(self, session, scheduled_message_id: int) -> Dict[
                 'away_team_name': metadata.get('away_team_name', 'Away Team')
             })
         
-        # Use async_to_sync utility instead of creating a new event loop
-        from app.api_utils import async_to_sync
-        result = async_to_sync(_send_availability_message_async(message_data))
+        # Use synchronous Discord client to send availability message
+        from app.utils.sync_discord_client import get_sync_discord_client
+        discord_client = get_sync_discord_client()
+        result = discord_client.send_rsvp_availability_message(message_data)
         
         # Update the ScheduledMessage record based on the result
         message.last_send_attempt = datetime.utcnow()
@@ -577,7 +574,7 @@ def update_discord_rsvp_task(self, session, match_id: int, discord_id: str, new_
                 logger.warning(f"Error checking current reaction state: {str(e)}")
         
         # If we get here, we need to update the reaction
-        from app.api_utils import async_to_sync
+        from app.utils.sync_discord_client import get_sync_discord_client
         data = {
             'match_id': match_id,
             'discord_id': discord_id,
@@ -586,7 +583,8 @@ def update_discord_rsvp_task(self, session, match_id: int, discord_id: str, new_
         }
         
         logger.info(f"Sending Discord RSVP update for match {match_id}, user {discord_id}, response {new_response}")
-        result = async_to_sync(_update_discord_rsvp_async(data))
+        discord_client = get_sync_discord_client()
+        result = discord_client.update_rsvp_response(data)
         
         # Update availability record with sync status
         availability = session.query(Availability).filter_by(match_id=match_id, discord_id=discord_id).first()
@@ -705,8 +703,9 @@ def notify_discord_of_rsvp_change_task(self, session, match_id: int) -> Dict[str
             }
 
         # Proceed with notification since we've passed the idempotency checks
-        from app.api_utils import async_to_sync
-        result = async_to_sync(_notify_discord_async(match_id))
+        from app.utils.sync_discord_client import get_sync_discord_client
+        discord_client = get_sync_discord_client()
+        result = discord_client.notify_rsvp_changes(match_id)
         
         # Update match with notification result
         match = session.query(Match).get(match_id)
@@ -1215,9 +1214,10 @@ def force_discord_rsvp_sync(self, session) -> Dict[str, Any]:
         # Commit phase 1 data extraction to release locks
         session.commit()
         
-        # Phase 2: Call Discord API without holding database session
-        from app.api_utils import async_to_sync
-        api_result = async_to_sync(_execute_discord_sync_async(extract_result))
+        # Phase 2: Call Discord API without holding database session (synchronous)
+        from app.utils.sync_discord_client import get_sync_discord_client
+        discord_client = get_sync_discord_client()
+        api_result = discord_client.force_rsvp_sync()
         
         # Phase 3: Update records in batches with frequent commits
         update_result = _update_failed_records_after_sync(session, extract_result, api_result)
@@ -1335,9 +1335,10 @@ def direct_discord_update_task(self, session, match_id: str, discord_id: str, ne
             'old_response': old_response
         }
         
-        # Execute async Discord API call without holding database session
-        from app.api_utils import async_to_sync
-        result = async_to_sync(_execute_direct_discord_update_async(data))
+        # Execute Discord API call without holding database session (synchronous)
+        from app.utils.sync_discord_client import get_sync_discord_client
+        discord_client = get_sync_discord_client()
+        result = discord_client.update_discord_reactions(data)
         
         # Retry on timeout or connection errors (but not on API errors)
         if not result.get('success'):

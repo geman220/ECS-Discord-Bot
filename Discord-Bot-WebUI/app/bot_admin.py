@@ -174,14 +174,11 @@ def start_live_reporting_route(match_id):
             )
             reporting_type = "V2"
         else:
-            logger.warning(f"⚠️  [BOT_ADMIN] V2 not available, falling back to Robust system for match {match.match_id} in thread {match.discord_thread_id}")
-            from app.tasks.tasks_robust_live_reporting import start_robust_live_reporting
-            task = start_robust_live_reporting.delay(
-                str(match.match_id), 
-                str(match.discord_thread_id), 
-                match.competition or 'usa.1'
-            )
-            reporting_type = "Robust"
+            logger.error(f"❌ [BOT_ADMIN] V2 not available, no fallback system. Cannot start live reporting for match {match.match_id}")
+            return jsonify({
+                'success': False, 
+                'message': 'V2 live reporting system not available and no fallback configured'
+            }), 500
         match.live_reporting_status = 'scheduled'
         match.live_reporting_task_id = task.id
         match.live_reporting_scheduled = True

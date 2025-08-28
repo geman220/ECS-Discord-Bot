@@ -899,6 +899,72 @@
 {% endif %}
 {% if player %}
 <script src="{{ url_for('static', filename='custom_js/rsvp.js') }}"></script>
+
+<!-- Discord Membership Detection for Dashboard -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const playerDiscordId = '{{ player.discord_id }}';
+    
+    if (playerDiscordId && playerDiscordId !== 'None' && playerDiscordId !== '') {
+        // Player has Discord linked - check if they're in the server
+        // This check will be handled by the global Discord membership checker
+        // but we can add dashboard-specific logic here
+        
+        // Check if they've been shown the Discord prompt recently
+        const lastPromptShown = localStorage.getItem('discord_prompt_shown');
+        const now = new Date().getTime();
+        const oneWeek = 7 * 24 * 60 * 60 * 1000; // One week in milliseconds
+        
+        if (!lastPromptShown || (now - parseInt(lastPromptShown)) > oneWeek) {
+            // Show a more subtle reminder on the dashboard
+            setTimeout(() => {
+                // Only show if there are upcoming matches or RSVP opportunities
+                const rsvpButtons = document.querySelectorAll('[data-rsvp]');
+                if (rsvpButtons.length > 0) {
+                    DiscordMembershipChecker.showJoinPrompt({
+                        title: '💡 Stay Connected on Discord',
+                        urgency: 'info',
+                        showUrgentPopup: true
+                    });
+                    
+                    // Mark as shown
+                    localStorage.setItem('discord_prompt_shown', now.toString());
+                }
+            }, 5000); // Show after 5 seconds on dashboard
+        }
+    } else {
+        // Player doesn't have Discord linked at all
+        setTimeout(() => {
+            Swal.fire({
+                title: '🔗 Connect Your Discord Account',
+                html: `
+                    <div class="text-start">
+                        <p><strong>Your Discord account isn't connected yet!</strong></p>
+                        <p>Connecting Discord is important for:</p>
+                        <ul class="text-start ms-3">
+                            <li>🔔 Getting match notifications and updates</li>
+                            <li>💬 Communicating with teammates</li>
+                            <li>📅 Receiving RSVP reminders</li>
+                            <li>🏆 Staying updated on league announcements</li>
+                        </ul>
+                        <p class="mt-3"><strong>Connect now to enhance your experience!</strong></p>
+                    </div>
+                `,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fab fa-discord me-2"></i>Connect Discord',
+                cancelButtonText: 'Maybe Later',
+                confirmButtonColor: '#5865F2',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '{{ url_for("auth.discord_login") }}';
+                }
+            });
+        }, 10000); // Show after 10 seconds on dashboard for unlinked accounts
+    }
+});
+</script>
 {% endif %}
 
 <!-- Modals are loaded via AJAX by base.html -->

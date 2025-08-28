@@ -100,7 +100,7 @@ class MobileErrorPatterns(db.Model):
     last_seen = Column(DateTime(timezone=True), nullable=False, index=True)
     recovery_rate = Column(DECIMAL(3, 2), default=0.0)
     common_context_keys = Column(JSONB)
-    error_metadata = Column(JSONB)
+    error_metadata = Column('metadata', JSONB)  # Column name in DB is 'metadata'
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -150,7 +150,7 @@ class MobileLogs(db.Model):
     context = Column(JSONB)
     error_info = Column(Text)
     stack_trace = Column(Text)
-    error_metadata = Column(JSONB)
+    error_metadata = Column('metadata', JSONB)  # Column name in DB is 'metadata'
     platform = Column(String(50))
     app_version = Column(String(50))
     flutter_version = Column(String(50))

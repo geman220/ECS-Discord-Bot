@@ -201,9 +201,10 @@ def send_availability_message_task(self, session, scheduled_message_id: int) -> 
             "away_team_name": away_team_name
         }
 
-        # Use async_to_sync utility to handle event loop properly
-        from app.api_utils import async_to_sync
-        result = async_to_sync(_send_availability_message(message_data))
+        # Use synchronous Discord client to send availability message
+        from app.utils.sync_discord_client import get_sync_discord_client
+        discord_client = get_sync_discord_client()
+        result = discord_client.send_availability_message(message_data)
 
         # Update the scheduled message status to SENT
         message = session.query(ScheduledMessage).get(scheduled_message_id)

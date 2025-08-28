@@ -45,8 +45,10 @@ class CeleryConfig:
     imports = (
         'app.tasks.tasks_core',
         'app.tasks.tasks_live_reporting',
-        'app.tasks.tasks_robust_live_reporting',
+        # 'app.tasks.tasks_robust_live_reporting', # Removed - V2 is production version
         'app.tasks.tasks_live_reporting_v2',
+        'app.tasks.tasks_live_reporting_recovery',
+        'app.tasks.queue_health_monitor',
         'app.tasks.tasks_match_updates',
         'app.tasks.tasks_rsvp',
         'app.tasks.tasks_rsvp_ecs',
@@ -127,8 +129,9 @@ class CeleryConfig:
             'routing_key': 'live_reporting',
             'queue_arguments': {
                 'x-max-priority': 10,
-                'x-message-ttl': 300000,  # 5 minutes TTL for live reporting tasks
-                'x-max-length': 1000  # Prevent queue from growing too large
+                'x-message-ttl': 30000,  # 30 seconds TTL (aligned with task interval)
+                'x-max-length': 10,  # Much smaller queue (only 5 minutes of backlog max)
+                'x-overflow': 'reject-publish'  # Reject new tasks if queue full
             }
         },
         'discord': {
@@ -285,18 +288,30 @@ class CeleryConfig:
                 'expires': 3540  # Task expires after 59 minutes
             }
         },
-        # V2 Live Reporting - Process all active sessions every 10 seconds for near real-time
+        # V2 Live Reporting - Process all active sessions every 30 seconds (reduced frequency)
         'process-active-live-sessions-v2': {
             'task': 'app.tasks.tasks_live_reporting_v2.process_all_active_sessions_v2',
-            'schedule': 10.0,  # Every 10 seconds for near real-time updates
+            'schedule': 30.0,  # Every 30 seconds (reduced from 10s to prevent queue buildup)
             'options': {
                 'queue': 'live_reporting',
-                'expires': 60  # Task expires after 60 seconds (allows for processing delays)
+                'expires': 25,  # Task expires after 25 seconds (shorter than interval)
+                'time_limit': 20,  # Hard timeout after 20 seconds
+                'soft_time_limit': 15,  # Soft timeout after 15 seconds
+                'priority': 9  # High priority for live reporting
+            }
+        },
+        # Live Reporting Recovery - Check for matches that should be reporting but aren't
+        'check-missing-live-reporting': {
+            'task': 'app.tasks.tasks_live_reporting_recovery.check_and_start_missing_live_reporting',
+            'schedule': crontab(minute='*/3'),  # Every 3 minutes
+            'options': {
+                'queue': 'live_reporting',
+                'expires': 150  # Task expires after 2.5 minutes
             }
         },
         # Legacy Robust Live Reporting - DISABLED (V2 is now active)
         # 'process-active-live-sessions-legacy': {
-        #     'task': 'app.tasks.tasks_robust_live_reporting.process_all_active_sessions',
+        #     'task': 'REMOVED - V2 is production version',
         #     'schedule': crontab(minute='*/30'),  # Every 30 minutes (disabled)
         #     'options': {
         #         'queue': 'live_reporting',
@@ -305,7 +320,7 @@ class CeleryConfig:
         # },
         # Clean up old live reporting sessions daily
         'cleanup-old-live-sessions': {
-            'task': 'app.tasks.tasks_robust_live_reporting.cleanup_old_sessions',
+            # 'task': 'REMOVED - V2 handles session cleanup',
             'schedule': crontab(hour=3, minute=30),  # Daily at 3:30 AM PST
             'options': {
                 'queue': 'live_reporting',
@@ -358,6 +373,16 @@ class CeleryConfig:
             'options': {
                 'queue': 'celery',
                 'expires': 540  # Task expires after 9 minutes
+            }
+        },
+        # Queue Health Monitor - Prevent queue clogging
+        'monitor-and-cleanup-queues': {
+            'task': 'app.tasks.queue_health_monitor.monitor_and_cleanup_queues',
+            'schedule': crontab(minute='*/5'),  # Every 5 minutes
+            'options': {
+                'queue': 'celery',
+                'expires': 240,  # Task expires after 4 minutes
+                'priority': 10  # Highest priority for queue health
             }
         }
     }

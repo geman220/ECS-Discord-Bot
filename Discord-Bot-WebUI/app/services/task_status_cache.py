@@ -59,10 +59,10 @@ class TaskStatusCacheService:
                 match_data = []
                 for match in matches:
                     match_data.append({
-                        'id': match.id,
-                        'date_time': match.date_time,
-                        'opponent': match.opponent,
-                        'is_home_game': match.is_home_game,
+                        'id': match_data['id'],
+                        'date_time': match_data['date_time'],
+                        'opponent': match_data.get("opponent", "TBD"),
+                        'is_home_game': match_data.get("is_home_game", False),
                         'discord_thread_id': match.discord_thread_id
                     })
                 
@@ -133,16 +133,23 @@ class TaskStatusCacheService:
                         'task_id': 'unknown',
                         'eta': 'completed',
                         'status': 'SUCCESS',
-                        'result': f'Thread created: {match.discord_thread_id}',
+                        'result': f'Thread created: {match_data["discord_thread_id"]}',
                         'type': 'Thread Creation',
                         'fallback': True,
-                        'message': f'{"Sounders vs " + match.opponent if match.is_home_game else match.opponent + " vs Sounders"} thread created'
+                        'message': f'{"Sounders vs " + match_data.get("opponent", "TBD") if match_data.get("is_home_game") else match_data.get("opponent", "TBD") + " vs Sounders"} thread created'
                     }
-                elif match.date_time:
+                elif match_data.get("date_time"):
                     # Check if thread creation should have happened by now
                     import pytz
                     utc_tz = pytz.UTC
-                    match_time = match.date_time.replace(tzinfo=utc_tz)
+                    
+                    # Handle both datetime objects and ISO strings
+                    date_time = match_data['date_time']
+                    if isinstance(date_time, str):
+                        from dateutil.parser import parse
+                        match_time = parse(date_time).replace(tzinfo=utc_tz)
+                    else:
+                        match_time = date_time.replace(tzinfo=utc_tz)
                     thread_time = match_time - timedelta(hours=48)  # 48 hours before
                     now = datetime.now(utc_tz)
                     
@@ -155,7 +162,7 @@ class TaskStatusCacheService:
                             'result': 'Thread creation task should have run but no thread found',
                             'type': 'Thread Creation',
                             'fallback': True,
-                            'message': f'{"Sounders vs " + match.opponent if match.is_home_game else match.opponent + " vs Sounders"} - thread creation overdue'
+                            'message': f'{"Sounders vs " + match_data.get("opponent", "TBD") if match_data.get("is_home_game", False) else match_data.get("opponent", "TBD") + " vs Sounders"} - thread creation overdue'
                         }
                     else:
                         # Thread not due yet
@@ -166,7 +173,7 @@ class TaskStatusCacheService:
                             'result': f'Scheduled for {thread_time.strftime("%Y-%m-%d %H:%M UTC")}',
                             'type': 'Thread Creation',
                             'fallback': True,
-                            'message': f'{"Sounders vs " + match.opponent if match.is_home_game else match.opponent + " vs Sounders"} - thread scheduled'
+                            'message': f'{"Sounders vs " + match_data.get("opponent", "TBD") if match_data.get("is_home_game", False) else match_data.get("opponent", "TBD") + " vs Sounders"} - thread scheduled'
                         }
             
             
@@ -190,17 +197,24 @@ class TaskStatusCacheService:
                         'type': 'Live Reporting'
                     }
                 except Exception as e:
-                    logger.warning(f"Error parsing reporting task for match {match.id}: {e}")
+                    logger.warning(f"Error parsing reporting task for match {match_data['id']}: {e}")
                     tasks['reporting'] = {
                         'error': f'Failed to parse reporting task: {str(e)}',
                         'raw_data': safe_decode(reporting_data)
                     }
             else:
                 # Fallback logic for live reporting
-                if match.date_time:
+                if match_data.get("date_time"):
                     import pytz
                     utc_tz = pytz.UTC
-                    match_time = match.date_time.replace(tzinfo=utc_tz)
+                    
+                    # Handle both datetime objects and ISO strings
+                    date_time = match_data['date_time']
+                    if isinstance(date_time, str):
+                        from dateutil.parser import parse
+                        match_time = parse(date_time).replace(tzinfo=utc_tz)
+                    else:
+                        match_time = date_time.replace(tzinfo=utc_tz)
                     reporting_time = match_time - timedelta(minutes=5)  # 5 minutes before
                     now = datetime.now(utc_tz)
                     
@@ -213,7 +227,7 @@ class TaskStatusCacheService:
                             'result': 'Match has ended',
                             'type': 'Live Reporting',
                             'fallback': True,
-                            'message': f'{"Sounders vs " + match.opponent if match.is_home_game else match.opponent + " vs Sounders"} - match completed'
+                            'message': f'{"Sounders vs " + match_data.get("opponent", "TBD") if match_data.get("is_home_game", False) else match_data.get("opponent", "TBD") + " vs Sounders"} - match completed'
                         }
                     elif now > reporting_time:
                         # Reporting should have started
@@ -224,7 +238,7 @@ class TaskStatusCacheService:
                             'result': 'Live reporting should be active',
                             'type': 'Live Reporting',
                             'fallback': True,
-                            'message': f'{"Sounders vs " + match.opponent if match.is_home_game else match.opponent + " vs Sounders"} - live reporting active'
+                            'message': f'{"Sounders vs " + match_data.get("opponent", "TBD") if match_data.get("is_home_game", False) else match_data.get("opponent", "TBD") + " vs Sounders"} - live reporting active'
                         }
                     else:
                         # Reporting not due yet
@@ -235,23 +249,23 @@ class TaskStatusCacheService:
                             'result': f'Scheduled for {reporting_time.strftime("%Y-%m-%d %H:%M UTC")}',
                             'type': 'Live Reporting',
                             'fallback': True,
-                            'message': f'{"Sounders vs " + match.opponent if match.is_home_game else match.opponent + " vs Sounders"} - reporting scheduled'
+                            'message': f'{"Sounders vs " + match_data.get("opponent", "TBD") if match_data.get("is_home_game", False) else match_data.get("opponent", "TBD") + " vs Sounders"} - reporting scheduled'
                         }
             
             return {
                 'success': True,
-                'match_id': match.id,
+                'match_id': match_data['id'],
                 'tasks': tasks,
                 'timestamp': datetime.utcnow().isoformat(),
                 'cached': True
             }
             
         except Exception as e:
-            logger.error(f"Error calculating task status for match {match.id}: {e}", exc_info=True)
+            logger.error(f"Error calculating task status for match {match_data['id']}: {e}", exc_info=True)
             return {
                 'success': False,
                 'error': str(e),
-                'match_id': match.id,
+                'match_id': match_data['id'],
                 'tasks': {},
                 'cached': True
             }

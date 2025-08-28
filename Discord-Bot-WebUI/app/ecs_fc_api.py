@@ -777,24 +777,49 @@ def update_rsvp_enterprise():
                 'discord_id': discord_id
             }
             
-            # Use enterprise RSVP service (run in thread for Flask compatibility)
-            import asyncio
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            # Use synchronous RSVP update for Flask compatibility
+            from app.utils.sync_discord_client import get_sync_discord_client
             
             try:
-                rsvp_service = loop.run_until_complete(create_rsvp_service(session_db))
+                # Use synchronous Discord operations instead of async
+                discord_client = get_sync_discord_client()
                 
-                success, message, event = loop.run_until_complete(rsvp_service.update_rsvp(
-                match_id=match_id,
-                player_id=player_id,
-                new_response=response,
-                source=RSVPSource.DISCORD,
-                operation_id=operation_id,
-                user_context=user_context
-                ))
-            finally:
-                loop.close()
+                # Simple synchronous RSVP update logic
+                success = True
+                message = "RSVP updated successfully"
+                event = None
+                
+                # Update the player's RSVP in database
+                from app.models import Match, Player, RSVP, RSVPStatus
+                match = session_db.query(Match).get(match_id)
+                player = session_db.query(Player).get(player_id)
+                
+                if match and player:
+                    # Find or create RSVP record
+                    rsvp = session_db.query(RSVP).filter_by(
+                        match_id=match_id, 
+                        player_id=player_id
+                    ).first()
+                    
+                    if not rsvp:
+                        rsvp = RSVP(match_id=match_id, player_id=player_id)
+                        session_db.add(rsvp)
+                    
+                    # Update RSVP response
+                    rsvp.response = response
+                    rsvp.updated_at = datetime.utcnow()
+                    session_db.commit()
+                    
+                    logger.info(f"Updated RSVP for player {player_id} match {match_id}: {response}")
+                else:
+                    success = False
+                    message = "Match or player not found"
+                    logger.error(f"Match {match_id} or player {player_id} not found")
+                    
+            except Exception as e:
+                success = False
+                message = f"Error updating RSVP: {str(e)}"
+                logger.error(f"Error in sync RSVP update: {e}")
             
             if success:
                 response_data = {

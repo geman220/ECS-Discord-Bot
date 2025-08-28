@@ -245,7 +245,17 @@ async def fetch_espn_data(endpoint: Optional[str] = None, full_url: Optional[str
 
 def async_to_sync(coroutine: Any) -> Any:
     """
-    Convert an async coroutine to a synchronous function call.
+    DEPRECATED: Convert an async coroutine to a synchronous function call.
+    
+    WARNING: This function should not be used in new Celery tasks. Use the
+    synchronous Discord and ESPN clients instead:
+    - app.utils.sync_discord_client.get_sync_discord_client()
+    - app.utils.sync_espn_client.get_sync_espn_client()
+    
+    This function is kept for backward compatibility with non-scheduled code
+    paths (web routes, etc.) but has been eliminated from all scheduled tasks
+    as part of the V2 synchronous migration to prevent queue buildup issues.
+    
     Safely handles nested event loop scenarios, including eventlet.
     
     Args:

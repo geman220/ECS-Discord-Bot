@@ -332,6 +332,51 @@ def create_app(config_object='web_config.Config'):
     # Apply ProxyFix to handle reverse proxy headers.
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
     
+    # Add security middleware (non-breaking implementation)
+    from app.security_middleware import SecurityMiddleware
+    SecurityMiddleware(app)
+    
+    # Add rate limiting (with Redis backend)
+    try:
+        from flask_limiter import Limiter
+        from flask_limiter.util import get_remote_address
+        
+        # Custom key function that respects proxy headers
+        def get_client_ip():
+            # Get real client IP from proxy headers
+            if request.headers.get('X-Forwarded-For'):
+                return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+            elif request.headers.get('X-Real-IP'):
+                return request.headers.get('X-Real-IP')
+            elif request.headers.get('CF-Connecting-IP'):
+                return request.headers.get('CF-Connecting-IP')
+            return request.remote_addr or 'unknown'
+        
+        # Use Redis URL for limiter storage
+        redis_url = app.config.get('REDIS_URL', 'redis://redis:6379/0')
+        
+        limiter = Limiter(
+            app=app,
+            key_func=get_client_ip,
+            storage_uri=redis_url,
+            default_limits=["2000 per day", "500 per hour", "50 per minute"],
+            headers_enabled=True,
+            strategy="fixed-window"
+        )
+        
+        # Add stricter limits for auth endpoints
+        @limiter.limit("10 per minute")
+        def limit_auth_endpoints():
+            return request.endpoint in ['auth.login', 'auth.register', 'auth.reset_password']
+        
+        # Store limiter reference for potential use in routes
+        app.limiter = limiter
+        logger.info("Rate limiting initialized with Redis backend")
+        
+    except Exception as e:
+        logger.warning(f"Rate limiting initialization failed: {e}")
+        # Continue without rate limiting - non-breaking
+    
     # Create a session persistence middleware
     class SessionPersistenceMiddleware:
         def __init__(self, app, flask_app):
@@ -354,6 +399,26 @@ def create_app(config_object='web_config.Config'):
     # Apply session persistence middleware
     app.wsgi_app = SessionPersistenceMiddleware(app.wsgi_app, app)
     # SessionPersistenceMiddleware applied
+    
+    # Add basic security headers (non-breaking)
+    @app.after_request
+    def add_security_headers(response):
+        """Add basic security headers to all responses."""
+        # Only add headers to non-static content
+        if not request.path.startswith('/static/'):
+            response.headers.update({
+                'X-Content-Type-Options': 'nosniff',
+                'X-Frame-Options': 'SAMEORIGIN',  # Less restrictive than DENY
+                'X-XSS-Protection': '1; mode=block',
+                'Referrer-Policy': 'strict-origin-when-cross-origin',
+                'Server': 'ECS Portal'  # Hide server details
+            })
+            
+            # Add HSTS for HTTPS connections
+            if request.is_secure:
+                response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        
+        return response
 
     # Apply DebugMiddleware in debug mode.
     if app.debug:
@@ -398,6 +463,14 @@ def create_app(config_object='web_config.Config'):
             logger.warning(f"Firebase service account file found but initialization failed: {e}")
     else:
         logger.warning("Firebase service account file not found at expected path")
+    
+    # Initialize PII encryption auto-update
+    try:
+        from app.utils.pii_update_wrapper import init_pii_encryption
+        init_pii_encryption()
+        logger.info("PII encryption auto-update initialized")
+    except Exception as e:
+        logger.warning(f"PII encryption initialization failed: {e}")
 
     @app.errorhandler(Exception)
     def handle_unexpected_error(error):
@@ -872,12 +945,7 @@ def init_blueprints(app):
         from app.test_team_notifications_route import test_bp
         app.register_blueprint(test_bp)
         
-        # Register live reporting test routes
-        from app.test_live_reporting import test_live_reporting_bp
-        app.register_blueprint(test_live_reporting_bp)
-        
-        # V2 live reporting is now integrated into the main test_live_reporting.py
-        # Removed duplicate test_live_reporting_v2.py blueprint
+        # Live reporting test routes removed - use V2 production system for testing
     
     # Initialize enterprise RSVP system on app startup (simplified for Flask compatibility)
     try:
@@ -898,6 +966,14 @@ def init_blueprints(app):
     # Register AI Prompt Management (Enterprise Feature)
     from app.routes.ai_prompts import ai_prompts_bp
     app.register_blueprint(ai_prompts_bp)
+    
+    # Register AI Enhancement Routes for Live Reporting
+    from app.routes.ai_enhancement_routes import ai_enhancement_bp
+    app.register_blueprint(ai_enhancement_bp)
+    
+    # Register Security Status Routes
+    from app.routes.security_status import security_status_bp
+    app.register_blueprint(security_status_bp)
 
 def init_context_processors(app):
     """

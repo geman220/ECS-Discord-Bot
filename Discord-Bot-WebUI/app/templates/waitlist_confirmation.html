@@ -69,24 +69,24 @@
                     </div>
 
                     <!-- Discord Information -->
-                    <div class="alert alert-primary mb-4">
+                    <div class="alert alert-primary mb-4" id="discord-info-card">
                         <div class="d-flex align-items-center">
                             <i class="ti ti-brand-discord me-3" style="font-size: 2rem;"></i>
                             <div class="flex-grow-1">
-                                <h6 class="mb-1">🎯 Important: Join Our Discord Server</h6>
-                                <p class="mb-2">If you haven't already, please join our Discord server! This is where we:</p>
-                                <ul class="mb-2 ps-3">
+                                <h6 class="mb-1" id="discord-status-title">🎯 Important: Join Our Discord Server</h6>
+                                <p class="mb-2" id="discord-status-message">If you haven't already, please join our Discord server! This is where we:</p>
+                                <ul class="mb-2 ps-3" id="discord-benefits">
                                     <li>Send waitlist notifications when spots open up</li>
                                     <li>Post match announcements and schedule updates</li>
                                     <li>Coordinate substitution requests</li>
                                     <li>Share important league information</li>
                                     <li>Connect with other players in the community</li>
                                 </ul>
-                                <p class="mb-0"><strong>Don't miss out on opportunities!</strong></p>
+                                <p class="mb-0" id="discord-status-footer"><strong>Don't miss out on opportunities!</strong></p>
                             </div>
                         </div>
                         <div class="mt-3">
-                            <a href="https://discord.gg/weareecs" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+                            <a href="https://discord.gg/weareecs" target="_blank" rel="noopener noreferrer" class="btn btn-primary" id="discord-join-btn">
                                 <i class="ti ti-brand-discord me-2"></i>
                                 Join Discord Server
                             </a>
@@ -128,4 +128,26 @@
         </div>
     </div>
 </div>
+
+<!-- Discord Membership Check Script -->
+<script src="{{ url_for('static', filename='custom_js/discord-membership-check.js') }}"></script>
+<script>
+// Pass Discord membership data to the global scope for the checker
+{% if discord_membership_status %}
+    window.discordMembershipStatus = {{ discord_membership_status|tojson }};
+{% endif %}
+
+{% if discord_error %}
+    window.discordError = {{ discord_error|tojson }};
+{% endif %}
+
+// Initialize Discord membership checker for waitlist confirmation page
+document.addEventListener('DOMContentLoaded', function() {
+    window.discordChecker = new DiscordMembershipChecker({
+        showUrgentPopup: true,
+        showSuccessMessage: false // Don't show success popup on this page
+    });
+});
+</script>
+
 {% endblock %}

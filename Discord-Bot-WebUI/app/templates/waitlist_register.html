@@ -92,6 +92,7 @@
 
 {% block custom_js %}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ url_for('static', filename='custom_js/discord-membership-check.js') }}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Auto-focus on Discord registration button
@@ -99,6 +100,16 @@
         if (discordBtn) {
             discordBtn.focus();
         }
+        
+        // Initialize Discord membership checker for registration page
+        // Show a more gentle prompt since they're already on the waitlist registration page
+        setTimeout(() => {
+            DiscordMembershipChecker.showJoinPrompt({
+                title: '💡 Pro Tip: Join Discord First!',
+                urgency: 'info',
+                showUrgentPopup: true
+            });
+        }, 2000); // Show after 2 seconds
         
         // Handle SweetAlert messages
         {% if session.sweet_alert %}

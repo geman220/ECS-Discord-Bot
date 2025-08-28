@@ -15,6 +15,9 @@ import json
 from typing import Dict, Any, Optional
 from datetime import datetime
 
+from app.models.ai_prompt_config import AIPromptConfig
+from app.core.session_manager import managed_session
+
 logger = logging.getLogger(__name__)
 
 class AICommentaryService:
@@ -287,3 +290,506 @@ async def generate_ai_commentary(event_data: Dict[str, Any], match_context: Dict
     """
     service = get_ai_commentary_service()
     return await service.generate_commentary(event_data, match_context)
+
+
+class EnhancedAICommentaryService(AICommentaryService):
+    """Enhanced AI Commentary Service with pre-match, half-time, and full-time messages."""
+    
+    def _get_prompt_config(self, prompt_type: str, competition: str = None) -> Optional[AIPromptConfig]:
+        """
+        Retrieve AI prompt configuration from database.
+        
+        Args:
+            prompt_type: Type of prompt ('pre_match_hype', 'half_time_message', etc.)
+            competition: Competition filter ('usa.1', 'mls', etc.)
+            
+        Returns:
+            AIPromptConfig object or None if not found
+        """
+        try:
+            with managed_session() as session:
+                # Try to find exact match with competition filter
+                if competition:
+                    config = session.query(AIPromptConfig).filter(
+                        AIPromptConfig.prompt_type == prompt_type,
+                        AIPromptConfig.is_active == True,
+                        AIPromptConfig.competition_filter.in_([competition.lower(), 'all'])
+                    ).first()
+                    
+                    if config:
+                        return config
+                
+                # Fall back to general config
+                config = session.query(AIPromptConfig).filter(
+                    AIPromptConfig.prompt_type == prompt_type,
+                    AIPromptConfig.is_active == True
+                ).first()
+                
+                return config
+                
+        except Exception as e:
+            logger.error(f"Error retrieving prompt config for {prompt_type}: {e}")
+            return None
+    
+    async def _call_openai_api_with_config(self, prompt: str, config: AIPromptConfig) -> Optional[str]:
+        """Make OpenAI API call using database configuration."""
+        
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        # Use database configuration or fallback to defaults
+        temperature = config.temperature if config and config.temperature is not None else 0.7
+        max_tokens = config.max_tokens if config and config.max_tokens else 150
+        system_prompt = config.system_prompt if config and config.system_prompt else "You are an authentic soccer supporter generating genuine reactions."
+        
+        payload = {
+            "model": self.model,
+            "messages": [
+                {
+                    "role": "system", 
+                    "content": system_prompt
+                },
+                {
+                    "role": "user", 
+                    "content": prompt
+                }
+            ],
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "top_p": 0.95,
+            "frequency_penalty": 0.3,
+            "presence_penalty": 0.3
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                self.api_url,
+                headers=headers,
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=self.timeout)
+            ) as response:
+                
+                if response.status == 200:
+                    result = await response.json()
+                    commentary = result['choices'][0]['message']['content'].strip()
+                    commentary = commentary.strip('"\'')
+                    return commentary
+                else:
+                    error_text = await response.text()
+                    logger.error(f"🤖 OpenAI API ERROR {response.status}: {error_text}")
+                    return None
+    
+    def _render_prompt_template(self, template: str, context: Dict[str, Any]) -> str:
+        """
+        Render prompt template with context variables.
+        
+        Args:
+            template: Template string with {variable} placeholders
+            context: Dictionary of context variables
+            
+        Returns:
+            Rendered prompt string
+        """
+        try:
+            return template.format(**context)
+        except KeyError as e:
+            logger.warning(f"Missing template variable {e}, using template as-is")
+            return template
+        except Exception as e:
+            logger.error(f"Error rendering template: {e}")
+            return template
+    
+    async def generate_pre_match_hype(self, match_context: Dict[str, Any]) -> Optional[str]:
+        """
+        Generate pre-match hype message 5 minutes before kickoff.
+        
+        Args:
+            match_context: Match details including teams, competition, importance
+            
+        Returns:
+            Generated pre-match hype message or None
+        """
+        if not self.api_key:
+            logger.error("🤖 Pre-match Hype FAILED: No GPT API key configured")
+            return None
+            
+        try:
+            # Get database configuration
+            competition = match_context.get('competition', 'mls')
+            config = self._get_prompt_config('pre_match_hype', competition)
+            
+            # Create prompt using database template or fallback
+            if config and config.user_prompt_template:
+                prompt = self._render_prompt_template(config.user_prompt_template, match_context)
+            else:
+                prompt = self._create_pre_match_prompt(match_context)
+            
+            logger.info(f"🤖 Generating pre-match hype message (temp: {config.temperature if config else 'default'})")
+            
+            for attempt in range(self.max_retries):
+                try:
+                    commentary = await self._call_openai_api_with_config(prompt, config)
+                    if commentary:
+                        logger.info(f"🤖 Pre-match Hype SUCCESS: '{commentary[:80]}{'...' if len(commentary) > 80 else ''}'")
+                        return commentary
+                except Exception as e:
+                    logger.warning(f"🤖 Pre-match hype attempt {attempt + 1} failed: {e}")
+                    if attempt < self.max_retries - 1:
+                        await asyncio.sleep(1)
+            
+            logger.error("🤖 Pre-match Hype FAILED: All attempts failed")
+            return None
+            
+        except Exception as e:
+            logger.error(f"🤖 Pre-match Hype FATAL ERROR: {e}", exc_info=True)
+            return None
+    
+    async def generate_half_time_message(self, match_context: Dict[str, Any]) -> Optional[str]:
+        """
+        Generate contextual half-time message with first half analysis.
+        
+        Args:
+            match_context: Match details including score, events, performance
+            
+        Returns:
+            Generated half-time message or None
+        """
+        if not self.api_key:
+            logger.error("🤖 Half-time Message FAILED: No GPT API key configured")
+            return None
+            
+        try:
+            # Get database configuration
+            competition = match_context.get('competition', 'mls')
+            config = self._get_prompt_config('half_time_message', competition)
+            
+            # Create prompt using database template or fallback
+            if config and config.user_prompt_template:
+                prompt = self._render_prompt_template(config.user_prompt_template, match_context)
+            else:
+                prompt = self._create_half_time_prompt(match_context)
+            
+            logger.info(f"🤖 Generating half-time analysis message (temp: {config.temperature if config else 'default'})")
+            
+            for attempt in range(self.max_retries):
+                try:
+                    commentary = await self._call_openai_api_with_config(prompt, config)
+                    if commentary:
+                        logger.info(f"🤖 Half-time Message SUCCESS: '{commentary[:80]}{'...' if len(commentary) > 80 else ''}'")
+                        return commentary
+                except Exception as e:
+                    logger.warning(f"🤖 Half-time message attempt {attempt + 1} failed: {e}")
+                    if attempt < self.max_retries - 1:
+                        await asyncio.sleep(1)
+            
+            logger.error("🤖 Half-time Message FAILED: All attempts failed")
+            return None
+            
+        except Exception as e:
+            logger.error(f"🤖 Half-time Message FATAL ERROR: {e}", exc_info=True)
+            return None
+    
+    async def generate_full_time_message(self, match_context: Dict[str, Any]) -> Optional[str]:
+        """
+        Generate contextual full-time message with match summary.
+        
+        Args:
+            match_context: Complete match details including final score and key events
+            
+        Returns:
+            Generated full-time message or None
+        """
+        if not self.api_key:
+            logger.error("🤖 Full-time Message FAILED: No GPT API key configured")
+            return None
+            
+        try:
+            # Get database configuration
+            competition = match_context.get('competition', 'mls')
+            config = self._get_prompt_config('full_time_message', competition)
+            
+            # Create prompt using database template or fallback
+            if config and config.user_prompt_template:
+                prompt = self._render_prompt_template(config.user_prompt_template, match_context)
+            else:
+                prompt = self._create_full_time_prompt(match_context)
+            
+            logger.info(f"🤖 Generating full-time summary message (temp: {config.temperature if config else 'default'})")
+            
+            for attempt in range(self.max_retries):
+                try:
+                    commentary = await self._call_openai_api_with_config(prompt, config)
+                    if commentary:
+                        logger.info(f"🤖 Full-time Message SUCCESS: '{commentary[:80]}{'...' if len(commentary) > 80 else ''}'")
+                        return commentary
+                except Exception as e:
+                    logger.warning(f"🤖 Full-time message attempt {attempt + 1} failed: {e}")
+                    if attempt < self.max_retries - 1:
+                        await asyncio.sleep(1)
+            
+            logger.error("🤖 Full-time Message FAILED: All attempts failed")
+            return None
+            
+        except Exception as e:
+            logger.error(f"🤖 Full-time Message FATAL ERROR: {e}", exc_info=True)
+            return None
+    
+    async def generate_match_thread_context(self, match_context: Dict[str, Any]) -> Optional[str]:
+        """
+        Generate contextual description for match thread creation.
+        
+        Args:
+            match_context: Match details including teams, competition, importance
+            
+        Returns:
+            Generated contextual description or None
+        """
+        if not self.api_key:
+            logger.error("🤖 Thread Context FAILED: No GPT API key configured")
+            return None
+            
+        try:
+            # Get database configuration
+            competition = match_context.get('competition', 'mls')
+            config = self._get_prompt_config('match_thread_context', competition)
+            
+            # Create prompt using database template or fallback
+            if config and config.user_prompt_template:
+                prompt = self._render_prompt_template(config.user_prompt_template, match_context)
+            else:
+                prompt = self._create_thread_context_prompt(match_context)
+            
+            logger.info(f"🤖 Generating match thread context (temp: {config.temperature if config else 'default'})")
+            
+            for attempt in range(self.max_retries):
+                try:
+                    commentary = await self._call_openai_api_with_config(prompt, config)
+                    if commentary:
+                        logger.info(f"🤖 Thread Context SUCCESS: '{commentary[:80]}{'...' if len(commentary) > 80 else ''}'")
+                        return commentary
+                except Exception as e:
+                    logger.warning(f"🤖 Thread context attempt {attempt + 1} failed: {e}")
+                    if attempt < self.max_retries - 1:
+                        await asyncio.sleep(1)
+            
+            logger.error("🤖 Thread Context FAILED: All attempts failed")
+            return None
+            
+        except Exception as e:
+            logger.error(f"🤖 Thread Context FATAL ERROR: {e}", exc_info=True)
+            return None
+    
+    def _create_pre_match_prompt(self, match_context: Dict[str, Any]) -> str:
+        """Create prompt for pre-match hype message."""
+        
+        home_team = match_context.get('home_team', {}).get('displayName', 'Home')
+        away_team = match_context.get('away_team', {}).get('displayName', 'Away') 
+        opponent = away_team if home_team == "Seattle Sounders FC" else home_team
+        competition = match_context.get('competition', 'MLS')
+        venue = match_context.get('venue', 'Unknown Venue')
+        
+        # Determine match importance
+        is_playoff = 'playoff' in competition.lower() or 'cup' in competition.lower()
+        is_final = 'final' in competition.lower()
+        is_portland = "portland" in opponent.lower() or "timber" in opponent.lower()
+        is_vancouver = "vancouver" in opponent.lower() or "whitecap" in opponent.lower()
+        
+        prompt = f"""You are a passionate ECS member posting a pre-match hype message 5 minutes before kickoff. The team is about to take the field and energy is building!
+
+MATCH DETAILS:
+- Teams: {home_team} vs {away_team}
+- Competition: {competition}
+- Venue: {venue}
+- It's GAME TIME in 5 minutes!"""
+
+        if is_final:
+            prompt += f"\n- THIS IS A FINAL! Massive match with silverware on the line!"
+        elif is_playoff:
+            prompt += f"\n- This is a playoff match - season on the line!"
+            
+        if is_portland:
+            prompt += f"\n- Against our biggest rivals PORTLAND! Cascadia Cup implications!"
+        elif is_vancouver:
+            prompt += f"\n- Cascadia rivalry match against Vancouver!"
+
+        prompt += f"""
+
+TONE & STYLE:
+- 5 minutes to kickoff energy - fans are pumped and ready!
+- Authentic ECS supporter voice - passionate, not corporate
+- Build excitement and rally the troops
+- Reference the atmosphere, the supporters, the anticipation
+- Use supporter culture language
+- Swearing is fine if it fits naturally
+- NO corporate speak or hashtags
+
+RESPONSE REQUIREMENTS:
+- Maximum 280 characters (Twitter-length for Discord)
+- 1-3 sentences max
+- Capture that pre-kickoff electricity
+- Sound like you're in the stadium or pub getting hyped
+- Make other supporters want to join the energy
+
+Generate a raw, authentic pre-match hype message for this {competition} match:"""
+        
+        return prompt
+    
+    def _create_half_time_prompt(self, match_context: Dict[str, Any]) -> str:
+        """Create prompt for half-time analysis message."""
+        
+        home_team = match_context.get('home_team', {}).get('displayName', 'Home')
+        away_team = match_context.get('away_team', {}).get('displayName', 'Away')
+        home_score = match_context.get('home_score', '0')
+        away_score = match_context.get('away_score', '0')
+        opponent = away_team if home_team == "Seattle Sounders FC" else home_team
+        
+        # Analyze the score situation
+        sounders_score = int(home_score) if home_team == "Seattle Sounders FC" else int(away_score)
+        opponent_score = int(away_score) if home_team == "Seattle Sounders FC" else int(home_score)
+        
+        if sounders_score > opponent_score:
+            result_context = "We're ahead at the break!"
+        elif sounders_score < opponent_score:
+            result_context = "We're behind but not out of it!"
+        else:
+            result_context = "All square at halftime!"
+            
+        prompt = f"""You are an ECS member posting a half-time analysis as players head to the tunnel. Time to assess the first 45 minutes.
+
+FIRST HALF RESULT:
+- Score: {home_team} {home_score}-{away_score} {away_team}
+- {result_context}
+- Key events and performance in first half
+
+TONE & STYLE:
+- Half-time analysis voice - thoughtful but still passionate
+- ECS supporter perspective - always backing the team
+- Realistic assessment but optimistic about second half
+- Reference tactical elements, player performances, momentum
+- Show knowledge of the game while staying authentic
+- Swearing is fine if it fits the moment
+
+RESPONSE REQUIREMENTS:
+- Maximum 280 characters
+- 1-2 sentences max  
+- Analyze first half performance
+- Set expectations for second half
+- Keep ECS energy even if result isn't perfect
+
+Generate an authentic half-time analysis for this performance:"""
+        
+        return prompt
+        
+    def _create_full_time_prompt(self, match_context: Dict[str, Any]) -> str:
+        """Create prompt for full-time summary message."""
+        
+        home_team = match_context.get('home_team', {}).get('displayName', 'Home')
+        away_team = match_context.get('away_team', {}).get('displayName', 'Away')
+        home_score = match_context.get('home_score', '0')
+        away_score = match_context.get('away_score', '0')
+        opponent = away_team if home_team == "Seattle Sounders FC" else home_team
+        
+        # Analyze final result
+        sounders_score = int(home_score) if home_team == "Seattle Sounders FC" else int(away_score)
+        opponent_score = int(away_score) if home_team == "Seattle Sounders FC" else int(home_score)
+        
+        if sounders_score > opponent_score:
+            result_context = "Victory! 3 points in the bag!"
+        elif sounders_score < opponent_score:
+            result_context = "Defeat hurts but we keep fighting!"
+        else:
+            result_context = "A point earned, could be worse!"
+            
+        prompt = f"""You are an ECS member posting immediately after the final whistle. Time to sum up the match and result.
+
+FINAL RESULT:
+- Final Score: {home_team} {home_score}-{away_score} {away_team}  
+- {result_context}
+- 90+ minutes of football complete
+
+TONE & STYLE:
+- Full-time emotion - joy, disappointment, or mixed feelings
+- ECS supporter voice - passionate about the result
+- Acknowledge performance good or bad
+- Always end with support for the team regardless of result
+- Reference key moments or players if relevant
+- Raw authentic emotion, not polished analysis
+
+RESPONSE REQUIREMENTS:
+- Maximum 280 characters
+- 1-2 sentences max
+- Capture the immediate post-match feeling  
+- React to final result authentically
+- Show ongoing support for Sounders
+
+Generate a raw, authentic full-time reaction to this result:"""
+        
+        return prompt
+        
+    def _create_thread_context_prompt(self, match_context: Dict[str, Any]) -> str:
+        """Create prompt for match thread contextual description."""
+        
+        home_team = match_context.get('home_team', {}).get('displayName', 'Home')
+        away_team = match_context.get('away_team', {}).get('displayName', 'Away')
+        competition = match_context.get('competition', 'MLS')
+        venue = match_context.get('venue', 'Unknown Venue')
+        opponent = away_team if home_team == "Seattle Sounders FC" else home_team
+        
+        # Determine match importance and storylines
+        is_playoff = 'playoff' in competition.lower() or 'cup' in competition.lower()
+        is_final = 'final' in competition.lower()
+        is_portland = "portland" in opponent.lower() or "timber" in opponent.lower()
+        is_vancouver = "vancouver" in opponent.lower() or "whitecap" in opponent.lower()
+        is_home = home_team == "Seattle Sounders FC"
+        
+        prompt = f"""You are creating a contextual description for a new match thread. This should give fans context about why this match matters and what to watch for.
+
+MATCH DETAILS:
+- Teams: {home_team} vs {away_team}
+- Competition: {competition}
+- Venue: {venue}
+- Location: {'Home at Lumen Field' if is_home else f'Away at {venue}'}"""
+
+        if is_final:
+            prompt += f"\n- FINAL MATCH - Trophy on the line!"
+        elif is_playoff:
+            prompt += f"\n- Playoff match - season defining moment!"
+            
+        if is_portland:
+            prompt += f"\n- PORTLAND RIVALRY - Cascadia Cup implications!"
+        elif is_vancouver:
+            prompt += f"\n- Cascadia Derby against Vancouver!"
+
+        prompt += f"""
+
+TONE & STYLE:
+- Informative but exciting - set the stage for discussion
+- ECS supporter perspective but welcoming to all fans
+- Highlight what makes this match significant
+- Build anticipation and encourage predictions
+- Professional but passionate - this is for match thread creation
+- NO swearing in this context (thread welcome message)
+
+RESPONSE REQUIREMENTS:  
+- Maximum 200 characters (embed description)
+- 1-2 sentences max
+- Contextual information about match importance
+- Encourage fan discussion and predictions
+- Welcome tone for all supporters joining the thread
+
+Generate a welcoming but informative match thread description:"""
+        
+        return prompt
+
+
+# Enhanced global service instance
+_enhanced_ai_service = None
+
+def get_enhanced_ai_service() -> EnhancedAICommentaryService:
+    """Get the enhanced AI commentary service instance."""
+    global _enhanced_ai_service
+    if _enhanced_ai_service is None:
+        _enhanced_ai_service = EnhancedAICommentaryService()
+    return _enhanced_ai_service

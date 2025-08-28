@@ -340,10 +340,11 @@ def admin_verify_match(match_id):
             logger.error(f"Error getting coach teams for verification: {str(e)}")
             # Fallback approach - get teams the user coaches directly from the database
             try:
-                coach_teams_results = session.execute("""
+                from sqlalchemy import text
+                coach_teams_results = session.execute(text("""
                     SELECT team_id FROM player_teams 
                     WHERE player_id = :player_id AND is_coach = TRUE
-                """, {"player_id": safe_current_user.player.id}).fetchall()
+                """), {"player_id": safe_current_user.player.id}).fetchall()
                 coach_teams = [r[0] for r in coach_teams_results]
             except Exception as inner_e:
                 logger.error(f"Error in fallback coach teams query: {str(inner_e)}")

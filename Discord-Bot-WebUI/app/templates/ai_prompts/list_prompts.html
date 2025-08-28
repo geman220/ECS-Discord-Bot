@@ -3,6 +3,7 @@
 {% block title %}AI Prompt Management{% endblock %}
 
 {% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
     <!-- Header with Breadcrumb -->
     <h4 class="fw-bold py-3 mb-3">
         <span class="text-muted fw-light">Admin / Live Reporting / </span> AI Prompt Management
@@ -69,10 +70,10 @@
                             <td>
                                 <div class="d-flex align-items-center">
                                     <div class="progress" style="width: 60px; height: 8px; margin-right: 8px;">
-                                        <div class="progress-bar {% if prompt.temperature > 0.8 %}bg-danger{% elif prompt.temperature > 0.5 %}bg-warning{% else %}bg-success{% endif %}" 
-                                             style="width: {{ (prompt.temperature * 100)|round(0) }}%"></div>
+                                        <div class="progress-bar {% if prompt.temperature and prompt.temperature > 0.8 %}bg-danger{% elif prompt.temperature and prompt.temperature > 0.5 %}bg-warning{% else %}bg-success{% endif %}" 
+                                             style="width: {{ ((prompt.temperature or 0.7) * 100)|round(0) }}%"></div>
                                     </div>
-                                    <small>{{ prompt.temperature }}</small>
+                                    <small>{{ prompt.temperature or 'N/A' }}</small>
                                 </div>
                             </td>
                             <td>
@@ -201,6 +202,7 @@
             {% endif %}
         </div>
     </div>
+</div>
 {% endblock %}
 
 {% block custom_js %}

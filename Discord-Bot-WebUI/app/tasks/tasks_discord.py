@@ -1458,16 +1458,19 @@ def cleanup_team_discord_resources_task(self, session, team_id: int):
         channel_id = team.discord_channel_id
         role_id = team.discord_player_role_id
         
-        # Use async_to_sync utility instead of creating a new event loop
-        from app.api_utils import async_to_sync
+        # Use synchronous Discord client
+        from app.utils.sync_discord_client import get_sync_discord_client
+        discord_client = get_sync_discord_client()
         
         if channel_id:
-            if async_to_sync(delete_channel(channel_id)):
+            result = discord_client.delete_channel(channel_id)
+            if result.get('success', False):
                 team.discord_channel_id = None
                 session.flush()
         
         if role_id:
-            if async_to_sync(delete_role(role_id)):
+            result = discord_client.delete_role(role_id)
+            if result.get('success', False):
                 team.discord_player_role_id = None
                 session.flush()
         

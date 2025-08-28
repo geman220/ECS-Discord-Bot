@@ -42,16 +42,18 @@ class Config:
     DB_CONNECTION_TIMEOUT = 30
     DB_MONITOR_ENABLED = True
     
-    # SQLAlchemy Engine Options
+    # SQLAlchemy Engine Options (with security enhancements)
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_pre_ping': True,
         'pool_use_lifo': True,
         'connect_args': {
             'connect_timeout': int(os.getenv('SQLALCHEMY_ENGINE_OPTIONS_CONNECT_TIMEOUT', 5)),
-            'application_name': 'flask_app',
+            'application_name': 'ecs_portal',  # More descriptive name
             'options': (
                 f"-c statement_timeout={os.getenv('SQLALCHEMY_ENGINE_OPTIONS_STATEMENT_TIMEOUT', 30000)} "
-                f"-c idle_in_transaction_session_timeout={os.getenv('SQLALCHEMY_ENGINE_OPTIONS_IDLE_IN_TRANSACTION_SESSION_TIMEOUT', 30000)}"
+                f"-c idle_in_transaction_session_timeout={os.getenv('SQLALCHEMY_ENGINE_OPTIONS_IDLE_IN_TRANSACTION_SESSION_TIMEOUT', 30000)} "
+                f"-c log_statement=none "  # Disable query logging for security
+                f"-c log_min_duration_statement=5000"  # Log only slow queries (5s+)
             )
         }
     }
@@ -112,6 +114,31 @@ class Config:
     
     # External API Configuration for third-party integrations (ChatGPT, etc.)
     EXTERNAL_API_KEYS = os.getenv('EXTERNAL_API_KEYS', '').split(',') if os.getenv('EXTERNAL_API_KEYS') else []
+    
+    # Security Configuration
+    SECURITY_PASSWORD_SALT = os.getenv('SECURITY_PASSWORD_SALT', SECRET_KEY)
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max upload
+    
+    # Rate limiting configuration
+    RATELIMIT_STORAGE_URL = REDIS_URL
+    RATELIMIT_HEADERS_ENABLED = True
+    
+    # Content Security Policy (basic)
+    CSP = {
+        'default-src': "'self'",
+        'script-src': "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com",
+        'style-src': "'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+        'img-src': "'self' data: https:",
+        'font-src': "'self' https://cdn.jsdelivr.net",
+        'connect-src': "'self' wss:"
+    }
+    
+    # Trusted proxy configuration for DigitalOcean/Traefik
+    TRUSTED_PROXIES = [
+        '172.16.0.0/12',    # Docker internal networks
+        '192.168.0.0/16',   # Private networks
+        '10.0.0.0/8',       # Private networks
+    ]
 
     @staticmethod
     def get_current_time():

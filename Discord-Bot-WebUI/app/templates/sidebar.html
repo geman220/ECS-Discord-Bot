@@ -375,6 +375,14 @@
                 <div>Admin Panel 🚧 WIP</div>
             </a>
         </li>
+        
+        <!-- Security Status -->
+        <li class="menu-item">
+            <a class="menu-link" href="/security/status" target="_blank">
+                <i class="ti ti-shield-check menu-icon"></i>
+                <div>Security Status</div>
+            </a>
+        </li>
         {% endif %}
 
         <!-- Discord Admin Section Header -->
@@ -480,11 +488,11 @@
             </a>
         </li>
         
-        <!-- Test Live Reporting - Only Global Admins -->
-        <li class="menu-item {{ 'active' if request.endpoint == 'test_live_reporting.test_live_reporting' }}">
-            <a class="menu-link" href="{{ url_for('test_live_reporting.test_live_reporting') }}">
+        <!-- Bot Admin (Live Reporting) - Only Global Admins -->
+        <li class="menu-item {{ 'active' if request.endpoint == 'bot_admin.bot_management' }}">
+            <a class="menu-link" href="{{ url_for('bot_admin.bot_management') }}">
                 <i class="ti ti-live-photo menu-icon"></i>
-                <div>🚀 Test Live Reporting</div>
+                <div>🚀 Bot Admin</div>
             </a>
         </li>
         {% endif %}
