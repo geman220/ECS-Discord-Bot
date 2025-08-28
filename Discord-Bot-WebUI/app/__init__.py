@@ -34,6 +34,7 @@ from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_migrate import Migrate
 from werkzeug.routing import BuildError
+from werkzeug.routing.exceptions import WebsocketMismatch
 from sqlalchemy.orm import joinedload, selectinload, sessionmaker
 from sqlalchemy import text
 
@@ -298,12 +299,16 @@ def create_app(config_object='web_config.Config'):
             return None
 
     # Initialize SocketIO with Redis as the message queue
+    # Configure SocketIO to avoid conflicts with HTTP routes
     socketio.init_app(
         app,
         message_queue=app.config.get('REDIS_URL', 'redis://redis:6379/0'),
         manage_session=False,
         async_mode='eventlet',
-        cors_allowed_origins=app.config.get('CORS_ORIGINS', '*')
+        cors_allowed_origins=app.config.get('CORS_ORIGINS', '*'),
+        path='/socket.io/',  # Explicitly set SocketIO path to avoid conflicts
+        allow_upgrades=True,  # Allow HTTP to WebSocket upgrades
+        transports=['websocket', 'polling']  # Support both transport methods
     )
 
     # CRITICAL: Import handlers AFTER socketio.init_app() so they register on the correct instance
@@ -471,6 +476,55 @@ def create_app(config_object='web_config.Config'):
         logger.info("PII encryption auto-update initialized")
     except Exception as e:
         logger.warning(f"PII encryption initialization failed: {e}")
+
+    @app.errorhandler(WebsocketMismatch)
+    def handle_websocket_mismatch(error):
+        """Handle WebSocket mismatch errors caused by SocketIO/HTTP conflicts in production"""
+        app.logger.warning(f"WebSocket mismatch for {request.path} - routing to HTTP handler")
+        
+        # This commonly happens in production with reverse proxies like Traefik
+        # when HTTP requests hit routes that are also used for WebSocket connections
+        
+        if request.path == '/':
+            # For the root path, ensure we serve the proper HTTP response
+            try:
+                # Use Flask's routing to handle the index page properly
+                # This avoids importing and calling the route function directly
+                with app.test_request_context(request.path, method=request.method):
+                    try:
+                        # Try to find and execute the main.index route
+                        endpoint, values = app.url_map.bind(request.environ['SERVER_NAME']).match(
+                            request.path, method=request.method
+                        )
+                        if endpoint == 'main.index':
+                            return app.view_functions[endpoint](**values)
+                    except:
+                        pass
+                
+                # Fallback: redirect to index if we can't execute directly
+                return redirect(url_for('main.index'))
+                
+            except Exception as e:
+                app.logger.error(f"Error handling root path WebSocket mismatch: {e}")
+                # Last resort: return a basic HTML response
+                return '''
+                <!DOCTYPE html>
+                <html>
+                <head><title>ECS Portal</title></head>
+                <body>
+                    <h1>ECS Portal</h1>
+                    <p>Please <a href="/auth/login">log in</a> to continue.</p>
+                </body>
+                </html>
+                ''', 200
+        
+        elif request.path.startswith('/static/'):
+            # For static files, return 404 since they shouldn't have WebSocket routes
+            abort(404)
+            
+        else:
+            # For other paths, return a proper 404
+            abort(404)
 
     @app.errorhandler(Exception)
     def handle_unexpected_error(error):

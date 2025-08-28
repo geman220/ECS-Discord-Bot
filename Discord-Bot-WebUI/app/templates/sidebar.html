@@ -376,11 +376,11 @@
             </a>
         </li>
         
-        <!-- Security Status -->
-        <li class="menu-item">
-            <a class="menu-link" href="/security/status" target="_blank">
+        <!-- Security Dashboard -->
+        <li class="menu-item {{ 'active' if request.endpoint == 'security_status.security_dashboard' }}">
+            <a class="menu-link" href="{{ url_for('security_status.security_dashboard') }}">
                 <i class="ti ti-shield-check menu-icon"></i>
-                <div>Security Status</div>
+                <div>Security Dashboard</div>
             </a>
         </li>
         {% endif %}

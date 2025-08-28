@@ -86,7 +86,9 @@ def get_user():
             else:
                 session = getattr(g, 'db_session', None)
                 if session is None:
-                    logger.error("No database session available to load authenticated user.")
+                    # Check if we're in degraded mode before logging error
+                    if not (hasattr(g, '_session_creation_failed') and g._session_creation_failed):
+                        logger.error("No database session available to load authenticated user.")
                     user = UserWrapper()
                 else:
                     # Import user-related models; eager-load frequently used relationships.
