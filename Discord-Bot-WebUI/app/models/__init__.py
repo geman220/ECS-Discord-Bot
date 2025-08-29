@@ -94,6 +94,10 @@ from .admin_config import (
     AdminConfig, AdminAuditLog
 )
 
+from .security import (
+    IPBan, SecurityEvent
+)
+
 # Make all models available at package level for backward compatibility
 __all__ = [
     # Database instance
@@ -157,5 +161,8 @@ __all__ = [
     'ISpyUserJail', 'ISpyUserStats',
     
     # Admin configuration models
-    'AdminConfig', 'AdminAuditLog'
+    'AdminConfig', 'AdminAuditLog',
+    
+    # Security models
+    'IPBan', 'SecurityEvent'
 ]

@@ -61,7 +61,8 @@ class CeleryConfig:
         'app.tasks.tasks_substitute_pools',
         'app.tasks.tasks_image_optimization',
         'app.tasks.tasks_ecs_fc_subs',
-        'app.tasks.mobile_analytics_cleanup'
+        'app.tasks.mobile_analytics_cleanup',
+        'app.tasks.security_cleanup'
     )
 
     # Task Settings - Industry Best Practices
@@ -383,6 +384,42 @@ class CeleryConfig:
                 'queue': 'celery',
                 'expires': 240,  # Task expires after 4 minutes
                 'priority': 10  # Highest priority for queue health
+            }
+        },
+        # Security maintenance tasks
+        'cleanup-security-logs': {
+            'task': 'app.tasks.security_cleanup.cleanup_security_logs',
+            'schedule': crontab(hour=1, minute=30),  # Daily at 1:30 AM PST
+            'kwargs': {
+                'retention_days': int(os.getenv('SECURITY_LOG_RETENTION_DAYS', 90))  # Configurable retention
+            },
+            'options': {
+                'queue': 'celery',
+                'expires': 3540  # Task expires after 59 minutes
+            }
+        },
+        'cleanup-expired-bans': {
+            'task': 'app.tasks.security_cleanup.cleanup_expired_bans',
+            'schedule': crontab(hour='*/6'),  # Every 6 hours
+            'options': {
+                'queue': 'celery',
+                'expires': 1740  # Task expires after 29 minutes
+            }
+        },
+        'security-maintenance': {
+            'task': 'app.tasks.security_cleanup.security_maintenance',
+            'schedule': crontab(hour=2, minute=30, day_of_week=0),  # Weekly on Sunday at 2:30 AM PST
+            'options': {
+                'queue': 'celery',
+                'expires': 3540  # Task expires after 59 minutes
+            }
+        },
+        'smart-ban-cleanup': {
+            'task': 'app.tasks.security_cleanup.smart_ban_cleanup',
+            'schedule': crontab(minute='*/30'),  # Every 30 minutes - balance security with usability
+            'options': {
+                'queue': 'celery',
+                'expires': 1740  # Task expires after 29 minutes
             }
         }
     }

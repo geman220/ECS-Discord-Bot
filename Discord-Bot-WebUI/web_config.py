@@ -30,6 +30,24 @@ class Config:
     MOBILE_APP_ALLOWED_NETWORKS = os.getenv('MOBILE_APP_ALLOWED_NETWORKS', '192.168.1.0/24,192.168.0.0/24')
     WEBUI_BASE_URL = os.getenv('WEBUI_BASE_URL', 'https://ecs-soccer.org')
     
+    # Security Configuration
+    SECURITY_LOG_RETENTION_DAYS = int(os.getenv('SECURITY_LOG_RETENTION_DAYS', 90))  # Keep security logs for 90 days
+    SECURITY_BAN_DEFAULT_DURATION = int(os.getenv('SECURITY_BAN_DEFAULT_DURATION', 24))  # Default ban duration in hours
+    SECURITY_MAX_REQUESTS_PER_IP = int(os.getenv('SECURITY_MAX_REQUESTS_PER_IP', 200))  # Max requests per hour per IP
+    SECURITY_BLACKLIST_THRESHOLD = int(os.getenv('SECURITY_BLACKLIST_THRESHOLD', 50))  # Requests that trigger alerts
+    
+    # Auto-ban Configuration
+    SECURITY_AUTO_BAN_ENABLED = os.getenv('SECURITY_AUTO_BAN_ENABLED', 'true').lower() == 'true'
+    SECURITY_AUTO_BAN_ATTACK_THRESHOLD = int(os.getenv('SECURITY_AUTO_BAN_ATTACK_THRESHOLD', 3))  # Auto-ban after 3 attack attempts
+    SECURITY_AUTO_BAN_RATE_THRESHOLD = int(os.getenv('SECURITY_AUTO_BAN_RATE_THRESHOLD', 500))  # Auto-ban after 500 requests/hour
+    SECURITY_AUTO_BAN_DURATION_HOURS = int(os.getenv('SECURITY_AUTO_BAN_DURATION_HOURS', 1))  # Initial auto-ban for 1 hour
+    SECURITY_AUTO_BAN_ESCALATION_ENABLED = os.getenv('SECURITY_AUTO_BAN_ESCALATION_ENABLED', 'true').lower() == 'true'
+    SECURITY_AUTO_BAN_MAX_DURATION_HOURS = int(os.getenv('SECURITY_AUTO_BAN_MAX_DURATION_HOURS', 168))  # Max 7 days
+    
+    # Smart cleanup configuration
+    SECURITY_CLEANUP_ENABLED = os.getenv('SECURITY_CLEANUP_ENABLED', 'true').lower() == 'true'
+    SECURITY_CLEANUP_UNBAN_GOOD_IPS = os.getenv('SECURITY_CLEANUP_UNBAN_GOOD_IPS', 'true').lower() == 'true'  # Unban IPs with no recent violations
+    
     # Database Configuration
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False

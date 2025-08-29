@@ -12,6 +12,7 @@ class SecurityDashboard {
 
     init() {
         this.bindEvents();
+        this.initTooltips();
         this.loadSecurityEvents();
         this.loadSecurityLogs();
         this.startCountdowns();
@@ -45,6 +46,34 @@ class SecurityDashboard {
                 this.unbanIP(ip, btn);
             }
         });
+
+        // Ban IP buttons from security events (using event delegation)
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.ban-ip-btn')) {
+                const btn = e.target.closest('.ban-ip-btn');
+                const ip = btn.getAttribute('data-ip');
+                const reason = btn.getAttribute('data-reason') || 'Security event';
+                this.quickBanIP(ip, reason);
+            }
+        });
+
+        // Ban IP button
+        const confirmBanBtn = document.getElementById('confirmBanBtn');
+        if (confirmBanBtn) {
+            confirmBanBtn.addEventListener('click', () => this.banIP());
+        }
+
+        // Clear all bans button
+        const clearAllBansBtn = document.getElementById('clearAllBansBtn');
+        if (clearAllBansBtn) {
+            clearAllBansBtn.addEventListener('click', () => this.clearAllBans());
+        }
+    }
+
+    initTooltips() {
+        // Initialize Bootstrap tooltips
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
     }
 
     async refreshAll() {
@@ -135,6 +164,12 @@ class SecurityDashboard {
             if (blacklistedIps && data.attack_protection) {
                 blacklistedIps.textContent = data.attack_protection.total_blacklisted_ips || 0;
             }
+            
+            // Update attack attempts count
+            const attackAttempts = document.getElementById('attackAttempts');
+            if (attackAttempts && data.attack_protection) {
+                attackAttempts.textContent = data.attack_protection.total_attack_attempts || 0;
+            }
         } catch (error) {
             console.error('Error refreshing stats:', error);
         }
@@ -168,12 +203,24 @@ class SecurityDashboard {
                             </div>
                         </div>
                         <div class="flex-grow-1">
-                            <h6 class="mb-1">${this.formatEventTitle(event.type)}</h6>
-                            <p class="mb-1 text-muted">${event.description}</p>
-                            <small class="text-muted">
-                                <i class="ti ti-clock me-1"></i>
-                                ${timestamp}
-                            </small>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">${this.formatEventTitle(event.type)}</h6>
+                                    <p class="mb-1 text-muted">${event.description}</p>
+                                    <small class="text-muted">
+                                        <i class="ti ti-clock me-1"></i>
+                                        ${timestamp}
+                                    </small>
+                                </div>
+                                <div class="ms-2">
+                                    ${this.shouldShowBanButton(event) ? `
+                                        <button class="btn btn-outline-danger btn-xs ban-ip-btn" data-ip="${event.ip}" data-reason="Security event: ${event.type}">
+                                            <i class="ti ti-ban" style="font-size: 0.75rem;"></i>
+                                            Ban
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -199,16 +246,26 @@ class SecurityDashboard {
 
         const logsHTML = logs.map(log => {
             const levelClass = this.getLogLevelClass(log.level);
-            const timestamp = new Date(log.timestamp).toLocaleString();
+            const levelIcon = this.getLogLevelIcon(log.level);
+            const timestamp = new Date(log.timestamp);
+            const timeFormatted = timestamp.toLocaleDateString() + ' ' + timestamp.toLocaleTimeString();
             
             return `
-                <div class="d-flex align-items-start mb-3">
-                    <span class="badge bg-light-${levelClass} text-${levelClass} me-3">${log.level}</span>
+                <div class="d-flex align-items-start mb-3 p-3 border rounded">
+                    <div class="avatar avatar-sm me-3">
+                        <div class="avatar-initial bg-light-${levelClass} rounded-circle">
+                            <i class="ti ${levelIcon} text-${levelClass}"></i>
+                        </div>
+                    </div>
                     <div class="flex-grow-1">
-                        <p class="mb-1">${log.message}</p>
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <span class="badge bg-light-${levelClass} text-${levelClass}">${log.level}</span>
+                            <small class="text-muted">${log.source}</small>
+                        </div>
+                        <p class="mb-2 fw-medium">${log.message}</p>
                         <small class="text-muted">
                             <i class="ti ti-clock me-1"></i>
-                            ${timestamp} - ${log.source}
+                            ${timeFormatted}
                         </small>
                     </div>
                 </div>
@@ -300,6 +357,123 @@ class SecurityDashboard {
         }
     }
 
+    async banIP() {
+        const form = document.getElementById('banIpForm');
+        const formData = new FormData(form);
+        const ipAddress = formData.get('ip_address');
+        const duration = formData.get('duration');
+        const reason = formData.get('reason');
+
+        if (!ipAddress) {
+            this.showAlert('IP address is required', 'error');
+            return;
+        }
+
+        const confirmBanBtn = document.getElementById('confirmBanBtn');
+        const originalText = confirmBanBtn.innerHTML;
+        confirmBanBtn.disabled = true;
+        confirmBanBtn.innerHTML = '<i class="ti ti-loader-2"></i> Banning...';
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
+            const requestData = {
+                ip_address: ipAddress,
+                duration_hours: duration ? parseInt(duration) : null,
+                reason: reason || null
+            };
+            
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (csrfToken) {
+                headers['X-CSRFToken'] = csrfToken;
+            }
+
+            const response = await fetch('/security/ban_ip', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(requestData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to ban IP: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showAlert(data.message, 'success');
+                
+                // Close modal and reset form
+                const modal = bootstrap.Modal.getInstance(document.getElementById('banIpModal'));
+                modal.hide();
+                form.reset();
+                
+                // Refresh the page data
+                await this.refreshAll();
+            } else {
+                throw new Error(data.error || 'Unknown error');
+            }
+        } catch (error) {
+            console.error('Error banning IP:', error);
+            this.showAlert('Error banning IP: ' + error.message, 'error');
+        } finally {
+            confirmBanBtn.disabled = false;
+            confirmBanBtn.innerHTML = originalText;
+        }
+    }
+
+    async clearAllBans() {
+        if (!confirm('Are you sure you want to clear ALL IP bans? This action cannot be undone.')) {
+            return;
+        }
+
+        const clearAllBansBtn = document.getElementById('clearAllBansBtn');
+        const originalText = clearAllBansBtn.innerHTML;
+        clearAllBansBtn.disabled = true;
+        clearAllBansBtn.innerHTML = '<i class="ti ti-loader-2"></i> Clearing...';
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (csrfToken) {
+                headers['X-CSRFToken'] = csrfToken;
+            }
+
+            const response = await fetch('/security/clear_all_bans', {
+                method: 'POST',
+                headers: headers
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to clear bans: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showAlert(data.message, 'success');
+                
+                // Refresh the page data
+                await this.refreshAll();
+            } else {
+                throw new Error(data.error || 'Unknown error');
+            }
+        } catch (error) {
+            console.error('Error clearing bans:', error);
+            this.showAlert('Error clearing bans: ' + error.message, 'error');
+        } finally {
+            clearAllBansBtn.disabled = false;
+            clearAllBansBtn.innerHTML = originalText;
+        }
+    }
+
     startCountdowns() {
         this.countdownInterval = setInterval(() => {
             const countdownElements = document.querySelectorAll('.countdown');
@@ -366,6 +540,16 @@ class SecurityDashboard {
         }
     }
 
+    getLogLevelIcon(level) {
+        switch (level) {
+            case 'ERROR': return 'ti-circle-x';
+            case 'WARNING': return 'ti-alert-triangle';
+            case 'INFO': return 'ti-info-circle';
+            case 'DEBUG': return 'ti-bug';
+            default: return 'ti-file-text';
+        }
+    }
+
     formatEventTitle(type) {
         switch (type) {
             case 'ip_blacklisted': return 'IP Blacklisted';
@@ -373,6 +557,70 @@ class SecurityDashboard {
             case 'attack_detected': return 'Attack Detected';
             case 'suspicious_activity': return 'Suspicious Activity';
             default: return 'Security Event';
+        }
+    }
+
+    shouldShowBanButton(event) {
+        // Only show ban button for events that have an IP address and are not already from banned IPs
+        if (!event.ip) return false;
+        
+        // Don't show ban button if IP is already blacklisted
+        if (event.type === 'ip_blacklisted') return false;
+        
+        // Show ban button for high-severity events or repeated offenses
+        return event.severity === 'high' || 
+               event.type === 'attack_detected' || 
+               event.type === 'suspicious_activity' ||
+               event.type === 'high_request_rate';
+    }
+
+    async quickBanIP(ip, reason) {
+        if (!ip) return;
+
+        // Show confirmation dialog
+        const confirmed = confirm(`Ban IP address ${ip}?\nReason: ${reason}`);
+        if (!confirmed) return;
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
+            const requestData = {
+                ip_address: ip,
+                duration_hours: 24, // Default 24-hour ban for quick bans
+                reason: reason
+            };
+            
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (csrfToken) {
+                headers['X-CSRFToken'] = csrfToken;
+            }
+
+            const response = await fetch('/security/ban_ip', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(requestData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to ban IP: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showAlert(`IP ${ip} has been banned successfully`, 'success');
+                
+                // Refresh the page data to update stats and events
+                await this.refreshAll();
+            } else {
+                throw new Error(data.error || 'Unknown error');
+            }
+        } catch (error) {
+            console.error('Error banning IP:', error);
+            this.showAlert('Error banning IP: ' + error.message, 'error');
         }
     }
 

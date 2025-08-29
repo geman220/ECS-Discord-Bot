@@ -369,6 +369,13 @@ def create_app(config_object='web_config.Config'):
             strategy="fixed-window"
         )
         
+        # Exempt security endpoints from rate limiting to prevent middleware conflicts
+        limiter.exempt('security_status.security_status')
+        limiter.exempt('security_status.security_health')  
+        limiter.exempt('security_status.security_logs')
+        limiter.exempt('security_status.security_events')
+        limiter.exempt('security_status.recent_threats')
+        
         # Add stricter limits for auth endpoints
         @limiter.limit("10 per minute")
         def limit_auth_endpoints():

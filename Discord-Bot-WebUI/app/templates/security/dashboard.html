@@ -110,7 +110,11 @@
                             </div>
                         </div>
                         <div>
-                            <h6 class="mb-0">Rate Limiting</h6>
+                            <h6 class="mb-0" data-bs-toggle="tooltip" data-bs-placement="top" 
+                               title="Rate limiting prevents abuse by limiting the number of requests from a single IP address within a time window">
+                                Rate Limiting
+                                <i class="ti ti-info-circle text-muted ms-1" style="font-size: 0.75rem;"></i>
+                            </h6>
                             <span class="badge feature-badge {% if stats.security_features.rate_limiting %}bg-light-success text-success{% else %}bg-light-warning text-warning{% endif %}">
                                 {% if stats.security_features.rate_limiting %}Enabled{% else %}Disabled{% endif %}
                             </span>
@@ -130,7 +134,11 @@
                             </div>
                         </div>
                         <div>
-                            <h6 class="mb-0">CSRF Protection</h6>
+                            <h6 class="mb-0" data-bs-toggle="tooltip" data-bs-placement="top"
+                               title="Cross-Site Request Forgery protection prevents malicious websites from making unauthorized requests on behalf of users">
+                                CSRF Protection
+                                <i class="ti ti-info-circle text-muted ms-1" style="font-size: 0.75rem;"></i>
+                            </h6>
                             <span class="badge feature-badge {% if stats.security_features.csrf_protection %}bg-light-success text-success{% else %}bg-light-warning text-warning{% endif %}">
                                 {% if stats.security_features.csrf_protection %}Active{% else %}Inactive{% endif %}
                             </span>
@@ -150,7 +158,11 @@
                             </div>
                         </div>
                         <div>
-                            <h6 class="mb-0">Attack Detection</h6>
+                            <h6 class="mb-0" data-bs-toggle="tooltip" data-bs-placement="top"
+                               title="Attack detection monitors requests for malicious patterns like SQL injection, XSS, path traversal, and common exploit attempts">
+                                Attack Detection
+                                <i class="ti ti-info-circle text-muted ms-1" style="font-size: 0.75rem;"></i>
+                            </h6>
                             <span class="badge feature-badge {% if stats.security_features.attack_detection %}bg-light-success text-success{% else %}bg-light-danger text-danger{% endif %}">
                                 {% if stats.security_features.attack_detection %}Monitoring{% else %}Offline{% endif %}
                             </span>
@@ -161,18 +173,26 @@
         </div>
         
         <div class="col-lg-3 col-md-6 col-12 mb-3">
-            <div class="card security-status-card {% if stats.redis_status == 'connected' %}{% else %}warning{% endif %}">
+            <div class="card security-status-card {% if stats.security_features.auto_ban %}{% else %}warning{% endif %}">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-md me-3">
-                            <div class="avatar-initial bg-light-danger rounded">
-                                <i class="ti ti-database text-danger"></i>
+                            <div class="avatar-initial bg-light-success rounded">
+                                <i class="ti ti-robot text-success"></i>
                             </div>
                         </div>
                         <div>
-                            <h6 class="mb-0">Redis Status</h6>
-                            <span class="badge feature-badge {% if stats.redis_status == 'connected' %}bg-light-success text-success{% else %}bg-light-danger text-danger{% endif %}">
-                                {% if stats.redis_status == 'connected' %}Connected{% else %}{{ stats.redis_status }}{% endif %}
+                            <h6 class="mb-0" data-bs-toggle="tooltip" data-bs-placement="top"
+                               title="Auto-ban system automatically blocks IPs after detecting attack patterns or excessive requests. Escalates ban duration for repeat offenders.">
+                                Auto-Ban System
+                                <i class="ti ti-info-circle text-muted ms-1" style="font-size: 0.75rem;"></i>
+                            </h6>
+                            <span class="badge feature-badge {% if stats.security_features.auto_ban %}bg-light-success text-success{% else %}bg-light-warning text-warning{% endif %}">
+                                {% if stats.security_features.auto_ban %}
+                                    Active ({{ stats.auto_ban_config.attack_threshold }} strikes)
+                                {% else %}
+                                    Disabled
+                                {% endif %}
                             </span>
                         </div>
                     </div>
@@ -192,7 +212,10 @@
                         </div>
                     </div>
                     <h4 class="text-primary mb-1" id="monitoredIps">{{ stats.total_monitored_ips }}</h4>
-                    <p class="text-muted mb-0">Monitored IPs</p>
+                    <p class="text-muted mb-0" data-bs-toggle="tooltip" data-bs-placement="top"
+                       title="Number of unique IP addresses currently being tracked for suspicious activity and rate limiting">
+                        Monitored IPs
+                    </p>
                 </div>
             </div>
         </div>
@@ -206,7 +229,10 @@
                         </div>
                     </div>
                     <h4 class="text-danger mb-1" id="blacklistedIps">{{ stats.total_blacklisted_ips }}</h4>
-                    <p class="text-muted mb-0">Blacklisted IPs</p>
+                    <p class="text-muted mb-0" data-bs-toggle="tooltip" data-bs-placement="top"
+                       title="Number of IP addresses currently blocked for suspicious activity or excessive requests. These IPs are temporarily banned.">
+                        Blacklisted IPs
+                    </p>
                 </div>
             </div>
         </div>
@@ -219,8 +245,110 @@
                             <i class="ti ti-shield-check text-success" style="font-size: 1.5rem;"></i>
                         </div>
                     </div>
-                    <h4 class="text-success mb-1">99.9%</h4>
-                    <p class="text-muted mb-0">Security Uptime</p>
+                    <h4 class="text-warning mb-1" id="attackAttempts">{{ stats.total_attack_attempts }}</h4>
+                    <p class="text-muted mb-0" data-bs-toggle="tooltip" data-bs-placement="top"
+                       title="Total number of attack attempts detected across all monitored IPs">
+                        Attack Attempts
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auto-Ban Configuration and Monitored IPs Row -->
+    <div class="row mb-4">
+        <!-- Auto-Ban Configuration -->
+        <div class="col-lg-6 col-12 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-robot text-primary me-2"></i>
+                        Auto-Ban Configuration
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <span class="badge {% if stats.auto_ban_config.enabled %}bg-light-success text-success{% else %}bg-light-danger text-danger{% endif %} me-2">
+                                    {% if stats.auto_ban_config.enabled %}ON{% else %}OFF{% endif %}
+                                </span>
+                                <span class="text-muted">Auto-Ban System</span>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="text-end">
+                                <strong>{{ stats.auto_ban_config.attack_threshold }}</strong>
+                                <small class="text-muted d-block">Attack Threshold</small>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div>
+                                <strong>{{ stats.auto_ban_config.rate_threshold }}</strong>
+                                <small class="text-muted d-block">Rate Limit (req/hr)</small>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="text-end">
+                                <strong>{{ stats.auto_ban_config.duration_hours }}h</strong>
+                                <small class="text-muted d-block">Initial Ban Duration</small>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex align-items-center">
+                                <span class="badge {% if stats.auto_ban_config.escalation_enabled %}bg-light-warning text-warning{% else %}bg-light-secondary text-secondary{% endif %} me-2">
+                                    {% if stats.auto_ban_config.escalation_enabled %}ESCALATING{% else %}STATIC{% endif %}
+                                </span>
+                                <span class="text-muted">Max: {{ stats.auto_ban_config.max_duration_hours }}h</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Monitored IPs Details -->
+        <div class="col-lg-6 col-12 mb-3">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-eye text-info me-2"></i>
+                        Active Monitoring
+                    </h5>
+                    <span class="badge bg-info">{{ stats.monitored_ips|length }} Active</span>
+                </div>
+                <div class="card-body">
+                    <div class="ip-list" style="max-height: 200px; overflow-y: auto;">
+                        {% if stats.monitored_ips %}
+                            {% for ip_data in stats.monitored_ips %}
+                            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                                <div class="flex-grow-1">
+                                    <strong>{{ ip_data.ip }}</strong>
+                                    <div class="small text-muted">
+                                        {{ ip_data.requests_last_hour }} requests/hour
+                                        {% if ip_data.attack_attempts > 0 %}
+                                            | {{ ip_data.attack_attempts }} attacks
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div>
+                                    {% if ip_data.is_blacklisted %}
+                                        <span class="badge bg-danger">BANNED</span>
+                                    {% elif ip_data.attack_attempts > 0 %}
+                                        <span class="badge bg-warning">{{ ip_data.attack_attempts }} attacks</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Clean</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-3">
+                                <i class="ti ti-eye text-muted mb-2" style="font-size: 2rem;"></i>
+                                <p class="text-muted mb-0">No IPs currently being monitored</p>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -236,24 +364,53 @@
                         <i class="ti ti-ban text-danger me-2"></i>
                         Blacklisted IPs
                     </h5>
-                    <span class="badge bg-danger">{{ blacklisted_ips|length }}</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#banIpModal">
+                            <i class="ti ti-plus me-1"></i>
+                            Ban IP
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm" id="clearAllBansBtn">
+                            <i class="ti ti-trash me-1"></i>
+                            Clear All
+                        </button>
+                        <span class="badge bg-danger">{{ blacklisted_ips|length }}</span>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="ip-list" id="blacklistedIpsList">
                         {% if blacklisted_ips %}
                             {% for ip_data in blacklisted_ips %}
-                            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
-                                <div>
-                                    <strong>{{ ip_data.ip }}</strong>
-                                    <br>
-                                    <small class="text-muted">
-                                        Expires: {{ ip_data.expires_at.strftime('%Y-%m-%d %H:%M:%S') }}
-                                    </small>
+                            <div class="d-flex justify-content-between align-items-start mb-3 p-3 border rounded">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <strong class="me-2">{{ ip_data.ip }}</strong>
+                                        {% if ip_data.is_permanent %}
+                                            <span class="badge bg-danger">Permanent</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Temporary</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if ip_data.reason %}
+                                    <p class="mb-1 text-muted small">{{ ip_data.reason }}</p>
+                                    {% endif %}
+                                    
+                                    <div class="small text-muted">
+                                        <div>Banned by: {{ ip_data.banned_by or 'System' }}</div>
+                                        <div>Banned: {{ ip_data.banned_at.strftime('%m/%d/%Y %H:%M') if ip_data.banned_at else 'Unknown' }}</div>
+                                        {% if not ip_data.is_permanent %}
+                                        <div>Expires: {{ ip_data.expires_at.strftime('%m/%d/%Y %H:%M:%S') }}</div>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                <div class="d-flex align-items-center">
-                                    <span class="countdown me-2" data-expiry="{{ ip_data.time_remaining }}">
+                                <div class="d-flex align-items-center flex-column">
+                                    {% if not ip_data.is_permanent %}
+                                    <span class="countdown mb-2" data-expiry="{{ ip_data.time_remaining }}">
                                         {{ (ip_data.time_remaining // 60)|int }}:{{ "{:02d}".format((ip_data.time_remaining % 60)|int) }}
                                     </span>
+                                    {% else %}
+                                    <span class="text-muted mb-2">∞</span>
+                                    {% endif %}
                                     <button class="btn btn-outline-success btn-sm unban-btn" data-ip="{{ ip_data.ip }}">
                                         <i class="ti ti-check"></i>
                                         Unban
@@ -317,6 +474,55 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ban IP Modal -->
+<div class="modal fade" id="banIpModal" tabindex="-1" aria-labelledby="banIpModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="banIpModalLabel">
+                    <i class="ti ti-ban text-danger me-2"></i>
+                    Ban IP Address
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="banIpForm">
+                    <div class="mb-3">
+                        <label for="ipAddress" class="form-label">IP Address <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="ipAddress" name="ip_address" 
+                               placeholder="192.168.1.100" required>
+                        <div class="form-text">Enter the IP address to ban (IPv4 or IPv6)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="banDuration" class="form-label">Ban Duration</label>
+                        <select class="form-select" id="banDuration" name="duration">
+                            <option value="1">1 Hour</option>
+                            <option value="24">24 Hours</option>
+                            <option value="168">1 Week</option>
+                            <option value="720">1 Month</option>
+                            <option value="">Permanent</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="banReason" class="form-label">Reason</label>
+                        <textarea class="form-control" id="banReason" name="reason" rows="3" 
+                                  placeholder="Optional reason for the ban..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmBanBtn">
+                    <i class="ti ti-ban me-1"></i>
+                    Ban IP Address
+                </button>
             </div>
         </div>
     </div>
