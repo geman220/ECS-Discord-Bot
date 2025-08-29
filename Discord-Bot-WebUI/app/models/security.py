@@ -46,54 +46,124 @@ class IPBan(db.Model):
         return max(0, int(remaining.total_seconds()))
     
     @classmethod
+    def _get_session(cls):
+        """Get the appropriate database session."""
+        from flask import g, has_request_context
+        
+        # Use the request session if available
+        if has_request_context() and hasattr(g, 'db_session'):
+            return g.db_session
+        
+        # Otherwise, return None to indicate we need a managed session
+        return None
+    
+    @classmethod
     def is_ip_banned(cls, ip_address):
         """Check if an IP is currently banned."""
         now = datetime.utcnow()
-        return db.session.query(cls).filter(
-            cls.ip_address == ip_address,
-            cls.is_active == True,
-            db.or_(cls.expires_at.is_(None), cls.expires_at > now)
-        ).first() is not None
+        session = cls._get_session()
+        
+        if session:
+            # Use the request session
+            return session.query(cls).filter(
+                cls.ip_address == ip_address,
+                cls.is_active == True,
+                db.or_(cls.expires_at.is_(None), cls.expires_at > now)
+            ).first() is not None
+        else:
+            # Use a managed session
+            from app.core.session_manager import managed_session
+            with managed_session() as session:
+                return session.query(cls).filter(
+                    cls.ip_address == ip_address,
+                    cls.is_active == True,
+                    db.or_(cls.expires_at.is_(None), cls.expires_at > now)
+                ).first() is not None
     
     @classmethod
     def get_active_bans(cls):
         """Get all active bans."""
         now = datetime.utcnow()
-        return db.session.query(cls).filter(
-            cls.is_active == True,
-            db.or_(cls.expires_at.is_(None), cls.expires_at > now)
-        ).order_by(cls.banned_at.desc()).all()
+        session = cls._get_session()
+        
+        if session:
+            # Use the request session
+            return session.query(cls).filter(
+                cls.is_active == True,
+                db.or_(cls.expires_at.is_(None), cls.expires_at > now)
+            ).order_by(cls.banned_at.desc()).all()
+        else:
+            # Use a managed session
+            from app.core.session_manager import managed_session
+            with managed_session() as session:
+                return session.query(cls).filter(
+                    cls.is_active == True,
+                    db.or_(cls.expires_at.is_(None), cls.expires_at > now)
+                ).order_by(cls.banned_at.desc()).all()
     
     @classmethod
     def ban_ip(cls, ip_address, reason=None, banned_by=None, duration_hours=None):
         """Ban an IP address."""
-        # Check if already banned
-        existing_ban = db.session.query(cls).filter(
-            cls.ip_address == ip_address,
-            cls.is_active == True
-        ).first()
+        session = cls._get_session()
         
-        if existing_ban:
-            # Update existing ban
-            existing_ban.reason = reason or existing_ban.reason
-            existing_ban.banned_by = banned_by or existing_ban.banned_by
-            existing_ban.banned_at = datetime.utcnow()
-            existing_ban.expires_at = datetime.utcnow() + timedelta(hours=duration_hours) if duration_hours else None
-            existing_ban.updated_at = datetime.utcnow()
-            ban = existing_ban
+        if session:
+            # Use the request session
+            existing_ban = session.query(cls).filter(
+                cls.ip_address == ip_address,
+                cls.is_active == True
+            ).first()
+            
+            if existing_ban:
+                # Update existing ban
+                existing_ban.reason = reason or existing_ban.reason
+                existing_ban.banned_by = banned_by or existing_ban.banned_by
+                existing_ban.banned_at = datetime.utcnow()
+                existing_ban.expires_at = datetime.utcnow() + timedelta(hours=duration_hours) if duration_hours else None
+                existing_ban.updated_at = datetime.utcnow()
+                ban = existing_ban
+            else:
+                # Create new ban
+                expires_at = datetime.utcnow() + timedelta(hours=duration_hours) if duration_hours else None
+                ban = cls(
+                    ip_address=ip_address,
+                    reason=reason,
+                    banned_by=banned_by,
+                    expires_at=expires_at
+                )
+                session.add(ban)
+            
+            session.commit()
+            return ban
         else:
-            # Create new ban
-            expires_at = datetime.utcnow() + timedelta(hours=duration_hours) if duration_hours else None
-            ban = cls(
-                ip_address=ip_address,
-                reason=reason,
-                banned_by=banned_by,
-                expires_at=expires_at
-            )
-            db.session.add(ban)
-        
-        db.session.commit()
-        return ban
+            # Use a managed session
+            from app.core.session_manager import managed_session
+            with managed_session() as session:
+                existing_ban = session.query(cls).filter(
+                    cls.ip_address == ip_address,
+                    cls.is_active == True
+                ).first()
+                
+                if existing_ban:
+                    # Update existing ban
+                    existing_ban.reason = reason or existing_ban.reason
+                    existing_ban.banned_by = banned_by or existing_ban.banned_by
+                    existing_ban.banned_at = datetime.utcnow()
+                    existing_ban.expires_at = datetime.utcnow() + timedelta(hours=duration_hours) if duration_hours else None
+                    existing_ban.updated_at = datetime.utcnow()
+                    ban = existing_ban
+                else:
+                    # Create new ban
+                    expires_at = datetime.utcnow() + timedelta(hours=duration_hours) if duration_hours else None
+                    ban = cls(
+                        ip_address=ip_address,
+                        reason=reason,
+                        banned_by=banned_by,
+                        expires_at=expires_at
+                    )
+                    session.add(ban)
+                
+                session.commit()
+                return ban
     
     @classmethod
     def unban_ip(cls, ip_address):
