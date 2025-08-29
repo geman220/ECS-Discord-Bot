@@ -300,7 +300,6 @@ services:
       - EVENTLET_NO_GREENDNS=yes
       - PYTHONPATH=/app
       - FLASK_DEBUG=1
-      - FLASK_ENV=development
       - REDIS_URL=redis://redis:6379/0
     env_file:
       - .env

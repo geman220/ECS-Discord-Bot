@@ -848,7 +848,6 @@ def login():
 # ----------------------------------------------------------------------
 @auth.route('/verify_2fa_login', methods=['GET', 'POST'])
 @transactional
-@csrf.exempt  # Completely exempt this route from CSRF protection
 def verify_2fa_login():
     """
     Handle 2FA verification for users with 2FA enabled.
@@ -865,7 +864,6 @@ def verify_2fa_login():
     
     # Debug session state
     logger.info(f"2FA verification requested. Session data: {dict(session)}")
-    logger.info(f"CSRF protection disabled for this route")
     
     # First check for user_id in POST data (form submission)
     user_id = None

@@ -99,10 +99,12 @@ class Config:
     SESSION_TYPE = 'redis'
     SESSION_PERMANENT = True
     PERMANENT_SESSION_LIFETIME = timedelta(days=30)  # Extended from 8 to 30 days
-    SESSION_USE_SIGNER = False  # Changed to False to fix persistence issues
+    SESSION_USE_SIGNER = True  # Enable session signing for security
     SESSION_KEY_PREFIX = 'flask_session:'
     # Additional session security and persistence settings
-    SESSION_COOKIE_SECURE = False  # Allow session cookies over HTTP for local dev
+    # Use environment variable to determine if we're in production
+    IS_PRODUCTION = os.getenv('FLASK_ENV', 'development').lower() == 'production'
+    SESSION_COOKIE_SECURE = IS_PRODUCTION  # Secure cookies in production, HTTP in dev
     SESSION_COOKIE_SAMESITE = 'Lax'  # Less strict SameSite policy that works better with redirects
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_NAME = 'session'  # Use standard name for compatibility
@@ -141,14 +143,20 @@ class Config:
     RATELIMIT_STORAGE_URL = REDIS_URL
     RATELIMIT_HEADERS_ENABLED = True
     
-    # Content Security Policy (basic)
+    # Content Security Policy (secure)
     CSP = {
         'default-src': "'self'",
-        'script-src': "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com",
-        'style-src': "'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-        'img-src': "'self' data: https:",
-        'font-src': "'self' https://cdn.jsdelivr.net",
-        'connect-src': "'self' wss:"
+        # Remove unsafe-eval, keep unsafe-inline for now but add nonce support in future
+        'script-src': "'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com",
+        'style-src': "'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
+        'img-src': "'self' data: https: blob:",
+        'font-src': "'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
+        'connect-src': "'self' wss: https:",
+        'frame-ancestors': "'none'",  # Prevent clickjacking
+        'base-uri': "'self'",  # Restrict base tag URLs
+        'form-action': "'self'",  # Restrict form submissions
+        'object-src': "'none'",  # Block plugins like Flash
+        'upgrade-insecure-requests': True  # Upgrade HTTP to HTTPS
     }
     
     # Trusted proxy configuration for DigitalOcean/Traefik

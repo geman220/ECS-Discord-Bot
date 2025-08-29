@@ -37,10 +37,10 @@ logger = logging.getLogger(__name__)
 
 def save_cropped_profile_picture(cropped_image_data, player_id):
     """
-    Save the cropped profile picture for a player.
+    Save the cropped profile picture for a player with enhanced security.
     
-    Decodes the provided base64 image data, saves the image as a PNG file,
-    updates the player's profile picture path, and returns the new path.
+    Decodes the provided base64 image data, validates the image format,
+    saves the image as a PNG file, and returns the new path.
     
     Args:
         cropped_image_data (str): The base64 encoded image data.
@@ -50,12 +50,44 @@ def save_cropped_profile_picture(cropped_image_data, player_id):
         str: The file path to the saved profile picture.
     
     Raises:
+        ValueError: If image validation fails.
         Exception: Propagates any error encountered during the process.
     """
     try:
+        # Validate base64 header
+        if not cropped_image_data.startswith('data:image/'):
+            raise ValueError("Invalid image data format - missing data:image/ header")
+        
+        # Extract header and validate image type
         header, encoded = cropped_image_data.split(",", 1)
+        mime_type = header.split(':')[1].split(';')[0]
+        
+        # Whitelist allowed image types
+        allowed_types = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
+        if mime_type not in allowed_types:
+            raise ValueError(f"Unsupported image type: {mime_type}. Allowed: {', '.join(allowed_types)}")
+        
+        # Decode and validate image data
         image_data = base64.b64decode(encoded)
+        
+        # Check file size (5MB limit for profile pictures)
+        max_size = 5 * 1024 * 1024  # 5MB
+        if len(image_data) > max_size:
+            raise ValueError(f"Image too large: {len(image_data)} bytes. Maximum: {max_size} bytes")
+        
+        # Open and validate image using PIL
+        image = Image.open(BytesIO(image_data))
+        
+        # Verify image is actually an image (not a malicious file)
+        image.verify()
+        
+        # Re-open for processing (verify() closes the image)
         image = Image.open(BytesIO(image_data)).convert("RGBA")
+        
+        # Validate image dimensions (reasonable limits)
+        max_dimension = 2048  # 2048x2048 max
+        if image.width > max_dimension or image.height > max_dimension:
+            raise ValueError(f"Image dimensions too large: {image.width}x{image.height}. Maximum: {max_dimension}x{max_dimension}")
 
         session = g.db_session
         player = session.query(Player).get(player_id)
@@ -63,20 +95,30 @@ def save_cropped_profile_picture(cropped_image_data, player_id):
             logger.error(f"Player {player_id} not found")
             return None
 
-        player_name = player.name.replace(" ", "_")
+        # Generate secure filename
+        player_name = re.sub(r'[^a-zA-Z0-9_-]', '_', player.name)  # More secure sanitization
         filename = secure_filename(f"{player_name}_{player_id}.png")
         upload_folder = os.path.join(current_app.root_path, 'static/img/uploads/profile_pictures')
-        os.makedirs(upload_folder, exist_ok=True)
+        os.makedirs(upload_folder, mode=0o755, exist_ok=True)  # Set secure permissions
         file_path = os.path.join(upload_folder, filename)
 
-        image.save(file_path, format='PNG')
+        # Always save as PNG to strip potentially malicious metadata
+        image.save(file_path, format='PNG', optimize=True)
+        
+        # Set secure file permissions
+        os.chmod(file_path, 0o644)
+        
         profile_path = f"/static/img/uploads/profile_pictures/{filename}"
 
         player.profile_picture = profile_path
+        logger.info(f"Profile picture saved for player {player_id}: {filename}")
         return player.profile_picture
 
+    except ValueError as e:
+        logger.warning(f"Image validation failed for player {player_id}: {str(e)}")
+        raise
     except Exception as e:
-        logger.error(f"Error saving profile picture: {str(e)}", exc_info=True)
+        logger.error(f"Error saving profile picture for player {player_id}: {str(e)}", exc_info=True)
         raise
 
 
