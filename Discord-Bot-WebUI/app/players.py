@@ -410,7 +410,6 @@ def player_profile(player_id):
         ).order_by(PlayerStatAudit.timestamp.desc()).all()
 
         # Check if profile verification has expired (older than 5 months)
-        from datetime import datetime, timedelta
         profile_expired = False
         if player.profile_last_updated:
             five_months_ago = datetime.utcnow() - timedelta(days=150)  # Approximately 5 months
@@ -560,7 +559,6 @@ def mobile_profile_update(player_id):
         )
     
     # Check if profile is expired
-    from datetime import datetime, timedelta
     profile_expired = False
     if player.profile_last_updated:
         five_months_ago = datetime.utcnow() - timedelta(days=150)
@@ -637,7 +635,6 @@ def desktop_profile_update(player_id):
         )
     
     # Check if profile is expired
-    from datetime import datetime, timedelta
     profile_expired = False
     if player.profile_last_updated:
         five_months_ago = datetime.utcnow() - timedelta(days=150)

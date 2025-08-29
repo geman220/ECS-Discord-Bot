@@ -207,7 +207,6 @@ def mobile_app_analytics():
             user_agent=request.headers.get('User-Agent')
         )
         
-        from datetime import datetime, timedelta
         from app.models.core import User
         
         # Calculate date ranges for analytics
@@ -771,7 +770,6 @@ def _calculate_mobile_analytics(total_users, platform_stats):
     """Calculate real mobile analytics based on device token activity"""
     try:
         from app.models.communication import DeviceToken
-        from datetime import datetime, timedelta
         
         # Calculate time periods
         now = datetime.utcnow()

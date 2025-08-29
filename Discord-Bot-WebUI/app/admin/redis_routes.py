@@ -167,8 +167,8 @@ def cleanup_connections():
         # Get stats before cleanup
         stats_before = redis_manager.get_connection_stats()
         
-        # Trigger cleanup
-        redis_manager._reinitialize()
+        # Just get fresh stats - avoid dangerous reinitialization
+        # The unified manager is designed to be stable and self-healing
         
         # Get stats after cleanup
         stats_after = redis_manager.get_connection_stats()

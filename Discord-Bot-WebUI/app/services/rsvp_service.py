@@ -67,9 +67,12 @@ class RSVPService:
     ):
         self.session = session
         self.event_publisher = event_publisher
-        self.redis = redis_client or get_redis_connection()
         
-        # Operation tracking for idempotency
+        # Initialize Redis connection (should work with atomic reinitialization fix)
+        self.redis = redis_client or get_redis_connection()
+        self.redis_available = True
+        
+        # Operation tracking for idempotency (only available if Redis works)
         self.operation_ttl = 86400  # 24 hours
         
         # Valid RSVP responses
@@ -514,7 +517,7 @@ class RSVPService:
             return None
         except Exception as e:
             logger.warning(f"⚠️ Failed to check duplicate operation: {e}")
-            # Fail open - assume not duplicate
+            # Fail open - assume not duplicate (Redis may be temporarily unavailable)
             return None
     
     async def _store_operation_result(
@@ -546,7 +549,7 @@ class RSVPService:
             
         except Exception as e:
             logger.warning(f"⚠️ Failed to store operation result: {e}")
-            # Non-critical - don't fail the operation
+            # Non-critical - don't fail the operation (Redis may be temporarily unavailable)
     
     def get_metrics(self) -> Dict[str, Any]:
         """Get service metrics for monitoring."""

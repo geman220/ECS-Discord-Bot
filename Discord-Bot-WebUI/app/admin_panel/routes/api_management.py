@@ -485,7 +485,6 @@ def _get_api_usage_analytics():
 
 def _get_detailed_api_analytics(date_from, date_to):
     """Get detailed API analytics for date range (mocked for now)"""
-    from datetime import datetime, timedelta
     import random
     
     # Generate mock daily data
@@ -584,7 +583,6 @@ def _get_endpoint_usage_stats(endpoint_path):
 def _get_endpoint_recent_activity(endpoint_path, limit=10):
     """Get recent activity for a specific endpoint (mocked for now)"""
     import random
-    from datetime import datetime, timedelta
     
     activities = []
     for i in range(limit):

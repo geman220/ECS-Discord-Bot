@@ -14,6 +14,7 @@ This module provides a comprehensive Redis connection management system that:
 import logging
 import os
 import time
+import threading
 from contextlib import contextmanager
 from typing import Optional, Dict, Any, Union
 from redis import Redis, ConnectionPool
@@ -31,23 +32,28 @@ class UnifiedRedisManager:
     """
     
     _instance: Optional['UnifiedRedisManager'] = None
+    _lock = threading.RLock()  # Thread-safe lock for singleton
     _pool: Optional[ConnectionPool] = None
     _decoded_client: Optional[Redis] = None
     _raw_client: Optional[Redis] = None
     _last_health_check: float = 0
     _health_check_interval: int = 30
     _connection_stats: Dict[str, Any] = {}
+    _initialized = False  # Track initialization state
 
     def __new__(cls) -> 'UnifiedRedisManager':
-        """Create singleton instance."""
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+        """Create thread-safe singleton instance."""
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+            return cls._instance
 
     def __init__(self):
         """Initialize the Redis manager if not already done."""
-        if self._pool is None:
-            self._initialize_connection_pool()
+        with self._lock:
+            if not self._initialized:
+                self._initialize_connection_pool()
+                self._initialized = True
             
     def _initialize_connection_pool(self):
         """
@@ -159,6 +165,18 @@ class UnifiedRedisManager:
         """
         self._check_health()
         if self._decoded_client is None:
+            # Try to reinitialize atomically
+            with self._lock:
+                if self._pool is None:
+                    logger.info("Auto-reinitializing Redis connection pool...")
+                    try:
+                        self._initialize_connection_pool()
+                        self._initialized = True
+                        logger.info("Auto-reinitialization successful")
+                        return self._decoded_client
+                    except Exception as e:
+                        logger.error(f"Auto-reinitialization failed: {e}")
+            
             raise ConnectionError("Redis decoded client is not available")
         return self._decoded_client
     
@@ -189,23 +207,43 @@ class UnifiedRedisManager:
                 self._last_health_check = current_time
     
     def _reinitialize(self):
-        """Reinitialize connection pool and clients."""
-        try:
-            if self._pool:
-                self._pool.disconnect()
-        except Exception as e:
-            logger.debug(f"Error disconnecting Redis pool: {e}")
+        """Reinitialize connection pool and clients atomically."""
+        logger.info("Attempting Redis connection reinitialization...")
         
+        # Store current clients as backup
+        old_pool = self._pool
+        old_decoded_client = self._decoded_client
+        old_raw_client = self._raw_client
+        
+        # Reset instance variables to initialize fresh
         self._pool = None
         self._decoded_client = None
         self._raw_client = None
         
-        # Try to reinitialize real connection
-        self._initialize_connection_pool()
-        
-        # If initialization failed, raise error
-        if self._decoded_client is None or self._raw_client is None:
-            raise ConnectionError("Redis reinitialization failed")
+        try:
+            # Try to initialize new connection pool
+            self._initialize_connection_pool()
+            
+            # If initialization succeeded, clean up old connections
+            if old_pool:
+                try:
+                    old_pool.disconnect()
+                    logger.debug("Old Redis pool disconnected successfully")
+                except Exception as e:
+                    logger.debug(f"Error disconnecting old Redis pool: {e}")
+            
+            logger.info("Redis connection reinitialization successful")
+            
+        except Exception as e:
+            logger.error(f"Redis reinitialization failed: {e}")
+            
+            # Restore old clients if new initialization failed
+            self._pool = old_pool
+            self._decoded_client = old_decoded_client
+            self._raw_client = old_raw_client
+            
+            logger.info("Restored previous Redis connections after failed reinitialization")
+            raise ConnectionError(f"Redis reinitialization failed: {e}")
     
     @contextmanager
     def connection(self, raw: bool = False):
@@ -279,8 +317,17 @@ class UnifiedRedisManager:
             logger.error(f"Error during Redis cleanup: {e}")
 
 
-# Global instance for backward compatibility
-_redis_manager = UnifiedRedisManager()
+# Global instance for backward compatibility - initialized lazily
+_redis_manager: Optional[UnifiedRedisManager] = None
+_global_lock = threading.RLock()
+
+def _get_global_redis_manager() -> UnifiedRedisManager:
+    """Get or create the global Redis manager instance in a thread-safe manner."""
+    global _redis_manager
+    with _global_lock:
+        if _redis_manager is None:
+            _redis_manager = UnifiedRedisManager()
+        return _redis_manager
 
 
 def get_redis_connection(raw: bool = False) -> Redis:
@@ -294,12 +341,13 @@ def get_redis_connection(raw: bool = False) -> Redis:
     Returns:
         Redis client instance
     """
-    return _redis_manager.raw_client if raw else _redis_manager.client
+    manager = _get_global_redis_manager()
+    return manager.raw_client if raw else manager.client
 
 
 def get_redis_manager() -> UnifiedRedisManager:
     """Get the unified Redis manager instance."""
-    return _redis_manager
+    return _get_global_redis_manager()
 
 
 # LEGACY COMPATIBILITY - DEPRECATED
@@ -333,7 +381,7 @@ class RedisManager:
         warnings.warn(warning_msg, DeprecationWarning, stacklevel=2)
         logger.warning(f"DEPRECATED: {warning_msg}")
         
-        self._manager = _redis_manager
+        self._manager = _get_global_redis_manager()
     
     @property
     def client(self) -> Redis:

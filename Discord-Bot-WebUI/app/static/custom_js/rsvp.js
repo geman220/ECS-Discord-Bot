@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 match_id: parseInt(matchId),
                 availability: response,  // Changed from 'response' to 'availability'
                 operation_id: operationId,
-                source: 'web',
+                source: 'discord',  // Changed from 'web' to 'discord' to use Discord ID auth
                 discord_id: discordId
             })
         })

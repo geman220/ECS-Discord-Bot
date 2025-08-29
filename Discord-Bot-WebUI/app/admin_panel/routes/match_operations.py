@@ -378,7 +378,6 @@ def match_reports():
         
         from app.models.matches import Match
         from app.models import Team
-        from datetime import datetime, timedelta
         
         # Get recent matches for reports
         recent_date = datetime.utcnow().date() - timedelta(days=30)
@@ -736,7 +735,6 @@ def player_transfers():
         )
         
         from app.models import User, Team, Season, Player
-        from datetime import datetime, timedelta
         
         # Get current season
         current_season = Season.query.filter_by(is_current=True).first()

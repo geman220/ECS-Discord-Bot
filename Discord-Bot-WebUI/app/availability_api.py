@@ -1225,7 +1225,6 @@ def get_message_info(message_id):
             channel_id = scheduled_msg.home_channel_id if is_home else scheduled_msg.away_channel_id
             
             # Check if match is recent (within last 7 days) to avoid processing old matches
-            from datetime import datetime, timedelta
             week_ago = datetime.utcnow().date() - timedelta(days=7) 
             is_recent_match = match.date >= week_ago
             
@@ -1475,7 +1474,6 @@ def record_poll_response():
         with managed_session() as session_db:
             # Import models
             from app.models import LeaguePoll, LeaguePollResponse, Player
-            from datetime import datetime
             
             # Check if poll exists and is active
             logger.debug(f"🔵 [AVAILABILITY_API] Checking poll {poll_id} status")
@@ -1578,7 +1576,6 @@ def update_poll_message():
         
         with managed_session() as session_db:
             from app.models import LeaguePollDiscordMessage
-            from datetime import datetime
             
             # Find the message record
             logger.debug(f"🔵 [AVAILABILITY_API] Looking up message record {message_record_id}")

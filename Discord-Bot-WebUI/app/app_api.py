@@ -800,7 +800,6 @@ def debug_availability():
 @jwt_role_required('Global Admin')
 def create_test_rsvp():
     """Create a test RSVP for match 5316 and player 908."""
-    from datetime import datetime
     
     with managed_session() as session:
         # Check if RSVP already exists
@@ -2410,7 +2409,6 @@ def get_membership_pass_info():
                     logo_url = f"{request.host_url.rstrip('/')}{player.primary_team.kit_url}"
             
             # Return in exact Flutter app format (camelCase)
-            from datetime import datetime
             now = datetime.utcnow()
             
             response_data = {
@@ -2488,7 +2486,6 @@ def generate_membership_pass():
             # Generate NEW barcode value (fresh generation)
             import hashlib
             import uuid
-            from datetime import datetime
             
             barcode_data = f"ECS-{player.id}-{team_name}-{season_name}-{uuid.uuid4().hex[:8]}-{datetime.utcnow().timestamp()}"
             barcode_hash = hashlib.md5(barcode_data.encode()).hexdigest()[:12].upper()
@@ -2779,7 +2776,6 @@ def refresh_membership_pass():
                     logo_url = f"{request.host_url.rstrip('/')}{player.primary_team.kit_url}"
             
             # Return updated pass data
-            from datetime import datetime
             now = datetime.utcnow()
             
             response_data = {

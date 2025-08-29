@@ -371,7 +371,6 @@ def get_match_stats(session):
     try:
         from app.models import Match, Availability, Season
         from sqlalchemy import func, and_
-        from datetime import datetime, timedelta
         
         # Get current season
         current_season = session.query(Season).filter_by(is_current=True).first()

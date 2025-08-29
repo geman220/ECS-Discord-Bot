@@ -418,7 +418,6 @@ def get_match_statuses():
     
     try:
         # Only get matches from last 7 days and next 30 days to avoid checking old matches
-        from datetime import datetime, timedelta
         import pytz
         
         # Use timezone-aware datetime to match database format
@@ -1337,7 +1336,6 @@ def get_cache_status():
         # Get active matches count for comparison
         from app.models import MLSMatch
         from app.core.session_manager import managed_session
-        from datetime import datetime, timedelta
         
         with managed_session() as session:
             now = datetime.utcnow()

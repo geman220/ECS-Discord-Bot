@@ -288,7 +288,6 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
                 }
             elif match_data:
                 # Check if thread creation should have happened by now
-                from datetime import datetime, timedelta
                 import pytz
                 utc_tz = pytz.UTC
                 match_time = match_data['date_time'].replace(tzinfo=utc_tz) if match_data['date_time'] else None
@@ -350,7 +349,6 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
         else:
             # Fallback logic for live reporting
             if match_data:
-                from datetime import datetime, timedelta
                 import pytz
                 utc_tz = pytz.UTC
                 match_time = match_data['date_time'].replace(tzinfo=utc_tz) if match_data['date_time'] else None

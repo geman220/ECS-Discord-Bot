@@ -466,7 +466,6 @@ class EcsFcScheduleManager:
         """
         try:
             from app.models import ScheduledMessage
-            from datetime import datetime, timedelta
             
             # Calculate when to send the reminder
             # Send on Monday at 9 AM before the match (same as pub league)

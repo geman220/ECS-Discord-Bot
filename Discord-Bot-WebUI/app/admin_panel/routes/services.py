@@ -1146,7 +1146,6 @@ def _get_discord_command_usage():
     try:
         # In a real implementation, this would query command usage logs
         # For now, generate reasonable estimates
-        from datetime import datetime
         import random
         
         # Simulate command usage based on time of day and day of week

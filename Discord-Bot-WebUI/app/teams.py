@@ -214,7 +214,6 @@ def team_details(team_id):
     
     # Check Discord status for players who have Discord IDs
     # Smart checking: longer intervals for players in server, shorter for those not in server
-    from datetime import datetime, timedelta
     now = datetime.utcnow()
     
     for player in players:
