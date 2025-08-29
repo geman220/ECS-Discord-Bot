@@ -16,12 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir \
-    gunicorn==23.0.0 \
-    python-socketio==5.10.0 \
-    python-engineio==4.8.0 \
-    eventlet==0.36.1
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

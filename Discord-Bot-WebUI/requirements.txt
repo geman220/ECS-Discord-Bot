@@ -11,7 +11,7 @@ beautifulsoup4==4.12.3
 bidict==0.23.1
 billiard==4.2.0
 bleach==6.2.0
-blinker==1.8.2
+blinker==1.9.0
 cachelib==0.13.0
 celery==5.4.0
 certifi==2025.8.3
@@ -114,7 +114,6 @@ vine==5.1.0
 wcwidth==0.2.13
 webassets==2.0
 webencodings==0.5.1
-Werkzeug==3.0.3
 WooCommerce==3.0.0
 wsproto==1.2.0
 WTForms==3.1.2
