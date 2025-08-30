@@ -17,8 +17,8 @@ BEAT_CONTAINER="${CONTAINER_PREFIX}-celery-beat-1"
 QUEUE_ALERT_THRESHOLD=2000
 CRITICAL_THRESHOLD=10000
 
-# Logging
-LOG_FILE="/var/log/celery_health.log"
+# Logging (use local directory to avoid permission issues)
+LOG_FILE="./celery_health.log"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
 log() {
