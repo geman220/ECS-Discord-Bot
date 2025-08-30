@@ -10,7 +10,7 @@ import json
 import argparse
 from datetime import datetime, timedelta
 from celery import Celery
-from celery.task.control import discard_all
+# Removed deprecated import - using app.control.purge() instead
 import redis
 import logging
 

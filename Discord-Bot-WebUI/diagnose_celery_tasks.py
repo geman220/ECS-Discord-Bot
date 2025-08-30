@@ -9,7 +9,10 @@ import sys
 import json
 from datetime import datetime, timedelta
 from celery import Celery
-from kombu import Connection
+try:
+    from kombu import Connection
+except ImportError:
+    Connection = None
 import redis
 import logging
 
@@ -26,6 +29,10 @@ redis_client = redis.from_url(REDIS_URL)
 def get_queue_stats():
     """Get statistics for all Celery queues"""
     stats = {}
+    
+    if not Connection:
+        logger.warning("Kombu not available, skipping queue stats")
+        return {'celery': {'message_count': 0, 'consumer_count': 0}}
     
     try:
         with Connection(REDIS_URL) as conn:
