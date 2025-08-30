@@ -28,6 +28,7 @@ from app.forms import EditUserForm, CreateUserForm, FilterUsersForm
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.tasks.player_sync import sync_players_with_woocommerce
 from app.utils.sync_data_manager import get_sync_data, delete_sync_data
+from app.utils.pii_encryption import create_hash
 from app.player_management_helpers import create_player_profile, record_order_history
 from app.players_helpers import create_user_for_player
 from app.decorators import role_required
@@ -112,9 +113,11 @@ def manage_users():
         if form.validate():
             if form.search.data:
                 search_term = f"%{form.search.data}%"
+                # Create hash for email search
+                email_hash = create_hash(form.search.data)
                 query = query.filter(
                     (User.username.ilike(search_term)) |
-                    (User.email.ilike(search_term))
+                    (User.email_hash == email_hash) if email_hash else False
                 )
 
             if form.role.data:

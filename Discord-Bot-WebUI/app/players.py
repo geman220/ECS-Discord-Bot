@@ -21,7 +21,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import requests
 from werkzeug.exceptions import Forbidden
 from celery.result import AsyncResult
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Local application imports
 from app.models import (
