@@ -74,8 +74,7 @@ from app.utils.task_monitor import get_task_info
 from app.core import celery
 from sqlalchemy import and_, or_, func, desc
 from app.tasks.tasks_core import (
-    schedule_season_availability,
-    send_availability_message_task
+    schedule_season_availability
 )
 from app.tasks.tasks_discord import (
     update_player_discord_roles,

@@ -211,7 +211,7 @@
 
         <!-- Discord Tools - Global Admin / Pub League Admin Only -->
         {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'open' if ('admin' in request.path and ('scheduled_messages' in request.path or 'message' in request.path)) or request.endpoint in ['admin.manage_polls', 'admin.create_poll', 'admin.poll_results', 'admin.discord_management'] }}">
+        <li class="menu-item {{ 'open' if ('admin' in request.path and ('scheduled_messages' in request.path or 'message' in request.path or 'validate' in request.path)) or request.endpoint in ['admin.manage_polls', 'admin.create_poll', 'admin.poll_results', 'admin.discord_management', 'admin.validate_scheduled_messages'] }}">
             <a class="menu-link menu-toggle" href="javascript:void(0);">
                 <i data-feather="link" class="menu-icon"></i>
                 <div>Discord Tools</div>
@@ -235,6 +235,11 @@
                 <li class="menu-item {{ 'active' if request.endpoint == 'admin.view_scheduled_messages' }}">
                     <a class="menu-link" href="{{ url_for('admin.view_scheduled_messages') }}">
                         <div>Scheduled Messages</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ 'active' if request.endpoint == 'admin.validate_scheduled_messages' }}">
+                    <a class="menu-link" href="{{ url_for('admin.validate_scheduled_messages') }}">
+                        <div>System Validation</div>
                     </a>
                 </li>
             </ul>

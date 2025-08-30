@@ -23,7 +23,7 @@ from app.decorators import role_required
 from app.alert_helpers import show_success, show_error, show_info
 from app.models import ScheduledMessage, Match
 from app.utils.user_helpers import safe_current_user
-from app.tasks.tasks_core import send_availability_message_task
+from app.tasks.tasks_rsvp import send_availability_message
 from app.config.celery_config import CeleryConfig
 
 logger = logging.getLogger(__name__)
@@ -264,8 +264,8 @@ def force_send_message(message_id):
         abort(404)
 
     try:
-        # Queue the message for sending
-        send_availability_message_task.delay(scheduled_message_id=message.id)
+        # Queue the message for sending using the correct task
+        send_availability_message.delay(scheduled_message_id=message.id)
         message.status = 'QUEUED'
         session.commit()
         logger.info(f"Message {message_id} queued for sending")

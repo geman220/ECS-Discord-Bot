@@ -223,19 +223,44 @@ def send_availability_message(self, session, scheduled_message_id: int) -> Dict[
                 'error_type': 'not_found'
             }
         
+        # Get channel IDs dynamically from team records (single source of truth)
+        home_channel_id = None
+        away_channel_id = None
+        
+        if message.match:
+            if message.match.home_team and message.match.home_team.discord_channel_id:
+                home_channel_id = message.match.home_team.discord_channel_id
+            if message.match.away_team and message.match.away_team.discord_channel_id:
+                away_channel_id = message.match.away_team.discord_channel_id
+        
+        # Validate required fields
+        if not home_channel_id or not away_channel_id:
+            error_msg = f"Missing team Discord channels: home_channel_id={home_channel_id}, away_channel_id={away_channel_id}"
+            logger.error(error_msg)
+            message.status = 'FAILED'
+            message.send_error = error_msg[:255]
+            message.last_send_attempt = datetime.utcnow()
+            session.add(message)
+            return {
+                'success': False,
+                'message': error_msg,
+                'error_type': 'validation_error'
+            }
+        
         # Construct the message_data dictionary
         message_data = {
-            'scheduled_message_id': scheduled_message_id,
             'match_id': message.match_id,
-            'home_channel_id': message.home_channel_id,
-            'away_channel_id': message.away_channel_id
+            'home_channel_id': home_channel_id,
+            'away_channel_id': away_channel_id
         }
         
         # If match exists, add match details
         if message.match:
             message_data.update({
+                'home_team_id': message.match.home_team.id if message.match.home_team else None,
+                'away_team_id': message.match.away_team.id if message.match.away_team else None,
                 'match_date': message.match.date.strftime('%Y-%m-%d') if message.match.date else '',
-                'match_time': message.match.time.strftime('%H:%M') if message.match.time else '',
+                'match_time': message.match.time.strftime('%H:%M:%S') if message.match.time else '',
                 'home_team_name': message.match.home_team.name if message.match.home_team else 'Home Team',
                 'away_team_name': message.match.away_team.name if message.match.away_team else 'Away Team'
             })
@@ -243,6 +268,8 @@ def send_availability_message(self, session, scheduled_message_id: int) -> Dict[
             # Use metadata if available for ECS FC or other message types
             metadata = message.message_metadata or {}
             message_data.update({
+                'home_team_id': metadata.get('home_team_id'),
+                'away_team_id': metadata.get('away_team_id'),
                 'match_date': metadata.get('match_date', ''),
                 'match_time': metadata.get('match_time', ''),
                 'home_team_name': metadata.get('home_team_name', 'Home Team'),
@@ -262,7 +289,9 @@ def send_availability_message(self, session, scheduled_message_id: int) -> Dict[
             message.send_error = None
         else:
             message.status = 'FAILED'
-            message.send_error = result.get('message')
+            # Truncate error message to fit in database field (255 chars max)
+            error_message = result.get('message', '')
+            message.send_error = error_message[:255] if len(error_message) > 255 else error_message
         session.add(message)
         return result
     except SQLAlchemyError as e:

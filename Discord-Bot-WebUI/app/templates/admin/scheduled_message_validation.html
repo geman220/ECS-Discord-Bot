@@ -1,256 +1,421 @@
-{% extends "admin/base.html" %}
+{% extends "base.html" %}
 
-{% block title %}Scheduled Message Validation{% endblock %}
+{% block title %}System Validation - Scheduled Messages{% endblock %}
 
-{% block content %}
-<div class="container-fluid">
-    <h1 class="mb-4">Scheduled Message System Validation</h1>
-    <p class="text-muted">Last checked: {{ validation.timestamp }}</p>
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='custom_js/scheduled-message-validation.js') }}"></script>
+{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header with Breadcrumb -->
+    <h4 class="fw-bold py-3 mb-3">
+        <span class="text-muted fw-light">Admin / Discord / Scheduled Messages / </span> System Validation
+    </h4>
     
-    <!-- System Status Overview -->
+    <!-- Status Cards -->
     <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Database Status</h5>
-                </div>
+        <!-- Database Status Card -->
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100 shadow-sm">
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-6">
-                            <strong>Total Messages:</strong> {{ validation.database_status.total_messages }}<br>
-                            <strong>Ready to Send:</strong> 
-                            <span class="badge {% if validation.database_status.ready_to_send > 0 %}badge-warning{% else %}badge-success{% endif %}">
-                                {{ validation.database_status.ready_to_send }}
-                            </span><br>
-                            <strong>Overdue:</strong> 
-                            <span class="badge {% if validation.database_status.overdue > 0 %}badge-danger{% else %}badge-success{% endif %}">
-                                {{ validation.database_status.overdue }}
-                            </span>
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-md me-2">
+                            <div class="avatar-initial rounded bg-label-primary">
+                                <i class="ti ti-database"></i>
+                            </div>
                         </div>
-                        <div class="col-6">
-                            <strong>By Status:</strong>
-                            <ul class="list-unstyled mb-0">
-                                {% for status, count in validation.database_status.by_status.items() %}
-                                <li>
-                                    <span class="badge badge-secondary">{{ status }}</span>: {{ count }}
-                                </li>
-                                {% endfor %}
-                            </ul>
+                        <div>
+                            <h5 class="mb-0">{{ validation.database_status.total_messages }}</h5>
+                            <small class="text-muted">Total Messages</small>
+                            <div class="text-xs text-muted">Last checked: {{ validation.timestamp.split(' ')[1] }}</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">Celery Status</h5>
-                </div>
+        <!-- Ready to Send Card -->
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100 shadow-sm">
                 <div class="card-body">
-                    {% if validation.celery_status.connected %}
-                    <div class="alert alert-success mb-2">
-                        <i class="fas fa-check-circle"></i> Celery Connected
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-md me-2">
+                            <div class="avatar-initial rounded {% if validation.database_status.ready_to_send > 0 %}bg-label-warning{% else %}bg-label-success{% endif %}">
+                                <i class="ti ti-clock"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">{{ validation.database_status.ready_to_send }}</h5>
+                            <small class="text-muted">Ready to Send</small>
+                            {% if validation.database_status.overdue > 0 %}
+                            <div class="text-xs text-danger">{{ validation.database_status.overdue }} overdue</div>
+                            {% endif %}
+                        </div>
                     </div>
-                    <strong>Workers:</strong> {{ validation.celery_status.worker_count }}<br>
-                    <strong>Scheduled Tasks:</strong> {{ validation.celery_status.scheduled_tasks }}<br>
-                    <strong>Reserved Tasks:</strong> {{ validation.celery_status.reserved_tasks }}<br>
-                    <strong>Process Task Registered:</strong> 
-                    {% if validation.celery_status.process_task_registered %}
-                        <span class="badge badge-success">Yes</span>
-                    {% else %}
-                        <span class="badge badge-danger">No</span>
-                    {% endif %}
-                    {% else %}
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle"></i> Cannot connect to Celery
-                        {% if validation.celery_status.error %}
-                        <br><small>{{ validation.celery_status.error }}</small>
-                        {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Celery Status Card -->
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-md me-2">
+                            <div class="avatar-initial rounded {% if validation.celery_status.connected %}bg-label-success{% else %}bg-label-danger{% endif %}">
+                                <i class="ti ti-server"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">{{ validation.celery_status.worker_count if validation.celery_status.connected else 0 }}</h5>
+                            <small class="text-muted">Celery Workers</small>
+                            <div class="text-xs {% if validation.celery_status.connected %}text-success{% else %}text-danger{% endif %}">
+                                {% if validation.celery_status.connected %}Connected{% else %}Disconnected{% endif %}
+                            </div>
+                        </div>
                     </div>
-                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Beat Schedule Card -->
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-md me-2">
+                            <div class="avatar-initial rounded {% if validation.beat_schedule.configured %}bg-label-success{% else %}bg-label-danger{% endif %}">
+                                <i class="ti ti-calendar-cog"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">{{ '5min' if validation.beat_schedule.configured else 'N/A' }}</h5>
+                            <small class="text-muted">Beat Schedule</small>
+                            <div class="text-xs {% if validation.beat_schedule.configured %}text-success{% else %}text-danger{% endif %}">
+                                {% if validation.beat_schedule.configured %}Configured{% else %}Missing{% endif %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Beat Schedule Configuration -->
-    <div class="card mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0">Beat Schedule Configuration</h5>
+    <!-- Issues and Recommendations Row -->
+    {% if validation.issues or validation.recommendations %}
+    <div class="row mb-4">
+        <!-- Issues Column -->
+        {% if validation.issues %}
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header d-flex align-items-center">
+                    <div class="avatar avatar-sm me-2">
+                        <div class="avatar-initial rounded bg-label-warning">
+                            <i class="ti ti-alert-triangle"></i>
+                        </div>
+                    </div>
+                    <h5 class="mb-0">Issues Detected</h5>
+                </div>
+                <div class="card-body">
+                    {% for issue in validation.issues %}
+                    <div class="alert alert-{{ 'danger' if issue.severity == 'error' else 'warning' }} mb-2">
+                        <i class="ti ti-alert-circle me-1"></i>{{ issue.message }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Recommendations Column -->
+        {% if validation.recommendations %}
+        <div class="col-lg-{% if validation.issues %}6{% else %}12{% endif %} mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header d-flex align-items-center">
+                    <div class="avatar avatar-sm me-2">
+                        <div class="avatar-initial rounded bg-label-info">
+                            <i class="ti ti-bulb"></i>
+                        </div>
+                    </div>
+                    <h5 class="mb-0">Recommendations</h5>
+                </div>
+                <div class="card-body">
+                    {% for rec in validation.recommendations %}
+                    <div class="alert alert-info mb-2">
+                        <i class="ti ti-info-circle me-1"></i>{{ rec }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <!-- System Configuration Card -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex align-items-center">
+            <div class="avatar avatar-sm me-2">
+                <div class="avatar-initial rounded {% if validation.beat_schedule.configured %}bg-label-success{% else %}bg-label-danger{% endif %}">
+                    <i class="ti ti-settings"></i>
+                </div>
+            </div>
+            <h5 class="mb-0">System Configuration</h5>
         </div>
         <div class="card-body">
             {% if validation.beat_schedule.configured %}
-            <div class="alert alert-success">
-                <i class="fas fa-check-circle"></i> process-scheduled-messages is properly configured
+            <div class="alert alert-success d-flex align-items-center mb-3">
+                <i class="ti ti-check me-2"></i>
+                <span>Automated message processing is properly configured</span>
             </div>
             <div class="row">
                 <div class="col-md-4">
-                    <strong>Task:</strong> {{ validation.beat_schedule.task }}
+                    <small class="text-muted">Task Name</small>
+                    <p class="mb-0 fw-medium">{{ validation.beat_schedule.task }}</p>
                 </div>
                 <div class="col-md-4">
-                    <strong>Schedule:</strong> {{ validation.beat_schedule.schedule }}
+                    <small class="text-muted">Schedule</small>
+                    <p class="mb-0 fw-medium">{{ validation.beat_schedule.schedule }}</p>
                 </div>
                 <div class="col-md-4">
-                    <strong>Queue:</strong> {{ validation.beat_schedule.queue }}
+                    <small class="text-muted">Queue</small>
+                    <p class="mb-0 fw-medium">{{ validation.beat_schedule.queue }}</p>
                 </div>
             </div>
             {% else %}
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle"></i> process-scheduled-messages is NOT configured in beat schedule!
+            <div class="alert alert-danger d-flex align-items-center">
+                <i class="ti ti-x me-2"></i>
+                <span>Automated message processing is NOT configured in beat schedule!</span>
             </div>
             {% endif %}
         </div>
     </div>
     
-    <!-- Issues and Warnings -->
-    {% if validation.issues %}
-    <div class="card mb-4">
-        <div class="card-header bg-warning">
-            <h5 class="mb-0">Issues Detected</h5>
-        </div>
-        <div class="card-body">
-            {% for issue in validation.issues %}
-            <div class="alert alert-{{ 'danger' if issue.severity == 'error' else 'warning' }} mb-2">
-                <i class="fas fa-exclamation-triangle"></i> {{ issue.message }}
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-    
-    <!-- Recommendations -->
-    {% if validation.recommendations %}
-    <div class="card mb-4">
-        <div class="card-header bg-info text-white">
-            <h5 class="mb-0">Recommendations</h5>
-        </div>
-        <div class="card-body">
-            {% for rec in validation.recommendations %}
-            <div class="alert alert-info mb-2">
-                <i class="fas fa-lightbulb"></i> {{ rec }}
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-    
     <!-- Upcoming Messages -->
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Upcoming Scheduled Messages</h5>
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <div class="avatar avatar-sm me-2">
+                    <div class="avatar-initial rounded bg-label-primary">
+                        <i class="ti ti-calendar-time"></i>
+                    </div>
+                </div>
+                <h5 class="mb-0">Upcoming Messages</h5>
+            </div>
+            <small class="text-muted">Next 7 days</small>
         </div>
         <div class="card-body">
             {% if validation.upcoming_messages %}
             <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table table-hover border-top">
                     <thead>
                         <tr>
-                            <th>ID</th>
                             <th>Status</th>
                             <th>Send Time</th>
-                            <th>Hours Until</th>
+                            <th>Countdown</th>
                             <th>Match</th>
                             <th>Type</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for msg in validation.upcoming_messages %}
-                        <tr class="{% if msg.is_overdue %}table-danger{% elif msg.hours_until < 0 %}table-warning{% elif msg.hours_until < 24 %}table-info{% endif %}">
-                            <td>{{ msg.id }}</td>
+                        <tr>
                             <td>
-                                <span class="badge badge-{{ 'warning' if msg.status == 'QUEUED' else 'secondary' }}">
+                                <span class="badge bg-label-{{ 'warning' if msg.status == 'QUEUED' else ('success' if msg.status == 'SENT' else 'secondary') }}">
                                     {{ msg.status }}
                                 </span>
                             </td>
-                            <td>{{ msg.send_time }}</td>
+                            <td>
+                                <small class="text-muted d-block">{{ msg.send_time.split(' ')[0] }}</small>
+                                <span class="fw-medium">{{ msg.send_time.split(' ')[1] }}</span>
+                            </td>
                             <td>
                                 {% if msg.is_overdue %}
-                                <span class="badge badge-danger">OVERDUE</span>
+                                <span class="badge bg-danger">OVERDUE</span>
                                 {% elif msg.hours_until < 0 %}
-                                <span class="badge badge-warning">READY</span>
+                                <span class="badge bg-warning">READY</span>
+                                {% elif msg.hours_until < 24 %}
+                                <span class="text-warning fw-medium">{{ msg.hours_until }}h</span>
                                 {% else %}
-                                {{ msg.hours_until }} hrs
+                                <span class="text-muted">{{ msg.hours_until }}h</span>
                                 {% endif %}
                             </td>
-                            <td>{{ msg.match_info }}</td>
-                            <td>{{ msg.type }}</td>
+                            <td>
+                                <div class="fw-medium">{{ msg.match_info }}</div>
+                            </td>
+                            <td>
+                                <span class="badge bg-label-info">{{ msg.type }}</span>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
             {% else %}
-            <p class="text-muted">No upcoming messages scheduled.</p>
+            <div class="text-center py-4">
+                <i class="ti ti-calendar-off text-muted" style="font-size: 2rem;"></i>
+                <p class="text-muted mt-2">No upcoming messages scheduled</p>
+            </div>
             {% endif %}
         </div>
     </div>
     
-    <!-- Recent Sends -->
-    {% if validation.recent_sends %}
-    <div class="card mb-4">
-        <div class="card-header bg-success text-white">
-            <h5 class="mb-0">Recently Sent Messages (Last 24 Hours)</h5>
+    <!-- Recent Activity & Actions Row -->
+    <div class="row mb-4">
+        <!-- Recent Sends -->
+        {% if validation.recent_sends %}
+        <div class="col-lg-6 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header d-flex align-items-center">
+                    <div class="avatar avatar-sm me-2">
+                        <div class="avatar-initial rounded bg-label-success">
+                            <i class="ti ti-check"></i>
+                        </div>
+                    </div>
+                    <h5 class="mb-0">Recent Activity</h5>
+                    <small class="text-muted ms-auto">Last 24 hours</small>
+                </div>
+                <div class="card-body">
+                    {% for send in validation.recent_sends %}
+                    <div class="d-flex align-items-center mb-2 {% if not loop.last %}border-bottom pb-2{% endif %}">
+                        <div class="avatar avatar-xs me-2">
+                            <div class="avatar-initial rounded bg-success">
+                                <i class="ti ti-check"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <small class="fw-medium">Message #{{ send.id }}</small>
+                            <div class="text-xs text-muted">{{ send.sent_time }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <ul class="list-group">
-                {% for send in validation.recent_sends %}
-                <li class="list-group-item">
-                    Message #{{ send.id }} - Sent at {{ send.sent_time }}
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-    {% endif %}
-    
-    <!-- Actions -->
-    <div class="card">
-        <div class="card-header bg-dark text-white">
-            <h5 class="mb-0">Actions</h5>
-        </div>
-        <div class="card-body">
-            <a href="{{ url_for('admin.view_scheduled_messages') }}" class="btn btn-primary">
-                <i class="fas fa-calendar"></i> View All Scheduled Messages
-            </a>
-            <button class="btn btn-info" onclick="location.reload()">
-                <i class="fas fa-sync"></i> Refresh Validation
-            </button>
-            {% if validation.database_status.ready_to_send > 0 or validation.database_status.overdue > 0 %}
-            <form method="POST" action="{{ url_for('admin.process_scheduled_messages') }}" style="display: inline;">
-                {{ csrf_token() }}
-                <button type="submit" class="btn btn-success">
-                    <i class="fas fa-paper-plane"></i> Process Messages Now
-                </button>
-            </form>
-            {% endif %}
+        {% endif %}
+        
+        <!-- Actions -->
+        <div class="col-lg-{% if validation.recent_sends %}6{% else %}12{% endif %} mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header d-flex align-items-center">
+                    <div class="avatar avatar-sm me-2">
+                        <div class="avatar-initial rounded bg-label-primary">
+                            <i class="ti ti-tool"></i>
+                        </div>
+                    </div>
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('admin.view_scheduled_messages') }}" class="btn btn-primary">
+                            <i class="ti ti-calendar me-1"></i> View All Messages
+                        </a>
+                        <button class="btn btn-outline-info" onclick="refreshValidation()">
+                            <i class="ti ti-refresh me-1"></i> Refresh Status
+                        </button>
+                        {% if validation.database_status.ready_to_send > 0 or validation.database_status.overdue > 0 %}
+                        <form method="POST" action="{{ url_for('admin.process_scheduled_messages') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="ti ti-send me-1"></i> Process Messages Now
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
     <!-- How It Works -->
-    <div class="card mt-4">
-        <div class="card-header">
+    <div class="card shadow-sm">
+        <div class="card-header d-flex align-items-center">
+            <div class="avatar avatar-sm me-2">
+                <div class="avatar-initial rounded bg-label-secondary">
+                    <i class="ti ti-info-circle"></i>
+                </div>
+            </div>
             <h5 class="mb-0">How the System Works</h5>
         </div>
         <div class="card-body">
-            <ol>
-                <li><strong>Message Creation:</strong> When matches are scheduled, messages are created with status='PENDING' and a scheduled_send_time</li>
-                <li><strong>Beat Schedule:</strong> Every 5 minutes, Celery Beat triggers the 'process_scheduled_messages' task</li>
-                <li><strong>Message Processing:</strong> The task finds all PENDING messages where scheduled_send_time <= now</li>
-                <li><strong>Queue for Sending:</strong> Each message is queued for sending and status changes to 'QUEUED'</li>
-                <li><strong>Discord Send:</strong> The send task posts to Discord and updates status to 'SENT' or 'FAILED'</li>
-                <li><strong>RSVP Collection:</strong> Users respond via Discord reactions, which update the database</li>
-            </ol>
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-point timeline-point-primary"></div>
+                            <div class="timeline-event">
+                                <div class="timeline-header mb-1">
+                                    <h6 class="mb-0">1. Message Creation</h6>
+                                </div>
+                                <p class="text-muted mb-0">When matches are scheduled, messages are created with status='PENDING' and a scheduled send time</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-point timeline-point-info"></div>
+                            <div class="timeline-event">
+                                <div class="timeline-header mb-1">
+                                    <h6 class="mb-0">2. Beat Schedule</h6>
+                                </div>
+                                <p class="text-muted mb-0">Every 5 minutes, Celery Beat automatically triggers the 'process_scheduled_messages' task</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-point timeline-point-warning"></div>
+                            <div class="timeline-event">
+                                <div class="timeline-header mb-1">
+                                    <h6 class="mb-0">3. Message Processing</h6>
+                                </div>
+                                <p class="text-muted mb-0">The task finds all PENDING messages where scheduled_send_time <= now and queues them</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-point timeline-point-success"></div>
+                            <div class="timeline-event">
+                                <div class="timeline-header mb-1">
+                                    <h6 class="mb-0">4. Discord Send</h6>
+                                </div>
+                                <p class="text-muted mb-0">The send task posts messages to Discord and updates status to 'SENT' or 'FAILED'</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-point timeline-point-secondary"></div>
+                            <div class="timeline-event">
+                                <div class="timeline-header mb-1">
+                                    <h6 class="mb-0">5. RSVP Collection</h6>
+                                </div>
+                                <p class="text-muted mb-0">Users respond via Discord reactions, which automatically update the database</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-point timeline-point-success"></div>
+                            <div class="timeline-event">
+                                <div class="timeline-header mb-1">
+                                    <h6 class="mb-0">6. Complete</h6>
+                                </div>
+                                <p class="text-muted mb-0">Match day coordination is fully automated with real-time RSVP tracking</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<script>
-// Auto-refresh every 30 seconds if there are overdue messages
+<!-- Auto-refresh for overdue messages -->
 {% if validation.database_status.overdue > 0 %}
-setTimeout(function() {
-    location.reload();
-}, 30000);
-{% endif %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-refresh every 30 seconds if there are overdue messages
+    setTimeout(function() {
+        location.reload();
+    }, 30000);
+});
 </script>
+{% endif %}
 {% endblock %}

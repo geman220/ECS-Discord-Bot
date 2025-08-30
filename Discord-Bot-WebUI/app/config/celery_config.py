@@ -170,7 +170,7 @@ class CeleryConfig:
         'app.tasks.tasks_core.*': {'queue': 'celery'},
         'app.tasks.tasks_live_reporting.*': {'queue': 'live_reporting'},
         'app.tasks.tasks_match_updates.*': {'queue': 'discord'},
-        'app.tasks.tasks_rsvp.*': {'queue': 'celery'},
+        'app.tasks.tasks_rsvp.*': {'queue': 'celery'},  # Default for RSVP tasks; individual tasks override with queue parameter
         'app.tasks.tasks_rsvp_ecs.*': {'queue': 'discord'},
         'app.tasks.tasks_ecs_fc_scheduled.*': {'queue': 'discord'},
         'app.tasks.monitoring_tasks.*': {'queue': 'celery'},
@@ -246,7 +246,7 @@ class CeleryConfig:
             'task': 'app.tasks.tasks_rsvp.process_scheduled_messages',
             'schedule': crontab(minute='*/5'),
             'options': {
-                'queue': 'celery',
+                'queue': 'discord',  # Fixed: process_scheduled_messages needs Discord access
                 'expires': 270
             }
         },

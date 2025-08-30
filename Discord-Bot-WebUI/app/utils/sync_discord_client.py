@@ -334,7 +334,7 @@ class SyncDiscordClient:
         Returns:
             Dictionary with success status and response data.
         """
-        discord_bot_url = "http://discord-bot:5001/api/send_availability_message"
+        discord_bot_url = "http://discord-bot:5001/api/post_availability"
         
         try:
             logger.info(f"Sending RSVP availability message for match {message_data.get('match_id')} (synchronous)")
