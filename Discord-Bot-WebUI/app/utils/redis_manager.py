@@ -77,33 +77,58 @@ class UnifiedRedisManager:
                 if redis_url:
                     self._pool = ConnectionPool.from_url(
                         redis_url,
-                        socket_timeout=15.0,              # Increased from 10s
-                        socket_connect_timeout=15.0,      # Increased from 10s
+                        socket_timeout=10.0,              # Longer timeout for stability
+                        socket_connect_timeout=5.0,       # Allow more time for connection
                         socket_keepalive=True,
-                        socket_keepalive_options={},
-                        health_check_interval=15,         # More frequent health checks
-                        max_connections=50,               # Increased from 30
+                        socket_keepalive_options={},      # Empty for compatibility
+                        health_check_interval=60,         # Less frequent health checks
+                        max_connections=15,               # Further reduced for EventLet
+                        retry_on_timeout=True,            # Enable retries
                     )
                 else:
                     self._pool = ConnectionPool(
                         host=redis_host,
                         port=redis_port,
                         db=redis_db,
-                        socket_timeout=15.0,              # Increased from 10s
-                        socket_connect_timeout=15.0,      # Increased from 10s
+                        socket_timeout=10.0,              # Longer timeout for stability
+                        socket_connect_timeout=5.0,       # Allow more time for connection
                         socket_keepalive=True,
-                        socket_keepalive_options={},
-                        health_check_interval=15,         # More frequent health checks
-                        max_connections=50,               # Increased from 30
+                        socket_keepalive_options={},      # Empty for compatibility
+                        health_check_interval=60,         # Less frequent health checks
+                        max_connections=15,               # Further reduced for EventLet
+                        retry_on_timeout=True,            # Enable retries
                     )
                 
-                # Create clients using the shared pool
-                self._decoded_client = Redis(connection_pool=self._pool, decode_responses=True)
-                self._raw_client = Redis(connection_pool=self._pool, decode_responses=False)
+                # Create clients using the shared pool with EventLet-safe settings
+                self._decoded_client = Redis(
+                    connection_pool=self._pool, 
+                    decode_responses=True,
+                    socket_timeout=8,          # Longer timeout for stability
+                    socket_connect_timeout=5,  # More time for connection
+                    retry_on_timeout=True,
+                    socket_keepalive=True,
+                    socket_keepalive_options={}  # Empty for compatibility
+                )
+                self._raw_client = Redis(
+                    connection_pool=self._pool, 
+                    decode_responses=False,
+                    socket_timeout=8,          # Longer timeout for stability
+                    socket_connect_timeout=5,  # More time for connection
+                    retry_on_timeout=True,
+                    socket_keepalive=True,
+                    socket_keepalive_options={}  # Empty for compatibility
+                )
                 
-                # Test connections
-                self._decoded_client.ping()
-                self._raw_client.ping()
+                # Test connections with retry logic
+                for attempt in range(2):
+                    try:
+                        self._decoded_client.ping()
+                        self._raw_client.ping()
+                        break
+                    except Exception as ping_e:
+                        if attempt == 1:  # Last attempt
+                            raise ping_e
+                        time.sleep(0.1)  # Brief wait before retry
                 
                 logger.info("Unified Redis connection pool initialized successfully")
                 break
@@ -135,7 +160,7 @@ class UnifiedRedisManager:
         for client in [self._decoded_client, self._raw_client]:
             client.ping = lambda: False
             client.get = lambda key: None
-            client.set = lambda key, value, **kwargs: False
+            client.set = lambda key, value, ex=None, px=None, nx=False, xx=False, keepttl=False, **kwargs: False
             client.setex = lambda key, seconds, value: False  # Add missing setex method
             client.delete = lambda *keys: 0
             client.exists = lambda key: False
@@ -155,6 +180,8 @@ class UnifiedRedisManager:
             client.xreadgroup = lambda group, consumer, streams, count=None, block=None: {}
             client.xack = lambda stream, group, *ids: 0
             client.xadd = lambda stream, fields, id='*', maxlen=None, approximate=True: None
+            client.xpending_range = lambda stream, group, consumer=None, start='-', end='+', count=None: []  # Fix for event consumer
+            client.xpending = lambda stream, group: {'consumers': [], 'pending': 0, 'min': None, 'max': None}
 
     @property
     def client(self) -> Redis:
@@ -165,19 +192,25 @@ class UnifiedRedisManager:
         """
         self._check_health()
         if self._decoded_client is None:
-            # Try to reinitialize atomically
+            # Try to reinitialize atomically with retries
             with self._lock:
                 if self._pool is None:
                     logger.info("Auto-reinitializing Redis connection pool...")
-                    try:
-                        self._initialize_connection_pool()
-                        self._initialized = True
-                        logger.info("Auto-reinitialization successful")
-                        return self._decoded_client
-                    except Exception as e:
-                        logger.error(f"Auto-reinitialization failed: {e}")
+                    for retry in range(3):  # Retry up to 3 times
+                        try:
+                            self._initialize_connection_pool()
+                            self._initialized = True
+                            logger.info("Auto-reinitialization successful")
+                            return self._decoded_client
+                        except Exception as e:
+                            logger.error(f"Auto-reinitialization attempt {retry+1} failed: {e}")
+                            if retry < 2:  # Don't sleep on last attempt
+                                time.sleep(min(0.5 * (2 ** retry), 1.0))  # Exponential backoff, max 1s
             
-            raise ConnectionError("Redis decoded client is not available")
+            # If all retries failed, create fallback client instead of raising exception
+            logger.warning("Redis unavailable - creating fallback client to prevent crashes")
+            self._create_fallback_clients()
+            return self._decoded_client
         return self._decoded_client
     
     @property

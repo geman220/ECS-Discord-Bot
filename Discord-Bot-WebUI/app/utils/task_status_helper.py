@@ -20,8 +20,7 @@ logger = logging.getLogger(__name__)
 _request_cache = {}
 _CACHE_TTL = 30  # 30 seconds
 
-# Redis connection pool for reliable connections
-_redis_pool = None
+# Redis connection management - uses centralized UnifiedRedisManager
 _redis_connection_failures = 0
 _max_redis_failures = 3  # Circuit breaker threshold
 _redis_operation_metrics = {
@@ -35,8 +34,8 @@ _redis_operation_metrics = {
 
 
 def _get_redis_connection() -> Optional[redis.Redis]:
-    """Get a Redis connection with proper pooling and circuit breaker pattern."""
-    global _redis_pool, _redis_connection_failures
+    """Get a Redis connection using centralized UnifiedRedisManager."""
+    global _redis_connection_failures
     
     # Circuit breaker: if too many failures, don't attempt connections
     if _redis_connection_failures >= _max_redis_failures:
@@ -44,23 +43,10 @@ def _get_redis_connection() -> Optional[redis.Redis]:
         return None
     
     try:
-        # Initialize connection pool on first use
-        if _redis_pool is None:
-            _redis_pool = redis.ConnectionPool(
-                host='redis',
-                port=6379,
-                db=0,
-                decode_responses=True,
-                socket_timeout=5,
-                socket_connect_timeout=5,
-                max_connections=10,
-                retry_on_timeout=True,
-                health_check_interval=30
-            )
-            logger.debug("Initialized Redis connection pool")
-        
-        # Get connection from pool
-        redis_client = redis.Redis(connection_pool=_redis_pool)
+        # Use centralized Redis manager instead of separate pool
+        from app.utils.redis_manager import UnifiedRedisManager
+        redis_manager = UnifiedRedisManager()
+        redis_client = redis_manager.client
         
         # Test connection with ping
         redis_client.ping()
@@ -73,11 +59,6 @@ def _get_redis_connection() -> Optional[redis.Redis]:
     except Exception as e:
         _redis_connection_failures += 1
         logger.error(f"Redis connection failed (attempt {_redis_connection_failures}/{_max_redis_failures}): {e}")
-        
-        # If we've hit the failure threshold, reset pool to force recreation
-        if _redis_connection_failures >= _max_redis_failures:
-            _redis_pool = None
-            logger.warning("Resetting Redis pool due to connection failures")
         
         return None
 

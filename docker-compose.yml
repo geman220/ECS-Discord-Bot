@@ -7,7 +7,7 @@ services:
     command: redis-server 
       --maxclients 500
       --tcp-keepalive 60 
-      --timeout 300
+      --timeout 900
       --maxmemory 800mb
       --maxmemory-policy allkeys-lru
       --save 900 1

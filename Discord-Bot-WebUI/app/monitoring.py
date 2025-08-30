@@ -497,8 +497,9 @@ def get_queue_status():
     try:
         # Try direct Redis connection first to bypass any safe_redis issues
         try:
-            import redis
-            direct_redis = redis.Redis(host='redis', port=6379, db=0, decode_responses=True, socket_timeout=5)
+            from app.utils.redis_manager import UnifiedRedisManager
+            redis_manager = UnifiedRedisManager()
+            direct_redis = redis_manager.get_decoded_client()
             direct_redis.ping()
             logger.info("Direct Redis connection successful")
             
@@ -587,8 +588,9 @@ def get_queue_details():
     try:
         # Use direct Redis connection
         try:
-            import redis
-            direct_redis = redis.Redis(host='redis', port=6379, db=0, decode_responses=True, socket_timeout=5)
+            from app.utils.redis_manager import UnifiedRedisManager
+            redis_manager = UnifiedRedisManager()
+            direct_redis = redis_manager.get_decoded_client()
             direct_redis.ping()
             logger.info("Direct Redis connection successful for queue details")
             redis_client = direct_redis
@@ -2224,8 +2226,9 @@ def get_workers():
     try:
         # Use direct Redis connection like other endpoints
         try:
-            import redis
-            direct_redis = redis.Redis(host='redis', port=6379, db=0, decode_responses=True, socket_timeout=5)
+            from app.utils.redis_manager import UnifiedRedisManager
+            redis_manager = UnifiedRedisManager()
+            direct_redis = redis_manager.get_decoded_client()
             direct_redis.ping()
             logger.info("Direct Redis connection successful for workers")
             redis_client = direct_redis

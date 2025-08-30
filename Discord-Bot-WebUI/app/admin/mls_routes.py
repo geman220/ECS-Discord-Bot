@@ -382,7 +382,9 @@ def redis_test():
     try:
         import redis
         # Test direct connection
-        r = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
+        from app.utils.redis_manager import UnifiedRedisManager
+        redis_manager = UnifiedRedisManager()
+        r = redis_manager.get_decoded_client()
         ping_result = r.ping()
         
         # Test safe Redis

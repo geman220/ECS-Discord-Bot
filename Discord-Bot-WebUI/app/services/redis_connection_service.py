@@ -288,14 +288,115 @@ _redis_service = None
 _service_lock = threading.Lock()
 
 
-def get_redis_service() -> RedisConnectionService:
-    """Get the global Redis service instance (singleton pattern)."""
+def get_redis_service():
+    """Get the global Redis service instance - now using UnifiedRedisManager for connection efficiency."""
+    from app.utils.redis_manager import UnifiedRedisManager
+    
+    # Return a wrapper that maintains API compatibility with existing code
+    class UnifiedRedisManagerWrapper:
+        def __init__(self):
+            self._manager = UnifiedRedisManager()
+        
+        def get_connection(self):
+            """Get Redis connection - maintains API compatibility"""
+            from contextlib import contextmanager
+            
+            @contextmanager
+            def _connection_context():
+                client = self._manager.client
+                try:
+                    yield client
+                except Exception as e:
+                    logger.error(f"Redis operation error: {e}")
+                    raise
+                
+            return _connection_context()
+        
+        def execute_with_retry(self, operation, *args, **kwargs):
+            """Execute operation with retry - maintains API compatibility"""
+            try:
+                client = self._manager.client
+                return operation(client, *args, **kwargs)
+            except Exception as e:
+                logger.error(f"Redis operation failed: {e}")
+                raise
+        
+        # Maintain other API methods that existing code might use
+        def get_metrics(self):
+            return self._manager.get_connection_stats()
+        
+        # Circuit breaker compatibility
+        def is_healthy(self):
+            try:
+                client = self._manager.client
+                result = client.ping()
+                return bool(result)
+            except Exception as e:
+                logger.error(f"Redis health check failed: {e}")
+                return False
+        
+        # Add missing Redis methods that tasks expect
+        def llen(self, name):
+            """Get the length of a list - for queue monitoring"""
+            try:
+                client = self._manager.client
+                return client.llen(name)
+            except Exception as e:
+                logger.error(f"Redis llen failed for {name}: {e}")
+                return 0
+        
+        def lindex(self, name, index):
+            """Get list element by index - for queue monitoring"""
+            try:
+                client = self._manager.client
+                return client.lindex(name, index)
+            except Exception as e:
+                logger.error(f"Redis lindex failed for {name}[{index}]: {e}")
+                return None
+        
+        def execute_command(self, *args, **kwargs):
+            """Execute Redis command - for advanced operations"""
+            try:
+                client = self._manager.client
+                
+                # Handle special cases where we should use the client method instead of execute_command
+                if len(args) >= 1 and args[0].lower() == 'set':
+                    # Convert 'set' execute_command to client.set() method call
+                    if len(args) >= 3:
+                        key, value = args[1], args[2]
+                        return client.set(key, value, **kwargs)
+                    else:
+                        logger.error(f"Invalid SET command args: {args}")
+                        return False
+                elif len(args) >= 1 and args[0].lower() == 'get':
+                    # Convert 'get' execute_command to client.get() method call
+                    if len(args) >= 2:
+                        key = args[1]
+                        return client.get(key)
+                    else:
+                        logger.error(f"Invalid GET command args: {args}")
+                        return None
+                elif len(args) >= 1 and args[0].lower() == 'delete':
+                    # Convert 'delete' execute_command to client.delete() method call
+                    if len(args) >= 2:
+                        keys = args[1:]
+                        return client.delete(*keys)
+                    else:
+                        logger.error(f"Invalid DELETE command args: {args}")
+                        return 0
+                
+                # For all other commands, use execute_command
+                return client.execute_command(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"Redis execute_command failed: {e}")
+                raise
+    
     global _redis_service
     
     if _redis_service is None:
         with _service_lock:
             if _redis_service is None:
-                _redis_service = RedisConnectionService()
+                _redis_service = UnifiedRedisManagerWrapper()
     
     return _redis_service
 

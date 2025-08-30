@@ -346,16 +346,33 @@ def create_app(config_object='web_config.Config'):
         from flask_limiter import Limiter
         from flask_limiter.util import get_remote_address
         
-        # Custom key function that respects proxy headers
+        # Custom key function that respects proxy headers and exempts local traffic
         def get_client_ip():
             # Get real client IP from proxy headers
             if request.headers.get('X-Forwarded-For'):
-                return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+                client_ip = request.headers.get('X-Forwarded-For').split(',')[0].strip()
             elif request.headers.get('X-Real-IP'):
-                return request.headers.get('X-Real-IP')
+                client_ip = request.headers.get('X-Real-IP')
             elif request.headers.get('CF-Connecting-IP'):
-                return request.headers.get('CF-Connecting-IP')
-            return request.remote_addr or 'unknown'
+                client_ip = request.headers.get('CF-Connecting-IP')
+            else:
+                client_ip = request.remote_addr or 'unknown'
+            
+            # Exempt local and Docker network traffic from rate limiting
+            local_networks = [
+                '127.0.0.1',          # Localhost
+                '172.18.0.1',         # Docker host
+                'host.docker.internal' # Docker host alias
+            ]
+            
+            # Exempt Docker internal networks (172.x.x.x)
+            if (client_ip.startswith('172.') or 
+                client_ip.startswith('192.168.') or 
+                client_ip.startswith('10.') or
+                client_ip in local_networks):
+                return 'local_exempted'  # All local traffic uses same key, effectively unlimited
+            
+            return client_ip
         
         # Use Redis URL for limiter storage
         redis_url = app.config.get('REDIS_URL', 'redis://redis:6379/0')
@@ -364,7 +381,7 @@ def create_app(config_object='web_config.Config'):
             app=app,
             key_func=get_client_ip,
             storage_uri=redis_url,
-            default_limits=["2000 per day", "500 per hour", "50 per minute"],
+            default_limits=["5000 per day", "2000 per hour", "200 per minute"],
             headers_enabled=True,
             strategy="fixed-window"
         )
@@ -376,10 +393,16 @@ def create_app(config_object='web_config.Config'):
         limiter.exempt('security_status.security_events')
         limiter.exempt('security_status.recent_threats')
         
-        # Add stricter limits for auth endpoints
-        @limiter.limit("10 per minute")
-        def limit_auth_endpoints():
-            return request.endpoint in ['auth.login', 'auth.register', 'auth.reset_password']
+        # Exempt admin endpoints from rate limiting to prevent admin lockout
+        limiter.exempt('admin.match_management')
+        limiter.exempt('admin.match_tasks')
+        limiter.exempt('admin.get_match_task_status')
+        limiter.exempt('admin_panel.dashboard')
+        limiter.exempt('admin_panel.system_status')
+        limiter.exempt('admin_panel.performance_monitoring')
+        
+        # Auth endpoints will use default rate limits
+        # (removed problematic auth endpoint rate limiting that was causing the warning)
         
         # Store limiter reference for potential use in routes
         app.limiter = limiter
