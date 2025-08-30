@@ -8,11 +8,12 @@ echo "DOCKER CELERY DIAGNOSTIC COMMANDS"
 echo "========================================"
 echo ""
 
-# Container names (adjust these to match your setup)
-WEBUI_CONTAINER="discord-bot-webui"
-CELERY_WORKER_CONTAINER="celery-worker"
-CELERY_BEAT_CONTAINER="celery-beat"
-REDIS_CONTAINER="redis"
+# Container names (based on your docker ps output)
+WEBUI_CONTAINER="ecs-discord-bot-webui-1"
+CELERY_WORKER_CONTAINER="ecs-discord-bot-celery-worker-1"
+CELERY_BEAT_CONTAINER="ecs-discord-bot-celery-beat-1"
+CELERY_LIVE_REPORTING_CONTAINER="ecs-discord-bot-celery-live-reporting-worker-1"
+REDIS_CONTAINER="ecs-discord-bot-redis-1"
 
 echo "📋 STEP 1: CHECK CONTAINER STATUS"
 echo "================================="
