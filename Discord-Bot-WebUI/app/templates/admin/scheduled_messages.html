@@ -117,6 +117,9 @@
                                     <i class="ti ti-send me-1"></i> Send Pending Messages
                                 </button>
                             </form>
+                            <a href="{{ url_for('admin.validate_scheduled_messages') }}" class="btn btn-outline-info">
+                                <i class="ti ti-checklist me-1"></i> Validate System
+                            </a>
                             <form action="{{ url_for('admin.schedule_season') }}" method="post" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-outline-secondary">

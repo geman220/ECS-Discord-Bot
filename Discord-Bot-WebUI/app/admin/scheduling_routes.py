@@ -9,18 +9,22 @@ season availability scheduling, and message processing.
 
 import logging
 from datetime import datetime, timedelta
-from flask import Blueprint, request, redirect, url_for, abort, g, render_template, current_app
+from flask import Blueprint, request, redirect, url_for, abort, g, render_template, current_app, jsonify
 from flask_login import login_required
 from flask_wtf.csrf import validate_csrf, generate_csrf
 from flask import session as flask_session
 from sqlalchemy.orm import joinedload
+from sqlalchemy import func
 from wtforms.validators import ValidationError
+import pytz
+from celery import Celery
 
 from app.decorators import role_required
 from app.alert_helpers import show_success, show_error, show_info
 from app.models import ScheduledMessage, Match
 from app.utils.user_helpers import safe_current_user
 from app.tasks.tasks_core import send_availability_message_task
+from app.config.celery_config import CeleryConfig
 
 logger = logging.getLogger(__name__)
 
@@ -366,3 +370,236 @@ def delete_message(message_id):
         show_success(f'Message for {match_info} has been deleted.')
     
     return redirect(url_for('admin.view_scheduled_messages'))
+
+
+@admin_bp.route('/admin/scheduled_messages/validate', endpoint='validate_scheduled_messages')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def validate_scheduled_messages():
+    """
+    Validate scheduled messages system and show detailed status.
+    Provides a comprehensive view of the scheduled message pipeline.
+    """
+    session = g.db_session
+    validation_data = {
+        'timestamp': datetime.now(pytz.timezone('America/Los_Angeles')).strftime('%Y-%m-%d %H:%M:%S PST'),
+        'database_status': {},
+        'celery_status': {},
+        'beat_schedule': {},
+        'upcoming_messages': [],
+        'issues': [],
+        'recommendations': []
+    }
+    
+    try:
+        # 1. Check Database Status
+        pst = pytz.timezone('America/Los_Angeles')
+        now_utc = datetime.utcnow()
+        now_pst = datetime.now(pst)
+        
+        # Count messages by status
+        status_counts = session.query(
+            ScheduledMessage.status,
+            func.count(ScheduledMessage.id)
+        ).group_by(ScheduledMessage.status).all()
+        
+        validation_data['database_status'] = {
+            'total_messages': sum(count for _, count in status_counts),
+            'by_status': dict(status_counts),
+            'ready_to_send': 0,
+            'overdue': 0
+        }
+        
+        # Check for messages ready to send
+        ready_messages = session.query(ScheduledMessage).filter(
+            ScheduledMessage.status == 'PENDING',
+            ScheduledMessage.scheduled_send_time <= now_utc
+        ).all()
+        
+        validation_data['database_status']['ready_to_send'] = len(ready_messages)
+        
+        # Check for overdue messages (should have been sent but still pending)
+        overdue_threshold = now_utc - timedelta(hours=1)
+        overdue_messages = session.query(ScheduledMessage).filter(
+            ScheduledMessage.status == 'PENDING',
+            ScheduledMessage.scheduled_send_time <= overdue_threshold
+        ).all()
+        
+        validation_data['database_status']['overdue'] = len(overdue_messages)
+        
+        if overdue_messages:
+            validation_data['issues'].append({
+                'severity': 'warning',
+                'message': f'{len(overdue_messages)} messages are overdue (scheduled more than 1 hour ago but not sent)'
+            })
+        
+        # Get upcoming messages
+        upcoming = session.query(ScheduledMessage).filter(
+            ScheduledMessage.status.in_(['PENDING', 'QUEUED']),
+            ScheduledMessage.scheduled_send_time >= now_utc - timedelta(days=1),
+            ScheduledMessage.scheduled_send_time <= now_utc + timedelta(days=7)
+        ).order_by(ScheduledMessage.scheduled_send_time).limit(10).all()
+        
+        for msg in upcoming:
+            send_time = msg.scheduled_send_time
+            if send_time.tzinfo is None:
+                send_time = pytz.utc.localize(send_time)
+            send_time_pst = send_time.astimezone(pst)
+            
+            time_diff = send_time_pst - now_pst
+            hours_until = time_diff.total_seconds() / 3600
+            
+            match_info = "N/A"
+            if msg.match:
+                match_date = msg.match.date
+                if isinstance(match_date, datetime):
+                    match_date_str = match_date.strftime("%b %d")
+                else:
+                    match_date_str = str(match_date)
+                
+                if hasattr(msg.match, 'home_team') and hasattr(msg.match, 'away_team'):
+                    if msg.match.home_team and msg.match.away_team:
+                        match_info = f"{match_date_str}: {msg.match.home_team.name} vs {msg.match.away_team.name}"
+                else:
+                    match_info = match_date_str
+            
+            validation_data['upcoming_messages'].append({
+                'id': msg.id,
+                'status': msg.status,
+                'send_time': send_time_pst.strftime("%Y-%m-%d %H:%M PST"),
+                'hours_until': round(hours_until, 1),
+                'match_info': match_info,
+                'type': msg.message_type or 'standard',
+                'is_overdue': hours_until < -1
+            })
+        
+        # 2. Check Celery Status
+        try:
+            celery_app = Celery('app')
+            celery_app.config_from_object('app.config.celery_config:CeleryConfig')
+            
+            # Get inspect instance
+            inspect = celery_app.control.inspect()
+            
+            # Check active workers
+            active_workers = inspect.active()
+            worker_count = len(active_workers) if active_workers else 0
+            
+            # Check scheduled tasks
+            scheduled_tasks = inspect.scheduled()
+            scheduled_count = sum(len(tasks) for tasks in scheduled_tasks.values()) if scheduled_tasks else 0
+            
+            # Check reserved tasks
+            reserved_tasks = inspect.reserved()
+            reserved_count = sum(len(tasks) for tasks in reserved_tasks.values()) if reserved_tasks else 0
+            
+            # Check if process_scheduled_messages is registered
+            registered = inspect.registered()
+            process_task_registered = False
+            if registered:
+                for worker, tasks in registered.items():
+                    if 'app.tasks.tasks_rsvp.process_scheduled_messages' in tasks:
+                        process_task_registered = True
+                        break
+            
+            validation_data['celery_status'] = {
+                'connected': True,
+                'worker_count': worker_count,
+                'scheduled_tasks': scheduled_count,
+                'reserved_tasks': reserved_count,
+                'process_task_registered': process_task_registered
+            }
+            
+            if worker_count == 0:
+                validation_data['issues'].append({
+                    'severity': 'error',
+                    'message': 'No Celery workers are running!'
+                })
+            
+            if not process_task_registered:
+                validation_data['issues'].append({
+                    'severity': 'warning',
+                    'message': 'process_scheduled_messages task is not registered with workers'
+                })
+                
+        except Exception as e:
+            validation_data['celery_status'] = {
+                'connected': False,
+                'error': str(e)
+            }
+            validation_data['issues'].append({
+                'severity': 'error',
+                'message': f'Cannot connect to Celery: {str(e)}'
+            })
+        
+        # 3. Check Beat Schedule
+        validation_data['beat_schedule'] = {
+            'configured': False,
+            'schedule': None
+        }
+        
+        if 'process-scheduled-messages' in CeleryConfig.beat_schedule:
+            task_config = CeleryConfig.beat_schedule['process-scheduled-messages']
+            validation_data['beat_schedule'] = {
+                'configured': True,
+                'task': task_config['task'],
+                'schedule': str(task_config['schedule']),
+                'queue': task_config['options'].get('queue', 'default')
+            }
+        else:
+            validation_data['issues'].append({
+                'severity': 'error',
+                'message': 'process-scheduled-messages is not in Celery beat schedule!'
+            })
+        
+        # 4. Generate Recommendations
+        if validation_data['database_status']['ready_to_send'] > 0:
+            validation_data['recommendations'].append(
+                f"There are {validation_data['database_status']['ready_to_send']} messages ready to send. "
+                "They should be processed within the next 5 minutes automatically, or you can click 'Process Messages Now'."
+            )
+        
+        if validation_data['database_status']['overdue'] > 0:
+            validation_data['recommendations'].append(
+                "Overdue messages detected. Check Celery workers and beat scheduler. "
+                "Consider clicking 'Process Messages Now' to force immediate processing."
+            )
+        
+        if not validation_data['celery_status'].get('connected'):
+            validation_data['recommendations'].append(
+                "Celery is not accessible. Ensure Redis and Celery services are running. "
+                "Run: docker-compose ps to check service status."
+            )
+        
+        # 5. Check recent sends
+        recent_sent = session.query(ScheduledMessage).filter(
+            ScheduledMessage.status == 'SENT',
+            ScheduledMessage.sent_time >= now_utc - timedelta(hours=24)
+        ).order_by(ScheduledMessage.sent_time.desc()).limit(5).all()
+        
+        validation_data['recent_sends'] = []
+        for msg in recent_sent:
+            if msg.sent_time:
+                sent_time = msg.sent_time
+                if sent_time.tzinfo is None:
+                    sent_time = pytz.utc.localize(sent_time)
+                sent_time_pst = sent_time.astimezone(pst)
+                validation_data['recent_sends'].append({
+                    'id': msg.id,
+                    'sent_time': sent_time_pst.strftime("%Y-%m-%d %H:%M PST")
+                })
+        
+    except Exception as e:
+        logger.error(f"Error during validation: {str(e)}", exc_info=True)
+        validation_data['issues'].append({
+            'severity': 'error',
+            'message': f'Validation error: {str(e)}'
+        })
+    
+    # Return JSON for API calls or render template for browser
+    if request.headers.get('Accept') == 'application/json':
+        return jsonify(validation_data)
+    
+    return render_template('admin/scheduled_message_validation.html',
+                         title='Scheduled Message System Validation',
+                         validation=validation_data)

@@ -180,6 +180,7 @@ class CeleryConfig:
         'app.tasks.tasks_image_optimization.*': {'queue': 'celery'},
         'app.tasks.tasks_ecs_fc_subs.*': {'queue': 'celery'},
         'app.tasks.mobile_analytics_cleanup.*': {'queue': 'celery'},
+        'app.tasks.security_cleanup.*': {'queue': 'celery'},
     }
 
     # Beat Schedule: periodic tasks and their schedules

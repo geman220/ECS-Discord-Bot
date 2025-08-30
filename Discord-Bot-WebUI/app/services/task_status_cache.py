@@ -59,10 +59,10 @@ class TaskStatusCacheService:
                 match_data = []
                 for match in matches:
                     match_data.append({
-                        'id': match_data['id'],
-                        'date_time': match_data['date_time'],
-                        'opponent': match_data.get("opponent", "TBD"),
-                        'is_home_game': match_data.get("is_home_game", False),
+                        'id': match.id,
+                        'date_time': match.date_time,
+                        'opponent': getattr(match, "opponent", "TBD"),
+                        'is_home_game': getattr(match, "is_home_game", False),
                         'discord_thread_id': match.discord_thread_id
                     })
                 
