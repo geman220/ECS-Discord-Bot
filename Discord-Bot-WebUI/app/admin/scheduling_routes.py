@@ -574,13 +574,13 @@ def validate_scheduled_messages():
         # 5. Check recent sends
         recent_sent = session.query(ScheduledMessage).filter(
             ScheduledMessage.status == 'SENT',
-            ScheduledMessage.sent_time >= now_utc - timedelta(hours=24)
-        ).order_by(ScheduledMessage.sent_time.desc()).limit(5).all()
+            ScheduledMessage.sent_at >= now_utc - timedelta(hours=24)
+        ).order_by(ScheduledMessage.sent_at.desc()).limit(5).all()
         
         validation_data['recent_sends'] = []
         for msg in recent_sent:
-            if msg.sent_time:
-                sent_time = msg.sent_time
+            if msg.sent_at:
+                sent_time = msg.sent_at
                 if sent_time.tzinfo is None:
                     sent_time = pytz.utc.localize(sent_time)
                 sent_time_pst = sent_time.astimezone(pst)
