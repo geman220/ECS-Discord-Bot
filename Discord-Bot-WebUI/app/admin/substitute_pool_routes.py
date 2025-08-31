@@ -956,23 +956,26 @@ def get_substitute_responses_for_assignment(match_type: str, match_id: str):
             actual_match_id = int(match_id)
             from app.models import Match, Team
             match = session.query(Match).options(
-                joinedload(Match.home_team)
+                joinedload(Match.home_team).joinedload(Team.league),
+                joinedload(Match.away_team).joinedload(Team.league)
             ).get(actual_match_id)
             if not match:
                 return jsonify({'success': False, 'error': 'Match not found'}), 404
             
-            # Determine league type from team
-            team = match.home_team
-            if team and team.league:
-                league_name = team.league.name
-                if 'Premier' in league_name:
-                    league_type = 'Premier'
-                elif 'Classic' in league_name:
-                    league_type = 'Classic'
-                else:
-                    league_type = 'Classic'  # Default
-            else:
-                league_type = 'Classic'  # Default
+            # Determine league type from team (try home team first, then away team)
+            league_type = 'Classic'  # Default
+            for team in [match.home_team, match.away_team]:
+                if team and team.league:
+                    league_name = team.league.name.lower()
+                    if 'premier' in league_name:
+                        league_type = 'Premier'
+                        break
+                    elif 'classic' in league_name:
+                        league_type = 'Classic'
+                        break
+                    elif 'ecs' in league_name:
+                        league_type = 'ECS FC'
+                        break
         
         # Find the most recent open request for this match
         request = session.query(SubstituteRequest).filter_by(
@@ -981,20 +984,22 @@ def get_substitute_responses_for_assignment(match_type: str, match_id: str):
         ).first()
         
         if not request:
-            # No open request found - return regular available subs
-            from app.admin_helpers import get_available_subs
-            subs = get_available_subs(session=session)
+            # No open request found - return league-specific available subs
+            from app.models_substitute_pools import get_active_substitutes
+            pool_subs = get_active_substitutes(league_type, session)
             
             # Format for dropdown with gray color (no response)
             formatted_subs = []
-            for sub in subs:
-                formatted_subs.append({
-                    'id': sub['id'],
-                    'name': sub['name'],
-                    'response_status': 'no_response',
-                    'color_class': 'text-muted',
-                    'sort_order': 2  # No response gets middle priority
-                })
+            for pool_sub in pool_subs:
+                player = pool_sub.player
+                if player:
+                    formatted_subs.append({
+                        'id': player.id,
+                        'name': player.name,
+                        'response_status': 'no_response',
+                        'color_class': 'text-muted',
+                        'sort_order': 2  # No response gets middle priority
+                    })
             
             return jsonify({
                 'success': True,

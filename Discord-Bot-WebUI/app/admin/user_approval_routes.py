@@ -15,7 +15,7 @@ from sqlalchemy.orm import joinedload
 
 from flask_login import login_required
 
-from app.models import User, Role, Player, League
+from app.models import User, Role, Player, League, Season
 from app.utils.db_utils import transactional
 from app.decorators import role_required
 from app.admin.blueprint import admin_bp
@@ -165,14 +165,26 @@ def approve_user(user_id: int):
             if new_role not in user.roles:
                 user.roles.append(new_role)
         
-        # Assign user to the appropriate league
+        # Assign user to the appropriate league WITH CURRENT SEASON
         league_name = league_assignment_mapping[league_type]
-        league = db_session.query(League).filter_by(name=league_name).first()
+        # Get the league with the current season
+        league = db_session.query(League).join(
+            Season, League.season_id == Season.id
+        ).filter(
+            League.name == league_name,
+            Season.is_current == True
+        ).first()
+        
         if league:
             user.league_id = league.id
-            logger.info(f"Assigned user {user.id} to league '{league_name}' (ID: {league.id})")
+            logger.info(f"Assigned user {user.id} to league '{league_name}' (ID: {league.id}) with current season")
         else:
-            logger.warning(f"League '{league_name}' not found for user {user.id}")
+            logger.warning(f"No current season league '{league_name}' found for user {user.id}")
+            # Fallback to any league with that name if no current season exists
+            league = db_session.query(League).filter_by(name=league_name).first()
+            if league:
+                user.league_id = league.id
+                logger.warning(f"Fallback: Assigned user {user.id} to league '{league_name}' (ID: {league.id}) - NOT CURRENT SEASON")
             
         # Also set league on the player if exists  
         if user.player and league:
