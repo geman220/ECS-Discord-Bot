@@ -853,7 +853,7 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
     This task runs every Monday to:
       - Find all Sunday matches for the upcoming week
       - Schedule RSVP messages for each match without existing scheduled messages
-      - Set send time to 9 AM on Monday for maximum visibility
+      - Set send time to 2 AM PST (10 AM UTC) on Monday for maximum visibility
       - Create ScheduledMessage records in the database
       - Schedules messages with varying countdown times to prevent rate limiting
       
@@ -864,19 +864,23 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
         Retries the task on errors with exponential backoff.
     """
     try:
-        # Get today (should be Monday when scheduled) and next Sunday
+        # Find all Sunday matches that need RSVP messages scheduled
+        # Look ahead for all Sunday matches in the next 14 days to handle bye weeks
         today = datetime.utcnow().date()
-        days_until_sunday = (6 - today.weekday()) % 7  # 6 is Sunday's weekday number
-        next_sunday = today + timedelta(days=days_until_sunday)
+        two_weeks_ahead = today + timedelta(days=14)
         
-        logger.info(f"Scheduling for Sunday matches on {next_sunday}")
+        logger.info(f"Looking for Sunday matches between {today} and {two_weeks_ahead}")
         
-        # Find all matches scheduled for next Sunday
+        # Find all Sunday matches in the next 2 weeks that don't have scheduled messages
         sunday_matches = session.query(Match).options(
             joinedload(Match.scheduled_messages)
         ).filter(
-            Match.date == next_sunday
+            Match.date.between(today, two_weeks_ahead),
+            Match.date >= today  # Only future matches
         ).all()
+        
+        # Filter to only Sunday matches (weekday 6)
+        sunday_matches = [match for match in sunday_matches if match.date.weekday() == 6]
         
         logger.info(f"Found {len(sunday_matches)} matches scheduled for next Sunday")
         
@@ -936,13 +940,24 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
         
         for i, match_data in enumerate(matches_data):
             if not match_data['has_message']:
-                # Calculate staggered send time
-                # Base time is 9:00 AM, then stagger by batch
+                # Calculate send time: 6 days before match at 2:00 AM PST (10:00 AM UTC)
+                match_date = match_data['date']
+                
+                # For Sunday matches, RSVP goes out 6 days before (Monday)
+                # Example: Sunday 9/7 match → RSVP on Monday 9/1 at 2am PST
+                rsvp_send_date = match_date - timedelta(days=6)
+                
+                # Only schedule if the RSVP date is in the future
+                if rsvp_send_date <= today:
+                    logger.info(f"Skipping match {match_data['id']} on {match_date} - RSVP date {rsvp_send_date} is in the past")
+                    continue
+                
+                # Calculate staggered send time for rate limiting
                 batch_number = i // batch_size
                 batch_minutes_offset = batch_number * stagger_minutes
                 
-                # Set initial timestamp as 9:00 AM
-                base_send_time = datetime.combine(today, datetime.min.time()) + timedelta(hours=9)
+                # Set to 2:00 AM PST (10:00 AM UTC)
+                base_send_time = datetime.combine(rsvp_send_date, datetime.min.time()) + timedelta(hours=10)
                 
                 # Add the batch offset for staggered sending
                 send_time = base_send_time + timedelta(minutes=batch_minutes_offset)
@@ -971,10 +986,10 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
         
         result = {
             "success": True,
-            "message": f"Scheduled {scheduled_count} availability messages for Sunday matches",
+            "message": f"Scheduled {scheduled_count} availability messages for upcoming Sunday matches",
             "scheduled_count": scheduled_count,
             "total_matches": len(matches_data),
-            "sunday_date": next_sunday.isoformat(),
+            "date_range": f"{today} to {two_weeks_ahead}",
             "batches": (scheduled_count + batch_size - 1) // batch_size
         }
         logger.info(f"{result['message']} in {result['batches']} batches")

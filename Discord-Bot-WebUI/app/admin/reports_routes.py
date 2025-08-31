@@ -8,7 +8,7 @@ match statistics, and RSVP updates.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Blueprint, request, redirect, url_for, abort, g, render_template, jsonify
 from flask_login import login_required
 from app.decorators import role_required

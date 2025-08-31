@@ -90,9 +90,24 @@ def schedule_season():
         # Process each match; schedule a message if not already present
         for match_data in matches_data:
             if not match_data['has_message']:
-                # Calculate send date and time (9:00 AM on the computed day)
-                send_date = match_data['date'] - timedelta(days=match_data['date'].weekday() + 1)
-                send_time = datetime.combine(send_date, datetime.min.time()) + timedelta(hours=9)
+                # Calculate send date and time (Monday 2:00 AM PST = 10:00 AM UTC)
+                # For Sunday matches, we want to send on the Monday before (6 days earlier)
+                match_date = match_data['date']
+                
+                # Sunday is weekday 6, Monday is weekday 0
+                # For a Sunday match, go back 6 days to get Monday
+                if match_date.weekday() == 6:  # Sunday
+                    monday_before = match_date - timedelta(days=6)
+                else:
+                    # For other days, find the previous Monday
+                    days_since_monday = match_date.weekday()
+                    if days_since_monday == 0:  # If it's already Monday
+                        monday_before = match_date - timedelta(days=7)  # Go back a week
+                    else:
+                        monday_before = match_date - timedelta(days=days_since_monday)
+                
+                # Set to 2:00 AM PST (10:00 AM UTC)
+                send_time = datetime.combine(monday_before, datetime.min.time()) + timedelta(hours=10)
 
                 scheduled_message = ScheduledMessage(
                     match_id=match_data['id'],
@@ -129,6 +144,7 @@ def view_scheduled_messages():
     View a list of scheduled messages with enhanced filtering and ECS FC support.
     """
     session = g.db_session
+    pst = pytz.timezone('America/Los_Angeles')
     
     # Get filter parameters
     status_filter = request.args.get('status', '')
@@ -177,6 +193,17 @@ def view_scheduled_messages():
     
     # Get messages and order by scheduled time
     messages = query.order_by(ScheduledMessage.scheduled_send_time.desc()).all()
+    
+    # Convert UTC times to PST for display
+    for message in messages:
+        if message.scheduled_send_time:
+            # Ensure the datetime is timezone-aware (UTC)
+            if message.scheduled_send_time.tzinfo is None:
+                utc_time = pytz.utc.localize(message.scheduled_send_time)
+            else:
+                utc_time = message.scheduled_send_time
+            # Convert to PST for display
+            message.scheduled_send_time_pst = utc_time.astimezone(pst)
     
     # Calculate statistics
     total_messages = len(messages)
