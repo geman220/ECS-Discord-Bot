@@ -738,13 +738,13 @@ async def ispy_category_stats(interaction: discord.Interaction, category: str):
 @app_commands.describe(
     shot_id="ID of the shot to disallow",
     reason="Reason for disallowing the shot",
-    penalty="Point penalty to apply (default: 5)"
+    extra_penalty="Additional penalty points beyond the shot's value (default: 0)"
 )
 async def ispy_admin_disallow(
     interaction: discord.Interaction,
     shot_id: int,
     reason: str,
-    penalty: Optional[int] = 5
+    extra_penalty: Optional[int] = 0
 ):
     """Admin command to disallow a shot."""
     
@@ -761,7 +761,7 @@ async def ispy_admin_disallow(
     
     payload = {
         "reason": reason,
-        "penalty": penalty
+        "extra_penalty": extra_penalty
     }
     
     async with aiohttp.ClientSession() as session:
@@ -772,11 +772,22 @@ async def ispy_admin_disallow(
                 headers={"X-Discord-User": str(interaction.user.id)}
             ) as resp:
                 if resp.status == 200:
+                    data = await resp.json()
+                    shot_points = data.get('shot_points', 0)
+                    total_penalty = shot_points + extra_penalty
+                    
                     embed = discord.Embed(
                         title="✅ Shot Disallowed",
                         color=discord.Color.green(),
-                        description=f"Shot ID {shot_id} has been disallowed.\n\n**Reason:** {reason}\n**Penalty:** -{penalty} points"
+                        description=f"Shot ID {shot_id} has been disallowed.\n\n**Reason:** {reason}"
                     )
+                    
+                    embed.add_field(
+                        name="Points Removed",
+                        value=f"Shot value: -{shot_points} points\nExtra penalty: -{extra_penalty} points\n**Total:** -{total_penalty} points",
+                        inline=False
+                    )
+                    
                     await interaction.followup.send(embed=embed, ephemeral=True)
                 elif resp.status == 404:
                     await interaction.followup.send(
@@ -944,6 +955,7 @@ async def ispy_help(interaction: discord.Interaction):
         value=(
             "• **Channel:** Only works in #pl-nonsense\n"
             "• **Roles:** Requires ECS-FC-PL-CLASSIC or PREMIER\n"
+            "• **Photos:** Must be candid - NO posed pictures allowed\n"
             "• **Targets:** Can't target yourself or same person twice\n"
             "• **Daily Limit:** 3 shots per 24 hours\n"
             "• **Location:** Max 40 characters"
@@ -958,7 +970,7 @@ async def ispy_help(interaction: discord.Interaction):
             "• **Base:** 1 point per person spotted\n"
             "• **Group Bonus:** +1 for spotting 3+ people\n"
             "• **Streak Bonus:** +1 for daily streaks\n"
-            "• **Penalty:** -5 if shot is disallowed"
+            "• **Disallowed:** Lose shot points + any extra penalty"
         ),
         inline=True
     )
@@ -994,7 +1006,7 @@ async def ispy_help(interaction: discord.Interaction):
         main_embed.add_field(
             name="👮 Admin Commands",
             value=(
-                "`/ispy-disallow <id> <reason>` - Disallow a shot\n"
+                "`/ispy-disallow <id> <reason> [penalty]` - Disallow shot (removes its points + optional extra)\n"
                 "`/ispy-recategorize <id> <category>` - Move shot category\n"
                 "`/ispy-jail @user <hours>` - Temporarily block user\n"
                 "`/ispy-reset-cooldowns @user` - Clear all cooldowns"
@@ -1006,6 +1018,7 @@ async def ispy_help(interaction: discord.Interaction):
     main_embed.add_field(
         name="💡 Pro Tips",
         value=(
+            "• Photos must be candid - posed pics will be disallowed!\n"
             "• More targets = more points (no maximum!)\n"
             "• Submit daily for streak bonuses\n"
             "• Check cooldowns before taking shots\n"

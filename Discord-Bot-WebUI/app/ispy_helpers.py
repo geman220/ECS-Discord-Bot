@@ -230,10 +230,11 @@ def create_shot_with_targets(
         return shot
 
 
-def disallow_shot(shot_id: int, moderator_discord_id: str, reason: str = None, penalty: int = 5) -> bool:
+def disallow_shot(shot_id: int, moderator_discord_id: str, reason: str = None, extra_penalty: int = 0):
     """
     Disallow a shot and apply penalties.
-    Returns True if successful.
+    Removes the shot's original points and applies any extra penalty.
+    Returns dict with penalty details if successful, False otherwise.
     """
     with managed_session() as session:
         shot = session.query(ISpyShot).filter(ISpyShot.id == shot_id).first()
@@ -245,24 +246,29 @@ def disallow_shot(shot_id: int, moderator_discord_id: str, reason: str = None, p
         
         # Store original points for reversal
         original_points = shot.total_points
+        total_penalty = original_points + extra_penalty
         
         # Mark as disallowed
         shot.status = 'disallowed'
         shot.disallowed_at = datetime.utcnow()
         shot.disallowed_by_discord_id = moderator_discord_id
         shot.disallow_reason = reason
-        shot.apply_penalty(penalty)
+        shot.apply_penalty(total_penalty)  # Apply full penalty (shot points + extra)
         
         # Update user stats
         stats = get_user_stats(session, shot.author_discord_id, shot.season_id)
         if stats:
-            stats.total_points -= original_points  # Remove original points
-            stats.total_points -= penalty  # Apply penalty
+            stats.total_points -= total_penalty  # Remove shot points + extra penalty
             stats.approved_shots -= 1
             stats.disallowed_shots += 1
         
         session.commit()
-        return True
+        
+        return {
+            'shot_points': original_points,
+            'extra_penalty': extra_penalty,
+            'total_penalty': total_penalty
+        }
 
 
 def recategorize_shot(shot_id: int, new_category_id: int, moderator_discord_id: str) -> bool:

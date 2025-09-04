@@ -594,17 +594,22 @@ def ispy_admin_disallow(shot_id):
             return jsonify({'error': 'Invalid JSON data'}), 400
         
         reason = data.get('reason', 'No reason provided')
-        penalty = data.get('penalty', 5)
+        extra_penalty = data.get('extra_penalty', 0)
         
-        success = disallow_shot(
+        result = disallow_shot(
             shot_id=shot_id,
             moderator_discord_id=moderator_discord_id,
             reason=reason,
-            penalty=penalty
+            extra_penalty=extra_penalty
         )
         
-        if success:
-            return jsonify({'success': True}), 200
+        if result:
+            return jsonify({
+                'success': True,
+                'shot_points': result['shot_points'],
+                'extra_penalty': result['extra_penalty'],
+                'total_penalty': result['total_penalty']
+            }), 200
         else:
             return jsonify({'error': 'Shot not found or already disallowed'}), 404
         
