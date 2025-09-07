@@ -897,26 +897,74 @@ def get_initial_expected_roles(player: Player) -> List[str]:
 # Temporary Sub Management Helpers
 # --------------------
 
-def get_available_subs(session=None) -> List[Dict[str, Any]]:
+def get_available_subs(session=None, league_type=None) -> List[Dict[str, Any]]:
     """
-    Retrieve a list of players marked as substitutes.
+    Retrieve a list of players marked as substitutes, optionally filtered by league type.
     
     Args:
         session: (Optional) A SQLAlchemy session to use for the query.
+        league_type: (Optional) Filter subs by league type ('Classic', 'Premier', 'ECS FC').
+                    If None, returns all pub league subs (Classic + Premier).
         
     Returns:
         A list of dictionaries containing sub player information.
     """
     if session is None:
         session = g.db_session
-        
-    subs = session.query(Player).filter(
+    
+    # First, get legacy subs (using is_sub flag) - these are general subs for all leagues
+    legacy_subs = session.query(Player).filter(
         Player.is_sub == True,
         Player.is_current_player == True
     ).options(
         joinedload(Player.user),
         joinedload(Player.primary_team)
     ).all()
+    
+    # Then get subs from the new SubstitutePool system
+    from app.models_substitute_pools import SubstitutePool
+    pool_query = session.query(Player).join(
+        SubstitutePool, Player.id == SubstitutePool.player_id
+    ).filter(
+        SubstitutePool.is_active == True
+    )
+    
+    # Filter by league type if specified
+    if league_type:
+        pool_query = pool_query.filter(SubstitutePool.league_type == league_type)
+    else:
+        # Default to pub league subs only (Classic + Premier)
+        pool_query = pool_query.filter(SubstitutePool.league_type.in_(['Classic', 'Premier']))
+    
+    pool_subs = pool_query.options(
+        joinedload(Player.user),
+        joinedload(Player.primary_team)
+    ).all()
+    
+    # For league-specific requests, only include legacy subs if no league type specified
+    # or if they're in a team that matches the league type
+    filtered_legacy_subs = []
+    if league_type:
+        # If league type is specified, filter legacy subs by their team's league
+        for sub in legacy_subs:
+            if sub.primary_team and sub.primary_team.league:
+                team_league_name = sub.primary_team.league.name.lower()
+                if (league_type == 'Premier' and 'premier' in team_league_name) or \
+                   (league_type == 'Classic' and 'classic' in team_league_name) or \
+                   (league_type == 'ECS FC' and 'ecs' in team_league_name):
+                    filtered_legacy_subs.append(sub)
+            elif not league_type or league_type in ['Classic', 'Premier']:
+                # If no team info, include for pub leagues as fallback
+                filtered_legacy_subs.append(sub)
+    else:
+        # If no league type specified, include all legacy subs
+        filtered_legacy_subs = legacy_subs
+    
+    # Combine both lists, removing duplicates
+    all_subs = {}
+    for sub in filtered_legacy_subs + pool_subs:
+        if sub.id not in all_subs:
+            all_subs[sub.id] = sub
     
     return [{
         'id': sub.id,
@@ -927,7 +975,72 @@ def get_available_subs(session=None) -> List[Dict[str, Any]]:
         'discord_id': sub.discord_id,
         'phone': sub.phone,
         'email': sub.user.email if sub.user else None
-    } for sub in subs]
+    } for sub in all_subs.values()]
+
+
+def determine_match_league_type(match, session=None):
+    """
+    Determine the league type for a match based on the teams involved.
+    
+    Args:
+        match: The Match object
+        session: (Optional) A SQLAlchemy session
+        
+    Returns:
+        String: 'Premier', 'Classic', or None if undetermined
+    """
+    if session is None:
+        session = g.db_session
+        
+    # Check both home and away teams for league information
+    teams_to_check = [match.home_team, match.away_team]
+    
+    for team in teams_to_check:
+        if team and team.league:
+            league_name = team.league.name.lower()
+            if 'premier' in league_name:
+                return 'Premier'
+            elif 'classic' in league_name:
+                return 'Classic'
+            elif 'ecs' in league_name:
+                return 'ECS FC'
+    
+    # Fallback: check season league_type if teams don't have clear league info
+    for team in teams_to_check:
+        if team and team.league and team.league.season:
+            season_type = team.league.season.league_type
+            if season_type == 'Pub League':
+                # Default to Classic for pub league if we can't determine specifically
+                return 'Classic'
+    
+    return None
+
+
+def get_subs_by_match_league_type(matches, session=None):
+    """
+    Get available substitutes grouped by match, filtered by each match's league type.
+    
+    Args:
+        matches: List of Match objects
+        session: (Optional) A SQLAlchemy session
+        
+    Returns:
+        Dict: {match_id: [list of available subs for that match's league]}
+    """
+    if session is None:
+        session = g.db_session
+        
+    subs_by_match = {}
+    
+    for match in matches:
+        league_type = determine_match_league_type(match, session)
+        match_subs = get_available_subs(session=session, league_type=league_type)
+        subs_by_match[match.id] = {
+            'league_type': league_type,
+            'subs': match_subs
+        }
+    
+    return subs_by_match
 
 
 def get_match_subs(match_id: int, session=None) -> Dict[str, List[Dict[str, Any]]]:

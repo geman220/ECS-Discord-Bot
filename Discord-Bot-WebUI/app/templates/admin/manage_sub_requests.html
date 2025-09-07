@@ -651,9 +651,15 @@
                         <label for="player_id{{ request.id }}" class="form-label fw-semibold">Select Substitute</label>
                         <select class="form-select" id="player_id{{ request.id }}" name="player_id" required>
                             <option value="" selected disabled>Choose a substitute player...</option>
-                            {% for sub in available_subs %}
-                            <option value="{{ sub.id }}">{{ sub.name }}</option>
-                            {% endfor %}
+                            {% if subs_by_match[request.match_id] and subs_by_match[request.match_id].subs %}
+                                {% for sub in subs_by_match[request.match_id].subs %}
+                                <option value="{{ sub.id }}">{{ sub.name }} ({{ subs_by_match[request.match_id].league_type }})</option>
+                                {% endfor %}
+                            {% else %}
+                                {% for sub in available_subs %}
+                                <option value="{{ sub.id }}">{{ sub.name }}</option>
+                                {% endfor %}
+                            {% endif %}
                         </select>
                     </div>
                     

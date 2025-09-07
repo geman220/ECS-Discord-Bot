@@ -468,9 +468,14 @@ def create_app(config_object='web_config.Config'):
 
     # Configure session management to use Redis (skip in testing).
     if not app.config.get('TESTING'):
+        # Create a Redis client specifically for sessions that shares the connection pool
+        # This ensures proper connection pool usage with Flask-Session
+        from redis import Redis
+        session_redis_client = Redis(connection_pool=redis_manager._pool, decode_responses=False)
+        
         app.config.update({
             'SESSION_TYPE': 'redis',
-            'SESSION_REDIS': app.session_redis,
+            'SESSION_REDIS': session_redis_client,
             'PERMANENT_SESSION_LIFETIME': timedelta(days=7),
             'SESSION_KEY_PREFIX': 'session:',
             'SESSION_USE_SIGNER': True
@@ -783,15 +788,10 @@ def create_app(config_object='web_config.Config'):
         
     @app.teardown_appcontext
     def teardown_appcontext(exception):
-        # Clean up any Redis connection pools on app context teardown
-        try:
-            from app.utils.redis_manager import get_redis_manager
-            redis_manager = get_redis_manager()
-            redis_manager.cleanup()
-        except Exception as e:
-            # Just log errors but don't propagate them during teardown
-            app.logger.error(f"Error in teardown_appcontext: {e}")
-            pass
+        # DO NOT cleanup Redis connections here - this runs after every request!
+        # The connection pool should persist across requests.
+        # Only cleanup database sessions here if needed.
+        pass
         
     # Register a function to gracefully shutdown when a worker terminates
     def worker_shutdown_cleanup():

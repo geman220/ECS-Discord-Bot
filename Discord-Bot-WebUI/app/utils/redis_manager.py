@@ -82,7 +82,7 @@ class UnifiedRedisManager:
                         socket_keepalive=True,
                         socket_keepalive_options={},      # Empty for compatibility
                         health_check_interval=60,         # Less frequent health checks
-                        max_connections=15,               # Further reduced for EventLet
+                        max_connections=25,               # Increased to handle session load
                         retry_on_timeout=True,            # Enable retries
                     )
                 else:
@@ -95,7 +95,7 @@ class UnifiedRedisManager:
                         socket_keepalive=True,
                         socket_keepalive_options={},      # Empty for compatibility
                         health_check_interval=60,         # Less frequent health checks
-                        max_connections=15,               # Further reduced for EventLet
+                        max_connections=25,               # Increased to handle session load
                         retry_on_timeout=True,            # Enable retries
                     )
                 

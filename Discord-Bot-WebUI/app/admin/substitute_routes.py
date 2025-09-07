@@ -20,7 +20,7 @@ from app.admin_helpers import (
     get_available_subs, get_match_subs, assign_sub_to_team,
     remove_sub_assignment, get_player_active_sub_assignments,
     cleanup_old_sub_assignments, create_sub_request,
-    update_sub_request_status
+    update_sub_request_status, get_subs_by_match_league_type
 )
 from app.models import (
     Match, Team, Player, Schedule, Season, SubRequest, 
@@ -143,7 +143,10 @@ def manage_sub_requests():
     
     upcoming_matches = filtered_matches
     
-    # Get available subs for each request
+    # Get available subs for each match based on their league type
+    subs_by_match = get_subs_by_match_league_type(upcoming_matches, session=session)
+    
+    # Keep the old available_subs for backward compatibility if needed
     available_subs = get_available_subs(session=session)
     
     return render_template(
@@ -153,6 +156,7 @@ def manage_sub_requests():
         upcoming_matches=upcoming_matches,
         requested_teams_by_match=requested_teams_by_match,
         available_subs=available_subs,
+        subs_by_match=subs_by_match,
         show_requested=show_requested,
         current_week=week,
         weeks=weeks
