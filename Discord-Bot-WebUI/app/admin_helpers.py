@@ -529,8 +529,7 @@ def get_rsvp_status_data(match: Match, session=None) -> List[Dict[str, Any]]:
             joinedload(SubstituteAssignment.player).joinedload(Player.user),
             joinedload(SubstituteAssignment.assigned_by)
         ).filter(
-            SubstituteRequest.match_id == match.id,
-            SubstituteRequest.league_type == league_type
+            SubstituteRequest.match_id == match.id
         ).all()
         
         # Add substitute assignments to the data
@@ -625,8 +624,7 @@ def get_ecs_fc_rsvp_status_data(ecs_match, session=None):
             joinedload(SubstituteAssignment.player).joinedload(Player.user),
             joinedload(SubstituteAssignment.assigner)
         ).filter(
-            SubstituteRequest.match_id == ecs_match.id,
-            SubstituteRequest.league_type == 'ECS FC'
+            SubstituteRequest.match_id == ecs_match.id
         ).all()
         
         # Add substitute assignments to the data
@@ -993,13 +991,20 @@ def assign_sub_to_team(match_id: int, player_id: int, team_id: int, user_id: int
         session = g.db_session
         
     try:
-        # Check if player is marked as a substitute
+        # Check if player exists
         player = session.query(Player).get(player_id)
         if not player:
             return False, "Player not found"
             
-        if not player.is_sub:
-            return False, "Player is not marked as a substitute"
+        # Check if player is in the substitute pool OR marked as a sub (for backward compatibility)
+        from app.models_substitute_pools import SubstitutePool
+        in_sub_pool = session.query(SubstitutePool).filter_by(
+            player_id=player_id,
+            is_active=True
+        ).first()
+        
+        if not in_sub_pool and not player.is_sub:
+            return False, "Player is not in the substitute pool or marked as a substitute"
             
         # Check if match exists and belongs to the team
         match = session.query(Match).get(match_id)
