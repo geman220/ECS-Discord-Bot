@@ -260,31 +260,36 @@ def team_details(team_id):
 
     report_form = ReportMatchForm()
 
+    # Extract league_id to avoid lazy loading issues
+    league_id = league.id if league else None
+
     # Fetch matches for this team within the same league.
     # Include practice matches for all teams in the same league
-    all_matches = (
-        session.query(Match)
-        .options(
-            selectinload(Match.home_team).joinedload(Team.players),
-            selectinload(Match.away_team).joinedload(Team.players)
-        )
-        .filter(
-            or_(
-                # Regular matches where this team is playing
-                and_(
-                    ((Match.home_team_id == team_id) | (Match.away_team_id == team_id)),
-                    ((Match.home_team.has(league_id=league.id)) | (Match.away_team.has(league_id=league.id)))
-                ),
-                # Practice sessions for all teams in the same league
-                and_(
-                    Match.week_type == 'PRACTICE',
-                    ((Match.home_team.has(league_id=league.id)) | (Match.away_team.has(league_id=league.id)))
+    all_matches = []
+    if league_id:
+        all_matches = (
+            session.query(Match)
+            .options(
+                selectinload(Match.home_team).joinedload(Team.players),
+                selectinload(Match.away_team).joinedload(Team.players)
+            )
+            .filter(
+                or_(
+                    # Regular matches where this team is playing
+                    and_(
+                        ((Match.home_team_id == team_id) | (Match.away_team_id == team_id)),
+                        ((Match.home_team.has(league_id=league_id)) | (Match.away_team.has(league_id=league_id)))
+                    ),
+                    # Practice sessions for all teams in the same league
+                    and_(
+                        Match.week_type == 'PRACTICE',
+                        ((Match.home_team.has(league_id=league_id)) | (Match.away_team.has(league_id=league_id)))
+                    )
                 )
             )
+            .order_by(Match.date.asc())
+            .all()
         )
-        .order_by(Match.date.asc())
-        .all()
-    )
 
     # Build a schedule mapping dates to match details and gather player choices.
     schedule = defaultdict(list)

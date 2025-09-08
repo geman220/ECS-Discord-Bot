@@ -41,9 +41,9 @@ services:
       - "DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
       # ── pool tuning ───────────────────────────────────────────────────
       - POOL_MODE=transaction
-      - MAX_CLIENT_CONN=200              # Increased for multiple workers
-      - DEFAULT_POOL_SIZE=40             # Increased from 18 to handle worker load
-      - RESERVE_POOL_SIZE=5              # Increased reserve pool
+      - MAX_CLIENT_CONN=200              # Max connections FROM apps to PgBouncer
+      - DEFAULT_POOL_SIZE=15             # Max connections FROM PgBouncer to DigitalOcean DB (must be < 20)
+      - RESERVE_POOL_SIZE=3              # Reserve pool for burst traffic
       - RESERVE_POOL_TIMEOUT=10          # Increased timeout
       - QUERY_WAIT_TIMEOUT=60            # Increased from 30s
       - IGNORE_STARTUP_PARAMETERS=extra_float_digits

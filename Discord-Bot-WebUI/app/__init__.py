@@ -602,12 +602,16 @@ def create_app(config_object='web_config.Config'):
                             logger.error(f"Failed to create session after {max_retries} attempts: {e}")
                             # Set a flag to indicate degraded mode
                             g._session_creation_failed = True
-                            break
+                            # Return 503 Service Unavailable when database is unavailable
+                            return render_template('errors/503.html', 
+                                                 error="Database connection pool exhausted. Please try again in a moment."), 503
                     else:
                         # Non-pool related error, don't retry
                         logger.error(f"Session creation failed with non-pool error: {e}", exc_info=True)
                         g._session_creation_failed = True
-                        break
+                        # Return 503 for database errors
+                        return render_template('errors/503.html',
+                                             error="Database temporarily unavailable. Please try again."), 503
             
             # Only proceed with connection tracking if session was created
             if session_created and hasattr(g, 'db_session'):
@@ -921,7 +925,9 @@ def init_blueprints(app):
     from app.admin_panel import admin_panel_bp
     from app.routes.notifications import notifications_bp
     from app.api_smart_sync import smart_sync_bp
+    from app.health import health_bp
 
+    app.register_blueprint(health_bp, url_prefix='/api')
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
     app.register_blueprint(draft_enhanced_bp, url_prefix='/draft')
