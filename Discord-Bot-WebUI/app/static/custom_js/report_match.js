@@ -884,11 +884,11 @@ function updateVerificationSection(modal, matchId, data) {
                             </p>
                             ${!homeTeamVerified && canVerifyHome 
                                 ? `<div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="true" id="verifyHomeTeam-${matchId}" name="verify_home_team" required>
+                                    <input class="form-check-input" type="checkbox" value="true" id="verifyHomeTeam-${matchId}" name="verify_home_team">
                                     <label class="form-check-label" for="verifyHomeTeam-${matchId}">
-                                        Verify for Home Team <span class="text-danger">*</span>
+                                        Verify for ${data.home_team_name || 'Home Team'}
                                     </label>
-                                    <div class="text-muted small">You must verify that this score and statistics are correct</div>
+                                    <div class="text-muted small">Check this box to verify the match results for your team</div>
                                 </div>` 
                                 : ''}
                         </div>
@@ -910,11 +910,11 @@ function updateVerificationSection(modal, matchId, data) {
                             </p>
                             ${!awayTeamVerified && canVerifyAway 
                                 ? `<div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="true" id="verifyAwayTeam-${matchId}" name="verify_away_team" required>
+                                    <input class="form-check-input" type="checkbox" value="true" id="verifyAwayTeam-${matchId}" name="verify_away_team">
                                     <label class="form-check-label" for="verifyAwayTeam-${matchId}">
-                                        Verify for Away Team <span class="text-danger">*</span>
+                                        Verify for ${data.away_team_name || 'Away Team'}
                                     </label>
-                                    <div class="text-muted small">You must verify that this score and statistics are correct</div>
+                                    <div class="text-muted small">Check this box to verify the match results for your team</div>
                                 </div>` 
                                 : ''}
                         </div>
@@ -1012,23 +1012,41 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
     const awayTeamScore = $('#away_team_score-' + matchId).val();
     const notes = $('#match_notes-' + matchId).val();
     
+    // Get the version for optimistic locking
+    const version = window.currentMatchData ? window.currentMatchData.version : null;
+    
     // Get verification checkboxes status
     const verifyHomeTeam = $(`#verifyHomeTeam-${matchId}`).is(':checked');
     const verifyAwayTeam = $(`#verifyAwayTeam-${matchId}`).is(':checked');
     
-    // Check if the required checkbox is present and not checked
+    // Check if verification is required - only if user can verify a team and hasn't checked the box
     const homeTeamCheckbox = $(`#verifyHomeTeam-${matchId}`);
     const awayTeamCheckbox = $(`#verifyAwayTeam-${matchId}`);
     
-    if ((homeTeamCheckbox.length > 0 && homeTeamCheckbox.prop('required') && !verifyHomeTeam) ||
-        (awayTeamCheckbox.length > 0 && awayTeamCheckbox.prop('required') && !verifyAwayTeam)) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Verification Required',
-            text: 'Please verify the match results by checking the verification box before submitting.',
-            confirmButtonText: 'OK'
-        });
-        return; // Stop submission
+    // Check if user can verify teams but hasn't checked the verification boxes
+    let missingVerifications = [];
+    if (homeTeamCheckbox.length > 0 && !verifyHomeTeam) {
+        const homeTeamName = window.currentMatchData ? window.currentMatchData.home_team_name : 'Home Team';
+        missingVerifications.push(homeTeamName);
+    }
+    if (awayTeamCheckbox.length > 0 && !verifyAwayTeam) {
+        const awayTeamName = window.currentMatchData ? window.currentMatchData.away_team_name : 'Away Team';
+        missingVerifications.push(awayTeamName);
+    }
+    
+    // Allow submission if no verification boxes are present (user can't verify any team)
+    // But if verification boxes are present, require at least one to be checked
+    if (missingVerifications.length > 0 && (homeTeamCheckbox.length > 0 || awayTeamCheckbox.length > 0)) {
+        // If user can verify but hasn't checked any boxes, require verification
+        if (!verifyHomeTeam && !verifyAwayTeam) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Verification Required',
+                text: `Please verify the match results for your team before submitting.`,
+                confirmButtonText: 'OK'
+            });
+            return; // Stop submission
+        }
     }
 
     $.ajax({
@@ -1051,7 +1069,8 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
             own_goals_to_add: ownGoalsToAdd,
             own_goals_to_remove: ownGoalsToRemove,
             verify_home_team: verifyHomeTeam,
-            verify_away_team: verifyAwayTeam
+            verify_away_team: verifyAwayTeam,
+            version: version
         }),
         success: function (response) {
             if (response.success) {
@@ -1104,14 +1123,44 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
             }
         },
         error: function (xhr, status, error) {
-            // AJAX Error
+            let errorMessage = 'An unexpected error occurred while submitting your report.';
+            let errorTitle = 'Error!';
+            let showRefreshOption = false;
+            
+            if (xhr.status === 409) {
+                // Version conflict
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.error_type === 'version_conflict') {
+                        errorTitle = 'Match Updated by Another User';
+                        errorMessage = 'This match was modified by another user while you were editing. Please refresh to get the latest data and try again.';
+                        showRefreshOption = true;
+                    }
+                } catch (e) {
+                    // Fallback to generic message
+                }
+            } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            }
 
-            Swal.fire({
-                icon: 'error',
-                title: 'Error!',
-                text: 'An unexpected error occurred while submitting your report.'
-            }).then(() => {
-                $(`#submitBtn-${matchId}`).prop('disabled', false);
+            const swalOptions = {
+                icon: 'warning',
+                title: errorTitle,
+                text: errorMessage
+            };
+            
+            if (showRefreshOption) {
+                swalOptions.showCancelButton = true;
+                swalOptions.confirmButtonText = 'Refresh Page';
+                swalOptions.cancelButtonText = 'Cancel';
+            }
+            
+            Swal.fire(swalOptions).then((result) => {
+                if (result.isConfirmed && showRefreshOption) {
+                    location.reload();
+                } else {
+                    $(`#submitBtn-${matchId}`).prop('disabled', false);
+                }
             });
         }
     });

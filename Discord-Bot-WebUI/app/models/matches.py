@@ -67,6 +67,10 @@ class Match(db.Model):
     away_team_verified = db.Column(db.Boolean, default=False)
     away_team_verified_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     away_team_verified_at = db.Column(db.DateTime, nullable=True)
+    
+    # Optimistic locking for concurrent edit protection
+    version = db.Column(db.Integer, default=1, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     home_team = db.relationship('Team', foreign_keys=[home_team_id], backref='home_matches')
     away_team = db.relationship('Team', foreign_keys=[away_team_id], backref='away_matches')
@@ -110,6 +114,8 @@ class Match(db.Model):
             'is_special_week': self.is_special_week,
             'is_playoff_game': self.is_playoff_game,
             'playoff_round': self.playoff_round,
+            'version': self.version,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
         if include_teams:
             data['home_team'] = self.home_team.to_dict()

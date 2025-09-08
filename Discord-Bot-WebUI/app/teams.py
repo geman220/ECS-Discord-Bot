@@ -700,9 +700,12 @@ def report_match(match_id):
                 is_pub_league_ref = 'Pub League Ref' in user_roles
             
             # Determine if the user can verify for either team
-            # Global Admin, Pub League Admin, and Pub League Ref can verify any match
-            can_verify_home = is_admin or is_global_admin or is_pub_league_admin or is_pub_league_ref or match.home_team_id in user_team_ids or is_assigned_referee
-            can_verify_away = is_admin or is_global_admin or is_pub_league_admin or is_pub_league_ref or match.away_team_id in user_team_ids or is_assigned_referee
+            # Admins and refs can verify for any team
+            admin_or_ref = is_admin or is_global_admin or is_pub_league_admin or is_pub_league_ref or is_assigned_referee
+            
+            # Regular users (coaches/players) can only verify for their own team
+            can_verify_home = admin_or_ref or (match.home_team_id in user_team_ids)
+            can_verify_away = admin_or_ref or (match.away_team_id in user_team_ids)
             
             data = {
                 'goal_scorers': [],
@@ -729,7 +732,9 @@ def report_match(match_id):
                 'can_verify_home': can_verify_home,
                 'can_verify_away': can_verify_away,
                 'user_team_ids': user_team_ids,
-                'is_admin': is_admin
+                'is_admin': is_admin,
+                'version': match.version,
+                'updated_at': match.updated_at.isoformat() if match.updated_at else None
             }
 
             for event_type, field_name in event_mapping.items():
@@ -778,6 +783,17 @@ def report_match(match_id):
         if not data:
             return jsonify({'success': False, 'message': 'No data received.'}), 400
 
+        # Optimistic locking check to prevent concurrent modifications
+        client_version = data.get('version')
+        if client_version is not None and client_version != match.version:
+            return jsonify({
+                'success': False, 
+                'message': 'This match was modified by another user. Please refresh and try again.',
+                'error_type': 'version_conflict',
+                'current_version': match.version,
+                'client_version': client_version
+            }), 409  # HTTP 409 Conflict
+
         old_home_score = match.home_team_score
         old_away_score = match.away_team_score
 
@@ -822,21 +838,35 @@ def report_match(match_id):
         
         now = datetime.utcnow()
         
+        # Handle team verification with proper permission checks
+        # Admins and refs can verify for any team, regular users only for their own team
+        admin_or_ref = is_admin or is_global_admin or is_pub_league_admin or is_pub_league_ref
+        is_assigned_referee = current_user_player and current_user_player.is_ref and match.ref_id == current_user_player.id
+        admin_or_ref = admin_or_ref or is_assigned_referee
+        
         # Handle home team verification
-        # Global Admin, Pub League Admin, and Pub League Ref can verify any match
-        if verify_home and (is_admin or is_global_admin or is_pub_league_admin or is_pub_league_ref or match.home_team_id in user_team_ids):
+        can_verify_home = admin_or_ref or (match.home_team_id in user_team_ids)
+        if verify_home and can_verify_home:
             match.home_team_verified = True
             match.home_team_verified_by = current_user_id
             match.home_team_verified_at = now
             logger.info(f"Home team verified for Match ID {match_id} by User ID {current_user_id}")
+        elif verify_home and not can_verify_home:
+            logger.warning(f"User ID {current_user_id} attempted to verify home team for Match ID {match_id} without permission")
             
         # Handle away team verification    
-        if verify_away and (is_admin or is_global_admin or is_pub_league_admin or is_pub_league_ref or match.away_team_id in user_team_ids):
+        can_verify_away = admin_or_ref or (match.away_team_id in user_team_ids)
+        if verify_away and can_verify_away:
             match.away_team_verified = True
             match.away_team_verified_by = current_user_id
             match.away_team_verified_at = now
             logger.info(f"Away team verified for Match ID {match_id} by User ID {current_user_id}")
+        elif verify_away and not can_verify_away:
+            logger.warning(f"User ID {current_user_id} attempted to verify away team for Match ID {match_id} without permission")
 
+        # Increment version for optimistic locking (updated_at is handled by onupdate)
+        match.version += 1
+        
         update_standings(session, match, old_home_score, old_away_score)
         session.commit()
         
