@@ -62,13 +62,29 @@ def pool_health():
     try:
         from app.core import db
         
-        # Get pool stats if available
+        # Get basic pool info safely
         pool_stats = {}
-        if hasattr(db.engine.pool, 'size'):
-            pool_stats['pool_size'] = db.engine.pool.size()
-            pool_stats['checked_in'] = db.engine.pool.checkedin()
-            pool_stats['checked_out'] = db.engine.pool.checkedout()
-            pool_stats['overflow'] = getattr(db.engine.pool, 'overflow', 0)
+        pool = db.engine.pool
+        
+        # Try to get pool statistics safely
+        try:
+            pool_stats['pool_class'] = pool.__class__.__name__
+            
+            # These are properties/methods on SQLAlchemy pools
+            if hasattr(pool, 'size'):
+                size_attr = getattr(pool, 'size')
+                pool_stats['pool_size'] = size_attr() if callable(size_attr) else int(size_attr)
+            
+            if hasattr(pool, 'checkedin'):
+                checkedin_attr = getattr(pool, 'checkedin')
+                pool_stats['checked_in'] = checkedin_attr() if callable(checkedin_attr) else int(checkedin_attr)
+                
+            if hasattr(pool, 'checkedout'):
+                checkedout_attr = getattr(pool, 'checkedout')  
+                pool_stats['checked_out'] = checkedout_attr() if callable(checkedout_attr) else int(checkedout_attr)
+                
+        except Exception as stats_error:
+            pool_stats['stats_error'] = str(stats_error)
         
         return jsonify({
             'status': 'healthy',
