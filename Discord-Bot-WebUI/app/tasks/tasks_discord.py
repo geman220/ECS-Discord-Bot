@@ -563,7 +563,7 @@ async def _execute_assign_roles_async(data):
     
     # Add team roles
     for team in teams_to_process:
-        if team and team.get('league_name') in ['Premier', 'Classic']:
+        if team and team.get('league_name') in ['Premier', 'Classic', 'ECS FC']:
             expected_roles.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Player")
     
     # Add league division roles if processing all teams (based on Flask user roles)

@@ -384,9 +384,12 @@ def handle_draft_player_enhanced(data):
                     emit('draft_error', {'message': f'League "{db_league_name}" not found'})
                     return
                 
-                # Get player and team
+                # Get player and team (with players relationship eagerly loaded)
+                from sqlalchemy.orm import joinedload
                 player = session.query(Player).filter(Player.id == player_id).first()
-                team = session.query(Team).filter(
+                team = session.query(Team).options(
+                    joinedload(Team.players)
+                ).filter(
                     Team.id == team_id,
                     Team.league_id == league.id
                 ).first()
@@ -1386,9 +1389,12 @@ def handle_remove_player_enhanced(data):
                     emit('remove_error', {'message': f'League "{db_league_name}" not found'})
                     return
                 
-                # Get player and team
+                # Get player and team (with players relationship eagerly loaded)
+                from sqlalchemy.orm import joinedload
                 player = session.query(Player).filter(Player.id == player_id).first()
-                team = session.query(Team).filter(
+                team = session.query(Team).options(
+                    joinedload(Team.players)
+                ).filter(
                     Team.id == team_id,
                     Team.league_id == league.id
                 ).first()
@@ -1409,8 +1415,13 @@ def handle_remove_player_enhanced(data):
                     emit('remove_error', {'message': f'Player "{player.name}" is not on team "{team.name}"'})
                     return
                 
-                # Remove player from team
+                # Remove player from team using SQLAlchemy ORM
                 team.players.remove(player)
+                
+                # Clear primary team if it matches the team being removed
+                if player.primary_team_id == team_id:
+                    player.primary_team_id = None
+                    print(f"🗑️ Cleared primary team for {player.name}")
                 
                 # Remove PlayerTeamSeason records for current season
                 from app.models import PlayerTeamSeason
