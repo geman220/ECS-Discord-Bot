@@ -4,6 +4,7 @@ services:
   redis:
     image: redis:alpine
     hostname: redis
+    restart: unless-stopped
     command: redis-server 
       --maxclients 500
       --tcp-keepalive 60 
@@ -35,17 +36,18 @@ services:
   pgbouncer:
     image: edoburu/pgbouncer:v1.24.1-p1
     hostname: pgbouncer
+    restart: unless-stopped
     env_file: [.env]          # ← single file; comment-toggle dev vs prod
     environment:
       # ── where PgBouncer should forward connections ────────────────────
       - "DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
       # ── pool tuning ───────────────────────────────────────────────────
       - POOL_MODE=transaction
-      - MAX_CLIENT_CONN=200              # Max connections FROM apps to PgBouncer
-      - DEFAULT_POOL_SIZE=15             # Max connections FROM PgBouncer to DigitalOcean DB (must be < 20)
-      - RESERVE_POOL_SIZE=3              # Reserve pool for burst traffic
-      - RESERVE_POOL_TIMEOUT=10          # Increased timeout
-      - QUERY_WAIT_TIMEOUT=60            # Increased from 30s
+      - MAX_CLIENT_CONN=300              # Increased for 5 workers
+      - DEFAULT_POOL_SIZE=18             # Max safe for DigitalOcean (< 20)
+      - RESERVE_POOL_SIZE=2              # Reserve pool for burst traffic
+      - RESERVE_POOL_TIMEOUT=5           # Faster failover
+      - QUERY_WAIT_TIMEOUT=120           # Allow longer queries during peak
       - IGNORE_STARTUP_PARAMETERS=extra_float_digits
       - IDLE_TRANSACTION_TIMEOUT=30      # Increased from 10s
       - CLIENT_IDLE_TIMEOUT=120          # Increased from 60s
@@ -75,6 +77,7 @@ services:
     build:
       context: ./Discord-Bot-WebUI
       dockerfile: Dockerfile.webui
+    restart: unless-stopped
     command: python celery_worker.py
     env_file:
       - .env
@@ -242,6 +245,7 @@ services:
     build:
       context: ./Discord-Bot-WebUI
       dockerfile: Dockerfile.webui
+    restart: unless-stopped
     command: >
       sh -c "rm -f /tmp/celerybeat/celerybeat.pid &&
       python celery_beat.py -s /tmp/celerybeat/celerybeat-schedule"
@@ -277,11 +281,12 @@ services:
     build:
       context: ./Discord-Bot-WebUI
       dockerfile: Dockerfile.webui
+    restart: unless-stopped
     command: >
       sh -c "python build_assets.py &&
       gunicorn
       --worker-class eventlet
-      --workers 1
+      --workers 5
       --bind 0.0.0.0:5000
       --log-level info
       --access-logfile -
@@ -289,7 +294,7 @@ services:
       --timeout 120
       --graceful-timeout 120
       --keep-alive 65
-      --worker-connections 1000
+      --worker-connections 2000
       --max-requests 1000
       --max-requests-jitter 50
       --name webui
@@ -342,7 +347,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 500M
+          memory: 1G
 
   flower:
     image: mher/flower
