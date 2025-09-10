@@ -88,9 +88,21 @@ function collectRemovedStatIds(matchId, eventType) {
     let containerId = getContainerId(eventType, matchId);
     let baseName = containerId.split('Container-')[0];
     let removedIds = [];
+    
+    // Map container base names to form field names
+    let formBaseName = baseName;
+    if (baseName === 'yellowCards') {
+        formBaseName = 'yellow_cards';
+    } else if (baseName === 'redCards') {
+        formBaseName = 'red_cards';
+    } else if (baseName === 'goalScorers') {
+        formBaseName = 'goalScorers';
+    } else if (baseName === 'assistProviders') {
+        formBaseName = 'assistProviders';
+    }
 
     $(`#${containerId}`).find('.player-event-entry.to-be-removed').each(function () {
-        const statId = $(this).find(`input[name="${baseName}-stat_id[]"]`).val();
+        const statId = $(this).find(`input[name="${formBaseName}-stat_id[]"]`).val();
         if (statId && statId.trim() !== '') {
             removedIds.push(statId);
         }
@@ -938,6 +950,18 @@ function getFinalEvents(matchId, eventType) {
     let events = [];
     let containerId = getContainerId(eventType, matchId);
     let baseName = containerId.split('Container-')[0];
+    
+    // Map container base names to form field names
+    let formBaseName = baseName;
+    if (baseName === 'yellowCards') {
+        formBaseName = 'yellow_cards';
+    } else if (baseName === 'redCards') {
+        formBaseName = 'red_cards';
+    } else if (baseName === 'goalScorers') {
+        formBaseName = 'goalScorers';
+    } else if (baseName === 'assistProviders') {
+        formBaseName = 'assistProviders';
+    }
 
     // Handle own goals differently since they use team_id instead of player_id
     if (eventType === 'own_goals') {
@@ -960,9 +984,9 @@ function getFinalEvents(matchId, eventType) {
     } else {
         // Only get visible entries (exclude ones marked for removal)
         $(`#${containerId}`).find('.player-event-entry:not(.to-be-removed)').each(function () {
-            let statId = $(this).find(`input[name="${baseName}-stat_id[]"]`).val();
-            let playerId = $(this).find(`select[name="${baseName}-player_id[]"]`).val();
-            let minute = $(this).find(`input[name="${baseName}-minute[]"]`).val();
+            let statId = $(this).find(`input[name="${formBaseName}-stat_id[]"]`).val();
+            let playerId = $(this).find(`select[name="${formBaseName}-player_id[]"]`).val();
+            let minute = $(this).find(`input[name="${formBaseName}-minute[]"]`).val();
             let uniqueId = $(this).attr('data-unique-id');
 
         // Skip entries without player_id (which is required)
