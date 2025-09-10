@@ -371,7 +371,9 @@ def discord_callback():
         is_waitlist_registration = session.get('waitlist_registration', False)
         
         # Check if the user already exists by email (fallback check)
-        user = db_session.query(User).filter(func.lower(User.email) == discord_email).first()
+        from app.utils.pii_encryption import create_hash
+        discord_email_hash = create_hash(discord_email)
+        user = db_session.query(User).filter(User.email_hash == discord_email_hash).first()
         
         # If user exists and this is a registration attempt
         if user and is_registration:

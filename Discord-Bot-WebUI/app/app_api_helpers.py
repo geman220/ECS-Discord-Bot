@@ -138,7 +138,9 @@ def process_discord_user(session, user_data: Dict) -> User:
     discord_id = user_data.get('id')
 
     # Try to find an existing user by email
-    user = session.query(User).filter(func.lower(User.email) == email).first()
+    from app.utils.pii_encryption import create_hash
+    email_hash = create_hash(email)
+    user = session.query(User).filter(User.email_hash == email_hash).first()
     if not user:
         user = User(
             email=email,

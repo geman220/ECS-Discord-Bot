@@ -278,9 +278,9 @@ def create_user_and_player_profile(player_info, league):
 
     try:
         def get_existing_user():
-            return session.query(User).filter(
-                func.lower(User.email) == func.lower(player_info['email'])
-            ).first()
+            from app.utils.pii_encryption import create_hash
+            email_hash = create_hash(player_info['email'].lower())
+            return session.query(User).filter(User.email_hash == email_hash).first()
 
         user = get_existing_user()
         if not user:

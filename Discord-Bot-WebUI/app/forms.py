@@ -409,7 +409,9 @@ class CreatePlayerForm(FlaskForm):
 
     def validate_email(self, field):
         email = field.data.lower()
-        if User.query.filter(func.lower(User.email) == email).first():
+        from app.utils.pii_encryption import create_hash
+        email_hash = create_hash(email)
+        if User.query.filter(User.email_hash == email_hash).first():
             raise ValidationError('Email is already registered.')
 
 

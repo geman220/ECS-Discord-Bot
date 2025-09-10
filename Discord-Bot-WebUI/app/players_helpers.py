@@ -175,9 +175,9 @@ def create_user_for_player(player_info, session):
     logger.debug(f"create_user_for_player called with {player_info}")
     logger.debug("Querying for existing user by email...")
     
-    existing_user = session.query(User).filter(
-        func.lower(User.email) == func.lower(player_info['email'])
-    ).first()
+    from app.utils.pii_encryption import create_hash
+    email_hash = create_hash(player_info['email'].lower())
+    existing_user = session.query(User).filter(User.email_hash == email_hash).first()
     logger.debug(f"existing_user={existing_user}")
     
     if existing_user:
@@ -393,7 +393,9 @@ def match_user(player_data):
     name = standardize_name(player_data.get('name', ''))
     phone = standardize_phone(player_data.get('phone', ''))
 
-    user = session.query(User).filter(func.lower(User.email) == email).first()
+    from app.utils.pii_encryption import create_hash
+    email_hash = create_hash(email)
+    user = session.query(User).filter(User.email_hash == email_hash).first()
     if user:
         return user
 

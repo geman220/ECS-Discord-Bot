@@ -147,9 +147,9 @@
         <p class="auth-subtitle">Please enter the 6-digit code from your authenticator app to verify your identity</p>
         
         <form method="POST" action="{{ url_for('auth.verify_2fa_login', user_id=user_id) }}" id="twoFactorForm">
+            {{ csrf_token() }}
             <!-- Hidden input to always carry the user_id throughout the form submission -->
             <input type="hidden" name="user_id" value="{{ user_id }}">
-            <!-- No CSRF token needed as the route is exempted -->
             <div class="mb-4">
                 <input type="text" name="token" class="form-control token-input" 
                        placeholder="• • • • • •" maxlength="6" autocomplete="off" 
