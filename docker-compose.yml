@@ -311,7 +311,7 @@ services:
     volumes:
       - ./Discord-Bot-WebUI:/app
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./predictions.db:/app/predictions.db
+      # - ./predictions.db:/app/predictions.db
       - ./Discord-Bot-WebUI/instance/firebase-service-account.json:/app/instance/firebase-service-account.json
     labels:
       - "traefik.enable=true"
