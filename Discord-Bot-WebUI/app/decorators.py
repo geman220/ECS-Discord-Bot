@@ -436,7 +436,15 @@ def celery_task(func=None, **task_kwargs):
         function: The decorated Celery task.
     """
     def celery_task_decorator(f):
-        task_name = task_kwargs.pop('name', None) or f'app.tasks.{f.__module__}.{f.__name__}'
+        if 'name' in task_kwargs:
+            task_name = task_kwargs.pop('name')
+        else:
+            # Fix task name generation - avoid duplicating 'app.tasks' prefix
+            module_name = f.__module__
+            if module_name.startswith('app.tasks.'):
+                task_name = f'{module_name}.{f.__name__}'
+            else:
+                task_name = f'app.tasks.{module_name}.{f.__name__}'
         task_kwargs.pop('bind', None)  # Remove bind if present
 
         @celery.task(name=task_name, bind=True, **task_kwargs)
@@ -674,7 +682,15 @@ def async_task(**task_kwargs):
         function: The decorated async Celery task.
     """
     def async_task_decorator(f):
-        task_name = task_kwargs.pop('name', None) or f'app.tasks.{f.__module__}.{f.__name__}'
+        if 'name' in task_kwargs:
+            task_name = task_kwargs.pop('name')
+        else:
+            # Fix task name generation - avoid duplicating 'app.tasks' prefix
+            module_name = f.__module__
+            if module_name.startswith('app.tasks.'):
+                task_name = f'{module_name}.{f.__name__}'
+            else:
+                task_name = f'app.tasks.{module_name}.{f.__name__}'
         # Add bind=True for better task control
         task_kwargs['bind'] = True
         max_retries = task_kwargs.pop('max_retries', 3)
