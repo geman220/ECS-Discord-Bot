@@ -82,3 +82,6 @@ Discord-Bot-WebUI/test-results.xml
 Discord-Bot-WebUI/flask_session/
 /Discord-Bot-WebUI/app/models_DEP.py
 /Discord-Bot-WebUI/AppleWWDRCAG3.cer
+/Discord-Bot-WebUI/mobile-test-plan.md
+/Discord-Bot-WebUI/mobile-testing-checklist.md
+/Discord-Bot-WebUI/mobile-testing-guide.md
