@@ -615,18 +615,10 @@ def create_app(config_object='web_config.Config'):
             
             # Only proceed with connection tracking if session was created
             if session_created and hasattr(g, 'db_session'):
-                # CRITICAL: Register the underlying connection for tracking
-                try:
-                    # Get the actual database connection
-                    conn = g.db_session.connection()
-                    if hasattr(conn, 'connection') and hasattr(conn.connection, 'dbapi_connection'):
-                        dbapi_conn = conn.connection.dbapi_connection
-                        conn_id = id(dbapi_conn)
-                        from app.utils.db_connection_monitor import register_connection
-                        register_connection(conn_id, "flask_request")
-                        # Connection registered silently
-                except Exception as e:
-                    logger.error(f"Failed to register Flask connection: {e}", exc_info=True)
+                # NOTE: We don't eagerly checkout a connection here anymore
+                # Connections will be tracked when actually used via pool events
+                # This prevents pool exhaustion from eager checkouts
+                logger.debug(f"Session created for request {request.path}")
             
             # Register session with monitor only if session was created successfully
             if session_created and hasattr(g, 'db_session'):

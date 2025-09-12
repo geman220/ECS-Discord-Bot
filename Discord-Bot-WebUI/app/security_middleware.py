@@ -222,9 +222,9 @@ class SecurityMiddleware:
         """Store security event for dashboard display."""
         try:
             from app.models.security import SecurityEvent
-            SecurityEvent.create(
-                ip_address=ip,
+            SecurityEvent.log_event(
                 event_type=event_type,
+                ip_address=ip,
                 severity=severity,
                 description=description,
                 user_agent=request.headers.get('User-Agent', 'Unknown'),

@@ -1,0 +1,10 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /mobile/
+Disallow: /socket.io/
+Disallow: /static/
+Allow: /
+
+Sitemap: https://ecs-soccer.org/sitemap.xml

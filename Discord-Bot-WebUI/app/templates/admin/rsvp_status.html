@@ -726,7 +726,7 @@
                                 <i class="ti ti-user-plus me-1"></i> Assign Substitute
                             </button>
                             {% endif %}
-                            {% if has_role('Pub League Coach') or has_role('Global Admin') or has_role('Pub League Admin') %}
+                            {% if has_role('Pub League Coach') or has_role('Global Admin') or has_role('Pub League Admin') or has_role('ECS FC Coach') %}
                             <button type="button" class="btn btn-warning ecs-btn ecs-btn-icon" data-bs-toggle="modal" data-bs-target="#requestSubModal">
                                 <i class="ti ti-hand-stop me-1"></i> Request Substitute
                             </button>
@@ -1908,6 +1908,7 @@
 </div>
 
 <!-- Request Sub Modal -->
+{% if has_role('Pub League Coach') or has_role('Global Admin') or has_role('Pub League Admin') or has_role('ECS FC Coach') %}
 <div class="modal fade" id="requestSubModal" tabindex="-1" aria-labelledby="requestSubModalLabel" aria-hidden="true" 
     {% if is_ecs_fc_match %}
     data-team-id="{{ ecs_match.team_id }}" data-team-name="{{ ecs_match.team.name }}" data-league-type="ECS FC"
@@ -2100,6 +2101,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}
@@ -2171,27 +2173,31 @@ $(document).ready(function() {
         updateSubstituteSlots();
     }
     
-    // Load substitute requests when the modal is shown
-    $('#requestSubModal').on('shown.bs.modal', function() {
-        // Load existing requests when modal opens
-        loadMatchSubstituteRequests(matchId);
-        // Reset and initialize slots for ECS FC matches only
-        if (isEcsFcMatch) {
-            updateSubstituteSlots();
-        }
-    });
-
-    // Handle form submission
-    $('#requestSubForm').on('submit', function(e) {
-        const form = this;
-        
-        // Add a small delay to let the form submit, then refresh the requests
-        setTimeout(function() {
-            if (!form.checkValidity || form.checkValidity()) {
-                loadMatchSubstituteRequests(matchId);
+    // Load substitute requests when the modal is shown (only if modal exists)
+    if ($('#requestSubModal').length > 0) {
+        $('#requestSubModal').on('shown.bs.modal', function() {
+            // Load existing requests when modal opens
+            loadMatchSubstituteRequests(matchId);
+            // Reset and initialize slots for ECS FC matches only
+            if (isEcsFcMatch) {
+                updateSubstituteSlots();
             }
-        }, 2000);
-    });
+        });
+    }
+
+    // Handle form submission (only if form exists)
+    if ($('#requestSubForm').length > 0) {
+        $('#requestSubForm').on('submit', function(e) {
+            const form = this;
+            
+            // Add a small delay to let the form submit, then refresh the requests
+            setTimeout(function() {
+                if (!form.checkValidity || form.checkValidity()) {
+                    loadMatchSubstituteRequests(matchId);
+                }
+            }, 2000);
+        });
+    }
 });
 
 // Legacy function for compatibility - removed to prevent recursion

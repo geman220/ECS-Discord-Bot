@@ -122,8 +122,10 @@ body:not(.auth-page) .form-select {
    - Toast/Notifications: 1070 (important messages)
    - Modal Content: 1060 (user interactions, must be accessible - DESKTOP)
    - Search Autocomplete: 1058 (interactive elements)
+   - Mobile Sidebar (expanded): 1056 (MOBILE ONLY - above navbar when open)
    - Navbar/Header: 1055 (Bootstrap default)
-   - Sidebar: 1050 (Bootstrap default)
+   - Mobile Menu Overlay: 1054 (MOBILE ONLY - backdrop for sidebar)
+   - Sidebar: 1050 (Bootstrap default - DESKTOP)
    - Modal Backdrop: 1040 (behind modal content but above page content - DESKTOP)
    - Select2 Dropdown: 1030 (form dropdowns)
    - Select2 Container: 1020 (form containers)
@@ -236,10 +238,27 @@ div.modal-backdrop.show {
     z-index: 1055 !important;
   }
   
-  /* Force sidebar behind modals on mobile */
+  /* Force sidebar above navbar when expanded on mobile */
   .layout-menu,
   #layout-menu {
-    z-index: 1050 !important;
+    z-index: 1056 !important; /* Higher than navbar (1055) */
+  }
+  
+  /* Layout overlay for mobile menu should be below menu but above navbar */
+  .layout-overlay {
+    z-index: 1054 !important; /* Below sidebar (1056) but above content */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+  }
+  
+  /* Show overlay when menu is expanded */
+  .layout-menu-expanded .layout-overlay {
+    display: block !important;
   }
   
   /* Search autocomplete below modals */

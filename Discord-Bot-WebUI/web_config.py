@@ -112,7 +112,7 @@ class Config:
     
     # Configure Flask-WTF (CSRF Protection)
     WTF_CSRF_ENABLED = True
-    WTF_CSRF_TIME_LIMIT = 3600  # 1 hour (in seconds)
+    WTF_CSRF_TIME_LIMIT = 28800  # 8 hours (in seconds) - matches long user sessions
     WTF_CSRF_SSL_STRICT = False  # Allow CSRF over HTTP for local development
     WTF_CSRF_CHECK_DEFAULT = True  # Enable CSRF checking by default
     
