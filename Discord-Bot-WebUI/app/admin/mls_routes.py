@@ -538,15 +538,23 @@ def start_match_reporting(match_id):
         if match.live_reporting_status == 'running':
             return jsonify({'success': False, 'error': 'Live reporting already running'}), 400
         
-        # Start live reporting immediately (V2 if available, otherwise robust)
+        # Start live reporting with event-driven orchestration
         if v2_available:
-            logger.info(f"🚀 [ADMIN] Starting V2 live reporting for match {match.match_id} in thread {match.discord_thread_id}")
+            logger.info(f"🚀 [ADMIN] Starting event-driven live reporting for match {match.match_id} in thread {match.discord_thread_id}")
+            
+            # First create the session
             task_result = start_live_reporting_v2.delay(
                 str(match.match_id),
                 str(match.discord_thread_id),
                 match.competition or 'usa.1'
             )
-            reporting_type = "V2"
+            
+            # Then start the orchestration system
+            from app.tasks.live_reporting_orchestrator import start_orchestration
+            orchestration_result = start_orchestration.delay()
+            
+            reporting_type = "Event-Driven V2"
+            logger.info(f"Started orchestration with task ID: {orchestration_result.id}")
         else:
             logger.error(f"❌ [ADMIN] V2 not available, cannot start live reporting for match {match.match_id}")
             return jsonify({

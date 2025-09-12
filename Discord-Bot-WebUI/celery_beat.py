@@ -17,16 +17,16 @@ import sys
 from celery.apps.beat import Beat
 
 from celery_worker_base import flask_app, celery_app as celery, logger
-from app.utils.redis_manager import RedisManager
+from app.utils.safe_redis import get_safe_redis
 from app.config.celery_config import CeleryConfig
 
 
 def verify_redis():
     """Verify that the Redis connection is working."""
     with flask_app.app_context():
-        redis_manager = RedisManager()
+        redis_client = get_safe_redis()
         try:
-            if not redis_manager.client.ping():
+            if not redis_client.ping():
                 logger.error("Failed to connect to Redis")
                 return False
             logger.info("Redis connection verified")

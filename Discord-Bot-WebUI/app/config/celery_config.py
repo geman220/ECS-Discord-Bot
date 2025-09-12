@@ -47,6 +47,7 @@ class CeleryConfig:
         'app.tasks.tasks_live_reporting',
         # 'app.tasks.tasks_robust_live_reporting', # Removed - V2 is production version
         'app.tasks.tasks_live_reporting_v2',
+        'app.tasks.live_reporting_orchestrator',  # New event-driven orchestration
         'app.tasks.tasks_live_reporting_recovery',
         'app.tasks.queue_health_monitor',
         'app.tasks.tasks_match_updates',
@@ -169,6 +170,7 @@ class CeleryConfig:
         'app.tasks.tasks_discord.*': {'queue': 'discord'},
         'app.tasks.tasks_core.*': {'queue': 'celery'},
         'app.tasks.tasks_live_reporting.*': {'queue': 'live_reporting'},
+        'app.tasks.live_reporting_orchestrator.*': {'queue': 'live_reporting'},  # Event-driven orchestration
         'app.tasks.tasks_match_updates.*': {'queue': 'discord'},
         'app.tasks.tasks_rsvp.*': {'queue': 'celery'},  # Default for RSVP tasks; individual tasks override with queue parameter
         'app.tasks.tasks_rsvp_ecs.*': {'queue': 'discord'},
@@ -290,18 +292,18 @@ class CeleryConfig:
                 'expires': 3540  # Task expires after 59 minutes
             }
         },
-        # V2 Live Reporting - Process all active sessions every 30 seconds (reduced frequency)
-        'process-active-live-sessions-v2': {
-            'task': 'app.tasks.tasks_live_reporting_v2.process_all_active_sessions_v2',
-            'schedule': 30.0,  # Every 30 seconds (reduced from 10s to prevent queue buildup)
-            'options': {
-                'queue': 'live_reporting',
-                'expires': 25,  # Task expires after 25 seconds (shorter than interval)
-                'time_limit': 20,  # Hard timeout after 20 seconds
-                'soft_time_limit': 15,  # Soft timeout after 15 seconds
-                'priority': 9  # High priority for live reporting
-            }
-        },
+        # DISABLED: V2 Live Reporting Cron (replaced by event-driven orchestration)
+        # 'process-active-live-sessions-v2': {
+        #     'task': 'app.tasks.tasks_live_reporting_v2.process_all_active_sessions_v2',
+        #     'schedule': 30.0,  # DISABLED - caused task flooding
+        #     'options': {
+        #         'queue': 'live_reporting',
+        #         'expires': 25,
+        #         'time_limit': 20,
+        #         'soft_time_limit': 15,
+        #         'priority': 9
+        #     }
+        # },
         # Live Reporting Recovery - Check for matches that should be reporting but aren't
         'check-missing-live-reporting': {
             'task': 'app.tasks.tasks_live_reporting_recovery.check_and_start_missing_live_reporting',
@@ -421,6 +423,15 @@ class CeleryConfig:
             'options': {
                 'queue': 'celery',
                 'expires': 1740  # Task expires after 29 minutes
+            }
+        },
+        # Live Reporting Health Check - Monitor event-driven system
+        'health-check-live-reporting': {
+            'task': 'app.tasks.live_reporting_orchestrator.health_check_live_reporting',
+            'schedule': crontab(minute='*/10'),  # Every 10 minutes
+            'options': {
+                'queue': 'live_reporting',
+                'expires': 540  # Task expires after 9 minutes
             }
         }
     }

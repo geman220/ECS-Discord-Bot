@@ -306,6 +306,84 @@ def _extract_events_from_match_data(match_data: Dict[str, Any]) -> List[Dict[str
 
 
 @celery_task(
+    name='app.tasks.tasks_live_reporting_v2.process_single_match_v2',
+    queue='live_reporting',
+    max_retries=3,
+    soft_time_limit=30,
+    time_limit=40
+)
+def process_single_match_v2(self, session, match_id: str) -> Dict[str, Any]:
+    """
+    Process a single match for live reporting.
+    
+    Event-driven task that processes one specific match session.
+    Used by the LiveReportingManager for efficient, targeted processing.
+    
+    Args:
+        match_id: ESPN match ID to process
+        
+    Returns:
+        Processing result dictionary
+    """
+    try:
+        logger.info(f"Processing single match V2: {match_id}")
+        
+        # Get the session for this match
+        live_session = LiveReportingSession.get_session_by_match_id(session, match_id)
+        
+        if not live_session:
+            logger.warning(f"No live session found for match {match_id}")
+            return {
+                'match_id': match_id,
+                'success': False,
+                'error': 'No active session found'
+            }
+        
+        if not live_session.is_active:
+            logger.info(f"Session for match {match_id} is not active")
+            return {
+                'match_id': match_id, 
+                'success': False,
+                'error': 'Session not active'
+            }
+        
+        # Process the session
+        result = _process_live_session_v2(live_session)
+        
+        # Update session state
+        if result['success']:
+            live_session.update_state(
+                session, 
+                status=result.get('status'),
+                score=result.get('score'),
+                event_keys=result.get('processed_events')
+            )
+        else:
+            live_session.update_state(
+                session,
+                error=result.get('error')
+            )
+            
+        # Deactivate if match ended
+        if result.get('match_ended', False):
+            live_session.deactivate(session, "Match completed")
+            logger.info(f"Deactivated session for completed match {match_id}")
+        
+        session.commit()
+        
+        logger.info(f"Single match processing completed: {result}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error processing single match {match_id}: {e}", exc_info=True)
+        return {
+            'match_id': match_id,
+            'success': False,
+            'error': str(e)
+        }
+
+
+@celery_task(
     name='app.tasks.tasks_live_reporting_v2.start_live_reporting_v2',
     queue='live_reporting',
     max_retries=3

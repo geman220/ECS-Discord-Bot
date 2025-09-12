@@ -386,20 +386,8 @@ def create_app(config_object='web_config.Config'):
             strategy="fixed-window"
         )
         
-        # Exempt security endpoints from rate limiting to prevent middleware conflicts
-        limiter.exempt('security_status.security_status')
-        limiter.exempt('security_status.security_health')  
-        limiter.exempt('security_status.security_logs')
-        limiter.exempt('security_status.security_events')
-        limiter.exempt('security_status.recent_threats')
-        
-        # Exempt admin endpoints from rate limiting to prevent admin lockout
-        limiter.exempt('admin.match_management')
-        limiter.exempt('admin.match_tasks')
-        limiter.exempt('admin.get_match_task_status')
-        limiter.exempt('admin_panel.dashboard')
-        limiter.exempt('admin_panel.system_status')
-        limiter.exempt('admin_panel.performance_monitoring')
+        # Note: Endpoint exemptions will be handled via decorators in route files
+        # instead of here to avoid string reference issues
         
         # Auth endpoints will use default rate limits
         # (removed problematic auth endpoint rate limiting that was causing the warning)

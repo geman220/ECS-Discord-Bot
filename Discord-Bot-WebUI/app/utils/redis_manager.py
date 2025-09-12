@@ -341,8 +341,12 @@ class UnifiedRedisManager:
         """Clean up connection pool and clients."""
         try:
             # Redis connection pool cleanup (reduced logging)
-            if self._pool:
-                self._pool.disconnect()
+            if self._pool and hasattr(self._pool, 'disconnect'):
+                try:
+                    self._pool.disconnect()
+                except (AttributeError, TypeError):
+                    # Handle cases where disconnect method or its dependencies are None
+                    pass
             self._pool = None
             self._decoded_client = None
             self._raw_client = None
