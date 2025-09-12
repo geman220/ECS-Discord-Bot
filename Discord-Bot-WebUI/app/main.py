@@ -85,6 +85,10 @@ def get_onboarding_form(player=None, formdata=None):
     """
     session = g.db_session
     onboarding_form = OnboardingForm(formdata=formdata, obj=player)
+    
+    # Clear the name field to force user to enter their real name (not Discord username)
+    if player and not formdata:
+        onboarding_form.name.data = ""
 
     distinct_jersey_sizes = session.query(Player.jersey_size).distinct().all()
     jersey_size_choices = [(size[0], size[0]) for size in distinct_jersey_sizes if size[0]]

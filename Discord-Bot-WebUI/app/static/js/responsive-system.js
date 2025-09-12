@@ -112,6 +112,11 @@
       if (this.device.isIOS) {
         const inputs = document.querySelectorAll('input, textarea, select');
         inputs.forEach(input => {
+          // Skip checkboxes and radio buttons - they don't need keyboard
+          if (input.type === 'checkbox' || input.type === 'radio') {
+            return;
+          }
+          
           // Add class when keyboard is visible
           input.addEventListener('focus', () => {
             document.documentElement.classList.add('keyboard-visible');
@@ -287,7 +292,14 @@
       const tabContainers = document.querySelectorAll('.nav-tabs, .nav-pills');
       
       tabContainers.forEach(container => {
-        if (container.scrollWidth > container.clientWidth) {
+        // Check prerequisites first
+        const tabs = container.querySelectorAll('.nav-link');
+        const isOnMobile = window.innerWidth < 768;
+        const hasMultipleTabs = tabs.length > 1;
+        const hasOverflow = container.scrollWidth > container.clientWidth;
+        
+        // Only show on mobile with multiple tabs that actually overflow
+        if (isOnMobile && hasMultipleTabs && hasOverflow) {
           // Apply scrolling styles
           container.classList.add('scrollable-tabs');
           container.style.overflowX = 'auto';
@@ -305,16 +317,12 @@
             scrollHint.style.opacity = '0.7';
             
             container.parentNode.insertBefore(scrollHint, container.nextSibling);
-            
-            // Hide hint after user scrolls
-            container.addEventListener('scroll', function() {
-              if (this.scrollLeft > 20) {
-                scrollHint.style.opacity = '0';
-                setTimeout(() => {
-                  scrollHint.style.display = 'none';
-                }, 300);
-              }
-            });
+          }
+        } else {
+          // Remove any existing swipe hints on desktop or single tabs
+          const existingHint = container.nextElementSibling;
+          if (existingHint && existingHint.classList.contains('tabs-scroll-hint')) {
+            existingHint.remove();
           }
         }
       });

@@ -19,11 +19,7 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Image/cropper elements
     const imageInput = document.getElementById('image');
-    const cropAndSaveButton = document.getElementById('cropAndSaveButton');
     const croppedImageHiddenInput = document.getElementById('cropped_image_data');
-    const currentProfilePic = document.getElementById('currentProfilePicture')?.querySelector('img');
-    const imageElement = document.getElementById('imagecan');
-    const imgContainer = document.querySelector('.img-container');
     
     // State variables
     let selectedFile = null;
@@ -75,136 +71,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ======================
-    //   Image / Cropper
+    //   Image / Simple Cropper
     // ======================
-    if (imageInput) {
-        imageInput.addEventListener('change', function (e) {
-            const files = e.target.files;
-
-            if (!files || files.length === 0) {
-                return;
-            }
-
-            selectedFile = files[0];
-            const imgsrc = URL.createObjectURL(selectedFile);
-            imageElement.src = imgsrc;
-            imgContainer.classList.remove('d-none');
-            cropAndSaveButton.disabled = false;
-
-            // Destroy old instance if exists
-            if (window.cropper) {
-                window.cropper.destroy();
-            }
-
-            // Pause carousel while cropping
-            if (bootstrapCarousel) {
-                isCropping = true;
-                bootstrapCarousel.pause();
-            }
-
-            // Initialize cropper
-            window.cropper = new Cropper(imageElement, {
-                viewMode: 1,
-                aspectRatio: 1,
-                dragMode: 'move',
-                autoCropArea: 0.8,
-                responsive: true,
-                zoomable: true,
-                scalable: true,
-                rotatable: true
+    
+    // Initialize the simple cropper when modal is shown
+    modalElement?.addEventListener('shown.bs.modal', function () {
+        if (!window.SimpleCropperInstance) {
+            window.SimpleCropperInstance = initializeSimpleCropper('cropCanvas');
+        }
+        
+        // Also ensure the file input has the change listener
+        const imageInput = document.getElementById('image');
+        if (imageInput && !imageInput.hasAttribute('data-listener-added')) {
+            imageInput.setAttribute('data-listener-added', 'true');
+            imageInput.addEventListener('change', function (e) {
+                window.loadImageIntoCropper(this);
             });
-        });
-    }
+        }
+    });
 
-    // ======================
-    // Crop & Save handling
-    // ======================
-    if (cropAndSaveButton) {
-        cropAndSaveButton.addEventListener('click', async function (e) {
-            e.preventDefault();
-
-            if (!window.cropper) {
-                return;
-            }
-
-            try {
-                // Create cropped canvas
-                const canvas = window.cropper.getCroppedCanvas({
-                    fillColor: '#fff',
-                    imageSmoothingEnabled: true,
-                    imageSmoothingQuality: 'high'
-                });
-
-                if (!canvas) {
-                    return;
-                }
-
-                // Convert to base64 and store in hidden input
-                const base64Data = canvas.toDataURL('image/png');
-                croppedImageHiddenInput.value = base64Data;
-                
-                if (currentProfilePic) {
-                    currentProfilePic.src = base64Data;
-                }
-                
-                imgContainer.classList.add('d-none');
-                
-                // Stop cropping
-                isCropping = false;
-
-                // Upload via AJAX
-                const playerId = document.getElementById('playerId')?.value;
-                
-                if (!playerId) {
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('cropped_image_data', base64Data);
-
-                const csrfTokenInput = document.querySelector('input[name="csrf_token"]');
-                if (csrfTokenInput) {
-                    formData.append('csrf_token', csrfTokenInput.value);
-                }
-
-                // Upload image
-                const uploadUrl = `/players/player/${playerId}/upload_profile_picture`;
-                
-                const response = await fetch(uploadUrl, {
-                    method: 'POST',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Upload Failed',
-                        text: 'There was a problem uploading your image.',
-                        confirmButtonText: 'Try Again'
-                    });
-                    return;
-                }
-
-                // Show success message
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Image Uploaded',
-                    text: 'Your profile picture has been updated.',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-                
-            } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Processing Error',
-                    text: 'Error processing image: ' + error.message,
-                    confirmButtonText: 'OK'
-                });
-            }
-        });
-    }
+    // Note: Crop & Save handling is now done in simple-cropper.js via cropAndSaveProfileImage()
 
     // ======================
     //  Carousel initialization
@@ -252,6 +138,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (nextOrSaveButton) {
         nextOrSaveButton.addEventListener('click', function (e) {
+            // Prevent default action and stop propagation immediately
+            e.preventDefault();
+            e.stopPropagation();
+            
             const step = getCurrentStep();
 
             // Final step - save and finish
@@ -275,8 +165,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     form.submit();
                 } else {
                     form.classList.add('was-validated');
-                    e.preventDefault();
-                    e.stopPropagation();
                     
                     // Find first invalid input and focus it
                     const firstInvalid = form.querySelector(':invalid');
@@ -291,9 +179,49 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
             } else {
-                // Just move to next step
-                if (formActionInput) formActionInput.value = '';
-                if (bootstrapCarousel) bootstrapCarousel.next();
+                // Validate current step's required fields before moving to next
+                const activeItem = carouselElement.querySelector('.carousel-item.active');
+                const requiredFields = activeItem ? activeItem.querySelectorAll('input[required], select[required], textarea[required]') : [];
+                let isValid = true;
+
+                // Check if all required fields in current step are filled
+                requiredFields.forEach(field => {
+                    // Skip hidden fields or fields that are part of hidden sections
+                    if (field.offsetParent === null) return;
+                    
+                    if (!field.checkValidity()) {
+                        isValid = false;
+                        field.classList.add('is-invalid');
+                        
+                        // Add validation feedback if it doesn't exist
+                        if (!field.nextElementSibling || !field.nextElementSibling.classList.contains('invalid-feedback')) {
+                            const feedback = document.createElement('div');
+                            feedback.className = 'invalid-feedback';
+                            feedback.textContent = field.validationMessage || 'This field is required.';
+                            field.parentNode.insertBefore(feedback, field.nextSibling);
+                        }
+                    } else {
+                        field.classList.remove('is-invalid');
+                    }
+                });
+
+                if (isValid) {
+                    // Clear form action and manually move to next step
+                    if (formActionInput) formActionInput.value = '';
+                    if (bootstrapCarousel) {
+                        bootstrapCarousel.next();
+                    }
+                } else {
+                    // Focus first invalid field
+                    const firstInvalid = activeItem.querySelector('.is-invalid');
+                    if (firstInvalid) {
+                        firstInvalid.focus();
+                        firstInvalid.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                    }
+                }
             }
         });
     }
@@ -309,22 +237,20 @@ document.addEventListener('DOMContentLoaded', function () {
     // ======================
     const smsToggle = document.getElementById('smsNotifications');
     const smsOptInSection = document.getElementById('smsOptInSection');
-    const phoneNumberInput = document.getElementById('phoneNumber');
-    const smsConsentInput = document.getElementById('smsConsent');
 
-    if (smsToggle && smsOptInSection && phoneNumberInput && smsConsentInput) {
+    if (smsToggle && smsOptInSection) {
         // Initialize section based on checkbox state
         if (!smsToggle.checked) {
             smsOptInSection.style.display = 'none';
-            phoneNumberInput.removeAttribute('required');
-            smsConsentInput.removeAttribute('required');
         } else {
             smsOptInSection.style.display = 'block';
-            phoneNumberInput.setAttribute('required', 'true');
-            smsConsentInput.setAttribute('required', 'true');
         }
 
         smsToggle.addEventListener('change', function () {
+            // Find phone number and consent elements within the section
+            const phoneNumberInput = smsOptInSection.querySelector('#phoneNumber');
+            const smsConsentInput = smsOptInSection.querySelector('#smsConsent');
+            
             if (smsToggle.checked) {
                 // Show the SMS opt-in section with animation
                 smsOptInSection.style.display = 'block';
@@ -334,9 +260,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     smsOptInSection.style.opacity = '1';
                 }, 10);
                 
-                // Mark fields as required
-                phoneNumberInput.setAttribute('required', 'true');
-                smsConsentInput.setAttribute('required', 'true');
+                // Mark fields as required if they exist
+                if (phoneNumberInput) phoneNumberInput.setAttribute('required', 'true');
+                if (smsConsentInput) smsConsentInput.setAttribute('required', 'true');
             } else {
                 // Hide the SMS opt-in section with animation
                 smsOptInSection.style.transition = 'opacity 0.3s ease';
@@ -345,9 +271,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     smsOptInSection.style.display = 'none';
                 }, 300);
                 
-                // Remove required constraints
-                phoneNumberInput.removeAttribute('required');
-                smsConsentInput.removeAttribute('required');
+                // Remove required constraints if they exist
+                if (phoneNumberInput) phoneNumberInput.removeAttribute('required');
+                if (smsConsentInput) smsConsentInput.removeAttribute('required');
             }
         });
     }
@@ -387,16 +313,18 @@ document.addEventListener('DOMContentLoaded', function () {
             // On final step, change next button to submit
             if (step === totalSteps && nextOrSaveButton) {
                 nextOrSaveButton.innerHTML = 'Save and Finish';
-                nextOrSaveButton.type = 'submit';
+                nextOrSaveButton.type = 'button';  // Keep as button, not submit
                 nextOrSaveButton.classList.remove('btn-primary');
                 nextOrSaveButton.classList.add('btn-success');
                 nextOrSaveButton.removeAttribute('data-bs-slide');
+                nextOrSaveButton.removeAttribute('data-bs-target');
             } else if (nextOrSaveButton) {
                 nextOrSaveButton.innerHTML = 'Next <i class="ti ti-chevron-right ms-2"></i>';
                 nextOrSaveButton.type = 'button';
                 nextOrSaveButton.classList.remove('btn-success');
                 nextOrSaveButton.classList.add('btn-primary');
-                nextOrSaveButton.setAttribute('data-bs-slide', 'next');
+                nextOrSaveButton.removeAttribute('data-bs-slide');  // Remove Bootstrap carousel control
+                nextOrSaveButton.removeAttribute('data-bs-target'); // Remove Bootstrap carousel target
             }
         }
     }
@@ -447,4 +375,17 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize everything
     updateNavButtons();
     updateProgress();
+    
+    // Add real-time validation feedback removal
+    modalElement?.addEventListener('input', function(e) {
+        if (e.target.matches('input[required], select[required], textarea[required]')) {
+            if (e.target.checkValidity()) {
+                e.target.classList.remove('is-invalid');
+                const feedback = e.target.nextElementSibling;
+                if (feedback && feedback.classList.contains('invalid-feedback')) {
+                    feedback.remove();
+                }
+            }
+        }
+    });
 });

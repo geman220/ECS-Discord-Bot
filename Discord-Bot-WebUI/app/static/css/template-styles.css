@@ -1,0 +1,542 @@
+/**
+ * Centralized Template Styles
+ * All inline styles from templates moved here for better organization
+ */
+
+/* Dark mode fixes from base.html */
+[data-style="dark"] .list-group-item-action {
+    color: #ffffff !important;
+    background-color: transparent !important;
+}
+
+[data-style="dark"] .list-group-item-action:hover {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-style="dark"] .list-group-item-action i {
+    color: #ffffff !important;
+}
+
+/* Desktop button overrides from base.html */
+@media (hover: hover) and (pointer: fine) {
+    /* Desktop devices with mouse */
+    button, .btn, .ecs-btn, [class*="btn-"] {
+        transform: none !important;
+        transition: background-color 0.15s ease-in-out, 
+                   color 0.15s ease-in-out,
+                   border-color 0.15s ease-in-out !important;
+    }
+    
+    button:active, .btn:active, .ecs-btn:active, [class*="btn-"]:active,
+    button:hover, .btn:hover, .ecs-btn:hover, [class*="btn-"]:hover,
+    button:focus, .btn:focus, .ecs-btn:focus, [class*="btn-"]:focus {
+        transform: none !important;
+    }
+    
+    /* Never apply scaling on desktop */
+    .touch-active {
+        transform: none !important;
+        opacity: 0.9;
+    }
+}
+
+/* Autocomplete profile image styles */
+.autocomplete-profile-img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-right: 10px;
+    object-fit: cover;
+}
+
+/* Login page styles */
+/* Force authentication page background - override everything */
+html.auth-page, body.auth-page {
+    background-color: #213e96 !important;
+    background: #213e96 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100% !important;
+    min-height: 100vh !important;
+}
+
+.authentication-wrapper {
+    background-color: #213e96 !important;
+    background: #213e96 !important;
+    height: 100vh !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 100vh !important;
+}
+
+/* Make sure no other elements override this - but allow authentication-inner to be centered */
+
+/* Register page Discord logo */
+.btn-discord img {
+    height: 20px;
+    margin-right: 8px;
+}
+
+/* jQuery UI Autocomplete mobile optimization */
+.ui-autocomplete {
+    max-height: 300px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+@media (max-width: 767.98px) {
+    .ui-autocomplete {
+        max-height: 200px;
+        font-size: 14px;
+    }
+    
+    .ui-menu-item {
+        padding: 10px;
+    }
+}
+
+/* Registration page waiver content */
+.waiver-content {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+@media (max-width: 767.98px) {
+    .waiver-content {
+        max-height: 250px;
+        padding: 12px;
+        font-size: 13px;
+    }
+}
+
+/* Registration form checkbox fixes - override conflicting CSS */
+#terms-agreement, 
+#terms-agreement-waitlist {
+    width: 1em !important;
+    height: 1em !important;
+    margin-top: 0.125em !important;
+    font-size: 16px !important; /* Control the base size */
+}
+
+.form-group .form-check-label {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+    margin-left: 0.25rem !important;
+}
+
+/* Mobile checkbox fixes */
+@media (max-width: 767.98px) {
+    #terms-agreement, 
+    #terms-agreement-waitlist {
+        width: 1em !important;
+        height: 1em !important;
+        font-size: 18px !important; /* Slightly larger base for mobile */
+    }
+    
+    .form-group .form-check-label {
+        font-size: 16px !important;
+        line-height: 1.4 !important;
+    }
+    
+    .form-group .form-check {
+        min-height: 44px !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+}
+
+/* Notification Preferences Checkbox Styling - Simple Fix */
+.notification-group .form-check .form-check-input[type="checkbox"] {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    background-color: #fff !important;
+    border: 2px solid #dee2e6 !important;
+    border-radius: 0.25rem !important;
+}
+
+.notification-group .form-check .form-check-input[type="checkbox"]:checked {
+    background-color: #007bff !important;
+    border-color: #007bff !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: contain !important;
+}
+
+/* Override foundation.css active state that could interfere */
+.notification-group .form-check .form-check-input[type="checkbox"]:active {
+    filter: none !important;
+}
+
+.notification-group .form-check .form-check-input[type="checkbox"]:checked:active {
+    background-color: #007bff !important;
+    border-color: #007bff !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: contain !important;
+    filter: none !important;
+}
+
+/* Focus state styling */
+.notification-group .form-check .form-check-input[type="checkbox"]:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+    outline: none !important;
+}
+
+.notification-group .form-check .form-check-input[type="checkbox"]:checked:focus {
+    background-color: #007bff !important;
+    border-color: #007bff !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: contain !important;
+}
+
+
+/* Mobile notification improvements */
+@media (max-width: 767.98px) {
+    .notification-group .form-check-input[type="checkbox"] {
+        width: 1.35rem !important;
+        height: 1.35rem !important;
+    }
+    
+    .notification-group .card {
+        margin-bottom: 1rem;
+    }
+    
+    .notification-group .card-body {
+        padding: 1rem;
+    }
+    
+    .notification-group .form-check-label {
+        font-size: 15px !important;
+        line-height: 1.4;
+    }
+    
+    .notification-group .small {
+        font-size: 13px !important;
+    }
+}
+
+/* Mobile optimizations for waitlist registration carousel - MOBILE ONLY */
+@media (max-width: 576px) {
+    /* Only target the specific waitlist registration modal/content */
+    #waitlistRegistrationModal .modal-dialog {
+        margin: 0.5rem;
+        max-width: calc(100% - 1rem);
+    }
+    
+    #waitlistRegistrationModal .modal-body {
+        padding: 0.5rem;
+    }
+    
+    /* Only apply to waitlist registration content */
+    #waitlistRegistrationModal .registration-content {
+        padding: 0.75rem !important;
+    }
+    
+    /* Specific to waitlist sections */
+    #waitlistRegistrationModal .section-header {
+        margin-bottom: 1rem !important;
+    }
+    
+    #waitlistRegistrationModal .section-header h4,
+    #waitlistRegistrationModal .section-header h5 {
+        font-size: 1.1rem !important;
+        margin-bottom: 0.25rem !important;
+    }
+    
+    #waitlistRegistrationModal .section-header p,
+    #waitlistRegistrationModal .section-header small {
+        font-size: 0.85rem !important;
+    }
+    
+    #waitlistRegistrationModal .section-header i {
+        font-size: 1.75rem !important;
+    }
+    
+    /* Only target waitlist modal cards */
+    #waitlistRegistrationModal .card {
+        padding: 0.75rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    /* Only target form elements inside waitlist modal */
+    #waitlistRegistrationModal .form-control,
+    #waitlistRegistrationModal .form-select {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.9rem !important;
+    }
+    
+    #waitlistRegistrationModal .form-label {
+        font-size: 0.85rem !important;
+        margin-bottom: 0.25rem !important;
+        font-weight: 600 !important;
+    }
+    
+    #waitlistRegistrationModal .form-text {
+        font-size: 0.75rem !important;
+        margin-top: 0.25rem !important;
+    }
+    
+    /* Only target rows inside waitlist modal */
+    #waitlistRegistrationModal .row {
+        margin-left: -0.25rem !important;
+        margin-right: -0.25rem !important;
+    }
+    
+    #waitlistRegistrationModal .row > [class*="col-"] {
+        padding-left: 0.25rem !important;
+        padding-right: 0.25rem !important;
+        margin-bottom: 0.75rem !important;
+    }
+    
+    /* Profile picture section compact - waitlist specific */
+    #waitlistRegistrationModal #cropperInterface img {
+        max-height: 200px !important;
+    }
+    
+    #waitlistRegistrationModal #profilePicturePreview {
+        max-height: 150px !important;
+    }
+    
+    /* Only compact buttons inside waitlist modal */
+    #waitlistRegistrationModal .btn {
+        padding: 0.5rem 1rem !important;
+        font-size: 0.85rem !important;
+    }
+    
+    #waitlistRegistrationModal .btn-lg {
+        padding: 0.6rem 1.2rem !important;
+        font-size: 0.9rem !important;
+    }
+    
+    /* Progress bar container - waitlist specific */
+    #waitlistRegistrationModal .progress-container {
+        padding: 0.5rem !important;
+    }
+    
+    /* Carousel navigation - waitlist specific */
+    #waitlistRegistrationModal .carousel-nav {
+        padding: 0.5rem !important;
+    }
+}
+
+/* Tablet optimizations */
+@media (max-width: 768px) and (min-width: 577px) {
+    .registration-content {
+        padding: 1rem !important;
+    }
+    
+    .section-header {
+        margin-bottom: 1.5rem !important;
+    }
+    
+    .card {
+        padding: 1rem !important;
+    }
+    
+    .form-control,
+    .form-select {
+        padding: 0.6rem 0.9rem !important;
+    }
+}
+
+/* DataTables Sorting Arrow Fixes */
+/* NUCLEAR OPTION: Completely hide ALL possible DataTables sorting arrows */
+table.dataTable thead th.sorting::before,
+table.dataTable thead th.sorting::after,
+table.dataTable thead th.sorting_asc::before,
+table.dataTable thead th.sorting_asc::after,
+table.dataTable thead th.sorting_desc::before,
+table.dataTable thead th.sorting_desc::after,
+table.dataTable thead th.sorting_asc_disabled::before,
+table.dataTable thead th.sorting_asc_disabled::after,
+table.dataTable thead th.sorting_desc_disabled::before,
+table.dataTable thead th.sorting_desc_disabled::after,
+table.dataTable thead > tr > th.sorting::before,
+table.dataTable thead > tr > th.sorting::after,
+table.dataTable thead > tr > th.sorting_asc::before,
+table.dataTable thead > tr > th.sorting_asc::after,
+table.dataTable thead > tr > th.sorting_desc::before,
+table.dataTable thead > tr > th.sorting_desc::after,
+table.dataTable thead > tr > td.sorting::before,
+table.dataTable thead > tr > td.sorting::after,
+table.dataTable thead > tr > td.sorting_asc::before,
+table.dataTable thead > tr > td.sorting_asc::after,
+table.dataTable thead > tr > td.sorting_desc::before,
+table.dataTable thead > tr > td.sorting_desc::after,
+div.dataTables_scrollBody > table.dataTable > thead > tr > th::before,
+div.dataTables_scrollBody > table.dataTable > thead > tr > th::after,
+div.dataTables_scrollBody > table.dataTable > thead > tr > td::before,
+div.dataTables_scrollBody > table.dataTable > thead > tr > td::after {
+    display: none !important;
+    content: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* Create clean single sorting indicators */
+table.dataTable thead th.sorting,
+table.dataTable thead th.sorting_asc,
+table.dataTable thead th.sorting_desc {
+    position: relative;
+    padding-right: 20px !important;
+}
+
+/* Add single sorting arrow using a single pseudo-element */
+table.dataTable thead th.sorting::after {
+    display: inline-block !important;
+    content: "⇅" !important;
+    position: absolute !important;
+    right: 6px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    opacity: 0.3 !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+    color: var(--ecs-neutral-50, #666) !important;
+}
+
+table.dataTable thead th.sorting_asc::after {
+    display: inline-block !important;
+    content: "▲" !important;
+    position: absolute !important;
+    right: 6px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    opacity: 0.8 !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+    color: var(--ecs-primary, #007bff) !important;
+}
+
+table.dataTable thead th.sorting_desc::after {
+    display: inline-block !important;
+    content: "▼" !important;
+    position: absolute !important;
+    right: 6px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    opacity: 0.8 !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+    color: var(--ecs-primary, #007bff) !important;
+}
+
+/* Hover effects */
+table.dataTable thead th.sorting:hover::after {
+    opacity: 0.6 !important;
+    color: var(--ecs-primary, #007bff) !important;
+}
+
+/* Dark mode compatibility */
+[data-style="dark"] table.dataTable thead th.sorting::after {
+    color: var(--ecs-neutral-40, #cccccc) !important;
+}
+
+[data-style="dark"] table.dataTable thead th.sorting_asc::after,
+[data-style="dark"] table.dataTable thead th.sorting_desc::after {
+    color: var(--ecs-accent, #4dabf7) !important;
+}
+
+[data-style="dark"] table.dataTable thead th.sorting:hover::after {
+    color: var(--ecs-accent, #4dabf7) !important;
+}
+
+/* BACK TO WORKING DEBUG STATE */
+table.dataTable thead th.sorting {
+    background: rgba(255, 0, 0, 0.2) !important; /* Light red for unsorted */
+}
+
+table.dataTable thead th.sorting_asc {
+    background: rgba(0, 255, 0, 0.3) !important; /* Light green for ascending */
+}
+
+table.dataTable thead th.sorting_desc {
+    background: rgba(0, 0, 255, 0.3) !important; /* Light blue for descending */
+}
+
+/* Force our arrows to show with maximum specificity */
+div.table-responsive table#rsvpStatusTable.dataTable thead th.sorting::after,
+div#rsvpStatusTable_wrapper table.dataTable thead th.sorting::after,
+table#rsvpStatusTable.table.dataTable thead th.sorting::after,
+html body div.container-xxl table.dataTable thead th.sorting::after,
+html body div table.dataTable thead th.sorting::after,
+html body table.dataTable thead th.sorting::after {
+    display: inline-block !important;
+    content: "⇅" !important;
+    position: absolute !important;
+    right: 6px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    opacity: 0.3 !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+    color: var(--ecs-neutral-50, #666) !important;
+    visibility: visible !important;
+    width: auto !important;
+    height: auto !important;
+    background: none !important;
+    border: none !important;
+}
+
+div.table-responsive table#rsvpStatusTable.dataTable thead th.sorting_asc::after,
+div#rsvpStatusTable_wrapper table.dataTable thead th.sorting_asc::after,
+table#rsvpStatusTable.table.dataTable thead th.sorting_asc::after,
+html body div.container-xxl table.dataTable thead th.sorting_asc::after,
+html body div table.dataTable thead th.sorting_asc::after,
+html body table.dataTable thead th.sorting_asc::after {
+    display: inline-block !important;
+    content: "▲" !important;
+    position: absolute !important;
+    right: 6px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    opacity: 0.8 !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+    color: var(--ecs-primary, #007bff) !important;
+    visibility: visible !important;
+    width: auto !important;
+    height: auto !important;
+    background: none !important;
+    border: none !important;
+}
+
+div.table-responsive table#rsvpStatusTable.dataTable thead th.sorting_desc::after,
+div#rsvpStatusTable_wrapper table.dataTable thead th.sorting_desc::after,
+table#rsvpStatusTable.table.dataTable thead th.sorting_desc::after,
+html body div.container-xxl table.dataTable thead th.sorting_desc::after,
+html body div table.dataTable thead th.sorting_desc::after,
+html body table.dataTable thead th.sorting_desc::after {
+    display: inline-block !important;
+    content: "▼" !important;
+    position: absolute !important;
+    right: 6px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    opacity: 0.8 !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+    color: var(--ecs-primary, #007bff) !important;
+    visibility: visible !important;
+    width: auto !important;
+    height: auto !important;
+    background: none !important;
+    border: none !important;
+}

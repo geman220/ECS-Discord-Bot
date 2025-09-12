@@ -173,7 +173,7 @@ def update_rsvp():
     - response: The RSVP response ('yes', 'no', 'maybe', 'no_response')
     """
     from app.tasks.tasks_rsvp import notify_discord_of_rsvp_change_task, notify_frontend_of_rsvp_change_task
-    from app.tasks.tasks_rsvp_ecs import update_ecs_fc_rsvp, notify_ecs_fc_discord_of_rsvp_change
+    from app.tasks.tasks_rsvp_ecs import update_ecs_fc_rsvp, notify_ecs_fc_discord_of_rsvp_change_task
     
     session = g.db_session
     player_id = request.form.get('player_id')
@@ -233,7 +233,7 @@ def update_rsvp():
                     logger.info(f"Admin {safe_current_user.id} cleared ECS FC RSVP for player {player_id}, match {actual_match_id}")
                     
                     # Notify Discord of the change for ECS FC
-                    notify_ecs_fc_discord_of_rsvp_change.delay(match_id=actual_match_id)
+                    notify_ecs_fc_discord_of_rsvp_change_task.delay(match_id=actual_match_id)
                     
                     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                         return jsonify({'success': True, 'message': 'ECS FC RSVP cleared successfully'})

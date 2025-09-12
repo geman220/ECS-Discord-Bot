@@ -1,0 +1,539 @@
+/**
+ * Mobile-First Scale System
+ * Fixes oversized UI elements and creates consistent mobile scaling
+ */
+
+/* Mobile-First CSS Variables for Consistent Scaling */
+:root {
+  /* Mobile Typography Scale */
+  --mobile-text-xs: 12px;    /* Minimum readable size */
+  --mobile-text-sm: 14px;    /* Small text, labels */
+  --mobile-text-base: 16px;  /* Body text, form inputs */
+  --mobile-text-lg: 18px;    /* Headings */
+  --mobile-text-xl: 20px;    /* Large headings */
+
+  /* Mobile Spacing Scale (Based on 4px grid) */
+  --mobile-space-xs: 4px;    /* Tight spacing */
+  --mobile-space-sm: 8px;    /* Small gaps */
+  --mobile-space-base: 12px; /* Standard spacing */
+  --mobile-space-lg: 16px;   /* Generous spacing */
+  --mobile-space-xl: 24px;   /* Large gaps */
+
+  /* Touch Target Sizes */
+  --mobile-touch-sm: 40px;   /* Minimum touch target */
+  --mobile-touch-base: 44px; /* Recommended touch target */
+  --mobile-touch-lg: 48px;   /* Large touch target */
+  
+  /* Container Sizes */
+  --mobile-container-padding: 12px; /* Tighter than desktop */
+  --mobile-modal-margin: 8px;       /* Smaller modal margins */
+}
+
+/* MOBILE-FIRST BASE STYLES (Mobile < 768px) */
+
+/* Container Optimization - Exclude auth pages */
+.container-xxl:not(.auth-page .container-xxl), 
+.container-fluid:not(.auth-page .container-fluid) {
+  padding-left: var(--mobile-container-padding);
+  padding-right: var(--mobile-container-padding);
+}
+
+/* Typography Scale - Exclude auth pages */
+body:not(.auth-page) {
+  font-size: var(--mobile-text-base);
+  line-height: 1.4; /* Tighter line height for mobile */
+}
+
+.auth-page body,
+.auth-page h1,
+.auth-page h2,
+.auth-page h3,
+.auth-page h4,
+.auth-page h5,
+.auth-page h6 {
+  /* Let auth pages use default Bootstrap typography */
+  font-size: revert;
+  line-height: revert;
+}
+
+body:not(.auth-page) h1 { font-size: var(--mobile-text-xl); }
+body:not(.auth-page) h2 { font-size: var(--mobile-text-lg); }
+body:not(.auth-page) h3 { font-size: var(--mobile-text-base); }
+body:not(.auth-page) h4, 
+body:not(.auth-page) h5, 
+body:not(.auth-page) h6 { font-size: var(--mobile-text-sm); }
+
+/* Button Scale System - Exclude auth pages */
+body:not(.auth-page) .btn {
+  min-height: var(--mobile-touch-base);
+  font-size: var(--mobile-text-base);
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+  border-radius: 6px; /* Smaller radius for mobile */
+}
+
+body:not(.auth-page) .btn-sm {
+  min-height: var(--mobile-touch-sm);
+  font-size: var(--mobile-text-sm);
+  padding: var(--mobile-space-xs) var(--mobile-space-sm);
+}
+
+body:not(.auth-page) .btn-lg {
+  min-height: var(--mobile-touch-lg);
+  font-size: var(--mobile-text-lg);
+  padding: var(--mobile-space-base) var(--mobile-space-lg);
+}
+
+/* Form Controls - Exclude auth pages */
+body:not(.auth-page) .form-control,
+body:not(.auth-page) .form-select {
+  min-height: var(--mobile-touch-base);
+  font-size: var(--mobile-text-base);
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+  border-radius: 6px;
+}
+
+/* Card System - Exclude auth pages */
+.card:not(.auth-page .card) {
+  margin-bottom: var(--mobile-space-base);
+  border-radius: 8px;
+}
+
+.card-body:not(.auth-page .card-body) {
+  padding: var(--mobile-space-base);
+}
+
+.card-header {
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+  font-size: var(--mobile-text-sm);
+  font-weight: 600;
+}
+
+/* ============================================================================
+   COMPREHENSIVE Z-INDEX SYSTEM
+   ============================================================================
+   
+   Centralized z-index management to prevent conflicts across the application.
+   
+   Z-Index Hierarchy (highest to lowest):
+   - Template Customizer: 99999999 (theme system, rarely visible)
+   - SweetAlert2: 10000+ (critical alerts, should be above everything)
+   - Mobile Modal Content: 9999 (MOBILE ONLY - force above theme z-index)
+   - Mobile Modal Backdrop: 9998 (MOBILE ONLY - behind modal content)
+   - Toast/Notifications: 1070 (important messages)
+   - Modal Content: 1060 (user interactions, must be accessible - DESKTOP)
+   - Search Autocomplete: 1058 (interactive elements)
+   - Navbar/Header: 1055 (Bootstrap default)
+   - Sidebar: 1050 (Bootstrap default)
+   - Modal Backdrop: 1040 (behind modal content but above page content - DESKTOP)
+   - Select2 Dropdown: 1030 (form dropdowns)
+   - Select2 Container: 1020 (form containers)
+   - Dropdown Menu: 1000 (general dropdowns)
+   - Content: 1-999 (page content)
+   
+   ============================================================================ */
+
+/* MODALS - Highest priority for user interaction */
+.modal {
+  z-index: 1060 !important;
+}
+
+.modal-backdrop {
+  z-index: 1040 !important;
+}
+
+/* Override any conflicting modal backdrop rules from other files */
+.modal-backdrop.show {
+  z-index: 1040 !important;
+}
+
+/* GLOBAL MODAL FIX - Force modals above everything */
+.modal,
+.modal.show,
+.modal.fade,
+.modal.fade.show,
+div.modal,
+div.modal.show,
+div.modal.fade,
+div.modal.fade.show,
+#reportMatchModal-254,
+#reportMatchModal-271,
+#reportMatchModal-273,
+#reportMatchModal-251,
+#reportMatchModal-265,
+#reportMatchModal-264 {
+  z-index: 9999 !important;
+}
+
+.modal-backdrop,
+.modal-backdrop.show,
+.modal-backdrop.fade,
+.modal-backdrop.fade.show,
+div.modal-backdrop,
+div.modal-backdrop.show {
+  z-index: 9998 !important;
+}
+
+/* NOTIFICATIONS & ALERTS */
+.toast-container {
+  z-index: 1070 !important;
+}
+
+.alert {
+  z-index: auto; /* Let alerts follow normal document flow */
+}
+
+#connectionStatus {
+  z-index: 1070 !important; /* Same level as toast notifications */
+}
+
+/* INTERACTIVE ELEMENTS */
+.ui-autocomplete {
+  z-index: 1058 !important;
+}
+
+.dropdown-menu {
+  z-index: 1000 !important;
+}
+
+.select2-container {
+  z-index: 1020 !important;
+}
+
+.select2-dropdown {
+  z-index: 1030 !important;
+}
+
+/* LAYOUT ELEMENTS */
+.layout-navbar,
+#layout-navbar {
+  z-index: 1055 !important;
+}
+
+.layout-menu,
+#layout-menu {
+  z-index: 1050 !important;
+}
+
+/* MOBILE-SPECIFIC OVERRIDES */
+@media (max-width: 991.98px) {
+  /* FORCE modals to highest z-index on mobile to override theme files */
+  .modal {
+    z-index: 9999 !important;
+  }
+  
+  .modal-backdrop {
+    z-index: 9998 !important;
+  }
+  
+  /* Force all navbar elements below modal on mobile */
+  .layout-navbar,
+  #layout-navbar,
+  .navbar,
+  .layout-menu-toggle,
+  .navbar-nav,
+  .navbar-nav-right,
+  #navbar-collapse {
+    z-index: 1055 !important;
+  }
+  
+  /* Force sidebar behind modals on mobile */
+  .layout-menu,
+  #layout-menu {
+    z-index: 1050 !important;
+  }
+  
+  /* Search autocomplete below modals */
+  .ui-autocomplete {
+    z-index: 1058 !important;
+  }
+  
+  /* Make sure modal components stay together */
+  .modal-header,
+  .modal-body,
+  .modal-footer,
+  .modal-content {
+    z-index: inherit; /* Inherit from parent modal */
+  }
+}
+
+/* Modal Optimization - Only on mobile screens, exclude auth pages */
+@media (max-width: 767.98px) {
+  .modal-dialog:not(.auth-page .modal-dialog) {
+    margin: var(--mobile-modal-margin);
+    max-width: calc(100% - calc(var(--mobile-modal-margin) * 2));
+  }
+}
+
+/* Desktop Modal Restoration - Ensure proper centering and sizing on desktop */
+@media (min-width: 768px) {
+  .modal-dialog {
+    margin: 1.75rem auto;
+    max-width: 700px; /* Wider default for better content display */
+  }
+  
+  .modal-lg .modal-dialog {
+    max-width: 900px; /* Increased for complex forms */
+  }
+  
+  .modal-xl .modal-dialog {
+    max-width: 1140px;
+  }
+  
+  .modal-sm .modal-dialog {
+    max-width: 400px; /* Slightly larger small modals */
+  }
+  
+  /* Specific sizing for report match modals */
+  [id^="reportMatchModal"] .modal-dialog {
+    max-width: 850px; /* Extra wide for match reporting forms */
+  }
+}
+
+.modal-content {
+  border-radius: 8px;
+}
+
+.modal-header,
+.modal-footer {
+  padding: var(--mobile-space-base);
+}
+
+.modal-body {
+  padding: var(--mobile-space-base);
+}
+
+/* Badge/Label System */
+.badge {
+  font-size: var(--mobile-text-xs);
+  padding: var(--mobile-space-xs) var(--mobile-space-sm);
+  border-radius: 4px;
+}
+
+/* Table Mobile Optimization */
+.table-responsive {
+  border-radius: 6px;
+  margin-bottom: var(--mobile-space-base);
+}
+
+/* Mobile Card Tables */
+@media (max-width: 767.98px) {
+  /* Transform tables to cards */
+  .table-responsive table {
+    display: block;
+  }
+  
+  .table-responsive thead {
+    display: none;
+  }
+  
+  .table-responsive tbody {
+    display: block;
+  }
+  
+  .table-responsive tr {
+    display: block;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    margin-bottom: var(--mobile-space-base);
+    padding: var(--mobile-space-base);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .table-responsive td {
+    display: block;
+    padding: var(--mobile-space-xs) 0;
+    border: none;
+    font-size: var(--mobile-text-sm);
+  }
+  
+  .table-responsive td:not(:last-child) {
+    border-bottom: 1px solid #f8f9fa;
+    margin-bottom: var(--mobile-space-xs);
+    padding-bottom: var(--mobile-space-xs);
+  }
+  
+  /* Data labels for mobile cards */
+  .table-responsive td[data-label]:before {
+    content: attr(data-label) ": ";
+    font-weight: 600;
+    color: #6c757d;
+    display: inline-block;
+    margin-right: var(--mobile-space-xs);
+    font-size: var(--mobile-text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  /* Action buttons in table cards */
+  .table-responsive td:last-child {
+    text-align: center;
+    padding-top: var(--mobile-space-sm);
+    border-top: 1px solid #f8f9fa;
+    margin-top: var(--mobile-space-sm);
+  }
+  
+  .table-responsive .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mobile-space-xs);
+    justify-content: center;
+  }
+  
+  .table-responsive .btn-group .btn {
+    flex: 1;
+    min-width: 80px;
+    font-size: var(--mobile-text-xs);
+    padding: var(--mobile-space-xs) var(--mobile-space-sm);
+  }
+}
+
+/* Alert System */
+.alert {
+  padding: var(--mobile-space-base);
+  margin-bottom: var(--mobile-space-base);
+  border-radius: 6px;
+  font-size: var(--mobile-text-sm);
+}
+
+/* Navigation Improvements */
+.navbar-nav .nav-link {
+  padding: var(--mobile-space-base);
+  font-size: var(--mobile-text-base);
+  min-height: var(--mobile-touch-base);
+  display: flex;
+  align-items: center;
+}
+
+/* Dropdown Optimization */
+.dropdown-menu {
+  border-radius: 6px;
+  padding: var(--mobile-space-xs);
+}
+
+.dropdown-item {
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+  font-size: var(--mobile-text-sm);
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+
+/* TABLET AND UP ADJUSTMENTS (768px+) */
+@media (min-width: 768px) {
+  :root {
+    --mobile-container-padding: 20px;
+    --mobile-space-base: 16px;
+    --mobile-space-lg: 24px;
+  }
+  
+  .btn {
+    font-size: 14px;
+    border-radius: 8px;
+  }
+  
+  .card-body {
+    padding: var(--mobile-space-lg);
+  }
+}
+
+/* DESKTOP OVERRIDES (992px+) */
+@media (min-width: 992px) {
+  :root {
+    --mobile-container-padding: 24px;
+    --mobile-space-base: 20px;
+    --mobile-space-lg: 32px;
+  }
+  
+  /* Restore table layout for desktop */
+  .table-responsive table,
+  .table-responsive thead,
+  .table-responsive tbody,
+  .table-responsive tr,
+  .table-responsive td {
+    display: revert;
+  }
+  
+  .table-responsive td[data-label]:before {
+    display: none;
+  }
+}
+
+/* MOBILE-SPECIFIC COMPONENT FIXES */
+
+/* Fix Home/Away badge sizing */
+.match-badge {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  font-size: var(--mobile-text-sm) !important;
+  font-weight: 600 !important;
+  flex-shrink: 0 !important; /* Prevent stretching */
+  min-width: 24px !important; /* Ensure minimum size */
+}
+
+/* Fix nav pills fade-out issue on mobile */
+.nav.nav-pills.overflow-auto.flex-nowrap {
+  /* Remove default webkit scrollbar fade */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.nav.nav-pills.overflow-auto.flex-nowrap::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
+}
+
+/* Fix nav pills container to prevent fade-out */
+.nav.nav-pills.small-tabs.overflow-auto.flex-nowrap {
+  position: relative;
+  background: transparent !important;
+}
+
+/* Remove any fade-out gradients or masks */
+.nav.nav-pills.small-tabs.overflow-auto.flex-nowrap::before,
+.nav.nav-pills.small-tabs.overflow-auto.flex-nowrap::after {
+  display: none !important;
+}
+
+/* Fix nav-link styling */
+.nav.nav-pills .nav-link {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+/* Welcome header mobile fixes */
+@media (max-width: 767.98px) {
+  .welcome-header .d-flex.justify-content-between.align-items-center {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: var(--mobile-space-base) !important;
+  }
+  
+  .welcome-header .d-flex.align-items-center:last-child {
+    align-self: flex-end !important;
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+  
+  /* Make profile button smaller on mobile */
+  .welcome-header .btn-sm {
+    font-size: var(--mobile-text-xs) !important;
+    padding: var(--mobile-space-xs) var(--mobile-space-sm) !important;
+  }
+}
+
+/* UTILITY CLASSES FOR QUICK FIXES */
+.mobile-hide { display: none !important; }
+.mobile-text-sm { font-size: var(--mobile-text-sm) !important; }
+.mobile-text-xs { font-size: var(--mobile-text-xs) !important; }
+.mobile-padding { padding: var(--mobile-space-base) !important; }
+.mobile-margin { margin: var(--mobile-space-base) !important; }
+.mobile-touch { min-height: var(--mobile-touch-base) !important; }
+
+@media (min-width: 768px) {
+  .mobile-hide { display: revert !important; }
+  .desktop-hide { display: none !important; }
+}

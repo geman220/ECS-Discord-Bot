@@ -1394,7 +1394,8 @@ def waitlist_register_with_discord():
                     'confidence': match['confidence']
                 })
         
-        return render_template('waitlist_register_discord.html', 
+        # Use the new carousel template
+        return render_template('waitlist_register_discord_carousel.html', 
                               title='Complete Waitlist Registration',
                               discord_email=discord_email,
                               discord_username=discord_username,

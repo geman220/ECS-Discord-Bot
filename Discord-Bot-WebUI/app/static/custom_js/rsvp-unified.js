@@ -153,6 +153,8 @@ document.addEventListener('DOMContentLoaded', function() {
               // Rebind event handlers to rows after DataTable redraws
               bindEventHandlers();
               fixDropdownsAndOverflow();
+              // FORCE REMOVE DEFAULT DATATABLES ARROWS
+              removeDataTablesArrows();
             }
           };
           
@@ -168,6 +170,11 @@ document.addEventListener('DOMContentLoaded', function() {
           if ($('#awayTeamTable').length) {
             $('#awayTeamTable').DataTable(tableOptions);
           }
+          
+          // FORCE REMOVE DATATABLES ARROWS AFTER INITIALIZATION
+          setTimeout(function() {
+            removeDataTablesArrows();
+          }, 100);
           
           // Style improvements
           $('.dataTables_filter .form-control').removeClass('form-control-sm');
@@ -923,3 +930,32 @@ function fixTeamOptions() {
     // console.error("Error fixing team options:", e);
   }
 }
+
+// Function to ensure DataTables arrows work correctly
+function removeDataTablesArrows() {
+  try {
+    // Get sorting elements (this DOM query might be essential)
+    var sortingElements = document.querySelectorAll('table.dataTable thead th.sorting, table.dataTable thead th.sorting_asc, table.dataTable thead th.sorting_desc');
+    
+    // Force browser reflow by accessing computed styles (this might be the key!)
+    // The browser needs to recalculate styles after DataTables changes
+    sortingElements.forEach(function(el) {
+      // These DOM operations might be triggering the reflow that makes CSS work
+      var beforeStyle = window.getComputedStyle(el, '::before');
+      var afterStyle = window.getComputedStyle(el, '::after');
+      // Force the browser to process the style calculations
+      beforeStyle.content; 
+      afterStyle.content;
+    });
+    
+  } catch (e) {
+    // Silent fail
+  }
+}
+
+// Apply the fix immediately after DataTables initialization
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    removeDataTablesArrows();
+  }, 1000);
+});

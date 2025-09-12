@@ -295,6 +295,7 @@
         border-radius: 0 0 4px 4px;
         background-color: #333 !important;
         color: #fff !important;
+        /* z-index handled by centralized system in mobile-scale-system.css */
     }
 
     .ui-menu-item-wrapper {
@@ -553,7 +554,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!toastContainer) {
                 toastContainer = document.createElement('div');
                 toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
-                toastContainer.style.zIndex = '9999';
+                // Z-index handled by centralized CSS system in mobile-scale-system.css
                 document.body.appendChild(toastContainer);
             }
             

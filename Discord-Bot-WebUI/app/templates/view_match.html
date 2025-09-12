@@ -8,6 +8,694 @@
 {% endif %}
 {% endblock %}
 
+{% block custom_css %}
+<style>
+/* Mobile-first match page optimizations */
+@media (max-width: 767.98px) {
+    /* Compact match header badges */
+    .match-header-wrapper .badge {
+        font-size: 0.75rem !important;
+        padding: 0.25rem 0.5rem !important;
+        margin-bottom: 0.25rem;
+    }
+    
+    .match-header-wrapper .d-flex.flex-wrap {
+        gap: 0.375rem !important;
+    }
+    
+    /* Mobile match details grid */
+    .match-details-mobile {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .match-detail-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 3px solid var(--bs-primary);
+    }
+    
+    .match-detail-item .avatar {
+        width: 32px !important;
+        height: 32px !important;
+        margin-right: 0.5rem !important;
+    }
+    
+    .match-detail-item .avatar i {
+        font-size: 0.875rem;
+    }
+    
+    .match-detail-content h6 {
+        font-size: 0.75rem;
+        margin-bottom: 0.125rem;
+        color: #6c757d;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .match-detail-content span {
+        font-size: 0.875rem;
+        font-weight: 500;
+        line-height: 1.2;
+    }
+    
+    /* Mobile player card system */
+    .player-card-mobile {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        overflow: hidden;
+        transition: all 0.2s ease;
+    }
+    
+    .player-card-mobile:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transform: translateY(-1px);
+    }
+    
+    .player-card-content {
+        padding: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .player-info-section {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .player-name-section {
+        margin-left: 0.5rem;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .player-name-mobile {
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-bottom: 0.125rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .player-role-mobile {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+    
+    .player-status-section {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    .status-badge-mobile {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+    
+    /* Mobile RSVP summary cards - more compact */
+    .rsvp-summary-mobile {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 0.25rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .rsvp-card-mobile {
+        padding: 0.5rem 0.25rem;
+        text-align: center;
+        border-radius: 6px;
+        border: 1px solid var(--ecs-border-color, #dee2e6);
+        min-height: auto;
+        background-color: var(--ecs-card-bg, #ffffff);
+        color: var(--ecs-text-primary, #212529);
+    }
+    
+    .rsvp-card-mobile .fs-4 {
+        font-size: 1.25rem !important;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    
+    .rsvp-card-mobile .small {
+        font-size: 0.625rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.25px;
+        line-height: 1;
+        margin-top: 0.125rem;
+    }
+    
+    /* Compact mobile player list */
+    .player-list-mobile-compact {
+        max-height: 280px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 6px;
+        border: 1px solid var(--ecs-border-color, #dee2e6);
+        background-color: var(--ecs-card-bg, #ffffff);
+    }
+    
+    .player-item-compact {
+        padding: 0.5rem;
+        border-bottom: 1px solid var(--ecs-border-light, #f0f0f0);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: auto;
+        background-color: var(--ecs-item-bg, transparent);
+    }
+    
+    .player-item-compact:hover {
+        background-color: var(--ecs-item-hover-bg, #f8f9fa);
+    }
+    
+    .player-item-compact:last-child {
+        border-bottom: none;
+    }
+    
+    .player-info-compact {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .player-info-compact .avatar {
+        width: 28px !important;
+        height: 28px !important;
+        margin-right: 0.5rem !important;
+    }
+    
+    .player-name-compact {
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 120px;
+        color: var(--ecs-text-primary, #212529);
+        text-decoration: none;
+    }
+    
+    .player-name-compact:hover {
+        color: var(--ecs-primary, var(--bs-primary));
+    }
+    
+    .player-status-compact {
+        margin-left: 0.5rem;
+    }
+    
+    .player-status-compact .badge {
+        font-size: 0.625rem;
+        padding: 0.25rem 0.375rem;
+        min-width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .player-status-compact .badge i {
+        font-size: 0.75rem;
+    }
+    
+    /* Summary stats at top */
+    .team-summary-mobile {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding: 0.75rem;
+        background: var(--ecs-summary-bg, #f8f9fa);
+        border-radius: 8px;
+        border-left: 4px solid var(--ecs-primary, var(--bs-primary));
+        color: var(--ecs-text-primary, #212529);
+    }
+    
+    .team-name-mobile {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--bs-primary);
+        margin: 0;
+    }
+    
+    .team-count-mobile {
+        font-size: 0.8rem;
+        color: #6c757d;
+        font-weight: 600;
+    }
+    
+    /* Quick stats row */
+    .quick-stats-mobile {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+        font-size: 0.75rem;
+        justify-content: center;
+    }
+    
+    .quick-stat {
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        color: white;
+    }
+    
+    .quick-stat.available {
+        background: #28a745;
+    }
+    
+    .quick-stat.unavailable {
+        background: #dc3545;
+    }
+    
+    .quick-stat.maybe {
+        background: #ffc107;
+        color: #212529;
+    }
+    
+    .quick-stat.no-response {
+        background: #6c757d;
+    }
+    
+    /* Quick stats styling for mobile and desktop */
+    .quick-stats {
+        display: flex;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        justify-content: center;
+    }
+    
+    .quick-stats-desktop {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+    
+    /* Desktop compact styles - CONSTRAINED */
+    .team-summary-desktop {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        background: var(--ecs-summary-bg, #f8f9fa);
+        border-radius: 6px;
+        border-left: 3px solid var(--ecs-primary, var(--bs-primary));
+        color: var(--ecs-text-primary, #212529);
+        font-size: 0.875rem;
+    }
+    
+    .player-list-desktop-compact {
+        max-height: 300px; /* REDUCED from 400px */
+        overflow-y: auto;
+        overflow-x: hidden; /* Prevent horizontal overflow */
+        -webkit-overflow-scrolling: touch;
+        border-radius: 6px;
+        border: 1px solid var(--ecs-border-color, #dee2e6);
+        background-color: var(--ecs-card-bg, #ffffff);
+        width: 100%; /* Ensure it doesn't exceed container */
+        box-sizing: border-box;
+    }
+    
+    .player-item-desktop-compact {
+        padding: 0.5rem 0.75rem; /* REDUCED padding */
+        border-bottom: 1px solid var(--ecs-border-light, #f0f0f0);
+        display: flex;
+        align-items: center;
+        min-height: auto;
+        background-color: var(--ecs-item-bg, transparent);
+        width: 100%;
+        box-sizing: border-box;
+        overflow: hidden; /* Prevent content overflow */
+    }
+    
+    .player-item-desktop-compact:hover {
+        background-color: var(--ecs-item-hover-bg, #f8f9fa);
+    }
+    
+    .player-item-desktop-compact:last-child {
+        border-bottom: none;
+    }
+    
+    .player-name-desktop-compact {
+        font-size: 0.8rem; /* SMALLER font */
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 140px; /* REDUCED max width */
+        flex: 1; /* Take available space */
+        margin-right: 0.5rem;
+        color: var(--ecs-text-primary, #212529);
+        text-decoration: none;
+    }
+    
+    .player-name-desktop-compact:hover {
+        color: var(--ecs-primary, var(--bs-primary));
+    }
+    
+    .status-icon-desktop {
+        font-size: 1rem;
+        margin-left: auto;
+    }
+    
+    .status-icon-compact {
+        font-size: 0.875rem;
+        margin-left: auto;
+    }
+    
+    /* Sub player styling */
+    .sub-player {
+        background-color: var(--ecs-sub-player-bg, rgba(40, 167, 69, 0.1)) !important;
+        border-left: 3px solid var(--bs-success, #28a745);
+    }
+    
+    /* Badge styling with dark mode support */
+    .badge-xs {
+        font-size: 0.625rem;
+        padding: 0.125rem 0.375rem;
+        border-radius: 0.25rem;
+    }
+    
+    .badge-sm {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+    }
+    
+    .coach-icon, .ref-icon {
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        font-size: 0.6rem;
+        background: var(--ecs-card-bg, #ffffff);
+        border-radius: 50%;
+        padding: 2px;
+    }
+    
+    .coach-icon {
+        color: var(--bs-primary, #0d6efd);
+    }
+    
+    .ref-icon {
+        color: var(--bs-warning, #ffc107);
+    }
+    
+    /* Dark mode overrides for all new compact classes */
+    .dark-mode .player-list-mobile-compact,
+    .dark-mode .player-list-desktop-compact {
+        background-color: var(--ecs-neutral-100, #1a1a1a);
+        border-color: var(--ecs-neutral-80, #3a3a3a);
+    }
+    
+    .dark-mode .player-item-compact,
+    .dark-mode .player-item-desktop-compact {
+        border-bottom-color: var(--ecs-neutral-80, #3a3a3a);
+    }
+    
+    .dark-mode .player-item-compact:hover,
+    .dark-mode .player-item-desktop-compact:hover {
+        background-color: var(--ecs-neutral-95, #2a2a2a);
+    }
+    
+    .dark-mode .team-summary-mobile,
+    .dark-mode .team-summary-desktop {
+        background-color: var(--ecs-neutral-95, #2a2a2a);
+        color: var(--ecs-neutral-30, #e5e5e5);
+    }
+    
+    .dark-mode .rsvp-card-mobile {
+        background-color: var(--ecs-neutral-100, #1a1a1a);
+        color: var(--ecs-neutral-30, #e5e5e5);
+        border-color: var(--ecs-neutral-80, #3a3a3a);
+    }
+    
+    .dark-mode .player-name-compact,
+    .dark-mode .player-name-desktop-compact {
+        color: var(--ecs-neutral-30, #e5e5e5);
+    }
+    
+    .dark-mode .sub-player {
+        background-color: var(--ecs-sub-player-dark-bg, rgba(40, 167, 69, 0.2)) !important;
+    }
+    
+    /* Comprehensive Dark Mode Styles using data-style attribute */
+    [data-style="dark"] .player-list-mobile-compact,
+    [data-style="dark"] .player-list-desktop-compact {
+        background-color: var(--ecs-neutral-100, #1a1a1a) !important;
+        border-color: var(--ecs-neutral-80, #3a3a3a) !important;
+    }
+    
+    [data-style="dark"] .player-item-compact,
+    [data-style="dark"] .player-item-desktop-compact {
+        background-color: var(--ecs-neutral-100, #1a1a1a) !important;
+        border-bottom-color: var(--ecs-neutral-80, #3a3a3a) !important;
+    }
+    
+    [data-style="dark"] .player-item-compact:hover,
+    [data-style="dark"] .player-item-desktop-compact:hover {
+        background-color: var(--ecs-neutral-95, #2a2a2a) !important;
+    }
+    
+    [data-style="dark"] .player-name-compact,
+    [data-style="dark"] .player-name-desktop-compact {
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    [data-style="dark"] .team-summary-mobile,
+    [data-style="dark"] .team-summary-desktop {
+        background-color: var(--ecs-neutral-95, #2a2a2a) !important;
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    [data-style="dark"] .rsvp-card-mobile {
+        background-color: var(--ecs-neutral-100, #1a1a1a) !important;
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+        border-color: var(--ecs-neutral-80, #3a3a3a) !important;
+    }
+    
+    [data-style="dark"] .match-detail-item {
+        background-color: var(--ecs-neutral-100, #1a1a1a) !important;
+    }
+    
+    [data-style="dark"] .match-detail-content h6,
+    [data-style="dark"] .match-detail-content span {
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    [data-style="dark"] .sub-player {
+        background-color: var(--ecs-sub-player-dark-bg, rgba(40, 167, 69, 0.2)) !important;
+    }
+    
+    [data-style="dark"] .mobile-action-bar {
+        background: var(--ecs-neutral-100, #1a1a1a) !important;
+        border-top-color: var(--ecs-neutral-80, #3a3a3a) !important;
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    /* RSVP Cards Dark Mode - Override Bootstrap opacity backgrounds */
+    [data-style="dark"] .bg-success.bg-opacity-10 {
+        background-color: rgba(40, 167, 69, 0.15) !important;
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    [data-style="dark"] .bg-warning.bg-opacity-10 {
+        background-color: rgba(255, 193, 7, 0.15) !important;
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    [data-style="dark"] .bg-danger.bg-opacity-10 {
+        background-color: rgba(220, 53, 69, 0.15) !important;
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    [data-style="dark"] .bg-secondary.bg-opacity-10 {
+        background-color: rgba(108, 117, 125, 0.15) !important;
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    [data-style="dark"] .bg-primary.bg-opacity-10 {
+        background-color: rgba(13, 110, 253, 0.15) !important;
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    /* Mobile RSVP Cards */
+    [data-style="dark"] .rsvp-card-mobile {
+        background-color: var(--ecs-neutral-100, #1a1a1a) !important;
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+        border-color: var(--ecs-neutral-80, #3a3a3a) !important;
+    }
+    
+    [data-style="dark"] .rsvp-card-mobile.bg-success.bg-opacity-10 {
+        background-color: rgba(40, 167, 69, 0.15) !important;
+    }
+    
+    [data-style="dark"] .rsvp-card-mobile.bg-warning.bg-opacity-10 {
+        background-color: rgba(255, 193, 7, 0.15) !important;
+    }
+    
+    [data-style="dark"] .rsvp-card-mobile.bg-danger.bg-opacity-10 {
+        background-color: rgba(220, 53, 69, 0.15) !important;
+    }
+    
+    [data-style="dark"] .rsvp-card-mobile.bg-secondary.bg-opacity-10 {
+        background-color: rgba(108, 117, 125, 0.15) !important;
+    }
+    
+    /* Text colors in dark mode */
+    [data-style="dark"] .fw-bold,
+    [data-style="dark"] .small {
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    /* Card text elements */
+    [data-style="dark"] .card .fw-bold,
+    [data-style="dark"] .card .small,
+    [data-style="dark"] .card span:not([class*="text-"]) {
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    /* Mobile action buttons */
+    .mobile-action-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 0.75rem;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        z-index: 1020;
+        border-top: 1px solid #dee2e6;
+    }
+    
+    .mobile-action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    
+    .mobile-action-buttons .btn {
+        flex: 1;
+        padding: 0.75rem 0.5rem;
+        font-size: 0.875rem;
+        border-radius: 8px;
+    }
+    
+    /* Add bottom padding to prevent content being hidden behind action bar */
+    .container-xxl {
+        padding-bottom: 80px;
+    }
+    
+    /* Hide desktop-only elements */
+    .d-none.d-md-block {
+        display: none !important;
+    }
+    
+    /* Simplify sort dropdown on mobile */
+    .dropdown-toggle {
+        font-size: 0.75rem !important;
+        padding: 0.375rem 0.5rem !important;
+    }
+    
+    /* Mobile team tabs - make them more touch-friendly */
+    .nav-tabs .nav-link {
+        padding: 0.75rem 0.5rem !important;
+        font-size: 0.875rem !important;
+    }
+    
+    .nav-tabs .nav-link .badge {
+        font-size: 0.625rem !important;
+        padding: 0.125rem 0.375rem !important;
+    }
+}
+
+/* Desktop enhancements */
+@media (min-width: 768px) {
+    .mobile-action-bar {
+        display: none;
+    }
+    
+    .container-xxl {
+        padding-bottom: 0;
+    }
+    
+    /* Enhanced desktop player items */
+    .player-item {
+        transition: all 0.2s ease;
+        border-radius: 8px;
+        margin-bottom: 0.25rem;
+    }
+    
+    .player-item:hover {
+        background: #f8f9fa !important;
+        transform: translateX(4px);
+    }
+}
+
+/* Touch-friendly improvements for all screen sizes */
+.avatar {
+    transition: all 0.2s ease;
+}
+
+.avatar:hover {
+    transform: scale(1.05);
+}
+
+.badge {
+    transition: all 0.2s ease;
+}
+
+.btn {
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Color coding for quick recognition */
+.bg-success.bg-opacity-10 {
+    border-left: 3px solid var(--bs-success) !important;
+}
+
+.bg-warning.bg-opacity-10 {
+    border-left: 3px solid var(--bs-warning) !important;
+}
+
+.bg-danger.bg-opacity-10 {
+    border-left: 3px solid var(--bs-danger) !important;
+}
+
+.bg-secondary.bg-opacity-10 {
+    border-left: 3px solid var(--bs-secondary) !important;
+}
+</style>
+{% endblock %}
+
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Match Header Card -->
@@ -93,7 +781,7 @@
                         {% else %}
                         <button class="btn btn-light edit-match-btn w-100 ecs-btn ecs-btn-icon" data-match-id="{{ match.id }}">
                             <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %} me-1"></i>
-                            {% if match.reported %}Edit Report{% else %}Report Match{% endif %}
+                            {% if match.reported %}Edit Match Report{% else %}Submit Match Report{% endif %}
                         </button>
                         {% endif %}
                     </div>
@@ -109,7 +797,7 @@
                     {% else %}
                     <button class="btn btn-light edit-match-btn ecs-btn ecs-btn-icon" data-match-id="{{ match.id }}">
                         <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %} me-1"></i>
-                        {% if match.reported %}Edit Report{% else %}Report Match{% endif %}
+                        {% if match.reported %}Edit Match Report{% else %}Submit Match Report{% endif %}
                     </button>
                     {% endif %}
                 </div>
@@ -126,7 +814,53 @@
                     <h5 class="card-title mb-0">Match Details</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row g-3">
+                    <!-- Mobile-optimized match details -->
+                    <div class="match-details-mobile d-md-none">
+                        <div class="match-detail-item">
+                            <div class="avatar bg-label-primary">
+                                <i class="ti ti-map-pin"></i>
+                            </div>
+                            <div class="match-detail-content">
+                                <h6>Location</h6>
+                                <span>{{ ecs_match.location if is_ecs_fc_match else match.location }}</span>
+                            </div>
+                        </div>
+
+                        <div class="match-detail-item">
+                            <div class="avatar bg-label-success">
+                                <i class="ti ti-clock"></i>
+                            </div>
+                            <div class="match-detail-content">
+                                <h6>Time</h6>
+                                <span>{{ ecs_match.match_time.strftime('%I:%M %p') if is_ecs_fc_match else match.time.strftime('%I:%M %p') }}</span>
+                            </div>
+                        </div>
+
+                        <div class="match-detail-item" style="grid-column: 1 / -1;">
+                            <div class="avatar bg-label-info">
+                                <i class="ti ti-calendar"></i>
+                            </div>
+                            <div class="match-detail-content">
+                                <h6>Date</h6>
+                                <span>{{ ecs_match.match_date.strftime('%a, %b %d, %Y') if is_ecs_fc_match else match.date.strftime('%a, %b %d, %Y') }}</span>
+                            </div>
+                        </div>
+
+                        {% if is_ecs_fc_match and ecs_match.field_name %}
+                        <div class="match-detail-item" style="grid-column: 1 / -1;">
+                            <div class="avatar bg-label-warning">
+                                <i class="ti ti-world"></i>
+                            </div>
+                            <div class="match-detail-content">
+                                <h6>Field</h6>
+                                <span>{{ ecs_match.field_name }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Desktop match details -->
+                    <div class="row g-3 d-none d-md-flex">
                         <div class="col-12 col-sm-6 col-md-4">
                             <div class="d-flex align-items-center">
                                 <div class="avatar avatar-sm me-3 bg-label-primary">
@@ -176,6 +910,7 @@
                             </div>
                         </div>
                         {% endif %}
+                    </div>
 
                         {% if safe_current_user.has_permission('view_game_results') and ((is_ecs_fc_match and ecs_match.notes) or (not is_ecs_fc_match and match.notes)) %}
                         <div class="col-12">
@@ -196,9 +931,239 @@
                 </div>
             </div>
         </div>
-    </div>
+        
+        <!-- Desktop Team Cards (visible on md screens and up) - FOR REGULAR MATCHES ONLY -->
+        {% if not is_ecs_fc_match %}
+        <div class="col-12">
+            <div class="row mb-4 d-none d-md-flex">
+                <div class="col-lg-6 mb-4">
+            <div class="card desktop-team-card">
+                <div class="card-header border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <a href="{{ url_for('teams.team_details', team_id=match.home_team.id) }}" class="text-decoration-none">
+                                {{ match.home_team.name }}
+                            </a>
+                            <span class="badge bg-label-primary ms-2">Home</span>
+                        </h5>
+                        {% if safe_current_user.has_permission('view_team_record') %}
+                        <span class="badge bg-primary">
+                            Record: {{ match.home_team.wins }}-{{ match.home_team.losses }}-{{ match.home_team.ties }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- RSVP Summary Cards -->
+                    <div class="row mb-3 rsvp-summary-row">
+                        <div class="col-6 col-md-3 mb-2 mb-md-0">
+                            <div class="card bg-success bg-opacity-10 text-center p-2 h-100">
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold">{{ home_rsvp_data['available'] | length }}</span>
+                                    <span class="small">Available</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 mb-2 mb-md-0">
+                            <div class="card bg-warning bg-opacity-10 text-center p-2 h-100">
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold">{{ home_rsvp_data['maybe'] | length }}</span>
+                                    <span class="small">Maybe</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card bg-danger bg-opacity-10 text-center p-2 h-100">
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold">{{ home_rsvp_data['not_available'] | length }}</span>
+                                    <span class="small">Unavailable</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card bg-secondary bg-opacity-10 text-center p-2 h-100">
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold">{{ home_rsvp_data['no_response'] | length }}</span>
+                                    <span class="small">No Response</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-    <!-- Team Rosters Row -->
+                    <!-- Desktop Compact Player List -->
+                    <div class="team-summary-desktop">
+                        <h6 class="fw-bold mb-2">{{ match.home_team.players|length }} Players</h6>
+                        <div class="quick-stats-desktop">
+                            <span class="quick-stat available">{{ home_rsvp_data['available']|length }} Available</span>
+                            <span class="quick-stat maybe">{{ home_rsvp_data['maybe']|length }} Maybe</span>
+                            <span class="quick-stat unavailable">{{ home_rsvp_data['not_available']|length }} No</span>
+                        </div>
+                    </div>
+                    
+                    <div class="player-list-desktop-compact">
+                        {% for player in match.home_team.players %}
+                        <div class="player-item-desktop-compact">
+                            <div class="avatar avatar-sm me-2">
+                                <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                                     alt="{{ player.name }}" class="rounded-circle">
+                                {% if player.is_coach %}
+                                <i class="fas fa-crown coach-icon"></i>
+                                {% endif %}
+                                {% if player.is_ref %}
+                                <i class="fas fa-whistle ref-icon"></i>
+                                {% endif %}
+                            </div>
+                            <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="player-name-desktop-compact">{{ player.name }}</a>
+                            {% if safe_current_user.has_permission('view_rsvps') %}
+                            {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
+                            {% if availability and availability.response == 'yes' %}
+                            <i class="ti ti-check text-success status-icon-desktop"></i>
+                            {% elif availability and availability.response == 'no' %}
+                            <i class="ti ti-x text-danger status-icon-desktop"></i>
+                            {% elif availability and availability.response == 'maybe' %}
+                            <i class="ti ti-question-mark text-warning status-icon-desktop"></i>
+                            {% else %}
+                            <i class="ti ti-minus text-muted status-icon-desktop"></i>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        
+                        {% for player in home_rsvp_data['available'] %}
+                            {% if player not in match.home_team.players %}
+                            <div class="player-item-desktop-compact sub-player">
+                                <div class="avatar avatar-sm me-2">
+                                    <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                                         alt="{{ player.name }}" class="rounded-circle">
+                                </div>
+                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="player-name-desktop-compact">{{ player.name }}</a>
+                                <span class="badge badge-sm bg-light text-muted me-1">Sub</span>
+                                <i class="ti ti-check text-success status-icon-desktop"></i>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Away Team Card (Desktop) -->
+        <div class="col-lg-6 mb-4">
+            <div class="card desktop-team-card">
+                <div class="card-header border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <a href="{{ url_for('teams.team_details', team_id=match.away_team.id) }}" class="text-decoration-none">
+                                {{ match.away_team.name }}
+                            </a>
+                            <span class="badge bg-label-info ms-2">Away</span>
+                        </h5>
+                        {% if safe_current_user.has_permission('view_team_record') %}
+                        <span class="badge bg-primary">
+                            Record: {{ match.away_team.wins }}-{{ match.away_team.losses }}-{{ match.away_team.ties }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- RSVP Summary Cards -->
+                    <div class="row mb-3 rsvp-summary-row">
+                        <div class="col-6 col-md-3 mb-2 mb-md-0">
+                            <div class="card bg-success bg-opacity-10 text-center p-2 h-100">
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold">{{ away_rsvp_data['available'] | length }}</span>
+                                    <span class="small">Available</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 mb-2 mb-md-0">
+                            <div class="card bg-warning bg-opacity-10 text-center p-2 h-100">
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold">{{ away_rsvp_data['maybe'] | length }}</span>
+                                    <span class="small">Maybe</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card bg-danger bg-opacity-10 text-center p-2 h-100">
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold">{{ away_rsvp_data['not_available'] | length }}</span>
+                                    <span class="small">Unavailable</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card bg-secondary bg-opacity-10 text-center p-2 h-100">
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold">{{ away_rsvp_data['no_response'] | length }}</span>
+                                    <span class="small">No Response</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Compact Player List -->
+                    <div class="team-summary-desktop">
+                        <h6 class="fw-bold mb-2">{{ match.away_team.players|length }} Players</h6>
+                        <div class="quick-stats-desktop">
+                            <span class="quick-stat available">{{ away_rsvp_data['available']|length }} Available</span>
+                            <span class="quick-stat maybe">{{ away_rsvp_data['maybe']|length }} Maybe</span>
+                            <span class="quick-stat unavailable">{{ away_rsvp_data['not_available']|length }} No</span>
+                        </div>
+                    </div>
+                    
+                    <div class="player-list-desktop-compact">
+                        {% for player in match.away_team.players %}
+                        <div class="player-item-desktop-compact">
+                            <div class="avatar avatar-sm me-2">
+                                <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                                     alt="{{ player.name }}" class="rounded-circle">
+                                {% if player.is_coach %}
+                                <i class="fas fa-crown coach-icon"></i>
+                                {% endif %}
+                                {% if player.is_ref %}
+                                <i class="fas fa-whistle ref-icon"></i>
+                                {% endif %}
+                            </div>
+                            <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="player-name-desktop-compact">{{ player.name }}</a>
+                            {% if safe_current_user.has_permission('view_rsvps') %}
+                            {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
+                            {% if availability and availability.response == 'yes' %}
+                            <i class="ti ti-check text-success status-icon-desktop"></i>
+                            {% elif availability and availability.response == 'no' %}
+                            <i class="ti ti-x text-danger status-icon-desktop"></i>
+                            {% elif availability and availability.response == 'maybe' %}
+                            <i class="ti ti-question-mark text-warning status-icon-desktop"></i>
+                            {% else %}
+                            <i class="ti ti-minus text-muted status-icon-desktop"></i>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        
+                        {% for player in away_rsvp_data['available'] %}
+                            {% if player not in match.away_team.players %}
+                            <div class="player-item-desktop-compact sub-player">
+                                <div class="avatar avatar-sm me-2">
+                                    <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                                         alt="{{ player.name }}" class="rounded-circle">
+                                </div>
+                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="player-name-desktop-compact">{{ player.name }}</a>
+                                <span class="badge badge-sm bg-light text-muted me-1">Sub</span>
+                                <i class="ti ti-check text-success status-icon-desktop"></i>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div> <!-- Close desktop team row -->
+        </div> <!-- Close col-12 -->
+        {% endif %}
+    </div> <!-- Close main container row -->
+
+    <!-- Mobile Team Rosters Row -->
     <div class="row">
         {% if is_ecs_fc_match %}
         <!-- ECS FC Match - Single Team Layout -->
@@ -225,8 +1190,32 @@
                         {% endif %}
                     </div>
                     
-                    <!-- ECS FC RSVP Summary Cards -->
-                    <div class="row mb-4 g-2">
+                    <!-- Compact Mobile RSVP Summary -->
+                    <div class="rsvp-summary-mobile d-md-none">
+                        <div class="rsvp-card-mobile bg-success bg-opacity-10">
+                            <i class="ti ti-check text-success"></i>
+                            <div class="fw-bold">{{ home_rsvp_data['available'] | length }}</div>
+                            <div class="small">Yes</div>
+                        </div>
+                        <div class="rsvp-card-mobile bg-warning bg-opacity-10">
+                            <i class="ti ti-question-mark text-warning"></i>
+                            <div class="fw-bold">{{ home_rsvp_data['maybe'] | length }}</div>
+                            <div class="small">Maybe</div>
+                        </div>
+                        <div class="rsvp-card-mobile bg-danger bg-opacity-10">
+                            <i class="ti ti-x text-danger"></i>
+                            <div class="fw-bold">{{ home_rsvp_data['not_available'] | length }}</div>
+                            <div class="small">No</div>
+                        </div>
+                        <div class="rsvp-card-mobile bg-secondary bg-opacity-10">
+                            <i class="ti ti-minus text-secondary"></i>
+                            <div class="fw-bold">{{ home_rsvp_data['no_response'] | length }}</div>
+                            <div class="small">???</div>
+                        </div>
+                    </div>
+
+                    <!-- Desktop RSVP Summary Cards -->
+                    <div class="row mb-4 g-2 d-none d-md-flex">
                         <div class="col-6 col-sm-3 mb-2">
                             <div class="card bg-success bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex align-items-center justify-content-around">
@@ -413,149 +1402,73 @@
                                 {% endif %}
                             </div>
                             
-                            <!-- RSVP Summary Cards -->
-                            <div class="row mb-4 g-2">
-                                <div class="col-6 col-sm-3 mb-2">
-                                    <div class="card bg-success bg-opacity-10 text-center p-2 h-100">
-                                        <div class="d-flex align-items-center justify-content-around">
-                                            <i class="ti ti-check fs-4 text-success"></i>
-                                            <div class="d-flex flex-column ms-2">
-                                                <span class="fw-bold fs-4">{{ home_rsvp_data['available'] | length }}</span>
-                                                <span class="small">Yes</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                            <!-- Compact Mobile RSVP Summary -->
+                            <div class="rsvp-summary-mobile">
+                                <div class="rsvp-card-mobile bg-success bg-opacity-10">
+                                    <i class="ti ti-check text-success"></i>
+                                    <div class="fw-bold">{{ home_rsvp_data['available'] | length }}</div>
+                                    <div class="small">Yes</div>
                                 </div>
-                                <div class="col-6 col-sm-3 mb-2">
-                                    <div class="card bg-warning bg-opacity-10 text-center p-2 h-100">
-                                        <div class="d-flex align-items-center justify-content-around">
-                                            <i class="ti ti-question-mark fs-4 text-warning"></i>
-                                            <div class="d-flex flex-column ms-2">
-                                                <span class="fw-bold fs-4">{{ home_rsvp_data['maybe'] | length }}</span>
-                                                <span class="small">Maybe</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="rsvp-card-mobile bg-warning bg-opacity-10">
+                                    <i class="ti ti-question-mark text-warning"></i>
+                                    <div class="fw-bold">{{ home_rsvp_data['maybe'] | length }}</div>
+                                    <div class="small">Maybe</div>
                                 </div>
-                                <div class="col-6 col-sm-3">
-                                    <div class="card bg-danger bg-opacity-10 text-center p-2 h-100">
-                                        <div class="d-flex align-items-center justify-content-around">
-                                            <i class="ti ti-x fs-4 text-danger"></i>
-                                            <div class="d-flex flex-column ms-2">
-                                                <span class="fw-bold fs-4">{{ home_rsvp_data['not_available'] | length }}</span>
-                                                <span class="small">No</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="rsvp-card-mobile bg-danger bg-opacity-10">
+                                    <i class="ti ti-x text-danger"></i>
+                                    <div class="fw-bold">{{ home_rsvp_data['not_available'] | length }}</div>
+                                    <div class="small">No</div>
                                 </div>
-                                <div class="col-6 col-sm-3">
-                                    <div class="card bg-secondary bg-opacity-10 text-center p-2 h-100">
-                                        <div class="d-flex align-items-center justify-content-around">
-                                            <i class="ti ti-minus fs-4 text-secondary"></i>
-                                            <div class="d-flex flex-column ms-2">
-                                                <span class="fw-bold fs-4">{{ home_rsvp_data['no_response'] | length }}</span>
-                                                <span class="small">???</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="rsvp-card-mobile bg-secondary bg-opacity-10">
+                                    <i class="ti ti-minus text-secondary"></i>
+                                    <div class="fw-bold">{{ home_rsvp_data['no_response'] | length }}</div>
+                                    <div class="small">???</div>
                                 </div>
                             </div>
                             
-                            <!-- Player List -->
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="fw-bold mb-0">Team Roster</h6>
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                        <i class="ti ti-sort-ascending"></i>
-                                        {% if sort_by == 'name' %}A-Z{% elif sort_by == 'response' %}RSVP{% else %}Sort{% endif %}
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="#" onclick="changeSort('default')">
-                                            <i class="ti ti-list"></i> Default Order
-                                        </a></li>
-                                        <li><a class="dropdown-item" href="#" onclick="changeSort('name')">
-                                            <i class="ti ti-sort-a-z"></i> Alphabetical
-                                        </a></li>
-                                        <li><a class="dropdown-item" href="#" onclick="changeSort('response')">
-                                            <i class="ti ti-check"></i> By RSVP Status
-                                        </a></li>
-                                    </ul>
+                            <!-- Team Summary Header -->
+                            <div class="team-summary-mobile">
+                                <h6 class="fw-bold mb-0">{{ match.home_team.players|length }} Players</h6>
+                                <div class="quick-stats">
+                                    <span class="text-success">{{ home_rsvp_data['available']|length }}✓</span>
+                                    <span class="text-warning">{{ home_rsvp_data['maybe']|length }}?</span>
+                                    <span class="text-danger">{{ home_rsvp_data['not_available']|length }}✗</span>
                                 </div>
                             </div>
-                            <div class="player-list-mobile">
+                            <!-- Compact Player List -->
+                            <div class="player-list-mobile-compact">
                                 {% for player in match.home_team.players %}
-                                <div class="player-item d-flex justify-content-between align-items-center p-2 border-bottom">
-                                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
-                                       class="d-flex align-items-center text-decoration-none">
-                                        <div class="avatar avatar-sm me-2">
-                                            <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
-                                                 alt="{{ player.name }}" class="rounded-circle">
-                                            {% if player.is_coach %}
-                                            <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
-                                            {% endif %}
-                                            {% if player.is_ref %}
-                                            <span class="avatar-status bg-warning" style="bottom: auto; top: 0;" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
-                                            {% endif %}
-                                        </div>
-                                        <div class="player-details">
-                                            <span class="fw-semibold d-block text-truncate" style="max-width: 120px;">{{ player.name }}</span>
-                                        </div>
-                                    </a>
-                                    {% if safe_current_user.has_permission('view_rsvps') %}
-                                    <div class="player-status ms-auto">
-                                        {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
-                                        {% if availability %}
-                                            {% if availability.response == 'yes' %}
-                                            <span class="badge bg-success">
-                                                <i class="ti ti-check"></i>
-                                            </span>
-                                            {% elif availability.response == 'no' %}
-                                            <span class="badge bg-danger">
-                                                <i class="ti ti-x"></i>
-                                            </span>
-                                            {% elif availability.response == 'maybe' %}
-                                            <span class="badge bg-warning">
-                                                <i class="ti ti-question-mark"></i>
-                                            </span>
-                                            {% endif %}
-                                        {% else %}
-                                            <span class="badge bg-secondary">
-                                                <i class="ti ti-minus"></i>
-                                            </span>
-                                        {% endif %}
+                                <div class="player-item-compact">
+                                    <div class="avatar avatar-xs me-2">
+                                        <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                                             alt="{{ player.name }}" class="rounded-circle">
                                     </div>
+                                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="player-name-compact">{{ player.name }}</a>
+                                    {% if safe_current_user.has_permission('view_rsvps') %}
+                                    {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
+                                    {% if availability and availability.response == 'yes' %}
+                                    <i class="ti ti-check text-success status-icon-compact"></i>
+                                    {% elif availability and availability.response == 'no' %}
+                                    <i class="ti ti-x text-danger status-icon-compact"></i>
+                                    {% elif availability and availability.response == 'maybe' %}
+                                    <i class="ti ti-question-mark text-warning status-icon-compact"></i>
+                                    {% else %}
+                                    <i class="ti ti-minus text-muted status-icon-compact"></i>
+                                    {% endif %}
                                     {% endif %}
                                 </div>
                                 {% endfor %}
                                 
-                                <!-- Display substitute assignments for mobile home team -->
                                 {% for player in home_rsvp_data['available'] %}
                                     {% if player not in match.home_team.players %}
-                                    <div class="player-item d-flex justify-content-between align-items-center p-2 border-bottom bg-light">
-                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
-                                           class="d-flex align-items-center text-decoration-none">
-                                            <div class="avatar avatar-sm me-2">
-                                                <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
-                                                     alt="{{ player.name }}" class="rounded-circle">
-                                                {% if player.is_coach %}
-                                                <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
-                                                {% endif %}
-                                                {% if player.is_ref %}
-                                                <span class="avatar-status bg-warning" style="bottom: auto; top: 0;" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
-                                                {% endif %}
-                                            </div>
-                                            <div class="player-details">
-                                                <span class="fw-semibold d-block text-truncate" style="max-width: 120px;">{{ player.name }}</span>
-                                                <small class="text-muted">Substitute</small>
-                                            </div>
-                                        </a>
-                                        {% if safe_current_user.has_permission('view_rsvps') %}
-                                        <div class="player-status ms-auto">
-                                            <span class="badge bg-success">
-                                                <i class="ti ti-check"></i> Sub
-                                            </span>
+                                    <div class="player-item-compact sub-player">
+                                        <div class="avatar avatar-xs me-2">
+                                            <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                                                 alt="{{ player.name }}" class="rounded-circle">
                                         </div>
-                                        {% endif %}
+                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="player-name-compact">{{ player.name }}</a>
+                                        <span class="badge badge-xs bg-light text-muted me-1">Sub</span>
+                                        <i class="ti ti-check text-success status-icon-compact"></i>
                                     </div>
                                     {% endif %}
                                 {% endfor %}
@@ -574,473 +1487,143 @@
                                 {% endif %}
                             </div>
                             
-                            <!-- RSVP Summary Cards -->
-                            <div class="row mb-4 g-2">
-                                <div class="col-6 col-sm-3 mb-2">
-                                    <div class="card bg-success bg-opacity-10 text-center p-2 h-100">
-                                        <div class="d-flex align-items-center justify-content-around">
-                                            <i class="ti ti-check fs-4 text-success"></i>
-                                            <div class="d-flex flex-column ms-2">
-                                                <span class="fw-bold fs-4">{{ away_rsvp_data['available'] | length }}</span>
-                                                <span class="small">Yes</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                            <!-- Compact Mobile RSVP Summary -->
+                            <div class="rsvp-summary-mobile">
+                                <div class="rsvp-card-mobile bg-success bg-opacity-10">
+                                    <i class="ti ti-check text-success"></i>
+                                    <div class="fw-bold">{{ away_rsvp_data['available'] | length }}</div>
+                                    <div class="small">Yes</div>
                                 </div>
-                                <div class="col-6 col-sm-3 mb-2">
-                                    <div class="card bg-warning bg-opacity-10 text-center p-2 h-100">
-                                        <div class="d-flex align-items-center justify-content-around">
-                                            <i class="ti ti-question-mark fs-4 text-warning"></i>
-                                            <div class="d-flex flex-column ms-2">
-                                                <span class="fw-bold fs-4">{{ away_rsvp_data['maybe'] | length }}</span>
-                                                <span class="small">Maybe</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="rsvp-card-mobile bg-warning bg-opacity-10">
+                                    <i class="ti ti-question-mark text-warning"></i>
+                                    <div class="fw-bold">{{ away_rsvp_data['maybe'] | length }}</div>
+                                    <div class="small">Maybe</div>
                                 </div>
-                                <div class="col-6 col-sm-3">
-                                    <div class="card bg-danger bg-opacity-10 text-center p-2 h-100">
-                                        <div class="d-flex align-items-center justify-content-around">
-                                            <i class="ti ti-x fs-4 text-danger"></i>
-                                            <div class="d-flex flex-column ms-2">
-                                                <span class="fw-bold fs-4">{{ away_rsvp_data['not_available'] | length }}</span>
-                                                <span class="small">No</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="rsvp-card-mobile bg-danger bg-opacity-10">
+                                    <i class="ti ti-x text-danger"></i>
+                                    <div class="fw-bold">{{ away_rsvp_data['not_available'] | length }}</div>
+                                    <div class="small">No</div>
                                 </div>
-                                <div class="col-6 col-sm-3">
-                                    <div class="card bg-secondary bg-opacity-10 text-center p-2 h-100">
-                                        <div class="d-flex align-items-center justify-content-around">
-                                            <i class="ti ti-minus fs-4 text-secondary"></i>
-                                            <div class="d-flex flex-column ms-2">
-                                                <span class="fw-bold fs-4">{{ away_rsvp_data['no_response'] | length }}</span>
-                                                <span class="small">???</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="rsvp-card-mobile bg-secondary bg-opacity-10">
+                                    <i class="ti ti-minus text-secondary"></i>
+                                    <div class="fw-bold">{{ away_rsvp_data['no_response'] | length }}</div>
+                                    <div class="small">???</div>
                                 </div>
                             </div>
                             
                             <!-- Player List -->
-                            <h6 class="fw-bold mb-2">Team Roster</h6>
-                            <div class="player-list-mobile">
+                            <!-- Team Summary Header -->
+                            <div class="team-summary-mobile">
+                                <h6 class="fw-bold mb-0">{{ match.away_team.players|length }} Players</h6>
+                                <div class="quick-stats">
+                                    <span class="text-success">{{ away_rsvp_data['available']|length }}✓</span>
+                                    <span class="text-warning">{{ away_rsvp_data['maybe']|length }}?</span>
+                                    <span class="text-danger">{{ away_rsvp_data['not_available']|length }}✗</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Compact Player List -->
+                            <div class="player-list-mobile-compact">
                                 {% for player in match.away_team.players %}
-                                <div class="player-item d-flex justify-content-between align-items-center p-2 border-bottom">
-                                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
-                                       class="d-flex align-items-center text-decoration-none">
-                                        <div class="avatar avatar-sm me-2">
-                                            <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
-                                                 alt="{{ player.name }}" class="rounded-circle">
-                                            {% if player.is_coach %}
-                                            <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
-                                            {% endif %}
-                                            {% if player.is_ref %}
-                                            <span class="avatar-status bg-warning" style="bottom: auto; top: 0;" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
-                                            {% endif %}
-                                        </div>
-                                        <div class="player-details">
-                                            <span class="fw-semibold d-block text-truncate" style="max-width: 120px;">{{ player.name }}</span>
-                                        </div>
-                                    </a>
-                                    {% if safe_current_user.has_permission('view_rsvps') %}
-                                    <div class="player-status ms-auto">
-                                        {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
-                                        {% if availability %}
-                                            {% if availability.response == 'yes' %}
-                                            <span class="badge bg-success">
-                                                <i class="ti ti-check"></i>
-                                            </span>
-                                            {% elif availability.response == 'no' %}
-                                            <span class="badge bg-danger">
-                                                <i class="ti ti-x"></i>
-                                            </span>
-                                            {% elif availability.response == 'maybe' %}
-                                            <span class="badge bg-warning">
-                                                <i class="ti ti-question-mark"></i>
-                                            </span>
-                                            {% endif %}
-                                        {% else %}
-                                            <span class="badge bg-secondary">
-                                                <i class="ti ti-minus"></i>
-                                            </span>
-                                        {% endif %}
+                                <div class="player-item-compact">
+                                    <div class="avatar avatar-xs me-2">
+                                        <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                                             alt="{{ player.name }}" class="rounded-circle">
                                     </div>
+                                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="player-name-compact">{{ player.name }}</a>
+                                    {% if safe_current_user.has_permission('view_rsvps') %}
+                                    {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
+                                    {% if availability and availability.response == 'yes' %}
+                                    <i class="ti ti-check text-success status-icon-compact"></i>
+                                    {% elif availability and availability.response == 'no' %}
+                                    <i class="ti ti-x text-danger status-icon-compact"></i>
+                                    {% elif availability and availability.response == 'maybe' %}
+                                    <i class="ti ti-question-mark text-warning status-icon-compact"></i>
+                                    {% else %}
+                                    <i class="ti ti-minus text-muted status-icon-compact"></i>
+                                    {% endif %}
                                     {% endif %}
                                 </div>
                                 {% endfor %}
                                 
-                                <!-- Display substitute assignments for mobile away team -->
                                 {% for player in away_rsvp_data['available'] %}
                                     {% if player not in match.away_team.players %}
-                                    <div class="player-item d-flex justify-content-between align-items-center p-2 border-bottom bg-light">
-                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
-                                           class="d-flex align-items-center text-decoration-none">
-                                            <div class="avatar avatar-sm me-2">
-                                                <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
-                                                     alt="{{ player.name }}" class="rounded-circle">
-                                                {% if player.is_coach %}
-                                                <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
-                                                {% endif %}
-                                                {% if player.is_ref %}
-                                                <span class="avatar-status bg-warning" style="bottom: auto; top: 0;" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
-                                                {% endif %}
-                                            </div>
-                                            <div class="player-details">
-                                                <span class="fw-semibold d-block text-truncate" style="max-width: 120px;">{{ player.name }}</span>
-                                                <small class="text-muted">Substitute</small>
-                                            </div>
-                                        </a>
-                                        {% if safe_current_user.has_permission('view_rsvps') %}
-                                        <div class="player-status ms-auto">
-                                            <span class="badge bg-success">
-                                                <i class="ti ti-check"></i> Sub
-                                            </span>
+                                    <div class="player-item-compact sub-player">
+                                        <div class="avatar avatar-xs me-2">
+                                            <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                                                 alt="{{ player.name }}" class="rounded-circle">
                                         </div>
-                                        {% endif %}
+                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="player-name-compact">{{ player.name }}</a>
+                                        <span class="badge badge-xs bg-light text-muted me-1">Sub</span>
+                                        <i class="ti ti-check text-success status-icon-compact"></i>
                                     </div>
                                     {% endif %}
                                 {% endfor %}
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Desktop Team Cards (visible on md screens and up) -->
-        <div class="col-lg-6 mb-4 d-none d-md-block">
-            <div class="card h-100">
-                <div class="card-header border-bottom">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
-                            <a href="{{ url_for('teams.team_details', team_id=match.home_team.id) }}" class="text-decoration-none">
-                                {{ match.home_team.name }}
-                            </a>
-                            <span class="badge bg-label-primary ms-2">Home</span>
-                        </h5>
-                        {% if safe_current_user.has_permission('view_team_record') %}
-                        <span class="badge bg-primary">
-                            Record: {{ match.home_team.wins }}-{{ match.home_team.losses }}-{{ match.home_team.ties }}
-                        </span>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="card-body">
-                    <!-- RSVP Summary Cards -->
-                    <div class="row mb-4">
-                        <div class="col-6 col-md-3 mb-2 mb-md-0">
-                            <div class="card bg-success bg-opacity-10 text-center p-2 h-100">
-                                <div class="d-flex flex-column">
-                                    <span class="fw-bold fs-4">{{ home_rsvp_data['available'] | length }}</span>
-                                    <span class="small">Available</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3 mb-2 mb-md-0">
-                            <div class="card bg-warning bg-opacity-10 text-center p-2 h-100">
-                                <div class="d-flex flex-column">
-                                    <span class="fw-bold fs-4">{{ home_rsvp_data['maybe'] | length }}</span>
-                                    <span class="small">Maybe</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="card bg-danger bg-opacity-10 text-center p-2 h-100">
-                                <div class="d-flex flex-column">
-                                    <span class="fw-bold fs-4">{{ home_rsvp_data['not_available'] | length }}</span>
-                                    <span class="small">Unavailable</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="card bg-secondary bg-opacity-10 text-center p-2 h-100">
-                                <div class="d-flex flex-column">
-                                    <span class="fw-bold fs-4">{{ home_rsvp_data['no_response'] | length }}</span>
-                                    <span class="small">No Response</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Player List -->
-                    <div class="player-list">
-                        {% for player in match.home_team.players %}
-                        <div class="player-item d-flex justify-content-between align-items-center p-3 border-bottom">
-                            <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
-                               class="d-flex align-items-center text-decoration-none">
-                                <div class="avatar avatar-md me-2 me-sm-3">
-                                    <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
-                                         alt="{{ player.name }}" class="rounded-circle">
-                                    {% if player.is_coach %}
-                                    <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
-                                    {% endif %}
-                                    {% if player.is_ref %}
-                                    <span class="avatar-status bg-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
-                                    {% endif %}
-                                </div>
-                                <div class="player-details">
-                                    <h6 class="mb-0 text-truncate">{{ player.name }}</h6>
-                                    <small class="text-muted d-block text-truncate">
-                                        {% if player.favorite_position %}Position: {{ format_position(player.favorite_position) }}{% endif %}
-                                    </small>
-                                </div>
-                            </a>
-                            {% if safe_current_user.has_permission('view_rsvps') %}
-                            <div class="player-status ms-auto ps-1">
-                                {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
-                                {% if availability %}
-                                    {% if availability.response == 'yes' %}
-                                    <span class="badge bg-success d-inline-flex align-items-center">
-                                        <i class="ti ti-check me-1"></i><span class="d-none d-sm-inline">Available</span>
-                                    </span>
-                                    {% elif availability.response == 'no' %}
-                                    <span class="badge bg-danger d-inline-flex align-items-center">
-                                        <i class="ti ti-x me-1"></i><span class="d-none d-sm-inline">Not Available</span>
-                                    </span>
-                                    {% elif availability.response == 'maybe' %}
-                                    <span class="badge bg-warning d-inline-flex align-items-center">
-                                        <i class="ti ti-question-mark me-1"></i><span class="d-none d-sm-inline">Maybe</span>
-                                    </span>
-                                    {% endif %}
-                                {% else %}
-                                    <span class="badge bg-secondary d-inline-flex align-items-center">
-                                        <i class="ti ti-minus me-1"></i><span class="d-none d-sm-inline">No Response</span>
-                                    </span>
-                                {% endif %}
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                        
-                        <!-- Display substitute assignments for desktop home team -->
-                        {% for player in home_rsvp_data['available'] %}
-                            {% if player not in match.home_team.players %}
-                            <div class="player-item d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
-                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
-                                   class="d-flex align-items-center text-decoration-none">
-                                    <div class="avatar avatar-md me-2 me-sm-3">
-                                        <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
-                                             alt="{{ player.name }}" class="rounded-circle">
-                                        {% if player.is_coach %}
-                                        <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
-                                        {% endif %}
-                                        {% if player.is_ref %}
-                                        <span class="avatar-status bg-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
-                                        {% endif %}
-                                    </div>
-                                    <div class="player-details">
-                                        <h6 class="mb-0 text-truncate">{{ player.name }}</h6>
-                                        <small class="text-muted d-block text-truncate">
-                                            Substitute
-                                        </small>
-                                    </div>
-                                </a>
-                                {% if safe_current_user.has_permission('view_rsvps') %}
-                                <div class="player-status ms-auto ps-1">
-                                    <span class="badge bg-success d-inline-flex align-items-center">
-                                        <i class="ti ti-check me-1"></i><span class="d-none d-sm-inline">Sub</span>
-                                    </span>
-                                </div>
-                                {% endif %}
-                            </div>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Away Team Card (Desktop) -->
-        <div class="col-lg-6 mb-4 d-none d-md-block">
-            <div class="card h-100">
-                <div class="card-header border-bottom">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
-                            <a href="{{ url_for('teams.team_details', team_id=match.away_team.id) }}" class="text-decoration-none">
-                                {{ match.away_team.name }}
-                            </a>
-                            <span class="badge bg-label-info ms-2">Away</span>
-                        </h5>
-                        {% if safe_current_user.has_permission('view_team_record') %}
-                        <span class="badge bg-primary">
-                            Record: {{ match.away_team.wins }}-{{ match.away_team.losses }}-{{ match.away_team.ties }}
-                        </span>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="card-body">
-                    <!-- RSVP Summary Cards -->
-                    <div class="row mb-4">
-                        <div class="col-6 col-md-3 mb-2 mb-md-0">
-                            <div class="card bg-success bg-opacity-10 text-center p-2 h-100">
-                                <div class="d-flex flex-column">
-                                    <span class="fw-bold fs-4">{{ away_rsvp_data['available'] | length }}</span>
-                                    <span class="small">Available</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3 mb-2 mb-md-0">
-                            <div class="card bg-warning bg-opacity-10 text-center p-2 h-100">
-                                <div class="d-flex flex-column">
-                                    <span class="fw-bold fs-4">{{ away_rsvp_data['maybe'] | length }}</span>
-                                    <span class="small">Maybe</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="card bg-danger bg-opacity-10 text-center p-2 h-100">
-                                <div class="d-flex flex-column">
-                                    <span class="fw-bold fs-4">{{ away_rsvp_data['not_available'] | length }}</span>
-                                    <span class="small">Unavailable</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="card bg-secondary bg-opacity-10 text-center p-2 h-100">
-                                <div class="d-flex flex-column">
-                                    <span class="fw-bold fs-4">{{ away_rsvp_data['no_response'] | length }}</span>
-                                    <span class="small">No Response</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Player List -->
-                    <div class="player-list">
-                        {% for player in match.away_team.players %}
-                        <div class="player-item d-flex justify-content-between align-items-center p-3 border-bottom">
-                            <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
-                               class="d-flex align-items-center text-decoration-none">
-                                <div class="avatar avatar-md me-2 me-sm-3">
-                                    <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
-                                         alt="{{ player.name }}" class="rounded-circle">
-                                    {% if player.is_coach %}
-                                    <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
-                                    {% endif %}
-                                    {% if player.is_ref %}
-                                    <span class="avatar-status bg-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
-                                    {% endif %}
-                                </div>
-                                <div class="player-details">
-                                    <h6 class="mb-0 text-truncate">{{ player.name }}</h6>
-                                    <small class="text-muted d-block text-truncate">
-                                        {% if player.favorite_position %}Position: {{ format_position(player.favorite_position) }}{% endif %}
-                                    </small>
-                                </div>
-                            </a>
-                            {% if safe_current_user.has_permission('view_rsvps') %}
-                            <div class="player-status ms-auto ps-1">
-                                {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
-                                {% if availability %}
-                                    {% if availability.response == 'yes' %}
-                                    <span class="badge bg-success d-inline-flex align-items-center">
-                                        <i class="ti ti-check me-1"></i><span class="d-none d-sm-inline">Available</span>
-                                    </span>
-                                    {% elif availability.response == 'no' %}
-                                    <span class="badge bg-danger d-inline-flex align-items-center">
-                                        <i class="ti ti-x me-1"></i><span class="d-none d-sm-inline">Not Available</span>
-                                    </span>
-                                    {% elif availability.response == 'maybe' %}
-                                    <span class="badge bg-warning d-inline-flex align-items-center">
-                                        <i class="ti ti-question-mark me-1"></i><span class="d-none d-sm-inline">Maybe</span>
-                                    </span>
-                                    {% endif %}
-                                {% else %}
-                                    <span class="badge bg-secondary d-inline-flex align-items-center">
-                                        <i class="ti ti-minus me-1"></i><span class="d-none d-sm-inline">No Response</span>
-                                    </span>
-                                {% endif %}
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                        
-                        <!-- Display substitute assignments for desktop away team -->
-                        {% for player in away_rsvp_data['available'] %}
-                            {% if player not in match.away_team.players %}
-                            <div class="player-item d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
-                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
-                                   class="d-flex align-items-center text-decoration-none">
-                                    <div class="avatar avatar-md me-2 me-sm-3">
-                                        <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
-                                             alt="{{ player.name }}" class="rounded-circle">
-                                        {% if player.is_coach %}
-                                        <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
-                                        {% endif %}
-                                        {% if player.is_ref %}
-                                        <span class="avatar-status bg-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
-                                        {% endif %}
-                                    </div>
-                                    <div class="player-details">
-                                        <h6 class="mb-0 text-truncate">{{ player.name }}</h6>
-                                        <small class="text-muted d-block text-truncate">
-                                            Substitute
-                                        </small>
-                                    </div>
-                                </a>
-                                {% if safe_current_user.has_permission('view_rsvps') %}
-                                <div class="player-status ms-auto ps-1">
-                                    <span class="badge bg-success d-inline-flex align-items-center">
-                                        <i class="ti ti-check me-1"></i><span class="d-none d-sm-inline">Sub</span>
-                                    </span>
-                                </div>
-                                {% endif %}
-                            </div>
-                            {% endif %}
-                        {% endfor %}
                     </div>
                 </div>
             </div>
         </div>
         {% endif %}
+    </div> <!-- Close Team Rosters Row -->
+    
+    <!-- Mobile Action Bar -->
+    <div class="mobile-action-bar">
+        <div class="mobile-action-buttons">
+            {% if safe_current_user.has_permission('view_rsvps') %}
+            <a href="{{ url_for('admin.rsvp_status', match_id='ecs_' + ecs_match.id|string if is_ecs_fc_match else match.id) }}" class="btn btn-primary">
+                <i class="ti ti-users me-1"></i>RSVPs
+            </a>
+            {% endif %}
+            
+            {% if safe_current_user.has_permission('view_match_reporting') %}
+            {% if is_ecs_fc_match %}
+            <button class="btn btn-success edit-match-btn" data-match-id="ecs_{{ ecs_match.id }}" data-is-ecs-fc="true">
+                <i class="ti ti-report me-1"></i>Report Match Results
+            </button>
+            {% else %}
+            <button class="btn btn-success edit-match-btn" data-match-id="{{ match.id }}">
+                <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %} me-1"></i>
+                {% if match.reported %}Edit Match Report{% else %}Submit Match Report{% endif %}
+            </button>
+            {% endif %}
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}
 
-{% block custom_css %}
-<style>
-    /* Match Header Styling */
-    .match-header-wrapper {
-        position: relative;
-        min-height: 120px;
+{% block custom_js %}
+<script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
+<script>
+    // Make player choices globally available for the report_match.js script
+    window.playerChoices = {{ player_choices | tojson | safe }};
+    
+    // Function to change player sorting
+    function changeSort(sortType) {
+        const currentUrl = new URL(window.location.href);
+        
+        if (sortType === 'default') {
+            // Remove sort parameter to go back to default
+            currentUrl.searchParams.delete('sort');
+        } else {
+            // Add or update sort parameter
+            currentUrl.searchParams.set('sort', sortType);
+        }
+        
+        window.location.href = currentUrl.toString();
     }
     
-    /* Card theming that respects light/dark mode */
-    html[data-style="light"] .card.bg-primary {
-        background-color: var(--bs-primary) !important;
-        background-image: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%) !important;
-    }
-    
-    html[data-style="dark"] .card.bg-primary {
-        background-color: var(--bs-primary) !important;
-        background-image: linear-gradient(45deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0) 100%) !important;
-    }
-    
-    /* Badge styling with transparency for better aesthetics */
-    .badge.bg-label-light {
-        background-color: rgba(255, 255, 255, 0.15) !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(5px);
-    }
-    
-    /* Improved button styling */
-    .btn.btn-outline-light {
-        color: #ffffff !important;
-        border-color: rgba(255, 255, 255, 0.5) !important;
-        background-color: rgba(255, 255, 255, 0.05) !important;
-        transition: all 0.2s ease-in-out;
-    }
-    
-    .btn.btn-outline-light:hover {
-        background-color: rgba(255, 255, 255, 0.15) !important;
-        border-color: rgba(255, 255, 255, 0.8) !important;
-    }
-    
-    /* Player List Styling */
-    .player-list {
-        max-height: 500px;
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Load match modals if they don't exist
+        if (!document.getElementById('reportMatchModal-{{ match.id if match else ecs_match.id }}')) {
         overflow-y: auto;
     }
     
@@ -1204,103 +1787,5 @@
             font-size: 0.9rem;
         }
     }
-</style>
 {% endblock %}
 
-{% block custom_js %}
-<script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
-<script>
-    // Make player choices globally available for the report_match.js script
-    window.playerChoices = {{ player_choices | tojson | safe }};
-    
-    // Function to change player sorting
-    function changeSort(sortType) {
-        const currentUrl = new URL(window.location.href);
-        
-        if (sortType === 'default') {
-            // Remove sort parameter to go back to default
-            currentUrl.searchParams.delete('sort');
-        } else {
-            // Add or update sort parameter
-            currentUrl.searchParams.set('sort', sortType);
-        }
-        
-        window.location.href = currentUrl.toString();
-    }
-    
-    document.addEventListener('DOMContentLoaded', function () {
-        // Initialize tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-        
-        // Load match modals if they don't exist
-        if (!document.getElementById('reportMatchModal-{{ match.id if match else ecs_match.id }}')) {
-            $.ajax({
-                url: '/modals/render_modals',
-                method: 'GET',
-                success: function(modalContent) {
-                    $('body').append(modalContent);
-                    console.log('Match modals loaded dynamically');
-                },
-                error: function() {
-                    console.error('Failed to load match modals');
-                }
-            });
-        }
-        
-        // Mobile swipe navigation between team tabs (only for regular matches)
-        {% if not is_ecs_fc_match %}
-        const tabContent = document.querySelector('.tab-content');
-        if (tabContent && window.innerWidth < 768) {
-            let touchStartX = 0;
-            let touchEndX = 0;
-            
-            tabContent.addEventListener('touchstart', function(e) {
-                touchStartX = e.changedTouches[0].screenX;
-            });
-            
-            tabContent.addEventListener('touchend', function(e) {
-                touchEndX = e.changedTouches[0].screenX;
-                handleSwipe();
-            });
-            
-            function handleSwipe() {
-                const homeTab = document.getElementById('home-team-tab');
-                const awayTab = document.getElementById('away-team-tab');
-                
-                if (!homeTab || !awayTab) return;
-                
-                // Detect left or right swipe (minimum 50px to trigger)
-                if (touchEndX < touchStartX - 50) {
-                    // Swiped left - go to away team
-                    if (homeTab.classList.contains('active')) {
-                        new bootstrap.Tab(awayTab).show();
-                    }
-                }
-                
-                if (touchEndX > touchStartX + 50) {
-                    // Swiped right - go to home team
-                    if (awayTab.classList.contains('active')) {
-                        new bootstrap.Tab(homeTab).show();
-                    }
-                }
-            }
-            
-            // Add visual swipe hint that fades out after 5 seconds
-            const swipeHint = document.createElement('div');
-            swipeHint.className = 'text-center text-muted small fst-italic mt-2';
-            swipeHint.innerHTML = '<i class="ti ti-arrow-left me-1"></i> Swipe between teams <i class="ti ti-arrow-right ms-1"></i>';
-            swipeHint.style.opacity = '0.7';
-            tabContent.appendChild(swipeHint);
-            
-            setTimeout(() => {
-                swipeHint.style.transition = 'opacity 1s ease';
-                swipeHint.style.opacity = '0';
-            }, 5000);
-        }
-        {% endif %}
-    });
-</script>
-{% endblock %}

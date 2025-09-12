@@ -135,6 +135,222 @@
         .mb-mobile-3 {
             margin-bottom: 1rem !important;
         }
+        
+        /* Mobile-first RSVP Card System */
+        .rsvp-mobile-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+            overflow: hidden;
+        }
+        
+        .rsvp-mobile-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+        
+        .rsvp-card-header {
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .rsvp-card-main {
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .rsvp-card-body {
+            padding: 0 1rem 1rem;
+            display: none; /* Hidden by default, shown when expanded */
+        }
+        
+        .rsvp-card-body.show {
+            display: block;
+        }
+        
+        .player-info-mobile {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .player-name-mobile {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            font-size: 1rem;
+        }
+        
+        .player-meta-mobile {
+            font-size: 0.875rem;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .response-badge-mobile {
+            padding: 0.375rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .expand-button {
+            background: none;
+            border: none;
+            color: #6c757d;
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+        }
+        
+        .expand-button:hover {
+            background: #f8f9fa;
+            color: #495057;
+        }
+        
+        .expand-button.expanded {
+            transform: rotate(180deg);
+        }
+        
+        .quick-actions-mobile {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+        }
+        
+        .quick-action-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            transition: all 0.2s ease;
+        }
+        
+        .contact-actions-mobile {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        
+        .contact-action-btn {
+            padding: 0.75rem;
+            border-radius: 8px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .rsvp-actions-mobile {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        
+        .rsvp-action-btn {
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        /* Hide desktop table on mobile */
+        .table-responsive {
+            display: none !important;
+        }
+        
+        /* Show mobile cards only on mobile */
+        .rsvp-mobile-list {
+            display: block;
+        }
+    }
+    
+    /* Desktop styles */
+    @media (min-width: 768px) {
+        .rsvp-mobile-list {
+            display: none;
+        }
+        
+        .table-responsive {
+            display: block !important;
+        }
+        
+        /* Enhanced desktop table */
+        .table th {
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .table td {
+            vertical-align: middle;
+            padding: 1rem 0.75rem;
+        }
+        
+        .player-item-desktop {
+            display: flex;
+            align-items: center;
+        }
+        
+        .player-item-desktop .avatar {
+            margin-right: 0.75rem;
+        }
+        
+        .dropdown-menu {
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            border: none;
+            padding: 0.5rem 0;
+        }
+        
+        .dropdown-item {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+        
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
     }
     
     /* Page loader */
@@ -260,6 +476,141 @@
         right: 0 !important;
         left: auto !important;
     }
+    
+    /* =====================================================================
+       DARK MODE STYLES FOR RSVP STATUS PAGE
+       ===================================================================== */
+    
+    /* Cards and main content */
+    [data-style="dark"] .card,
+    [data-style="dark"] .shadow-sm {
+        background-color: var(--ecs-neutral-100, #1a1a1a) !important;
+        border-color: var(--ecs-neutral-80, #3a3a3a) !important;
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    [data-style="dark"] .card-header {
+        background-color: var(--ecs-neutral-95, #2a2a2a) !important;
+        border-bottom-color: var(--ecs-neutral-80, #3a3a3a) !important;
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    [data-style="dark"] .card-body {
+        background-color: var(--ecs-neutral-100, #1a1a1a) !important;
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    /* Navigation tabs */
+    [data-style="dark"] .nav-tabs .nav-link {
+        color: var(--ecs-neutral-40, #cccccc) !important;
+        border-color: transparent !important;
+    }
+    
+    [data-style="dark"] .nav-tabs .nav-link.active {
+        color: var(--ecs-primary, #696cff) !important;
+        border-bottom-color: var(--ecs-primary, #696cff) !important;
+        background-color: transparent !important;
+    }
+    
+    [data-style="dark"] .nav-tabs {
+        border-bottom-color: var(--ecs-neutral-80, #3a3a3a) !important;
+    }
+    
+    /* Mobile RSVP Cards */
+    [data-style="dark"] .rsvp-mobile-card {
+        background: var(--ecs-neutral-100, #1a1a1a) !important;
+        border-color: var(--ecs-neutral-80, #3a3a3a) !important;
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    [data-style="dark"] .rsvp-card-header {
+        background: var(--ecs-neutral-95, #2a2a2a) !important;
+        border-bottom-color: var(--ecs-neutral-80, #3a3a3a) !important;
+    }
+    
+    [data-style="dark"] .player-meta-mobile {
+        color: var(--ecs-neutral-50, #999999) !important;
+    }
+    
+    /* Table styling */
+    [data-style="dark"] .table {
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    [data-style="dark"] .table th {
+        background-color: var(--ecs-neutral-95, #2a2a2a) !important;
+        border-bottom-color: var(--ecs-neutral-80, #3a3a3a) !important;
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    [data-style="dark"] .table td {
+        border-top-color: var(--ecs-neutral-80, #3a3a3a) !important;
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    [data-style="dark"] .table-striped > tbody > tr:nth-of-type(odd) > td,
+    [data-style="dark"] .table-striped > tbody > tr:nth-of-type(odd) > th {
+        background-color: var(--ecs-neutral-95, #2a2a2a) !important;
+    }
+    
+    /* Dropdown menus */
+    [data-style="dark"] .dropdown-menu {
+        background-color: var(--ecs-neutral-100, #1a1a1a) !important;
+        border-color: var(--ecs-neutral-80, #3a3a3a) !important;
+    }
+    
+    [data-style="dark"] .dropdown-item {
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    [data-style="dark"] .dropdown-item:hover {
+        background-color: var(--ecs-neutral-95, #2a2a2a) !important;
+        color: var(--ecs-neutral-30, #e5e5e5) !important;
+    }
+    
+    /* Badge colors for dark mode */
+    [data-style="dark"] .bg-label-success {
+        background-color: rgba(113, 221, 55, 0.2) !important;
+        color: #71dd37 !important;
+    }
+    
+    [data-style="dark"] .bg-label-warning {
+        background-color: rgba(255, 171, 0, 0.2) !important;
+        color: #ffab00 !important;
+    }
+    
+    [data-style="dark"] .bg-label-danger {
+        background-color: rgba(255, 62, 29, 0.2) !important;
+        color: #ff3e1d !important;
+    }
+    
+    [data-style="dark"] .bg-label-secondary {
+        background-color: rgba(133, 146, 163, 0.2) !important;
+        color: #8592a3 !important;
+    }
+    
+    [data-style="dark"] .bg-label-primary {
+        background-color: rgba(105, 108, 255, 0.2) !important;
+        color: #696cff !important;
+    }
+    
+    [data-style="dark"] .bg-label-info {
+        background-color: rgba(3, 195, 236, 0.2) !important;
+        color: #03c3ec !important;
+    }
+    
+    /* Text and general elements */
+    [data-style="dark"] .text-muted {
+        color: var(--ecs-neutral-50, #999999) !important;
+    }
+    
+    [data-style="dark"] .border-bottom {
+        border-bottom-color: var(--ecs-neutral-80, #3a3a3a) !important;
+    }
+    
+    [data-style="dark"] .shadow-sm:hover {
+        box-shadow: 0 0.25rem 1rem rgba(255, 255, 255, 0.1) !important;
+    }
 </style>
 <!-- Toastr CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
@@ -363,9 +714,6 @@
                             {% endif %}
                         </div>
                         <div class="d-flex gap-2">
-                            <a href="{{ url_for('admin.view_scheduled_messages') }}" class="btn btn-outline-secondary ecs-btn ecs-btn-icon">
-                                <i class="ti ti-arrow-left me-1"></i> Back to Messages
-                            </a>
                             {% if is_ecs_fc_match %}
                             <a href="{{ url_for('match_pages.view_match', match_id='ecs_' + ecs_match.id|string) }}" class="btn btn-primary ecs-btn ecs-btn-icon">
                             {% else %}
@@ -504,6 +852,129 @@
                 <div class="card-body">
                     <div class="tab-content">
                         <div class="tab-pane fade show active" id="all-responses" role="tabpanel" aria-labelledby="all-tab">
+                            <!-- Mobile Card Layout -->
+                            <div class="rsvp-mobile-list">
+                                {% for rsvp in rsvps %}
+                                <div class="rsvp-mobile-card" data-player-id="{{ rsvp['player'].id }}">
+                                    <div class="rsvp-card-main">
+                                        <div class="player-info-mobile">
+                                            <div class="avatar avatar-sm me-3" style="background-color: transparent;">
+                                                {% if rsvp['player'].profile_picture_url %}
+                                                    <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle" style="object-fit: cover; border: 1px solid rgba(255,255,255,0.3);">
+                                                {% else %}
+                                                    <div class="avatar-initial rounded-circle bg-label-secondary">
+                                                        {{ rsvp['player'].name[:1]|upper }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div style="flex: 1; min-width: 0;">
+                                                <div class="player-name-mobile">{{ rsvp['player'].name }}</div>
+                                                <div class="player-meta-mobile">
+                                                    {% if is_ecs_fc_match %}
+                                                    <span class="badge bg-primary">{{ rsvp['team'].name }}</span>
+                                                    {% else %}
+                                                    <span class="badge bg-{{ 'primary' if rsvp['team'].id == match.home_team.id else 'info' }}">{{ rsvp['team'].name }}</span>
+                                                    {% endif %}
+                                                    {% if rsvp['is_temp_sub'] %}
+                                                    <span class="badge bg-label-info">
+                                                        <i class="ti ti-replace"></i> SUB
+                                                    </span>
+                                                    {% endif %}
+                                                    {% if rsvp['discord_synced'] %}
+                                                    <span class="badge bg-label-info">
+                                                        <i class="ti ti-brand-discord"></i>
+                                                    </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <span class="response-badge-mobile {{ 'bg-success text-white' if rsvp['response'] == 'yes' else 'bg-danger text-white' if rsvp['response'] == 'no' else 'bg-warning text-white' if rsvp['response'] == 'maybe' else 'bg-secondary text-white' }}">
+                                                <i class="ti ti-{{ 'check' if rsvp['response'] == 'yes' else 'x' if rsvp['response'] == 'no' else 'help' if rsvp['response'] == 'maybe' else 'minus' }}"></i>
+                                                {{ rsvp['response']|capitalize }}
+                                            </span>
+                                            <button class="expand-button" onclick="toggleCardExpansion(this)">
+                                                <i class="ti ti-chevron-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="rsvp-card-body">
+                                        <!-- Response Time -->
+                                        <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: #f8f9fa; border-radius: 6px;">
+                                            <small class="text-muted d-block" style="font-size: 0.75rem;">Response Time</small>
+                                            {% if rsvp['responded_at'] %}
+                                                <div style="font-weight: 500;">{{ rsvp['responded_at'].strftime('%b %d, %Y at %I:%M %p') }}</div>
+                                            {% else %}
+                                                <div style="color: #6c757d;">No response yet</div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Contact Actions -->
+                                        {% set has_sms = rsvp['player'].phone and rsvp['player'].user and rsvp['player'].user.sms_notifications %}
+                                        {% set has_discord = rsvp['player'].discord_id and rsvp['player'].user and rsvp['player'].user.discord_notifications %}
+                                        {% set has_email = rsvp['player'].email %}
+                                        
+                                        {% if has_sms or has_discord or has_email %}
+                                        <div class="contact-actions-mobile">
+                                            {% if has_sms %}
+                                            <button class="contact-action-btn bg-primary text-white send-sms-btn" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-phone="{{ rsvp['player'].phone }}">
+                                                <i class="ti ti-message"></i> SMS
+                                            </button>
+                                            {% endif %}
+                                            
+                                            {% if has_discord %}
+                                            <button class="contact-action-btn" style="background-color: #7289da; color: white;" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
+                                                <i class="ti ti-brand-discord"></i> Discord
+                                            </button>
+                                            {% endif %}
+                                            
+                                            {% if has_email %}
+                                            <a href="mailto:{{ rsvp['player'].email }}" class="contact-action-btn bg-info text-white">
+                                                <i class="ti ti-mail"></i> Email
+                                            </a>
+                                            {% endif %}
+                                            
+                                            <a href="{{ url_for('players.player_profile', player_id=rsvp['player'].id) }}" class="contact-action-btn bg-secondary text-white">
+                                                <i class="ti ti-user"></i> Profile
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- RSVP Actions -->
+                                        <div class="rsvp-actions-mobile">
+                                            <button class="rsvp-action-btn bg-success text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
+                                                <i class="ti ti-check"></i> Set Yes
+                                            </button>
+                                            <button class="rsvp-action-btn bg-danger text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
+                                                <i class="ti ti-x"></i> Set No
+                                            </button>
+                                            <button class="rsvp-action-btn bg-warning text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
+                                                <i class="ti ti-help"></i> Maybe
+                                            </button>
+                                            <button class="rsvp-action-btn bg-secondary text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
+                                                <i class="ti ti-trash"></i> Clear
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Sub Management (if applicable) -->
+                                        {% if rsvp['is_temp_sub'] %}
+                                        <div style="margin-top: 0.75rem;">
+                                            <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp.get('assignment_id', 0)) }}" method="POST" style="margin: 0;">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <input type="hidden" name="redirect_to" value="rsvp_status">
+                                                <button type="submit" class="contact-action-btn bg-danger text-white w-100">
+                                                    <i class="ti ti-user-minus"></i> Remove Sub Assignment
+                                                </button>
+                                            </form>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <!-- Desktop Table Layout -->
                             <div class="table-responsive">
                                 <table id="rsvpStatusTable" class="table table-striped table-hover border-top">
                                     <thead>
@@ -665,6 +1136,125 @@
                             </div>
                         </div>
                         <div class="tab-pane fade" id="home-team" role="tabpanel" aria-labelledby="home-tab">
+                            <!-- Mobile Card Layout for Home Team -->
+                            <div class="rsvp-mobile-list">
+                                {% for rsvp in home_team_responses %}
+                                <div class="rsvp-mobile-card" data-player-id="{{ rsvp['player'].id }}">
+                                    <div class="rsvp-card-main">
+                                        <div class="player-info-mobile">
+                                            <div class="avatar avatar-sm me-3" style="background-color: transparent;">
+                                                {% if rsvp['player'].profile_picture_url %}
+                                                    <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle" style="object-fit: cover; border: 1px solid rgba(255,255,255,0.3);">
+                                                {% else %}
+                                                    <div class="avatar-initial rounded-circle bg-label-secondary">
+                                                        {{ rsvp['player'].name[:1]|upper }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div style="flex: 1; min-width: 0;">
+                                                <div class="player-name-mobile">{{ rsvp['player'].name }}</div>
+                                                <div class="player-meta-mobile">
+                                                    <span class="badge bg-primary">{{ rsvp['team'].name }}</span>
+                                                    {% if rsvp['is_temp_sub'] %}
+                                                    <span class="badge bg-label-info">
+                                                        <i class="ti ti-replace"></i> SUB
+                                                    </span>
+                                                    {% endif %}
+                                                    {% if rsvp['discord_synced'] %}
+                                                    <span class="badge bg-label-info">
+                                                        <i class="ti ti-brand-discord"></i>
+                                                    </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <span class="response-badge-mobile {{ 'bg-success text-white' if rsvp['response'] == 'yes' else 'bg-danger text-white' if rsvp['response'] == 'no' else 'bg-warning text-white' if rsvp['response'] == 'maybe' else 'bg-secondary text-white' }}">
+                                                <i class="ti ti-{{ 'check' if rsvp['response'] == 'yes' else 'x' if rsvp['response'] == 'no' else 'help' if rsvp['response'] == 'maybe' else 'minus' }}"></i>
+                                                {{ rsvp['response']|capitalize }}
+                                            </span>
+                                            <button class="expand-button" onclick="toggleCardExpansion(this)">
+                                                <i class="ti ti-chevron-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="rsvp-card-body">
+                                        <!-- Response Time -->
+                                        <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: #f8f9fa; border-radius: 6px;">
+                                            <small class="text-muted d-block" style="font-size: 0.75rem;">Response Time</small>
+                                            {% if rsvp['responded_at'] %}
+                                                <div style="font-weight: 500;">{{ rsvp['responded_at'].strftime('%b %d, %Y at %I:%M %p') }}</div>
+                                            {% else %}
+                                                <div style="color: #6c757d;">No response yet</div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Contact Actions -->
+                                        {% set has_sms = rsvp['player'].phone and rsvp['player'].user and rsvp['player'].user.sms_notifications %}
+                                        {% set has_discord = rsvp['player'].discord_id and rsvp['player'].user and rsvp['player'].user.discord_notifications %}
+                                        {% set has_email = rsvp['player'].email %}
+                                        
+                                        {% if has_sms or has_discord or has_email %}
+                                        <div class="contact-actions-mobile">
+                                            {% if has_sms %}
+                                            <button class="contact-action-btn bg-primary text-white send-sms-btn" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-phone="{{ rsvp['player'].phone }}">
+                                                <i class="ti ti-message"></i> SMS
+                                            </button>
+                                            {% endif %}
+                                            
+                                            {% if has_discord %}
+                                            <button class="contact-action-btn" style="background-color: #7289da; color: white;" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
+                                                <i class="ti ti-brand-discord"></i> Discord
+                                            </button>
+                                            {% endif %}
+                                            
+                                            {% if has_email %}
+                                            <a href="mailto:{{ rsvp['player'].email }}" class="contact-action-btn bg-info text-white">
+                                                <i class="ti ti-mail"></i> Email
+                                            </a>
+                                            {% endif %}
+                                            
+                                            <a href="{{ url_for('players.player_profile', player_id=rsvp['player'].id) }}" class="contact-action-btn bg-secondary text-white">
+                                                <i class="ti ti-user"></i> Profile
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- RSVP Actions -->
+                                        <div class="rsvp-actions-mobile">
+                                            <button class="rsvp-action-btn bg-success text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
+                                                <i class="ti ti-check"></i> Set Yes
+                                            </button>
+                                            <button class="rsvp-action-btn bg-danger text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
+                                                <i class="ti ti-x"></i> Set No
+                                            </button>
+                                            <button class="rsvp-action-btn bg-warning text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
+                                                <i class="ti ti-help"></i> Maybe
+                                            </button>
+                                            <button class="rsvp-action-btn bg-secondary text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
+                                                <i class="ti ti-trash"></i> Clear
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Sub Management (if applicable) -->
+                                        {% if rsvp['is_temp_sub'] %}
+                                        <div style="margin-top: 0.75rem;">
+                                            <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp.get('assignment_id', 0)) }}" method="POST" style="margin: 0;">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <input type="hidden" name="redirect_to" value="rsvp_status">
+                                                <button type="submit" class="contact-action-btn bg-danger text-white w-100">
+                                                    <i class="ti ti-user-minus"></i> Remove Sub Assignment
+                                                </button>
+                                            </form>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <!-- Desktop Table Layout for Home Team -->
                             <div class="table-responsive">
                                 <table id="homeTeamTable" class="table table-striped table-hover border-top">
                                     <thead>
@@ -807,6 +1397,125 @@
                             </div>
                         </div>
                         <div class="tab-pane fade" id="away-team" role="tabpanel" aria-labelledby="away-tab">
+                            <!-- Mobile Card Layout for Away Team -->
+                            <div class="rsvp-mobile-list">
+                                {% for rsvp in away_team_responses %}
+                                <div class="rsvp-mobile-card" data-player-id="{{ rsvp['player'].id }}">
+                                    <div class="rsvp-card-main">
+                                        <div class="player-info-mobile">
+                                            <div class="avatar avatar-sm me-3" style="background-color: transparent;">
+                                                {% if rsvp['player'].profile_picture_url %}
+                                                    <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle" style="object-fit: cover; border: 1px solid rgba(255,255,255,0.3);">
+                                                {% else %}
+                                                    <div class="avatar-initial rounded-circle bg-label-secondary">
+                                                        {{ rsvp['player'].name[:1]|upper }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div style="flex: 1; min-width: 0;">
+                                                <div class="player-name-mobile">{{ rsvp['player'].name }}</div>
+                                                <div class="player-meta-mobile">
+                                                    <span class="badge bg-info">{{ rsvp['team'].name }}</span>
+                                                    {% if rsvp['is_temp_sub'] %}
+                                                    <span class="badge bg-label-info">
+                                                        <i class="ti ti-replace"></i> SUB
+                                                    </span>
+                                                    {% endif %}
+                                                    {% if rsvp['discord_synced'] %}
+                                                    <span class="badge bg-label-info">
+                                                        <i class="ti ti-brand-discord"></i>
+                                                    </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <span class="response-badge-mobile {{ 'bg-success text-white' if rsvp['response'] == 'yes' else 'bg-danger text-white' if rsvp['response'] == 'no' else 'bg-warning text-white' if rsvp['response'] == 'maybe' else 'bg-secondary text-white' }}">
+                                                <i class="ti ti-{{ 'check' if rsvp['response'] == 'yes' else 'x' if rsvp['response'] == 'no' else 'help' if rsvp['response'] == 'maybe' else 'minus' }}"></i>
+                                                {{ rsvp['response']|capitalize }}
+                                            </span>
+                                            <button class="expand-button" onclick="toggleCardExpansion(this)">
+                                                <i class="ti ti-chevron-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="rsvp-card-body">
+                                        <!-- Response Time -->
+                                        <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: #f8f9fa; border-radius: 6px;">
+                                            <small class="text-muted d-block" style="font-size: 0.75rem;">Response Time</small>
+                                            {% if rsvp['responded_at'] %}
+                                                <div style="font-weight: 500;">{{ rsvp['responded_at'].strftime('%b %d, %Y at %I:%M %p') }}</div>
+                                            {% else %}
+                                                <div style="color: #6c757d;">No response yet</div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Contact Actions -->
+                                        {% set has_sms = rsvp['player'].phone and rsvp['player'].user and rsvp['player'].user.sms_notifications %}
+                                        {% set has_discord = rsvp['player'].discord_id and rsvp['player'].user and rsvp['player'].user.discord_notifications %}
+                                        {% set has_email = rsvp['player'].email %}
+                                        
+                                        {% if has_sms or has_discord or has_email %}
+                                        <div class="contact-actions-mobile">
+                                            {% if has_sms %}
+                                            <button class="contact-action-btn bg-primary text-white send-sms-btn" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-phone="{{ rsvp['player'].phone }}">
+                                                <i class="ti ti-message"></i> SMS
+                                            </button>
+                                            {% endif %}
+                                            
+                                            {% if has_discord %}
+                                            <button class="contact-action-btn" style="background-color: #7289da; color: white;" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
+                                                <i class="ti ti-brand-discord"></i> Discord
+                                            </button>
+                                            {% endif %}
+                                            
+                                            {% if has_email %}
+                                            <a href="mailto:{{ rsvp['player'].email }}" class="contact-action-btn bg-info text-white">
+                                                <i class="ti ti-mail"></i> Email
+                                            </a>
+                                            {% endif %}
+                                            
+                                            <a href="{{ url_for('players.player_profile', player_id=rsvp['player'].id) }}" class="contact-action-btn bg-secondary text-white">
+                                                <i class="ti ti-user"></i> Profile
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- RSVP Actions -->
+                                        <div class="rsvp-actions-mobile">
+                                            <button class="rsvp-action-btn bg-success text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
+                                                <i class="ti ti-check"></i> Set Yes
+                                            </button>
+                                            <button class="rsvp-action-btn bg-danger text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
+                                                <i class="ti ti-x"></i> Set No
+                                            </button>
+                                            <button class="rsvp-action-btn bg-warning text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
+                                                <i class="ti ti-help"></i> Maybe
+                                            </button>
+                                            <button class="rsvp-action-btn bg-secondary text-white update-rsvp-btn" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
+                                                <i class="ti ti-trash"></i> Clear
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Sub Management (if applicable) -->
+                                        {% if rsvp['is_temp_sub'] %}
+                                        <div style="margin-top: 0.75rem;">
+                                            <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp.get('assignment_id', 0)) }}" method="POST" style="margin: 0;">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <input type="hidden" name="redirect_to" value="rsvp_status">
+                                                <button type="submit" class="contact-action-btn bg-danger text-white w-100">
+                                                    <i class="ti ti-user-minus"></i> Remove Sub Assignment
+                                                </button>
+                                            </form>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <!-- Desktop Table Layout for Away Team -->
                             <div class="table-responsive">
                                 <table id="awayTeamTable" class="table table-striped table-hover border-top">
                                     <thead>
@@ -1487,5 +2196,50 @@ $(document).ready(function() {
 
 // Legacy function for compatibility - removed to prevent recursion
 // The loadMatchSubstituteRequests function is now handled directly by the external module
+
+// Mobile card expansion functionality
+function toggleCardExpansion(button) {
+    const card = button.closest('.rsvp-mobile-card');
+    const cardBody = card.querySelector('.rsvp-card-body');
+    const isExpanded = cardBody.classList.contains('show');
+    
+    if (isExpanded) {
+        cardBody.classList.remove('show');
+        button.classList.remove('expanded');
+    } else {
+        cardBody.classList.add('show');
+        button.classList.add('expanded');
+    }
+}
+
+// Enhanced mobile contact handling
+$(document).ready(function() {
+    // Handle mobile SMS buttons
+    $('.contact-action-btn.send-sms-btn').on('click', function() {
+        const playerId = $(this).data('player-id');
+        const playerName = $(this).data('player-name');
+        const phone = $(this).data('phone');
+        
+        // Trigger existing SMS modal
+        $('#smsPlayerId').val(playerId);
+        $('#smsPlayerName').text(playerName);
+        $('#smsPlayerPhone').val(phone);
+        $('#smsPlayerPhoneDisplay').text(phone);
+        $('#sendSmsModal').modal('show');
+    });
+    
+    // Handle mobile Discord DM buttons
+    $('.contact-action-btn[data-discord-id]').on('click', function() {
+        const playerId = $(this).data('player-id');
+        const playerName = $(this).data('player-name');
+        const discordId = $(this).data('discord-id');
+        
+        // Trigger existing Discord DM modal
+        $('#discordPlayerId').val(playerId);
+        $('#discordPlayerName').text(playerName);
+        $('#discordId').val(discordId);
+        $('#sendDiscordDmModal').modal('show');
+    });
+});
 </script>
 {% endblock %}

@@ -39,36 +39,29 @@
         <div class="col-12">
             <div class="card welcome-header">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            {% if player %}
-                            <h2 class="text-primary mb-1">Welcome, {{ player.name }}!</h2>
-                            <p class="text-muted mb-2">
-                                {% if user_team and user_team|length > 0 %}
-                                    You are playing for 
-                                    {% for team in user_team %}
-                                        <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="text-decoration-none">
-                                            <span class="badge bg-primary me-1">{{ team.name }}</span>
-                                        </a>{% if not loop.last %}, {% endif %}
-                                    {% endfor %}
-                                {% else %}
-                                    You are not currently assigned to a team
-                                {% endif %}
-                            </p>
+                    <div class="welcome-header-content">
+                        {% if player %}
+                        <!-- Simple welcome with team info -->
+                        <div class="welcome-content">
+                            <h2 class="text-primary mb-2">Welcome, {{ player.name }}!</h2>
+                            {% if user_team and user_team|length > 0 %}
+                            <div class="team-info">
+                                <span class="text-muted me-2">You're playing for:</span>
+                                {% for team in user_team %}
+                                    <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="text-decoration-none">
+                                        <span class="badge bg-primary me-1">{{ team.name }}</span>
+                                    </a>{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            </div>
                             {% else %}
-                            <h2 class="text-primary mb-1">Welcome!</h2>
-                            <p class="text-muted mb-2">Please create your player profile to get started</p>
+                            <p class="text-muted mb-0">You are not currently assigned to a team</p>
                             {% endif %}
                         </div>
-                        {% if player %}
-                        <div class="d-flex align-items-center">
-                            <div class="me-3">
-                                <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
-                                     alt="Profile" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
-                            </div>
-                            <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="btn btn-outline-primary btn-sm">
-                                <i class="ti ti-user-circle me-1"></i> My Profile
-                            </a>
+                        {% else %}
+                        <!-- No player profile state -->
+                        <div class="text-center">
+                            <h2 class="text-primary mb-1">Welcome!</h2>
+                            <p class="text-muted mb-2">Please create your player profile to get started</p>
                         </div>
                         {% endif %}
                     </div>
@@ -272,7 +265,9 @@
                                                         <button class="btn btn-outline-secondary ms-1 edit-match-btn"
                                                                 data-match-id="{{ match.id }}"
                                                                 type="button">
-                                                            <i class="ti ti-edit"></i>
+                                                            <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %} me-1"></i>
+                                                            <span class="d-none d-sm-inline">{% if match.reported %}Edit Match Report{% else %}Submit Match Report{% endif %}</span>
+                                                            <span class="d-sm-none">{% if match.reported %}Edit Match Report{% else %}Submit Report{% endif %}</span>
                                                         </button>
                                                         {% endif %}
                                                     </div>
@@ -415,7 +410,9 @@
                                                 <button class="btn btn-outline-secondary ms-1 edit-match-btn"
                                                         data-match-id="{{ match.id }}"
                                                         type="button">
-                                                    <i class="ti ti-edit"></i>
+                                                    <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %} me-1"></i>
+                                                    <span class="d-none d-sm-inline">{% if match.reported %}Edit Match Report{% else %}Submit Match Report{% endif %}</span>
+                                                    <span class="d-sm-none">{% if match.reported %}Edit Match Report{% else %}Submit Report{% endif %}</span>
                                                 </button>
                                                 {% endif %}
                                             </div>
@@ -585,16 +582,9 @@
             display: none; /* Chrome, Safari, Edge */
         }
         
+        /* Remove fade-out gradient that causes white fade */
         .nav-pills:after {
-            content: "";
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            width: 30px;
-            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, var(--bs-body-bg) 80%);
-            pointer-events: none;
-            z-index: 2;
+            display: none;
         }
         
         /* Better match-item layout for mobile */
@@ -653,14 +643,16 @@
             font-size: 1.5rem;
         }
         
-        .welcome-header .d-flex {
-            flex-direction: column;
-            align-items: flex-start !important;
+        .welcome-content {
+            text-align: center;
         }
         
-        .welcome-header .d-flex > div:last-child {
-            margin-top: 0.75rem;
-            align-self: flex-start;
+        .team-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.25rem;
         }
         
         /* Improved tab styling on mobile */
@@ -732,32 +724,17 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Set viewport height fix
         setViewportHeight();
-        window.addEventListener('resize', setViewportHeight);
+        window.addEventListener('resize', function() {
+            setViewportHeight();
+        });
         window.addEventListener('orientationchange', setViewportHeight);
         
-        // Make tabs touch-friendly
+        // Make tabs touch-friendly - ONLY ON MOBILE
         const tabContainers = document.querySelectorAll('.nav-pills');
         tabContainers.forEach(container => {
+            // Only apply mobile enhancements if we're actually on mobile
             if (window.innerWidth < 768) {
                 container.classList.add('small-tabs', 'overflow-auto', 'flex-nowrap');
-                
-                // Add scroll indicators to let users know they can scroll
-                const navWidth = container.scrollWidth;
-                const containerWidth = container.clientWidth;
-                
-                if (navWidth > containerWidth) {
-                    // Add scroll indicator element
-                    const indicator = document.createElement('div');
-                    indicator.className = 'text-center text-muted small fst-italic mt-1 mb-2';
-                    indicator.innerHTML = '<i class="ti ti-chevron-left"></i> Swipe for more teams <i class="ti ti-chevron-right"></i>';
-                    container.parentNode.insertBefore(indicator, container.nextSibling);
-                    
-                    // Fade out after a few seconds
-                    setTimeout(() => {
-                        indicator.style.transition = 'opacity 1s ease';
-                        indicator.style.opacity = '0.5';
-                    }, 3000);
-                }
                 
                 // Add touch swipe to navigate between tabs on mobile
                 let touchStartX = 0;
@@ -965,6 +942,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<!-- Simple Cropper for Onboarding Modal -->
+<script src="{{ url_for('static', filename='custom_js/simple-cropper.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/onboarding.js') }}"></script>
+
 {% endif %}
 
 <!-- Modals are loaded via AJAX by base.html -->

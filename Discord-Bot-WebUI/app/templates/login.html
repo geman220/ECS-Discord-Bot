@@ -2,34 +2,9 @@
 
 {% block page_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/authentication.css') }}" />
-    <style>
-        /* Force authentication page background - override everything */
-        html, html.auth-page, body, body.auth-page {
-            background-color: #213e96 !important;
-            background: #213e96 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            height: 100% !important;
-            min-height: 100vh !important;
-        }
-        
-        .authentication-wrapper {
-            background-color: #213e96 !important;
-            background: #213e96 !important;
-            height: 100vh !important;
-            width: 100% !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            min-height: 100vh !important;
-        }
-        
-        /* Make sure no other elements override this */
-        body * {
-            max-width: 100%;
-        }
-    </style>
 {% endblock %}
+
+{% block body_class %}auth-page{% endblock %}
 
 {% block main_content %}
 

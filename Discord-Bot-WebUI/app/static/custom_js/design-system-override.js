@@ -44,18 +44,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Additional code to fix modals
-  try {
-    // Fix modal z-index and positioning
-    document.querySelectorAll('.modal').forEach(function(modal) {
-      modal.style.zIndex = '1050';
-    });
-    
-    // Fix dropdowns in modals
-    document.querySelectorAll('.dropdown-menu').forEach(function(menu) {
-      menu.style.zIndex = '1060';
-    });
-  } catch (error) {
-    // console.error('Failed to fix modals:', error);
-  }
+  // Z-index is now handled by centralized CSS system in mobile-scale-system.css
+  // No JavaScript manipulation needed
 });

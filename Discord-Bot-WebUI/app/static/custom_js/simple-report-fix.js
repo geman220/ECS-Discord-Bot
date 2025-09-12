@@ -229,17 +229,17 @@ document.addEventListener('DOMContentLoaded', function() {
             position: relative !important;
         }
         
-        /* Specific fix for background image modal */
+        /* Specific fix for background image modal - use centralized z-index system */
         #backgroundImageModal {
-            z-index: 1055 !important;
+            z-index: 1060 !important;
         }
         
         #backgroundImageModal .modal-dialog {
-            z-index: 1056 !important;
+            z-index: 1060 !important;
         }
         
         #backgroundImageModal .modal-content {
-            z-index: 1057 !important;
+            z-index: 1060 !important;
         }
     `;
     document.head.appendChild(styleEl);

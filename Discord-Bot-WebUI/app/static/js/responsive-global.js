@@ -249,26 +249,36 @@
       const tabContainers = document.querySelectorAll('.nav-tabs, .nav-pills');
       
       tabContainers.forEach(container => {
-        if (container.scrollWidth > container.clientWidth) {
-          container.classList.add('scrollable-tabs');
-          container.style.overflowX = 'auto';
-          container.style.flexWrap = 'nowrap';
-          container.style.webkitOverflowScrolling = 'touch';
-          container.style.msOverflowStyle = 'none';
-          container.style.scrollbarWidth = 'none';
-          
-          // Add visual scroll indicator if not already present
-          if (!container.nextElementSibling || !container.nextElementSibling.classList.contains('tabs-scroll-hint')) {
-            const scrollHint = document.createElement('div');
-            scrollHint.className = 'tabs-scroll-hint';
-            scrollHint.innerHTML = '<small class="text-muted"><i class="ti ti-arrows-horizontal me-1"></i>swipe</small>';
-            scrollHint.style.textAlign = 'center';
-            scrollHint.style.fontSize = '0.7rem';
-            scrollHint.style.marginTop = '0.25rem';
-            scrollHint.style.marginBottom = '0.5rem';
-            scrollHint.style.opacity = '0.7';
+        // Only show on mobile (< 768px) and only if multiple tabs exist
+        if (window.innerWidth < 768 && container.scrollWidth > container.clientWidth) {
+          const tabs = container.querySelectorAll('.nav-link');
+          if (tabs.length > 1) {
+            container.classList.add('scrollable-tabs');
+            container.style.overflowX = 'auto';
+            container.style.flexWrap = 'nowrap';
+            container.style.webkitOverflowScrolling = 'touch';
+            container.style.msOverflowStyle = 'none';
+            container.style.scrollbarWidth = 'none';
             
-            container.parentNode.insertBefore(scrollHint, container.nextSibling);
+            // Add visual scroll indicator if not already present
+            if (!container.nextElementSibling || !container.nextElementSibling.classList.contains('tabs-scroll-hint')) {
+              const scrollHint = document.createElement('div');
+              scrollHint.className = 'tabs-scroll-hint';
+              scrollHint.innerHTML = '<small class="text-muted"><i class="ti ti-arrows-horizontal me-1"></i>swipe</small>';
+              scrollHint.style.textAlign = 'center';
+              scrollHint.style.fontSize = '0.7rem';
+              scrollHint.style.marginTop = '0.25rem';
+              scrollHint.style.marginBottom = '0.5rem';
+              scrollHint.style.opacity = '0.7';
+              
+              container.parentNode.insertBefore(scrollHint, container.nextSibling);
+            }
+          }
+        } else {
+          // Remove any existing swipe hints on desktop or single tabs
+          const existingHint = container.nextElementSibling;
+          if (existingHint && existingHint.classList.contains('tabs-scroll-hint')) {
+            existingHint.remove();
           }
         }
       });

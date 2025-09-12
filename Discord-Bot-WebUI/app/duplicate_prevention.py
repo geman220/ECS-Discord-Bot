@@ -162,9 +162,15 @@ def find_potential_duplicates(user_data, league_id=None):
     # 3. Check for email domain + similar name (medium confidence)
     if '@' in email:
         email_domain = email.split('@')[1]
-        domain_players = query.join(User).filter(
-            User.email.like(f'%@{email_domain}')
-        ).all()
+        # Since emails are encrypted, we need to fetch all players with users and check decrypted emails
+        all_players_with_users = query.join(User).all()
+        
+        domain_players = []
+        for player in all_players_with_users:
+            if player.user and player.user.email:
+                player_email = player.user.email
+                if '@' in player_email and player_email.split('@')[1] == email_domain:
+                    domain_players.append(player)
         
         for player in domain_players:
             if player.user.email.lower() != email:
@@ -231,9 +237,15 @@ def check_pre_registration_duplicates(discord_email, discord_username):
     email_domain = discord_email.split('@')[1] if '@' in discord_email else None
     domain_matches = []
     if email_domain:
-        domain_matches = Player.query.options(joinedload(Player.user)).filter(
-            Player.user.has(User.email.like(f'%@{email_domain}'))
+        # Since email is encrypted, we need to load all users and check in Python
+        all_players_with_users = Player.query.options(joinedload(Player.user)).filter(
+            Player.user.has(User.encrypted_email.isnot(None))
         ).all()
+        
+        for player in all_players_with_users:
+            if player.user and player.user.email:
+                if f'@{email_domain}' in player.user.email:
+                    domain_matches.append(player)
     
     # Check name similarity
     for player in name_matches:

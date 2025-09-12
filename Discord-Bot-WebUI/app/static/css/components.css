@@ -1692,7 +1692,7 @@ textarea::placeholder {
 }
 
 .form-control:not(#player-search):focus,
-input:not(#player-search):focus,
+input:not(#player-search):not([type="checkbox"]):not([type="radio"]):focus,
 select:focus,
 textarea:focus {
   background-color: var(--ecs-search-focus, var(--ecs-form-bg)) !important;
@@ -2636,7 +2636,7 @@ html[data-style="dark"] .edit-mode .select2-selection__choice {
 
 .modal .form-control:focus,
 .modal .ecs-form-control:focus,
-.modal input:focus,
+.modal input:not([type="checkbox"]):not([type="radio"]):focus,
 .modal select:focus,
 .modal textarea:focus {
   background-color: var(--ecs-form-bg) !important;

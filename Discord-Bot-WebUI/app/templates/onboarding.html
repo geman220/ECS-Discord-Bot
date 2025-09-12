@@ -341,7 +341,8 @@
 
 {% block custom_js %}
 <script src="{{ url_for('static', filename='vendor/libs/select2/select2.full.min.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/libs/cropperjs/cropper.min.js') }}"></script>
+<!-- Simple Cropper (Custom implementation) -->
+<script src="{{ url_for('static', filename='custom_js/simple-cropper.js') }}"></script>
 
 <!-- SMS verification initialization -->
 <script>

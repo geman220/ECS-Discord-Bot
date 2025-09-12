@@ -330,8 +330,8 @@
                                 <label for="{{ onboarding_form.name.id }}" class="form-label">
                                     <i class="ti ti-id-badge me-1"></i>{{ onboarding_form.name.label.text }} <span class="text-danger">*</span>
                                 </label>
-                                {{ onboarding_form.name(class="form-control form-control-lg", required=True, placeholder="Your full name") }}
-                                <div class="form-text">This will be displayed on your public profile</div>
+                                {{ onboarding_form.name(class="form-control form-control-lg", required=True, placeholder="First and Last name (e.g. John Smith)") }}
+                                <div class="form-text">Enter your real full name - this will be displayed on your public profile</div>
                                 {% if onboarding_form.name.errors %}
                                 <div class="invalid-feedback">
                                     {{ onboarding_form.name.errors[0] }}
@@ -382,42 +382,58 @@
 
                     <div class="card shadow-sm p-4 mb-4">
                         <div class="row align-items-center">
+                            <!-- Profile Picture / Cropper Area -->
                             <div class="col-md-6 text-center mb-4 mb-md-0">
-                                <div id="currentProfilePicture" class="mb-3">
+                                <!-- Default Profile Picture Preview (shown initially) -->
+                                <div id="profilePicturePreview" class="mb-3">
                                     <div class="avatar-preview mx-auto" style="width: 200px; height: 200px; overflow: hidden; border-radius: 50%; border: 3px solid var(--bs-primary); box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-                                        <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
+                                        <img id="currentProfilePicture" src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
                                              alt="Profile Picture"
                                              style="width: 100%; height: 100%; object-fit: cover;">
                                     </div>
                                 </div>
+                                
+                                <!-- Cropper Interface (shown when image selected) -->
+                                <div id="cropperInterface" class="d-none">
+                                    <div class="text-center mb-3">
+                                        <canvas id="cropCanvas" class="mx-auto d-block border rounded shadow-sm" style="max-width: 300px;"></canvas>
+                                    </div>
+                                    <div class="text-muted small text-center">
+                                        <i class="ti ti-info-circle me-1"></i>
+                                        Drag to move • Mouse wheel to zoom • Image will be cropped to a circle
+                                    </div>
+                                </div>
                             </div>
+                            <!-- Controls Column -->
                             <div class="col-md-6">
                                 <div class="text-center text-md-start">
-                                    <p class="mb-4">Upload a clear photo of yourself for your player profile. A good profile picture helps teammates and admins recognize you.</p>
-
-                                    <!-- Hidden file input -->
-                                    <input type="file" name="image" id="image" accept="image/*" class="form-control d-none">
-
-                                    <!-- Button that triggers the file input -->
-                                    <button type="button" class="btn btn-lg btn-primary w-100 mb-2" onclick="document.getElementById('image').click();">
-                                        <i class="ti ti-upload me-1"></i> Select Image
-                                    </button>
-
-                                    <!-- The Crop & Save button -->
-                                    <button type="button" class="btn btn-lg btn-success w-100" id="cropAndSaveButton" disabled>
-                                        <i class="ti ti-check me-1"></i> Crop & Save
-                                    </button>
+                                    <!-- Initial Instructions (shown before image selected) -->
+                                    <div id="uploadInstructions">
+                                        <p class="mb-4">Upload a clear photo of yourself for your player profile. A good profile picture helps teammates and admins recognize you.</p>
+                                        <!-- Hidden file input -->
+                                        <input type="file" name="image" id="image" accept="image/*" class="form-control d-none">
+                                        <!-- Button that triggers the file input -->
+                                        <button type="button" class="btn btn-lg btn-primary w-100 mb-2" onclick="document.getElementById('image').click();">
+                                            <i class="ti ti-upload me-1"></i> Select Image
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Cropper Controls (shown after image selected) -->
+                                    <div id="cropperControls" class="d-none">
+                                        <p class="mb-4">Perfect! Now adjust your photo using the controls below. Drag to move and use your mouse wheel to zoom.</p>
+                                        <div class="d-grid gap-2">
+                                            <button type="button" class="btn btn-outline-secondary" onclick="resetImageSelection()">
+                                                <i class="ti ti-photo me-1"></i> Choose Different Image
+                                            </button>
+                                            <button type="button" class="btn btn-lg btn-success" onclick="cropAndSaveProfileImage()">
+                                                <i class="ti ti-device-floppy me-1"></i> Crop & Save Photo
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Container for the Cropper preview -->
-                        <div class="img-container d-none mt-4">
-                            <div class="card p-3">
-                                <h5 class="text-primary mb-3">Adjust Your Photo</h5>
-                                <img id="imagecan" style="max-width: 100%; height: auto; max-height: 400px;">
-                            </div>
-                        </div>
 
                         <!-- Hidden input that can store the final base64 for form submission -->
                         <input type="hidden" id="cropped_image_data" name="cropped_image_data">
@@ -618,14 +634,16 @@
                             <!-- Email Notifications -->
                             <div class="card mb-3 border">
                                 <div class="card-body">
-                                    <div class="form-check form-switch d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <label class="form-check-label fw-semibold" for="emailNotifications">
-                                                <i class="ti ti-mail me-2 text-primary"></i>Email Notifications
-                                            </label>
-                                            <p class="text-muted mb-0 small">Match schedules, team updates, and important announcements</p>
-                                        </div>
-                                        {{ onboarding_form.email_notifications(class="form-check-input", id="emailNotifications", style="width: 3em; height: 1.5em;") }}
+                                    <div class="form-check">
+                                        <label class="form-check-label fw-semibold d-flex align-items-start" for="emailNotifications">
+                                            {{ onboarding_form.email_notifications(class="form-check-input me-3 mt-1", id="emailNotifications") }}
+                                            <div>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="ti ti-mail me-2 text-primary"></i>Email Notifications
+                                                </div>
+                                                <p class="text-muted mb-0 small">Match schedules, team updates, and important announcements</p>
+                                            </div>
+                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -633,14 +651,16 @@
                             <!-- SMS Notifications -->
                             <div class="card mb-3 border">
                                 <div class="card-body">
-                                    <div class="form-check form-switch d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <label class="form-check-label fw-semibold" for="smsNotifications">
-                                                <i class="ti ti-message me-2 text-primary"></i>SMS Notifications
-                                            </label>
-                                            <p class="text-muted mb-0 small">Game day reminders, last-minute changes, and quick RSVPs</p>
-                                        </div>
-                                        <input class="form-check-input" type="checkbox" id="smsNotifications" name="sms_notifications" style="width: 3em; height: 1.5em;">
+                                    <div class="form-check">
+                                        <label class="form-check-label fw-semibold d-flex align-items-start" for="smsNotifications">
+                                            <input class="form-check-input me-3 mt-1" type="checkbox" id="smsNotifications" name="sms_notifications">
+                                            <div>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="ti ti-message me-2 text-primary"></i>SMS Notifications
+                                                </div>
+                                                <p class="text-muted mb-0 small">Game day reminders, last-minute changes, and quick RSVPs</p>
+                                            </div>
+                                        </label>
                                     </div>
 
                                     <!-- SMS Opt-in Section (Initially hidden) -->
@@ -688,14 +708,16 @@
                             <!-- Discord Notifications -->
                             <div class="card mb-3 border">
                                 <div class="card-body">
-                                    <div class="form-check form-switch d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <label class="form-check-label fw-semibold" for="discordNotifications">
-                                                <i class="fab fa-discord me-2 text-primary"></i>Discord Notifications
-                                            </label>
-                                            <p class="text-muted mb-0 small">Get notified in Discord channels for team communications</p>
-                                        </div>
-                                        {{ onboarding_form.discord_notifications(class="form-check-input", id="discordNotifications", style="width: 3em; height: 1.5em;") }}
+                                    <div class="form-check">
+                                        <label class="form-check-label fw-semibold d-flex align-items-start" for="discordNotifications">
+                                            {{ onboarding_form.discord_notifications(class="form-check-input me-3 mt-1", id="discordNotifications") }}
+                                            <div>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fab fa-discord me-2 text-primary"></i>Discord Notifications
+                                                </div>
+                                                <p class="text-muted mb-0 small">Get notified in Discord channels for team communications</p>
+                                            </div>
+                                        </label>
                                     </div>
                                 </div>
                             </div>

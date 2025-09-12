@@ -15,6 +15,11 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/rtl/core.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/rtl/theme-default.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/foundation.css') }}?v={{ range(1, 1000000) | random }}" />
+    
+    <!-- Mobile UI Fix System -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-scale-system.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/component-mobile-fixes.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/template-styles.css') }}" />
 
     <!-- Deferred CSS - these will load after the page is initially rendered -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" media="print" onload="this.media='all'">

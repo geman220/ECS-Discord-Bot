@@ -293,7 +293,7 @@ def manage_users():
                     <button class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow" type="button" id="userActions{user["id"]}" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="ti ti-dots-vertical"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userActions{user["id"]}" style="z-index: 9999; position: absolute;">
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userActions{user["id"]}" style="position: absolute;">
                         <li>
                             <a class="dropdown-item edit-user-btn" href="#" data-user-id="{user["id"]}">
                                 <i class="ti ti-edit me-2"></i>Edit User

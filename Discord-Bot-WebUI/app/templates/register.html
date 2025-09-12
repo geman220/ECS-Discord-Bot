@@ -21,26 +21,54 @@
                                         <h1 class="h4 text-gray-900 mb-4">Create an Account!</h1>
                                     </div>
 
-                                    <!-- Discord Login Button -->
-                                    <div class="text-center mb-4">
-                                        <a href="{{ url_for('auth.discord_login') }}" class="btn btn-discord btn-user btn-block">
-                                            <img src="{{ url_for('static', filename='img/discord_logo.svg') }}" alt="Discord Logo" style="height: 20px; margin-right: 8px;">
-                                            Register with Discord
-                                        </a>
+                                    <!-- Liability Waiver and Code of Conduct -->
+                                    <div class="waiver-section mb-4">
+                                        <div class="alert alert-info">
+                                            <h5>⚠️ Please Read Before Registering</h5>
+                                            <p class="small mb-0">Registration requires acceptance of our liability waiver and code of conduct.</p>
+                                        </div>
+                                        
+                                        <div class="waiver-content">
+                                            <h6><strong>Waiver of Liability and Hold Harmless Agreement</strong></h6>
+                                            <p class="small">"Participant" hereby releases, waives, discharges and covenants not to sue ECS Pub League, a Washington nonprofit organization, and its affiliated associations, officers, directors, employees, agents, and contractors (collectively, the "Released Parties") from any and all liability, claims, demands, actions and causes of action whatsoever arising out of or related to any loss, damage, or injury, including death, that may be sustained by Participant, or to any property belonging to Participant, whether caused by the negligence of the Released Parties, or otherwise, while participating in such athletic and related event activities, or while in, on or upon the premises where the activities are being conducted.</p>
+                                            
+                                            <p class="small">Participant is fully aware of risks and hazards connected with the proposed soccer activity, including the risk of injury to a participant's neck, back, spine, knees or other parts of their body, and Participant hereby elects to participate as a voluntary participant in said activity, and to enter the premises of the various fields used to conduct soccer games or training and engage in such activity knowing that the activity may be hazardous to Participant or Participant's property. PARTICIPANT VOLUNTARILY ASSUMES FULL RESPONSIBILITY FOR ANY RISKS OF LOSS, PROPERTY DAMAGE OR PERSONAL INJURY, INCLUDING DEATH, that may be sustained by any of its players, coaches, opponents, or fans, or any loss or damage to property owned by Participant, as a result of being engaged in such an activity, whether caused by the negligence of the Released Parties or otherwise.</p>
+                                            
+                                            <p class="small">Participant acknowledges that ECS Pub League does not carry insurance on behalf of the Participant. Participant further hereby agrees to indemnify and hold harmless the Released Parties from and against any loss, liability, damage or costs, including court costs and attorney's fees, that they may incur due to Participant's participation in the proposed league activities, whether caused by the negligence of the Released Parties or otherwise. Participant agrees that this Waiver of Liability and Hold Harmless Agreement shall be construed in accordance with the laws of the State of Washington. Participant acknowledges full, adequate and complete consideration and intends to be bound by the terms contained herein.</p>
+                                            
+                                            <h6><strong>ECS Pub League Code of Conduct</strong></h6>
+                                            <p class="small">Participant further acknowledges and accepts as a condition of participation that ECS Pub League is a 21+ adult recreational league for very casual no/low contact soccer for beginners and beginner-friendly low-intermediate recreational players. We're not for everyone. Our level of skill, physicality, and competitiveness is typically well below even the lowest divisions of other leagues.</p>
+                                            
+                                            <p class="small">We do not discriminate based on race, color, religion, gender, gender expression, age, national origin, ancestry, disability, marital status, sexual orientation, or military status, in any of our activities or operations.</p>
+                                            
+                                            <p class="small">We do, however, reserve the right to deny play at any time for anyone who is deemed a poor fit for the league's mission and the culture of the unique community we serve because of skill, experience, physicality, competitiveness, or similar reasons.</p>
+                                            
+                                            <p class="small"><strong>More serious infractions may result in yellow cards, red cards, suspensions, or expulsion from the league:</strong></p>
+                                            <ul class="small">
+                                                <li>Excessive physical play and tackling, whether called as fouls or not. The bar is set intentionally lower in this league.</li>
+                                                <li>Repeated dissent and/or unsporting behavior by words or action, including excessive arguing with referees and/or other players.</li>
+                                                <li>Playing in a dangerous manner that causes or threatens to cause injury.</li>
+                                            </ul>
+                                            
+                                            <p class="small"><strong>Less serious infractions will be handled in private conversations with coaches and/or league leadership. Further corrective action up to expulsion from the league may be implemented if infractions continue after verbal warnings and discussions:</strong></p>
+                                            <ul class="small">
+                                                <li>Regularly ball hogging and excessive dribbling rather than passing.</li>
+                                                <li>Regularly playing out of position to get themselves more directly involved in play.</li>
+                                                <li>Regularly dribbling through multiple opponents, especially those who are less skilled.</li>
+                                                <li>Regularly passing to only more talented players and not involving the whole team.</li>
+                                                <li>Excessive shooting, especially when passing was a better decision.</li>
+                                                <li>Running up the score, or excessive celebration on and off the field, including on social media.</li>
+                                                <li>In Classic: Not giving new players enough space and time to dribble or pass.</li>
+                                            </ul>
+                                            
+                                            <p class="small">This is intentionally not an exhaustive list, because it's not about players merely adhering to the letter of the law or finding loopholes, it's about playing to maintain the Spirit of Pub League. Ultimately, a player's suitability for either division is up to a group decision of league management, taking into consideration feedback from coaches and other players, with a particular focus on regularly exhibited patterns and consistent behaviors.</p>
+                                            
+                                            <p class="small"><strong>PARTICIPANT HAS READ THIS WAIVER OF LIABILITY AND CODE OF CONDUCT AND FULLY UNDERSTAND ITS TERMS, UNDERSTANDS THAT THEY HAVE GIVEN UP SUBSTANTIAL RIGHTS AND AGREES TO IT BY REGISTERING TO PLAY IN THE LEAGUE, DOING SO FREELY AND VOLUNTARILY WITHOUT ANY INDUCEMENT.</strong></p>
+                                        </div>
                                     </div>
 
-                                    <!-- Encouraging Text -->
-                                    <div class="text-center text-secondary mb-4">
-                                        <small>We highly encourage you to register with Discord for a seamless experience and access to exclusive ECS content. If you don't have a Discord account, <a href="https://discord.com/register" target="_blank">create one here</a> and join the <a href="https://discord.gg/weareecs" target="_blank">ECS Discord</a>!</small>
-                                    </div>
-
-                                    <!-- Alternative Registration Link -->
-                                    <div class="text-center">
-                                        <a href="#" id="toggle-register-form" class="small text-secondary">Register with Email</a>
-                                    </div>
-
-                                    <!-- Hidden Traditional Registration Form -->
-                                    <div id="email-register-form" class="collapse mt-3">
+                                    <!-- Registration Form -->
+                                    <div id="registration-form">
                                         <form class="user" method="POST" action="{{ url_for('auth.register') }}">
                                             {{ empty_form.hidden_tag() }}
                                             <div class="form-group row">
@@ -63,7 +91,18 @@
                                                     {{ form.confirm_password(class="form-control form-control-user") }}
                                                 </div>
                                             </div>
-                                            <button type="submit" class="btn btn-primary btn-user btn-block">
+                                            
+                                            <!-- Terms and Conditions Agreement -->
+                                            <div class="form-group">
+                                                <div class="form-check">
+                                                    <input type="checkbox" class="form-check-input" id="terms-agreement" name="terms_agreement" required>
+                                                    <label class="form-check-label small text-gray-900" for="terms-agreement">
+                                                        I agree to the ECS FC terms and conditions, liability waiver, and code of conduct
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <button type="submit" class="btn btn-primary btn-user btn-block" id="register-btn" disabled>
                                                 Register Account
                                             </button>
                                         </form>
@@ -92,11 +131,29 @@
 
 {% block custom_js %}
 <script>
-    document.getElementById('toggle-register-form').addEventListener('click', function (event) {
-        event.preventDefault(); // Prevent default anchor behavior
-        var form = document.getElementById('email-register-form');
-        form.classList.toggle('collapse'); // Toggle the collapse class
-        this.textContent = form.classList.contains('collapse') ? 'Register with Email' : 'Hide Email Registration'; // Change link text
+    // Handle terms agreement checkbox
+    document.addEventListener('DOMContentLoaded', function() {
+        const termsCheckbox = document.getElementById('terms-agreement');
+        const registerBtn = document.getElementById('register-btn');
+        
+        // Enable/disable register button based on checkbox
+        termsCheckbox.addEventListener('change', function() {
+            registerBtn.disabled = !this.checked;
+        });
+        
+        // Add some visual feedback for the checkbox
+        termsCheckbox.addEventListener('change', function() {
+            const label = document.querySelector('label[for="terms-agreement"]');
+            if (this.checked) {
+                label.style.color = '#5a5c69';
+                registerBtn.classList.remove('btn-secondary');
+                registerBtn.classList.add('btn-primary');
+            } else {
+                label.style.color = '#858796';
+                registerBtn.classList.remove('btn-primary');
+                registerBtn.classList.add('btn-secondary');
+            }
+        });
     });
 </script>
 {% endblock %}

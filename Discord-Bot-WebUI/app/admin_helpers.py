@@ -527,7 +527,7 @@ def get_rsvp_status_data(match: Match, session=None) -> List[Dict[str, Any]]:
             SubstituteRequest
         ).options(
             joinedload(SubstituteAssignment.player).joinedload(Player.user),
-            joinedload(SubstituteAssignment.assigned_by)
+            joinedload(SubstituteAssignment.assigner)
         ).filter(
             SubstituteRequest.match_id == match.id
         ).all()
@@ -535,7 +535,7 @@ def get_rsvp_status_data(match: Match, session=None) -> List[Dict[str, Any]]:
         # Add substitute assignments to the data
         for assignment in substitute_assignments:
             player = assignment.player
-            assigned_by_user = assignment.assigned_by
+            assigned_by_user = assignment.assigner
             
             if player:
                 # Determine which team they're assigned to based on the request

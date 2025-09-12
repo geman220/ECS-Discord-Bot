@@ -137,7 +137,7 @@ class Config:
     
     # Security Configuration
     SECURITY_PASSWORD_SALT = os.getenv('SECURITY_PASSWORD_SALT', SECRET_KEY)
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max upload
+    MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB max upload (needed for high-res profile images before cropping)
     
     # Rate limiting configuration
     RATELIMIT_STORAGE_URL = REDIS_URL
