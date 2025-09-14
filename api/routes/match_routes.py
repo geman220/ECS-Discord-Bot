@@ -42,7 +42,7 @@ async def generate_thread_context(match_context):
             
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                f"{WEBUI_API_URL}/api/ai/generate_thread_context",
+                f"{WEBUI_API_URL}/ai/generate_thread_context",
                 json=match_context,
                 timeout=10
             ) as response:

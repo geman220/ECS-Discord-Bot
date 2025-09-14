@@ -3,282 +3,80 @@
 {% block title %}Manage Sub Requests{% endblock %}
 
 {% block custom_css %}
-<style>
-    /* Card hover effect */
-    .shadow-sm {
-        transition: all 0.2s ease;
-    }
-    
-    .shadow-sm:hover {
-        box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
-    }
-    
-    /* Badge styling */
-    .badge {
-        font-weight: normal;
-        font-size: 0.75rem;
-        padding: 0.3rem 0.5rem;
-    }
-    
-    .badge.bg-label-primary {
-        background-color: rgba(105, 108, 255, 0.16) !important;
-        color: #696cff !important;
-    }
-    
-    .badge.bg-label-success {
-        background-color: rgba(40, 199, 111, 0.16) !important;
-        color: #28c76f !important;
-    }
-    
-    .badge.bg-label-warning {
-        background-color: rgba(255, 159, 67, 0.16) !important;
-        color: #ff9f43 !important;
-    }
-    
-    .badge.bg-label-danger {
-        background-color: rgba(234, 84, 85, 0.16) !important;
-        color: #ea5455 !important;
-    }
-    
-    .status-pending {
-        background-color: rgba(255, 171, 0, 0.16) !important;
-        color: #ffab00 !important;
-    }
-    
-    .status-approved {
-        background-color: rgba(3, 195, 236, 0.16) !important;
-        color: #03c3ec !important;
-    }
-    
-    .status-declined {
-        background-color: rgba(255, 62, 29, 0.16) !important;
-        color: #ff3e1d !important;
-    }
-    
-    .status-fulfilled {
-        background-color: rgba(113, 221, 55, 0.16) !important;
-        color: #71dd37 !important;
-    }
-    
-    /* Avatar styling */
-    .avatar {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 38px;
-        width: 38px;
-        overflow: hidden;
-        border-radius: 50%;
-    }
-    
-    .avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 50%;
-    }
-    
-    /* Override the default background color for avatars */
-    .avatar.avatar-sm, 
-    .avatar.avatar-md {
-        background-color: transparent !important;
-    }
-    
-    /* Add a subtle shadow to avatars for better visual separation */
-    .avatar.avatar-sm img, 
-    .avatar.avatar-md img {
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .avatar-sm {
-        height: 30px;
-        width: 30px;
-    }
-    
-    .avatar-md {
-        height: 42px;
-        width: 42px;
-    }
-    
-    .avatar-initial {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2rem;
-    }
-    
-    .avatar-sm .avatar-initial {
-        font-size: 0.9rem;
-    }
-    
-    .avatar-md .avatar-initial {
-        font-size: 1.3rem;
-    }
-    
-    /* CRITICAL: Direct dropdown menu fixes for this page */
-    .table-responsive {
-        overflow: visible !important;
-    }
-    
-    .card {
-        overflow: visible !important;
-    }
-    
-    .dropdown-menu {
-        z-index: 99999 !important;
-        position: absolute !important;
-    }
-    
-    .tab-content {
-        overflow: visible !important;
-    }
-    
-    .tab-pane {
-        overflow: visible !important;
-    }
-    
-    table td {
-        position: relative !important;
-    }
-    
-    /* Specific fix for action column dropdowns */
-    table td:last-child .dropdown-menu {
-        right: 0 !important;
-        left: auto !important;
-    }
-    
-    /* Table header styling */
-    .table-light th {
-        font-weight: 500;
-        color: #566a7f;
-        text-transform: uppercase;
-        font-size: 0.8rem;
-        letter-spacing: 0.5px;
-    }
-    
-    /* Sortable columns */
-    .sortable-column {
-        display: flex;
-        align-items: center;
-        color: inherit;
-        text-decoration: none;
-        cursor: pointer;
-    }
-    
-    .sortable-column:hover {
-        color: #696cff;
-        text-decoration: none;
-    }
-    
-    .sortable-column.active {
-        color: #696cff;
-        font-weight: 600;
-    }
-    
-    .sort-icon {
-        font-size: 1rem;
-        margin-left: 0.25rem;
-        opacity: 0.5;
-        transition: opacity 0.2s;
-    }
-    
-    .sortable-column:hover .sort-icon,
-    .sortable-column.active .sort-icon {
-        opacity: 1;
-    }
-    
-    /* Dropdown form fix */
-    .dropdown-item-form {
-        display: block;
-        width: 100%;
-        padding: 0;
-        margin: 0;
-    }
-    
-    .dropdown-item-form .dropdown-item {
-        display: block;
-        width: 100%;
-        padding: 0.5rem 1rem;
-        clear: both;
-        font-weight: 400;
-        text-align: inherit;
-        white-space: nowrap;
-        background-color: transparent;
-        border: 0;
-    }
-    
-    .dropdown-item-form .dropdown-item:hover, 
-    .dropdown-item-form .dropdown-item:focus {
-        color: #16181b;
-        text-decoration: none;
-        background-color: #f8f9fa;
-    }
-    
-    /* Row hover effect */
-    .table-hover tbody tr:hover {
-        background-color: rgba(67, 89, 113, 0.04);
-    }
-    
-    /* Action button styling */
-    .btn-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        height: 2rem;
-        width: 2rem;
-    }
-    
-    /* Emphasis for requested teams */
-    .has-request {
-        position: relative;
-    }
-    
-    .has-request::after {
-        content: "";
-        position: absolute;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background-color: #ff3e1d;
-        top: 0;
-        right: 0;
-        animation: pulse 1.5s infinite;
-    }
-    
-    @keyframes pulse {
-        0% {
-            transform: scale(0.95);
-            box-shadow: 0 0 0 0 rgba(255, 62, 29, 0.7);
-        }
-        
-        70% {
-            transform: scale(1);
-            box-shadow: 0 0 0 6px rgba(255, 62, 29, 0);
-        }
-        
-        100% {
-            transform: scale(0.95);
-            box-shadow: 0 0 0 0 rgba(255, 62, 29, 0);
-        }
-    }
-</style>
 <!-- Toastr CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 {% endblock %}
 
 {% block main_content %}
-<!-- Page Loader -->
-<div id="page-loader">
-    <span class="loader-spinner"></span>
-</div>
-<div class="container-xxl flex-grow-1 container-p-y">
+<div class="container-xxl flex-grow-1 container-p-y sub-requests-page dark-mode-applied">
     <!-- Header with Breadcrumb -->
     <h4 class="fw-bold py-3 mb-3">
         <span class="text-muted fw-light">Admin / </span> Manage Sub Requests
     </h4>
-    
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="avatar avatar-lg bg-primary-subtle rounded-3 me-3">
+                        <i class="ti ti-soccer-field fs-3 text-primary"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Total Matches</h5>
+                        <h3 class="fw-bold mb-0">{{ upcoming_matches|length if upcoming_matches else 0 }}</h3>
+                        <p class="text-muted mb-0 small">Upcoming matches</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="avatar avatar-lg bg-warning-subtle rounded-3 me-3">
+                        <i class="ti ti-hand-stop fs-3 text-warning"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Pending Requests</h5>
+                        <h3 class="fw-bold mb-0">{{ sub_requests|selectattr('status', 'equalto', 'PENDING')|list|length }}</h3>
+                        <p class="text-muted mb-0 small">Awaiting action</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="avatar avatar-lg bg-info-subtle rounded-3 me-3">
+                        <i class="ti ti-clock fs-3 text-info"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Approved Requests</h5>
+                        <h3 class="fw-bold mb-0">{{ sub_requests|selectattr('status', 'equalto', 'APPROVED')|list|length }}</h3>
+                        <p class="text-muted mb-0 small">Need assignment</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="avatar avatar-lg bg-success-subtle rounded-3 me-3">
+                        <i class="ti ti-check fs-3 text-success"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Fulfilled</h5>
+                        <h3 class="fw-bold mb-0">{{ sub_requests|selectattr('status', 'equalto', 'FULFILLED')|list|length }}</h3>
+                        <p class="text-muted mb-0 small">Completed requests</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Filters -->
     <div class="row mb-4">
         <div class="col-12">
@@ -313,7 +111,7 @@
                                     <option value="not_requested" {% if show_requested == "not_requested" %}selected{% endif %}>Without Sub Requests</option>
                                 </select>
                             </div>
-                            <div class="col-12 d-flex justify-content-end gap-2 mt-3">
+                            <div class="col-12 d-flex justify-content-end gap-2 mt-3 filter-buttons-stack">
                                 <a href="{{ url_for('admin.manage_sub_requests') }}" class="btn btn-outline-secondary">
                                     <i class="ti ti-refresh me-1"></i> Reset Filters
                                 </a>
@@ -327,71 +125,8 @@
             </div>
         </div>
     </div>
-    
-    <!-- Stats Cards -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="avatar avatar-lg bg-primary-subtle rounded-3 me-3">
-                        <i class="ti ti-soccer-field fs-3 text-primary"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-0">Total Matches</h5>
-                        <h3 class="fw-bold mb-0">{{ upcoming_matches|length if upcoming_matches else 0 }}</h3>
-                        <p class="text-muted mb-0 small">Upcoming matches</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="avatar avatar-lg bg-warning-subtle rounded-3 me-3">
-                        <i class="ti ti-hand-stop fs-3 text-warning"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-0">Pending Requests</h5>
-                        <h3 class="fw-bold mb-0">{{ sub_requests|selectattr('status', 'equalto', 'PENDING')|list|length }}</h3>
-                        <p class="text-muted mb-0 small">Awaiting action</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="avatar avatar-lg bg-info-subtle rounded-3 me-3">
-                        <i class="ti ti-clock fs-3 text-info"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-0">Approved Requests</h5>
-                        <h3 class="fw-bold mb-0">{{ sub_requests|selectattr('status', 'equalto', 'APPROVED')|list|length }}</h3>
-                        <p class="text-muted mb-0 small">Need assignment</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="avatar avatar-lg bg-success-subtle rounded-3 me-3">
-                        <i class="ti ti-check fs-3 text-success"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-0">Fulfilled</h5>
-                        <h3 class="fw-bold mb-0">{{ sub_requests|selectattr('status', 'equalto', 'FULFILLED')|list|length }}</h3>
-                        <p class="text-muted mb-0 small">Completed requests</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Matches Table Card -->
+
+    <!-- Matches - Mobile Cards (Default) -->
     <div class="row">
         <div class="col-12">
             <div class="card shadow-sm">
@@ -402,157 +137,296 @@
                         </h5>
                     </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Date</th>
-                                <th>Week</th>
-                                <th>Home Team</th>
-                                <th>Away Team</th>
-                                <th>Home Status</th>
-                                <th>Away Status</th>
-                                <th class="text-end">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% if upcoming_matches %}
+                <div class="card-body">
+                    {% if upcoming_matches %}
+                        <!-- Mobile Card Layout (Primary) -->
+                        <div class="mobile-cards">
+                            <div class="matches-grid">
+                                {% set matches_with_requests = [] %}
+                                {% set matches_without_requests = [] %}
                                 {% for match in upcoming_matches %}
-                                <tr>
-                                    <td class="fw-semibold">{{ match.date.strftime('%m/%d/%Y') }}</td>
-                                    <td>{{ match.schedule.week if match.schedule else 'Unknown' }}</td>
-                                    <td class="{% if match.home_team_id in requested_teams_by_match[match.id] %}has-request{% endif %}">
-                                        {{ match.home_team.name }}
-                                    </td>
-                                    <td class="{% if match.away_team_id in requested_teams_by_match[match.id] %}has-request{% endif %}">
-                                        {{ match.away_team.name }}
-                                    </td>
-                                    <td>
-                                        {% if match.home_team_id in requested_teams_by_match[match.id] %}
-                                            {% set req = requested_teams_by_match[match.id][match.home_team_id] %}
-                                            {% if req.status == 'PENDING' %}
-                                            <span class="badge status-pending">
-                                                <i class="ti ti-hand-stop me-1"></i>Sub Requested
-                                                {% if req.assignments_count > 0 %}
-                                                    <br><small>({{ req.assignments_count }} of {{ req.substitutes_needed }} assigned)</small>
-                                                {% endif %}
-                                            </span>
-                                            {% elif req.status == 'APPROVED' %}
-                                            <span class="badge status-approved">
-                                                <i class="ti ti-check me-1"></i>Request Approved
-                                                {% if req.assignments_count > 0 %}
-                                                    <br><small>({{ req.assignments_count }} of {{ req.substitutes_needed }} assigned)</small>
-                                                {% endif %}
-                                            </span>
-                                            {% elif req.status == 'DECLINED' %}
-                                            <span class="badge status-declined">
-                                                <i class="ti ti-x me-1"></i>Request Declined
-                                            </span>
-                                            {% elif req.status == 'FULFILLED' %}
-                                            <span class="badge status-fulfilled">
-                                                <i class="ti ti-user-check me-1"></i>Sub Assigned ({{ req.assignments_count }} of {{ req.substitutes_needed }})
-                                            </span>
-                                            {% endif %}
-                                        {% else %}
-                                            <span class="badge bg-label-secondary">No Request</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if match.away_team_id in requested_teams_by_match[match.id] %}
-                                            {% set req = requested_teams_by_match[match.id][match.away_team_id] %}
-                                            {% if req.status == 'PENDING' %}
-                                            <span class="badge status-pending">
-                                                <i class="ti ti-hand-stop me-1"></i>Sub Requested
-                                                {% if req.assignments_count > 0 %}
-                                                    <br><small>({{ req.assignments_count }} of {{ req.substitutes_needed }} assigned)</small>
-                                                {% endif %}
-                                            </span>
-                                            {% elif req.status == 'APPROVED' %}
-                                            <span class="badge status-approved">
-                                                <i class="ti ti-check me-1"></i>Request Approved
-                                                {% if req.assignments_count > 0 %}
-                                                    <br><small>({{ req.assignments_count }} of {{ req.substitutes_needed }} assigned)</small>
-                                                {% endif %}
-                                            </span>
-                                            {% elif req.status == 'DECLINED' %}
-                                            <span class="badge status-declined">
-                                                <i class="ti ti-x me-1"></i>Request Declined
-                                            </span>
-                                            {% elif req.status == 'FULFILLED' %}
-                                            <span class="badge status-fulfilled">
-                                                <i class="ti ti-user-check me-1"></i>Sub Assigned ({{ req.assignments_count }} of {{ req.substitutes_needed }})
-                                            </span>
-                                            {% endif %}
-                                        {% else %}
-                                            <span class="badge bg-label-secondary">No Request</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-end position-relative" style="overflow: visible;">
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow ecs-btn ecs-btn-sm ecs-btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                <i class="ti ti-dots-vertical"></i>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end" style="z-index: 9999; position: absolute;">
-                                                <li>
-                                                    <a class="dropdown-item" href="{{ url_for('admin.rsvp_status', match_id=match.id) }}">
-                                                        <i class="ti ti-users me-1"></i> View RSVP Status
-                                                    </a>
-                                                </li>
-                                                
-                                                {% set home_req = requested_teams_by_match[match.id][match.home_team_id] if match.home_team_id in requested_teams_by_match[match.id] else None %}
-                                                {% set away_req = requested_teams_by_match[match.id][match.away_team_id] if match.away_team_id in requested_teams_by_match[match.id] else None %}
-                                                
-                                                {% if home_req and home_req.status == 'PENDING' %}
-                                                <div class="dropdown-divider"></div>
-                                                <li>
-                                                    <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#fulfillModal{{ home_req.id }}">
-                                                        <i class="ti ti-user-plus text-primary me-1"></i> Assign Home Sub
-                                                    </button>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item" href="{{ url_for('teams.team_details', team_id=match.home_team_id) }}">
-                                                        <i class="ti ti-users text-info me-1"></i> View Home Team
-                                                    </a>
-                                                </li>
-                                                {% endif %}
-                                                
-                                                {% if away_req and away_req.status == 'PENDING' %}
-                                                <div class="dropdown-divider"></div>
-                                                <li>
-                                                    <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#fulfillModal{{ away_req.id }}">
-                                                        <i class="ti ti-user-plus text-primary me-1"></i> Assign Away Sub
-                                                    </button>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item" href="{{ url_for('teams.team_details', team_id=match.away_team_id) }}">
-                                                        <i class="ti ti-users text-info me-1"></i> View Away Team
-                                                    </a>
-                                                </li>
-                                                {% endif %}
-                                            </ul>
-                                        </div>
-                                    </td>
-                                </tr>
+                                    {% if match.home_team_id in requested_teams_by_match[match.id] or match.away_team_id in requested_teams_by_match[match.id] %}
+                                        {% set _ = matches_with_requests.append(match) %}
+                                    {% else %}
+                                        {% set _ = matches_without_requests.append(match) %}
+                                    {% endif %}
                                 {% endfor %}
-                            {% else %}
-                                <tr>
-                                    <td colspan="7" class="text-center py-4">
-                                        <div class="d-flex flex-column align-items-center">
-                                            <i class="ti ti-search fs-1 text-muted mb-2"></i>
-                                            <h6 class="mb-1">No matches found</h6>
-                                            <p class="text-muted small mb-0">Try adjusting your filters to see more results</p>
+
+                                <!-- Priority: Matches with sub requests first on mobile -->
+                                {% for match in matches_with_requests + matches_without_requests %}
+                                <div class="match-card {{ 'priority-match' if match in matches_with_requests else '' }}">
+                                    <div class="match-card-header">
+                                        <h6 class="match-teams">{{ match.home_team.name }} vs {{ match.away_team.name }}</h6>
+                                        <div class="match-meta">
+                                            {{ match.date.strftime('%m/%d/%Y') }} • Week {{ match.schedule.week if match.schedule else 'TBD' }}
                                         </div>
-                                    </td>
-                                </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
+                                    </div>
+                                    <div class="match-card-body">
+                                        <!-- Team Requests -->
+                                        <div class="team-requests-row">
+                                            <!-- Home Team -->
+                                            <div class="team-request">
+                                                <div class="team-name">
+                                                    {{ match.home_team.name }}
+                                                    {% if match.home_team_id in requested_teams_by_match[match.id] %}
+                                                        <div class="request-indicator"></div>
+                                                    {% endif %}
+                                                </div>
+                                                {% if match.home_team_id in requested_teams_by_match[match.id] %}
+                                                    {% set req = requested_teams_by_match[match.id][match.home_team_id] %}
+                                                    <div class="status-badge status-{{ req.status.lower() }}">
+                                                        {% if req.status == 'PENDING' %}
+                                                            <i class="ti ti-hand-stop"></i>
+                                                            Pending Request
+                                                        {% elif req.status == 'APPROVED' %}
+                                                            <i class="ti ti-check"></i>
+                                                            Approved
+                                                        {% elif req.status == 'FULFILLED' %}
+                                                            <i class="ti ti-user-check"></i>
+                                                            Fulfilled
+                                                        {% elif req.status == 'DECLINED' %}
+                                                            <i class="ti ti-x"></i>
+                                                            Declined
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="request-details">
+                                                        <span class="request-count">{{ req.substitutes_needed }} substitute(s) needed</span>
+                                                        {% if req.assignments_count > 0 %}
+                                                            • {{ req.assignments_count }} assigned
+                                                        {% endif %}
+                                                    </div>
+                                                    {% if req.notes %}
+                                                        <div class="request-notes">
+                                                            <div class="request-notes-label">Notes:</div>
+                                                            {{ req.notes }}
+                                                        </div>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <div class="status-badge status-none">
+                                                        <i class="ti ti-check-circle"></i>
+                                                        No Request
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+
+                                            <!-- Away Team -->
+                                            <div class="team-request">
+                                                <div class="team-name">
+                                                    {{ match.away_team.name }}
+                                                    {% if match.away_team_id in requested_teams_by_match[match.id] %}
+                                                        <div class="request-indicator"></div>
+                                                    {% endif %}
+                                                </div>
+                                                {% if match.away_team_id in requested_teams_by_match[match.id] %}
+                                                    {% set req = requested_teams_by_match[match.id][match.away_team_id] %}
+                                                    <div class="status-badge status-{{ req.status.lower() }}">
+                                                        {% if req.status == 'PENDING' %}
+                                                            <i class="ti ti-hand-stop"></i>
+                                                            Pending Request
+                                                        {% elif req.status == 'APPROVED' %}
+                                                            <i class="ti ti-check"></i>
+                                                            Approved
+                                                        {% elif req.status == 'FULFILLED' %}
+                                                            <i class="ti ti-user-check"></i>
+                                                            Fulfilled
+                                                        {% elif req.status == 'DECLINED' %}
+                                                            <i class="ti ti-x"></i>
+                                                            Declined
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="request-details">
+                                                        <span class="request-count">{{ req.substitutes_needed }} substitute(s) needed</span>
+                                                        {% if req.assignments_count > 0 %}
+                                                            • {{ req.assignments_count }} assigned
+                                                        {% endif %}
+                                                    </div>
+                                                    {% if req.notes %}
+                                                        <div class="request-notes">
+                                                            <div class="request-notes-label">Notes:</div>
+                                                            {{ req.notes }}
+                                                        </div>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <div class="status-badge status-none">
+                                                        <i class="ti ti-check-circle"></i>
+                                                        No Request
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+
+                                        <!-- Actions -->
+                                        <div class="match-actions">
+                                            <a href="{{ url_for('admin.rsvp_status', match_id=match.id) }}" class="action-btn action-btn-outline">
+                                                <i class="ti ti-users"></i>
+                                                View RSVP
+                                            </a>
+
+                                            {% set home_req = requested_teams_by_match[match.id][match.home_team_id] if match.home_team_id in requested_teams_by_match[match.id] else None %}
+                                            {% set away_req = requested_teams_by_match[match.id][match.away_team_id] if match.away_team_id in requested_teams_by_match[match.id] else None %}
+
+                                            {% if home_req and home_req.status == 'PENDING' %}
+                                                <button type="button" class="action-btn action-btn-primary" data-bs-toggle="modal" data-bs-target="#fulfillModal{{ home_req.id }}">
+                                                    <i class="ti ti-user-plus"></i>
+                                                    Assign Home Sub
+                                                </button>
+                                            {% endif %}
+
+                                            {% if away_req and away_req.status == 'PENDING' %}
+                                                <button type="button" class="action-btn action-btn-primary" data-bs-toggle="modal" data-bs-target="#fulfillModal{{ away_req.id }}">
+                                                    <i class="ti ti-user-plus"></i>
+                                                    Assign Away Sub
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Desktop Table (Hidden on Mobile) -->
+                        <div class="desktop-table">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Week</th>
+                                            <th>Home Team</th>
+                                            <th>Away Team</th>
+                                            <th>Home Status</th>
+                                            <th>Away Status</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for match in upcoming_matches %}
+                                        <tr>
+                                            <td class="fw-semibold">{{ match.date.strftime('%m/%d/%Y') }}</td>
+                                            <td>{{ match.schedule.week if match.schedule else 'Unknown' }}</td>
+                                            <td class="{% if match.home_team_id in requested_teams_by_match[match.id] %}has-request{% endif %}">
+                                                {{ match.home_team.name }}
+                                            </td>
+                                            <td class="{% if match.away_team_id in requested_teams_by_match[match.id] %}has-request{% endif %}">
+                                                {{ match.away_team.name }}
+                                            </td>
+                                            <td>
+                                                {% if match.home_team_id in requested_teams_by_match[match.id] %}
+                                                    {% set req = requested_teams_by_match[match.id][match.home_team_id] %}
+                                                    {% if req.status == 'PENDING' %}
+                                                    <span class="badge status-pending">
+                                                        <i class="ti ti-hand-stop me-1"></i>Sub Requested ({{ req.substitutes_needed }})
+                                                        {% if req.assignments_count > 0 %}
+                                                            <br><small>({{ req.assignments_count }} assigned)</small>
+                                                        {% endif %}
+                                                    </span>
+                                                    {% elif req.status == 'APPROVED' %}
+                                                    <span class="badge status-approved">
+                                                        <i class="ti ti-check me-1"></i>Approved ({{ req.substitutes_needed }})
+                                                        {% if req.assignments_count > 0 %}
+                                                            <br><small>({{ req.assignments_count }} assigned)</small>
+                                                        {% endif %}
+                                                    </span>
+                                                    {% elif req.status == 'DECLINED' %}
+                                                    <span class="badge status-declined">
+                                                        <i class="ti ti-x me-1"></i>Declined
+                                                    </span>
+                                                    {% elif req.status == 'FULFILLED' %}
+                                                    <span class="badge status-fulfilled">
+                                                        <i class="ti ti-user-check me-1"></i>Fulfilled ({{ req.assignments_count }}/{{ req.substitutes_needed }})
+                                                    </span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="badge bg-label-secondary">No Request</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if match.away_team_id in requested_teams_by_match[match.id] %}
+                                                    {% set req = requested_teams_by_match[match.id][match.away_team_id] %}
+                                                    {% if req.status == 'PENDING' %}
+                                                    <span class="badge status-pending">
+                                                        <i class="ti ti-hand-stop me-1"></i>Sub Requested ({{ req.substitutes_needed }})
+                                                        {% if req.assignments_count > 0 %}
+                                                            <br><small>({{ req.assignments_count }} assigned)</small>
+                                                        {% endif %}
+                                                    </span>
+                                                    {% elif req.status == 'APPROVED' %}
+                                                    <span class="badge status-approved">
+                                                        <i class="ti ti-check me-1"></i>Approved ({{ req.substitutes_needed }})
+                                                        {% if req.assignments_count > 0 %}
+                                                            <br><small>({{ req.assignments_count }} assigned)</small>
+                                                        {% endif %}
+                                                    </span>
+                                                    {% elif req.status == 'DECLINED' %}
+                                                    <span class="badge status-declined">
+                                                        <i class="ti ti-x me-1"></i>Declined
+                                                    </span>
+                                                    {% elif req.status == 'FULFILLED' %}
+                                                    <span class="badge status-fulfilled">
+                                                        <i class="ti ti-user-check me-1"></i>Fulfilled ({{ req.assignments_count }}/{{ req.substitutes_needed }})
+                                                    </span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="badge bg-label-secondary">No Request</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end position-relative" style="overflow: visible;">
+                                                <div class="dropdown">
+                                                    <button class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        <i class="ti ti-dots-vertical"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu dropdown-menu-end">
+                                                        <li>
+                                                            <a class="dropdown-item" href="{{ url_for('admin.rsvp_status', match_id=match.id) }}">
+                                                                <i class="ti ti-users me-1"></i> View RSVP Status
+                                                            </a>
+                                                        </li>
+
+                                                        {% set home_req = requested_teams_by_match[match.id][match.home_team_id] if match.home_team_id in requested_teams_by_match[match.id] else None %}
+                                                        {% set away_req = requested_teams_by_match[match.id][match.away_team_id] if match.away_team_id in requested_teams_by_match[match.id] else None %}
+
+                                                        {% if home_req and home_req.status == 'PENDING' %}
+                                                        <div class="dropdown-divider"></div>
+                                                        <li>
+                                                            <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#fulfillModal{{ home_req.id }}">
+                                                                <i class="ti ti-user-plus text-primary me-1"></i> Assign Home Sub
+                                                            </button>
+                                                        </li>
+                                                        {% endif %}
+
+                                                        {% if away_req and away_req.status == 'PENDING' %}
+                                                        <div class="dropdown-divider"></div>
+                                                        <li>
+                                                            <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#fulfillModal{{ away_req.id }}">
+                                                                <i class="ti ti-user-plus text-primary me-1"></i> Assign Away Sub
+                                                            </button>
+                                                        </li>
+                                                        {% endif %}
+                                                    </ul>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <div class="d-flex flex-column align-items-center">
+                                <i class="ti ti-search fs-1 text-muted mb-2"></i>
+                                <h6 class="mb-1">No matches found</h6>
+                                <p class="text-muted small mb-0">Try adjusting your filters to see more results</p>
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Pending Sub Requests Card -->
+
+    <!-- Pending Sub Requests -->
     <div class="row mt-4">
         <div class="col-12">
             <div class="card shadow-sm">
@@ -569,48 +443,92 @@
                 <div class="collapse show" id="pendingRequestsCollapse">
                     <div class="card-body">
                         {% set pending_requests = sub_requests|selectattr('status', 'equalto', 'PENDING')|list %}
-                        
+
                         {% if pending_requests %}
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Match</th>
-                                            <th>Team</th>
-                                            <th>Notes</th>
-                                            <th class="text-end">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for request in pending_requests %}
-                                        <tr>
-                                            <td class="fw-semibold">{{ request.match.date.strftime('%m/%d/%Y') }}</td>
-                                            <td>{{ request.match.home_team.name }} vs {{ request.match.away_team.name }}</td>
-                                            <td><span class="badge bg-primary">{{ request.team.name }}</span></td>
-                                            <td>
-                                                {% if request.notes %}
-                                                    <span class="d-inline-block text-truncate" style="max-width: 200px;" data-bs-toggle="tooltip" title="{{ request.notes }}">
-                                                        {{ request.notes }}
-                                                    </span>
-                                                {% else %}
-                                                    <span class="text-muted">No notes</span>
-                                                {% endif %}
-                                            </td>
-                                            <td class="text-end">
-                                                <div class="d-flex gap-2 justify-content-end">
-                                                    <a href="{{ url_for('teams.team_details', team_id=request.team_id) }}" class="btn btn-sm btn-outline-primary">
-                                                        <i class="ti ti-users"></i>
-                                                    </a>
-                                                    <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#fulfillModal{{ request.id }}">
-                                                        <i class="ti ti-user-plus"></i> Assign
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+                            <!-- Mobile Cards -->
+                            <div class="mobile-cards">
+                                <div class="pending-requests-grid">
+                                    {% for request in pending_requests %}
+                                    <div class="pending-request-card">
+                                        <div class="pending-request-header">
+                                            <div class="pending-match-info">
+                                                <h6 class="pending-match-title">{{ request.match.home_team.name }} vs {{ request.match.away_team.name }}</h6>
+                                                <div class="pending-match-meta">{{ request.match.date.strftime('%m/%d/%Y') }}</div>
+                                            </div>
+                                            <div class="pending-team-badge">{{ request.team.name }}</div>
+                                        </div>
+
+                                        <div class="request-details">
+                                            <span class="request-count">{{ request.substitutes_needed }} substitute(s) needed</span>
+                                        </div>
+
+                                        {% if request.notes %}
+                                        <div class="request-notes">
+                                            <div class="request-notes-label">Notes:</div>
+                                            {{ request.notes }}
+                                        </div>
+                                        {% endif %}
+
+                                        <div class="pending-actions">
+                                            <a href="{{ url_for('teams.team_details', team_id=request.team_id) }}" class="action-btn action-btn-outline">
+                                                <i class="ti ti-users"></i>
+                                                View Team
+                                            </a>
+                                            <button type="button" class="action-btn action-btn-primary" data-bs-toggle="modal" data-bs-target="#fulfillModal{{ request.id }}">
+                                                <i class="ti ti-user-plus"></i>
+                                                Assign Sub
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Desktop Table -->
+                            <div class="desktop-table">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Match</th>
+                                                <th>Team</th>
+                                                <th>Substitutes Needed</th>
+                                                <th>Notes</th>
+                                                <th class="text-end">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for request in pending_requests %}
+                                            <tr>
+                                                <td class="fw-semibold">{{ request.match.date.strftime('%m/%d/%Y') }}</td>
+                                                <td>{{ request.match.home_team.name }} vs {{ request.match.away_team.name }}</td>
+                                                <td><span class="badge bg-primary">{{ request.team.name }}</span></td>
+                                                <td><span class="request-count">{{ request.substitutes_needed }}</span></td>
+                                                <td>
+                                                    {% if request.notes %}
+                                                        <span class="d-inline-block text-truncate" style="max-width: 200px;" data-bs-toggle="tooltip" title="{{ request.notes }}">
+                                                            {{ request.notes }}
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="text-muted">No notes</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-end">
+                                                    <div class="d-flex gap-2 justify-content-end">
+                                                        <a href="{{ url_for('teams.team_details', team_id=request.team_id) }}" class="btn btn-sm btn-outline-primary">
+                                                            <i class="ti ti-users"></i>
+                                                        </a>
+                                                        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#fulfillModal{{ request.id }}">
+                                                            <i class="ti ti-user-plus"></i> Assign
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         {% else %}
                         <div class="text-center py-4">
@@ -646,7 +564,7 @@
                 <div class="modal-body">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="action" value="fulfill">
-                    
+
                     <div class="mb-3">
                         <label for="player_id{{ request.id }}" class="form-label fw-semibold">Select Substitute</label>
                         <select class="form-select" id="player_id{{ request.id }}" name="player_id" required>
@@ -662,13 +580,13 @@
                             {% endif %}
                         </select>
                     </div>
-                    
+
                     <div class="alert alert-info">
                         <div class="d-flex align-items-center">
                             <i class="ti ti-info-circle me-2 fs-3"></i>
                             <div>
                                 <h6 class="alert-heading mb-1">Request Details</h6>
-                                <p class="mb-0">{{ request.team.name }} needs a sub for their match on {{ request.match.date.strftime('%a, %b %d') }}</p>
+                                <p class="mb-0">{{ request.team.name }} needs <strong>{{ request.substitutes_needed }} substitute(s)</strong> for their match on {{ request.match.date.strftime('%a, %b %d') }}</p>
                                 {% if request.notes %}
                                 <p class="mb-0 mt-2 fst-italic">"{{ request.notes }}"</p>
                                 {% endif %}
@@ -695,23 +613,15 @@
 {% block custom_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Hide page loader
-        const pageLoader = document.getElementById('page-loader');
-        if (pageLoader) {
-            setTimeout(() => {
-                pageLoader.classList.add('hidden');
-            }, 300);
-        }
-        
         // Auto-submit filter form on change
         document.getElementById('show_requested').addEventListener('change', function() {
             this.form.submit();
         });
-        
+
         document.getElementById('week').addEventListener('change', function() {
             this.form.submit();
         });
-        
+
         // Initialize tooltips
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {

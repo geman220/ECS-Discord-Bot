@@ -542,7 +542,7 @@ async def get_message_ids_for_match(match_id: int) -> Optional[Dict]:
     """Get message IDs for a specific match from the web UI."""
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"{WEBUI_API_URL}/api/get_message_ids/{match_id}") as response:
+            async with session.get(f"{WEBUI_API_URL}/get_message_ids/{match_id}") as response:
                 if response.status == 200:
                     return await response.json()
                 else:

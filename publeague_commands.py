@@ -250,7 +250,7 @@ class TeamRoleSelect(discord.ui.Select):
             
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    f"{WEBUI_API_URL}/api/team-notifications/send",
+                    f"{WEBUI_API_URL}/team-notifications/send",
                     json=payload,
                     headers={'Content-Type': 'application/json'}
                 ) as response:
@@ -361,7 +361,7 @@ class PubLeagueCommands(commands.Cog):
             
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    f"{WEBUI_API_URL}/api/team-notifications/send",
+                    f"{WEBUI_API_URL}/team-notifications/send",
                     json=payload,
                     headers={'Content-Type': 'application/json'}
                 ) as response:
