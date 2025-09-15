@@ -9,6 +9,7 @@ Handles automated scheduling of match threads and live reporting sessions.
 
 import logging
 from datetime import datetime, timedelta
+from typing import Dict, Any
 from app.decorators import celery_task
 from app.services.match_scheduler_service import MatchSchedulerService
 from app.utils.task_session_manager import task_session
