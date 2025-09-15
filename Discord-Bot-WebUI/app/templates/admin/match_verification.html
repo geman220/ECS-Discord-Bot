@@ -75,7 +75,7 @@
                             <input type="hidden" name="season_id" value="{{ selected_season_id }}">
                             {% endif %}
                             <!-- Week Filter -->
-                            <div class="col-md-4">
+                            <div class="col-12 col-sm-6 col-md-4">
                                 <label for="week" class="form-label">Week</label>
                                 <select id="week" name="week" class="form-select">
                                     <option value="">All Weeks</option>
@@ -88,9 +88,9 @@
                                     {% endif %}
                                 </select>
                             </div>
-                            
+
                             <!-- League Filter -->
-                            <div class="col-md-4">
+                            <div class="col-12 col-sm-6 col-md-4">
                                 <label for="league_id" class="form-label">League</label>
                                 <select id="league_id" name="league_id" class="form-select">
                                     <option value="">All Leagues</option>
@@ -99,9 +99,9 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                            
+
                             <!-- Verification Status Filter -->
-                            <div class="col-md-4">
+                            <div class="col-12 col-sm-12 col-md-4">
                                 <label for="verification_status" class="form-label">Verification Status</label>
                                 <select id="verification_status" name="verification_status" class="form-select">
                                     <option value="all" {% if current_verification_status == 'all' %}selected{% endif %}>All Matches</option>
@@ -111,14 +111,14 @@
                                     <option value="not_reported" {% if current_verification_status == 'not_reported' %}selected{% endif %}>Not Reported</option>
                                 </select>
                             </div>
-                            
+
                             <!-- Filter Buttons -->
-                            <div class="col-12 d-flex justify-content-end gap-2 mt-3">
+                            <div class="col-12 d-flex flex-column flex-sm-row justify-content-sm-end gap-2 mt-3">
                                 <a href="{{ url_for('admin.match_verification_dashboard') }}" class="btn btn-outline-secondary">
-                                    <i class="ti ti-refresh me-1"></i> Reset Filters
+                                    <i class="ti ti-refresh me-1"></i> <span class="d-none d-sm-inline">Reset</span> Filters
                                 </a>
                                 <button type="submit" class="btn btn-primary">
-                                    <i class="ti ti-filter me-1"></i> Apply Filters
+                                    <i class="ti ti-filter me-1"></i> Apply <span class="d-none d-sm-inline">Filters</span>
                                 </button>
                             </div>
                         </form>
@@ -130,62 +130,62 @@
 
     <!-- Stats Cards -->
     <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
+        <div class="col-xl-3 col-md-6 col-6 mb-3">
             <div class="card shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="avatar avatar-lg bg-primary-subtle rounded-3 me-3">
-                        <i class="ti ti-soccer-field fs-3 text-primary"></i>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="avatar avatar-sm bg-primary-subtle rounded me-2 d-none d-sm-flex">
+                            <i class="ti ti-soccer-field text-primary"></i>
+                        </div>
+                        <h6 class="card-title mb-0 text-truncate">Total Matches</h6>
                     </div>
-                    <div>
-                        <h5 class="card-title mb-0">Total Matches</h5>
-                        <h3 class="fw-bold mb-0">{{ matches|length }}</h3>
-                        <p class="text-muted mb-0 small">Current season</p>
-                    </div>
+                    <h3 class="fw-bold mb-0">{{ matches|length }}</h3>
+                    <p class="text-muted mb-0 small d-none d-sm-block">Current season</p>
                 </div>
             </div>
         </div>
-        
-        <div class="col-xl-3 col-md-6 mb-4">
+
+        <div class="col-xl-3 col-md-6 col-6 mb-3">
             <div class="card shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="avatar avatar-lg bg-success-subtle rounded-3 me-3">
-                        <i class="ti ti-check fs-3 text-success"></i>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="avatar avatar-sm bg-success-subtle rounded me-2 d-none d-sm-flex">
+                            <i class="ti ti-check text-success"></i>
+                        </div>
+                        <h6 class="card-title mb-0 text-truncate">Fully Verified</h6>
                     </div>
-                    <div>
-                        <h5 class="card-title mb-0">Fully Verified</h5>
-                        <h3 class="fw-bold mb-0">{{ matches|selectattr('home_team_verified', 'defined')|selectattr('home_team_verified')|selectattr('away_team_verified', 'defined')|selectattr('away_team_verified')|list|length }}</h3>
-                        <p class="text-muted mb-0 small">Both teams verified</p>
-                    </div>
+                    <h3 class="fw-bold mb-0">{{ matches|selectattr('home_team_verified', 'defined')|selectattr('home_team_verified')|selectattr('away_team_verified', 'defined')|selectattr('away_team_verified')|list|length }}</h3>
+                    <p class="text-muted mb-0 small d-none d-sm-block">Both teams verified</p>
                 </div>
             </div>
         </div>
-        
-        <div class="col-xl-3 col-md-6 mb-4">
+
+        <div class="col-xl-3 col-md-6 col-6 mb-3">
             <div class="card shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="avatar avatar-lg bg-warning-subtle rounded-3 me-3">
-                        <i class="ti ti-clock fs-3 text-warning"></i>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="avatar avatar-sm bg-warning-subtle rounded me-2 d-none d-sm-flex">
+                            <i class="ti ti-clock text-warning"></i>
+                        </div>
+                        <h6 class="card-title mb-0 text-truncate">Partially</h6>
                     </div>
-                    <div>
-                        <h5 class="card-title mb-0">Partially Verified</h5>
-                        <h3 class="fw-bold mb-0">{{ matches|selectattr('home_team_score', 'defined')|selectattr('away_team_score', 'defined')|rejectattr('home_team_verified')|rejectattr('away_team_verified')|list|length }}</h3>
-                        <p class="text-muted mb-0 small">One team verified</p>
-                    </div>
+                    <h3 class="fw-bold mb-0">{{ matches|selectattr('home_team_score', 'defined')|selectattr('away_team_score', 'defined')|rejectattr('home_team_verified')|rejectattr('away_team_verified')|list|length }}</h3>
+                    <p class="text-muted mb-0 small d-none d-sm-block">One team verified</p>
                 </div>
             </div>
         </div>
-        
-        <div class="col-xl-3 col-md-6 mb-4">
+
+        <div class="col-xl-3 col-md-6 col-6 mb-3">
             <div class="card shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="avatar avatar-lg bg-danger-subtle rounded-3 me-3">
-                        <i class="ti ti-alert-triangle fs-3 text-danger"></i>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="avatar avatar-sm bg-danger-subtle rounded me-2 d-none d-sm-flex">
+                            <i class="ti ti-alert-triangle text-danger"></i>
+                        </div>
+                        <h6 class="card-title mb-0 text-truncate">Not Reported</h6>
                     </div>
-                    <div>
-                        <h5 class="card-title mb-0">Not Reported</h5>
-                        <h3 class="fw-bold mb-0">{{ matches|rejectattr('home_team_score', 'defined')|list|length + matches|rejectattr('away_team_score', 'defined')|list|length }}</h3>
-                        <p class="text-muted mb-0 small">Needs initial report</p>
-                    </div>
+                    <h3 class="fw-bold mb-0">{{ matches|rejectattr('home_team_score', 'defined')|list|length + matches|rejectattr('away_team_score', 'defined')|list|length }}</h3>
+                    <p class="text-muted mb-0 small d-none d-sm-block">Needs initial report</p>
                 </div>
             </div>
         </div>
@@ -212,7 +212,7 @@
                     </div>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-hover ecs-table ecs-table-hover">
+                    <table class="table table-hover ecs-table ecs-table-hover" id="match-verification-table">
                         <thead class="table-light">
                             <tr>
                                 <th>
@@ -282,10 +282,10 @@
                         <tbody>
                             {% if matches %}
                                 {% for match in matches %}
-                                <tr>
-                                    <td class="fw-semibold">{{ match.date.strftime('%m/%d/%Y') }}</td>
-                                    <td>{{ match.schedule.week if match.schedule else 'Unknown' }}</td>
-                                    <td>
+                                <tr data-match-id="{{ match.id }}">
+                                    <td class="fw-semibold" data-label="Date">{{ match.date.strftime('%m/%d/%Y') }}</td>
+                                    <td data-label="Week">{{ match.schedule.week if match.schedule else 'Unknown' }}</td>
+                                    <td data-label="Home Team">
                                         {{ match.home_team.name }}
                                         {% if match.home_team_verified %}
                                         <span class="badge bg-label-success" data-bs-toggle="tooltip" title="Verified by: {{ (match.home_verifier.player.name if match.home_verifier and match.home_verifier.player else match.home_verifier.username) if match.home_verifier else 'Unknown' }} 
@@ -298,7 +298,7 @@
                                         </span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Away Team">
                                         {{ match.away_team.name }}
                                         {% if match.away_team_verified %}
                                         <span class="badge bg-label-success" data-bs-toggle="tooltip" title="Verified by: {{ (match.away_verifier.player.name if match.away_verifier and match.away_verifier.player else match.away_verifier.username) if match.away_verifier else 'Unknown' }} 
@@ -311,14 +311,14 @@
                                         </span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Score">
                                         {% if match.home_team_score is not none and match.away_team_score is not none %}
                                             <span class="fw-bold">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
                                         {% else %}
                                             <span class="badge bg-label-danger">Not reported</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         {% if match.home_team_score is none or match.away_team_score is none %}
                                             <span class="badge bg-label-danger">Not reported</span>
                                         {% elif match.home_team_verified and match.away_team_verified %}
@@ -329,7 +329,7 @@
                                             <span class="badge bg-label-warning">Needs verification</span>
                                         {% endif %}
                                     </td>
-                                    <td class="text-end position-relative" style="overflow: visible;">
+                                    <td class="text-end position-relative" data-label="Actions">
                                         <div class="dropdown">
                                             <button class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow ecs-btn ecs-btn-sm ecs-btn-icon" type="button" id="matchActions{{ match.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                                 <i class="ti ti-dots-vertical"></i>
@@ -412,42 +412,29 @@
 </div>
 
 <style>
-    /* Badge styling */
-    .badge {
-        font-weight: normal;
-        font-size: 0.75rem;
-        padding: 0.3rem 0.5rem;
-    }
-    
+    /* Match Verification Page Specific Styles */
+
+    /* Badge styling - inherits from mobile-scale-system.css */
     .badge.bg-label-primary {
         background-color: rgba(105, 108, 255, 0.16) !important;
         color: #696cff !important;
     }
-    
+
     .badge.bg-label-success {
         background-color: rgba(40, 199, 111, 0.16) !important;
         color: #28c76f !important;
     }
-    
+
     .badge.bg-label-warning {
         background-color: rgba(255, 159, 67, 0.16) !important;
         color: #ff9f43 !important;
     }
-    
+
     .badge.bg-label-danger {
         background-color: rgba(234, 84, 85, 0.16) !important;
         color: #ea5455 !important;
     }
-    
-    /* Table header styling */
-    .table-light th {
-        font-weight: 500;
-        color: #566a7f;
-        text-transform: uppercase;
-        font-size: 0.8rem;
-        letter-spacing: 0.5px;
-    }
-    
+
     /* Sortable columns */
     .sortable-column {
         display: flex;
@@ -456,40 +443,29 @@
         text-decoration: none;
         cursor: pointer;
     }
-    
+
     .sortable-column:hover {
         color: #696cff;
         text-decoration: none;
     }
-    
+
     .sortable-column.active {
         color: #696cff;
         font-weight: 600;
     }
-    
+
     .sort-icon {
         font-size: 1rem;
         margin-left: 0.25rem;
         opacity: 0.5;
         transition: opacity 0.2s;
     }
-    
+
     .sortable-column:hover .sort-icon,
     .sortable-column.active .sort-icon {
         opacity: 1;
     }
-    
-    /* Card styling */
-    .card {
-        border-radius: 0.5rem;
-        border: 0;
-        overflow: visible !important;
-    }
-    
-    .card .card-header {
-        background-color: transparent;
-    }
-    
+
     /* Dropdown form fix */
     .dropdown-item-form {
         display: block;
@@ -497,7 +473,7 @@
         padding: 0;
         margin: 0;
     }
-    
+
     .dropdown-item-form .dropdown-item {
         display: block;
         width: 100%;
@@ -509,71 +485,80 @@
         background-color: transparent;
         border: 0;
     }
-    
-    .dropdown-item-form .dropdown-item:hover, 
+
+    .dropdown-item-form .dropdown-item:hover,
     .dropdown-item-form .dropdown-item:focus {
         color: #16181b;
         text-decoration: none;
         background-color: #f8f9fa;
     }
-    
-    /* Avatar styling */
-    .avatar {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 3rem;
-        height: 3rem;
+
+    /* Mobile-specific styles */
+    @media (max-width: 767.98px) {
+        /* Compact filter section on mobile */
+        .card-header .d-flex {
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* Mobile-optimized season selector */
+        #seasonSelectorCollapse .col-md-3 {
+            width: 50%;
+            padding: 4px;
+        }
+
+        /* Compact filter form */
+        .form-label {
+            font-size: var(--mobile-text-sm);
+            margin-bottom: 4px;
+        }
+
+        /* Make dropdown menu full width on mobile */
+        .dropdown-menu {
+            min-width: 200px;
+        }
+
+        /* Hide sorting icons on mobile to save space */
+        .sort-icon {
+            display: none;
+        }
+
+        /* Mobile table header */
+        .sortable-column {
+            font-size: var(--mobile-text-xs);
+            letter-spacing: 0;
+        }
+
+        /* Compact badge display in table */
+        #match-verification-table .badge {
+            display: block;
+            margin-top: 4px;
+        }
+
+        /* Team names on separate lines on mobile */
+        #match-verification-table td[data-label="Home Team"],
+        #match-verification-table td[data-label="Away Team"] {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
     }
-    
-    .bg-primary-subtle {
-        background-color: rgba(105, 108, 255, 0.16) !important;
-    }
-    
-    .bg-success-subtle {
-        background-color: rgba(40, 199, 111, 0.16) !important;
-    }
-    
-    .bg-warning-subtle {
-        background-color: rgba(255, 159, 67, 0.16) !important;
-    }
-    
-    .bg-danger-subtle {
-        background-color: rgba(234, 84, 85, 0.16) !important;
-    }
-    
-    /* Table overflow fixes */
-    .table-responsive {
-        overflow: visible !important;
-    }
-    
-    /* Dropdown menu positioning */
-    .dropdown-menu {
-        z-index: 9999 !important;
-        position: absolute !important;
-    }
-    
-    table td {
-        position: relative !important;
-    }
-    
-    table td:last-child .dropdown-menu {
-        right: 0 !important;
-        left: auto !important;
-    }
-    
-    /* Row hover effect */
-    .table-hover tbody tr:hover {
-        background-color: rgba(67, 89, 113, 0.04);
-    }
-    
-    /* Action button styling */
-    .btn-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        height: 2rem;
-        width: 2rem;
+
+    /* Desktop styles */
+    @media (min-width: 768px) {
+        /* Restore table header styling */
+        .table-light th {
+            font-weight: 500;
+            color: #566a7f;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* Show sorting icons */
+        .sort-icon {
+            display: inline-block;
+        }
     }
 </style>
 

@@ -11,7 +11,7 @@ import logging
 from datetime import datetime
 from flask import Blueprint, request, redirect, url_for, g, render_template
 from flask_login import login_required
-from sqlalchemy import or_, desc
+from sqlalchemy import or_, desc, cast, Integer
 from sqlalchemy.orm import joinedload, aliased
 
 from app.decorators import role_required
@@ -173,9 +173,11 @@ def match_verification_dashboard():
             schedule_alias = aliased(Schedule)
             query = query.outerjoin(schedule_alias, Match.schedule_id == schedule_alias.id)
             if sort_order == 'desc':
-                query = query.order_by(desc(schedule_alias.week), Match.date)
+                # Cast week to integer for proper numerical sorting
+                query = query.order_by(desc(cast(schedule_alias.week, Integer)), Match.date)
             else:
-                query = query.order_by(schedule_alias.week, Match.date)
+                # Cast week to integer for proper numerical sorting
+                query = query.order_by(cast(schedule_alias.week, Integer), Match.date)
         elif sort_by == 'home_team':
             home_team_alias = aliased(Team)
             query = query.join(home_team_alias, Match.home_team_id == home_team_alias.id)
@@ -229,10 +231,16 @@ def match_verification_dashboard():
                     Schedule.season_id == current_season.id,
                     Schedule.week != None,
                     Schedule.week != ''
-                ).distinct().order_by(Schedule.week).all()
-                
-                # Extract the week values from the result tuples
+                ).distinct().all()
+
+                # Extract the week values from the result tuples and sort numerically
                 weeks = [week[0] for week in week_results if week[0]]
+                # Sort weeks numerically
+                try:
+                    weeks = sorted(weeks, key=lambda x: int(x))
+                except (ValueError, TypeError):
+                    # If conversion fails, fall back to string sorting
+                    weeks = sorted(weeks)
                 
                 if not weeks:
                     # If still no weeks, just set some dummy weeks to see if the UI display works

@@ -98,6 +98,10 @@ from .security import (
     IPBan, SecurityEvent
 )
 
+from .ai_prompt_config import (
+    AIPromptConfig, AIPromptTemplate
+)
+
 # Make all models available at package level for backward compatibility
 __all__ = [
     # Database instance
@@ -164,5 +168,8 @@ __all__ = [
     'AdminConfig', 'AdminAuditLog',
     
     # Security models
-    'IPBan', 'SecurityEvent'
+    'IPBan', 'SecurityEvent',
+
+    # AI Prompt Configuration models
+    'AIPromptConfig', 'AIPromptTemplate'
 ]

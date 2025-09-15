@@ -24,6 +24,8 @@
                     <span class="visually-hidden">More Actions</span>
                 </button>
                 <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ url_for('admin_live.dashboard') }}"><i class="ti ti-broadcast me-2"></i>Live Reporting Dashboard</a></li>
+                    <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item" onclick="fetchAllFromESPN()"><i class="ti ti-download me-2"></i>Fetch from ESPN</a></li>
                     <li><a class="dropdown-item" onclick="scheduleAllMatches()"><i class="ti ti-calendar-check me-2"></i>Schedule All</a></li>
                     <li><hr class="dropdown-divider"></li>
@@ -84,7 +86,7 @@
         </div>
         
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="card h-100">
+            <div class="card h-100 card-hover">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="card-info">
@@ -95,6 +97,11 @@
                             </div>
                             <div id="liveReportingDetails" class="mt-2 small text-muted">
                                 <!-- Will be populated with active match details -->
+                            </div>
+                            <div class="mt-3">
+                                <a href="{{ url_for('admin_live.dashboard') }}" class="btn btn-sm btn-label-info">
+                                    <i class="ti ti-dashboard me-1"></i>Dashboard
+                                </a>
                             </div>
                         </div>
                         <div class="card-icon">

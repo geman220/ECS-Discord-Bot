@@ -44,10 +44,11 @@ class CeleryConfig:
     # Task Registration and Imports
     imports = (
         'app.tasks.tasks_core',
-        'app.tasks.tasks_live_reporting',
+        'app.tasks.tasks_live_reporting',  # DEPRECATED - V1 legacy (has warnings)
         # 'app.tasks.tasks_robust_live_reporting', # Removed - V2 is production version
-        'app.tasks.tasks_live_reporting_v2',
-        'app.tasks.live_reporting_orchestrator',  # New event-driven orchestration
+        # 'app.tasks.tasks_live_reporting_v2',  # DEPRECATED - Replaced by enterprise system
+        # 'app.tasks.live_reporting_orchestrator',  # DEPRECATED - V2 is self-scheduling
+        'app.tasks.match_scheduler',  # ENTERPRISE - Match scheduling and live reporting coordination
         'app.tasks.tasks_live_reporting_recovery',
         'app.tasks.queue_health_monitor',
         'app.tasks.tasks_match_updates',
@@ -131,9 +132,9 @@ class CeleryConfig:
             'routing_key': 'live_reporting',
             'queue_arguments': {
                 'x-max-priority': 10,
-                'x-message-ttl': 30000,  # 30 seconds TTL (aligned with task interval)
-                'x-max-length': 10,  # Much smaller queue (only 5 minutes of backlog max)
-                'x-overflow': 'reject-publish'  # Reject new tasks if queue full
+                'x-message-ttl': 300000,  # 5 minutes TTL (real-time updates)
+                'x-max-length': 100,  # Larger queue for real-time processing
+                'x-overflow': 'drop-head'  # Drop old tasks if queue full (keep newest)
             }
         },
         'discord': {
@@ -187,22 +188,23 @@ class CeleryConfig:
 
     # Beat Schedule: periodic tasks and their schedules
     beat_schedule = {
-        'check-create-match-threads': {
-            'task': 'app.tasks.tasks_live_reporting.check_and_create_scheduled_threads',
-            'schedule': crontab(minute='*/10'),
-            'options': {
-                'queue': 'live_reporting',
-                'expires': 540
-            }
-        },
-        'schedule-live-reporting': {
-            'task': 'app.tasks.tasks_live_reporting.schedule_live_reporting',
-            'schedule': crontab(minute='*/15'),
-            'options': {
-                'queue': 'live_reporting',
-                'expires': 840
-            }
-        },
+        # DEPRECATED V1 - Use V2 real-time system instead
+        # 'check-create-match-threads': {
+        #     'task': 'app.tasks.tasks_live_reporting.check_and_create_scheduled_threads',
+        #     'schedule': crontab(minute='*/10'),
+        #     'options': {
+        #         'queue': 'live_reporting',
+        #         'expires': 540
+        #     }
+        # },
+        # 'schedule-live-reporting': {
+        #     'task': 'app.tasks.tasks_live_reporting.schedule_live_reporting',
+        #     'schedule': crontab(minute='*/15'),
+        #     'options': {
+        #         'queue': 'live_reporting',
+        #         'expires': 840
+        #     }
+        # },
         'collect-db-stats': {
             'task': 'app.tasks.monitoring_tasks.collect_db_stats',
             'schedule': crontab(minute='*/5'),
@@ -292,18 +294,20 @@ class CeleryConfig:
                 'expires': 3540  # Task expires after 59 minutes
             }
         },
-        # DISABLED: V2 Live Reporting Cron (replaced by event-driven orchestration)
-        # 'process-active-live-sessions-v2': {
-        #     'task': 'app.tasks.tasks_live_reporting_v2.process_all_active_sessions_v2',
-        #     'schedule': 30.0,  # DISABLED - caused task flooding
-        #     'options': {
-        #         'queue': 'live_reporting',
-        #         'expires': 25,
-        #         'time_limit': 20,
-        #         'soft_time_limit': 15,
-        #         'priority': 9
-        #     }
-        # },
+        # ENTERPRISE LIVE REPORTING SYSTEM - Uses dedicated real-time service + match scheduler
+        # Real-time service runs continuously in dedicated container
+        # Match scheduler service handles 48hr thread creation and live reporting start times
+        'enterprise-match-scheduler': {
+            'task': 'app.tasks.match_scheduler.schedule_upcoming_matches',
+            'schedule': crontab(minute='*/10'),  # Check every 10 minutes for new matches to schedule
+            'options': {
+                'queue': 'live_reporting',
+                'expires': 540,  # 9 minutes
+                'time_limit': 60,
+                'soft_time_limit': 45,
+                'priority': 8
+            }
+        },
         # Live Reporting Recovery - Check for matches that should be reporting but aren't
         'check-missing-live-reporting': {
             'task': 'app.tasks.tasks_live_reporting_recovery.check_and_start_missing_live_reporting',
@@ -425,13 +429,13 @@ class CeleryConfig:
                 'expires': 1740  # Task expires after 29 minutes
             }
         },
-        # Live Reporting Health Check - Monitor event-driven system
-        'health-check-live-reporting': {
-            'task': 'app.tasks.live_reporting_orchestrator.health_check_live_reporting',
-            'schedule': crontab(minute='*/10'),  # Every 10 minutes
-            'options': {
-                'queue': 'live_reporting',
-                'expires': 540  # Task expires after 9 minutes
-            }
-        }
+        # [DEPRECATED] Live Reporting Health Check - Replaced by Enterprise Live Reporting System
+        # 'health-check-live-reporting': {
+        #     'task': 'app.tasks.live_reporting_orchestrator.health_check_live_reporting',
+        #     'schedule': crontab(minute='*/10'),  # Every 10 minutes
+        #     'options': {
+        #         'queue': 'live_reporting',
+        #         'expires': 540  # Task expires after 9 minutes
+        #     }
+        # }
     }

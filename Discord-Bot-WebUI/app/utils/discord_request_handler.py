@@ -14,9 +14,11 @@ bot API with rate limiting, retry logic, and concurrency control. It defines:
 
 import asyncio
 import aiohttp
+import requests
 import logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -210,3 +212,54 @@ async def optimized_discord_request(tasks: List[tuple]) -> List[Optional[Dict[An
         
         results = await asyncio.gather(*coros, return_exceptions=False)
         return results
+
+
+def send_to_discord_bot(endpoint: str, data: Dict[str, Any], method: str = 'POST') -> Optional[Dict[str, Any]]:
+    """
+    Send a request to the Discord bot API.
+
+    This is a synchronous function for use within Celery tasks and other synchronous contexts.
+
+    Args:
+        endpoint: The API endpoint path (e.g., '/api/live-reporting/thread/create')
+        data: Request payload data
+        method: HTTP method to use
+
+    Returns:
+        Response data if successful, None if failed
+    """
+    try:
+        # Get Discord bot URL from environment, default to localhost
+        bot_url = os.getenv('DISCORD_BOT_URL', 'http://discord-bot:5001')
+
+        # Construct full URL
+        url = f"{bot_url.rstrip('/')}{endpoint}"
+
+        logger.info(f"Sending {method} request to Discord bot: {url}")
+
+        # Make the request
+        response = requests.request(
+            method=method,
+            url=url,
+            json=data,
+            timeout=30,
+            headers={'Content-Type': 'application/json'}
+        )
+
+        # Check if request was successful
+        if response.status_code in [200, 201]:
+            try:
+                return response.json()
+            except ValueError:
+                logger.warning(f"Discord bot response not JSON: {response.text}")
+                return {"success": True, "raw_response": response.text}
+        else:
+            logger.error(f"Discord bot request failed: {response.status_code} - {response.text}")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to connect to Discord bot at {url}: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error sending request to Discord bot: {e}")
+        return None

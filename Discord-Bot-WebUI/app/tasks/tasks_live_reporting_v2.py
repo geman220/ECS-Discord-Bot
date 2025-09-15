@@ -1,16 +1,16 @@
 # app/tasks/tasks_live_reporting_v2.py
 
 """
-Live Reporting Tasks V2
+Live Reporting Tasks V2 - Real-Time Match Updates
 
-Professional synchronous architecture implementation for live reporting tasks.
-Uses industry standard patterns with the service layer, refactored to be 
-purely synchronous for optimal Celery compatibility.
+Optimized for real-time live match reporting with efficient ESPN API polling.
+Checks every 10-30 seconds during live matches for near real-time updates.
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
+import time
 import pytz
 
 from app.decorators import celery_task
@@ -26,23 +26,71 @@ logger = logging.getLogger(__name__)
     name='app.tasks.tasks_live_reporting_v2.process_all_active_sessions_v2',
     queue='live_reporting',
     max_retries=2,
-    soft_time_limit=45,
-    time_limit=60
+    soft_time_limit=25,
+    time_limit=30
 )
 def process_all_active_sessions_v2(self, session) -> Dict[str, Any]:
     """
-    Process all active live reporting sessions using V2 architecture.
-    
-    Refactored to be purely synchronous for optimal Celery compatibility
-    while maintaining the clean service-oriented architecture.
+    Process all active live reporting sessions (DEPRECATED - V2 LEGACY).
+
+    ⚠️ DEPRECATION WARNING: This V2 Celery-based approach is deprecated!
+
+    NEW ARCHITECTURE:
+    - Celery handles scheduling (match threads, session start/stop)
+    - Dedicated real-time service handles live updates
+    - This task is kept for backward compatibility only
+
+    The new hybrid approach:
+    1. MatchSchedulerService creates threads 48hrs before
+    2. MatchSchedulerService starts live sessions 5min before
+    3. RealtimeReportingService handles actual live updates
     """
     task_id = self.request.id
     redis_service = get_redis_service()
+
+    logger.error(
+        f"*** DEPRECATED V2 TASK CALLED! *** "
+        f"V2 Celery task {task_id} called when enterprise system is available. "
+        f"CALLING LOCATION: {self.request.origin} "
+        f"TIME: {datetime.utcnow().isoformat()} "
+        f"MIGRATION REQUIRED: Remove calls to process_all_active_sessions_v2 and use MatchSchedulerService + RealtimeReportingService instead."
+    )
+
+    # Check if real-time service is running
+    realtime_status = redis_service.get('realtime_service:status')
+    if realtime_status == 'running':
+        logger.info("Real-time service is active, skipping legacy V2 processing")
+        return {
+            'success': True,
+            'message': 'Delegated to real-time service',
+            'processed_count': 0,
+            'error_count': 0,
+            'results': [],
+            'deprecated': True,
+            'realtime_service_active': True
+        }
+
+    # Fallback processing if real-time service not available
+    logger.error(
+        f"*** V2 FALLBACK ACTIVATED! *** "
+        f"Real-time service not available, using deprecated V2 processing for task {task_id}. "
+        f"URGENT: Start RealtimeReportingService or investigate why it's offline. "
+        f"This fallback should only be used temporarily."
+    )
+    return _process_sessions_legacy_fallback(session, redis_service, task_id)
+
+
+def _process_sessions_legacy_fallback(session, redis_service, task_id) -> Dict[str, Any]:
+    """
+    Legacy fallback processing when real-time service is not available.
+
+    This maintains the original V2 functionality as a safety net.
+    """
     lock_key = 'live_reporting:v2:processing_lock'
-    
+
     try:
         # Task deduplication - prevent multiple instances running simultaneously
-        if not redis_service.execute_command('set', lock_key, task_id, nx=True, ex=50):
+        if not redis_service.execute_command('set', lock_key, task_id, nx=True, ex=40):
             existing_task = redis_service.execute_command('get', lock_key)
             logger.info(f"Another V2 task ({existing_task}) is already processing, skipping {task_id}")
             return {
@@ -52,18 +100,24 @@ def process_all_active_sessions_v2(self, session) -> Dict[str, Any]:
                 'error_count': 0,
                 'results': []
             }
-        
-        logger.info(f"Processing all active sessions (V2 Sync) - Task {task_id}")
-        
-        # Process sessions using pure synchronous architecture
-        result = _process_sessions_sync(session, redis_service)
-        
-        logger.info(f"V2 session processing completed: {result}")
+
+        logger.info(f"Processing live sessions (V2 Legacy Fallback) - Task {task_id}")
+
+        # Process sessions with legacy real-time focus
+        result = _process_sessions_realtime(session, redis_service, task_id)
+
+        # Schedule next real-time update if there are live matches
+        if result.get('live_matches', 0) > 0:
+            delay = _calculate_next_update_delay(result)
+            logger.info(f"Scheduling next legacy update in {delay} seconds")
+            process_all_active_sessions_v2.apply_async(countdown=delay)
+
+        logger.info(f"V2 legacy processing completed: {result}")
         return result
-        
+
     except Exception as e:
-        logger.error(f"Error in V2 session processing: {e}", exc_info=True)
-        raise self.retry(exc=e, countdown=30)
+        logger.error(f"Error in V2 legacy session processing: {e}", exc_info=True)
+        raise self.retry(exc=e, countdown=15)
     finally:
         # Always release lock
         try:
@@ -72,21 +126,25 @@ def process_all_active_sessions_v2(self, session) -> Dict[str, Any]:
             pass
 
 
-def _process_sessions_sync(session, redis_service) -> Dict[str, Any]:
+def _process_sessions_realtime(session, redis_service, task_id) -> Dict[str, Any]:
     """
-    Process all active sessions using pure synchronous architecture.
-    
-    Eliminates the async/sync mismatch that was causing queue buildup by using
-    only synchronous patterns compatible with Celery workers.
+    Process active sessions with real-time focus.
+
+    REAL-TIME STRATEGY:
+    - Only process sessions for matches that are LIVE or about to start
+    - Skip scheduled matches that are hours away
+    - Prioritize IN_PLAY matches for fastest updates
     """
     processed_count = 0
     error_count = 0
+    live_matches = 0
+    skipped_count = 0
     results = []
-    
+
     try:
-        # Get all active sessions using synchronous database access
+        # Get all active sessions
         active_sessions = session.query(LiveReportingSession).filter_by(is_active=True).all()
-        
+
         if not active_sessions:
             logger.info("No active sessions to process")
             return {
@@ -94,178 +152,433 @@ def _process_sessions_sync(session, redis_service) -> Dict[str, Any]:
                 'message': 'No active sessions',
                 'processed_count': 0,
                 'error_count': 0,
+                'live_matches': 0,
                 'results': []
             }
-        
-        logger.info(f"Processing {len(active_sessions)} active sessions")
-        
-        # Process each session synchronously
+
+        # Filter sessions that need real-time updates
+        realtime_sessions = []
         for session_obj in active_sessions:
+            if _should_process_realtime(session_obj):
+                realtime_sessions.append(session_obj)
+            else:
+                skipped_count += 1
+
+        logger.info(f"Processing {len(realtime_sessions)} real-time sessions, skipped {skipped_count}")
+
+        # Process each session
+        for session_obj in realtime_sessions:
             try:
-                result = _process_single_session_sync(session, session_obj, redis_service)
+                result = _process_single_session_realtime(session, session_obj, redis_service)
                 results.append(result)
-                
+
                 if result['success']:
                     processed_count += 1
+                    if result.get('is_live', False):
+                        live_matches += 1
                 else:
                     error_count += 1
-                    
+
             except Exception as e:
                 logger.error(f"Error processing session {session_obj.id}: {e}")
                 error_count += 1
                 results.append({
+                    'session_id': session_obj.id,
                     'match_id': session_obj.match_id,
                     'success': False,
                     'error': str(e)
                 })
-        
+
         # Commit all changes
         session.commit()
-        
+
         return {
             'success': True,
-            'message': f'Processed {processed_count} sessions, {error_count} errors',
+            'message': f'Processed {processed_count} sessions, {error_count} errors, {live_matches} live',
             'processed_count': processed_count,
             'error_count': error_count,
+            'live_matches': live_matches,
+            'skipped_count': skipped_count,
             'total_sessions': len(active_sessions),
+            'task_id': task_id,
             'results': results
         }
-        
+
     except Exception as e:
-        logger.error(f"Critical error in session processing: {e}", exc_info=True)
+        logger.error(f"Critical error in real-time processing: {e}", exc_info=True)
         return {
             'success': False,
             'message': f'Critical error: {e}',
             'processed_count': processed_count,
             'error_count': error_count + 1,
+            'live_matches': live_matches,
             'results': results
         }
 
 
-def _process_single_session_sync(session, session_obj: LiveReportingSession, redis_service) -> Dict[str, Any]:
+def _should_process_realtime(session_obj: LiveReportingSession) -> bool:
     """
-    Process a single live reporting session synchronously.
-    
-    Uses synchronous ESPN API calls, database operations, and Discord posting
-    to eliminate the resource overhead that was causing worker exhaustion.
+    Determine if a session needs real-time processing.
+
+    REAL-TIME CRITERIA:
+    - Match is currently IN_PLAY or HALFTIME
+    - Match starts within next 30 minutes
+    - Session hasn't been updated in last 20 seconds (rate limiting)
+    """
+    now = datetime.utcnow()
+
+    # Always process if match is live
+    if session_obj.last_status in ['IN_PLAY', 'HALFTIME']:
+        # Rate limit: don't update same session more than every 10 seconds
+        if session_obj.last_update_at:
+            seconds_since_update = (now - session_obj.last_update_at).total_seconds()
+            return seconds_since_update >= 10
+        return True
+
+    # Process if match starts soon (within 30 minutes)
+    if hasattr(session_obj, 'match') and session_obj.match and session_obj.match.date:
+        time_to_match = (session_obj.match.date - now).total_seconds()
+        if 0 <= time_to_match <= 1800:  # 30 minutes
+            # Less frequent updates for pre-match (every 5 minutes)
+            if session_obj.last_update_at:
+                seconds_since_update = (now - session_obj.last_update_at).total_seconds()
+                return seconds_since_update >= 300
+            return True
+
+    # Skip matches that are far away or already finished
+    if session_obj.last_status in ['FINAL', 'COMPLETED', 'CANCELLED', 'POSTPONED']:
+        return False
+
+    # Process scheduled matches at least every 15 minutes to check status
+    if session_obj.last_update_at:
+        seconds_since_update = (now - session_obj.last_update_at).total_seconds()
+        return seconds_since_update >= 900  # 15 minutes
+
+    return True  # Process if never updated
+
+
+def _calculate_next_update_delay(result: Dict[str, Any]) -> int:
+    """
+    Calculate optimal delay for next real-time update.
+
+    REAL-TIME SCHEDULING:
+    - Live matches: 10-15 seconds
+    - Pre-match (soon): 60 seconds
+    - General monitoring: 5 minutes
+    """
+    live_matches = result.get('live_matches', 0)
+
+    if live_matches > 0:
+        # Real-time updates for live matches
+        return 10 if live_matches > 3 else 15
+
+    processed_count = result.get('processed_count', 0)
+    if processed_count > 0:
+        # Some sessions processed - check again in 1 minute
+        return 60
+
+    # No active sessions needing real-time updates - check every 5 minutes
+    return 300
+
+
+def _process_single_session_realtime(session, session_obj: LiveReportingSession, redis_service) -> Dict[str, Any]:
+    """
+    Process a single live reporting session with real-time ESPN API integration.
+
+    REAL-TIME PROCESSING:
+    - Fetches fresh data from ESPN API
+    - Processes new events immediately
+    - Posts to Discord in near real-time
     """
     try:
         from app.utils.espn_api_client import ESPNAPIClient
         from app.utils.discord_request_handler import send_to_discord_bot
-        from app.utils.ai_commentary_client import AICommentaryClient
-        
+
         match_id = session_obj.match_id
         thread_id = session_obj.thread_id
-        competition = session_obj.competition
-        
-        logger.info(f"Processing session for match {match_id}")
-        
-        # Fetch match data from ESPN (synchronous)
+        competition = session_obj.competition or 'eng.1'
+
+        logger.info(f"Real-time processing session {session_obj.id} for match {match_id}")
+
+        # Fetch fresh match data from ESPN API
         espn_client = ESPNAPIClient()
         match_data = espn_client.get_match_data(match_id, competition)
-        
-        if not match_data:
-            logger.warning(f"No match data found for {match_id}")
+
+        if not match_data or match_data.get('status') == 'UNAVAILABLE':
+            logger.warning(f"No match data available for {match_id}")
+            # Increment error count but don't fail completely
+            session_obj.error_count = (session_obj.error_count or 0) + 1
+            session_obj.last_error = "ESPN API unavailable"
             return {
+                'session_id': session_obj.id,
                 'match_id': match_id,
                 'success': False,
-                'error': 'No match data available'
+                'error': 'ESPN API unavailable',
+                'is_live': False
             }
-        
-        # Process events and update Discord (synchronous)
-        ai_client = AICommentaryClient()
-        
-        # Get previously processed event keys
-        processed_event_keys = set(session_obj.parsed_event_keys or [])
-        new_events = []
-        
-        # Check for pre-match hype opportunity (5 minutes before kickoff)
-        pre_match_hype_sent = _check_and_send_pre_match_hype(
-            session_obj, match_data, processed_event_keys
-        )
-        
-        # Extract and process new events
-        current_events = _extract_events_from_match_data(match_data)
-        
-        for event in current_events:
-            event_key = f"{event['type']}_{event['minute']}_{hash(str(event))}"
-            
-            if event_key not in processed_event_keys:
-                new_events.append((event, event_key))
-                processed_event_keys.add(event_key)
-        
+
+        current_status = match_data.get('status', 'UNKNOWN')
+        is_live = current_status in ['IN_PLAY', 'HALFTIME']
+
         # Process new events
-        events_processed = 0
-        for event, event_key in new_events:
-            try:
-                # Check for special events that need enhanced AI messages
-                enhanced_message = None
-                event_type = event.get('type', '').lower()
-                
-                if event_type == 'halftime':
-                    # Generate AI half-time analysis
-                    enhanced_message = _generate_enhanced_half_time_message(match_data, session_obj)
-                elif event_type in ['fulltime', 'final', 'end']:
-                    # Generate AI full-time summary
-                    enhanced_message = _generate_enhanced_full_time_message(match_data, session_obj)
-                
-                # Generate regular commentary or use enhanced message
-                if enhanced_message:
-                    commentary = enhanced_message
-                    logger.info(f"Generated enhanced AI message for {event_type}")
-                else:
-                    commentary = ai_client.generate_commentary(match_data, event, competition)
-                
-                # Post to Discord via HTTP API
-                discord_payload = {
-                    'thread_id': thread_id,
-                    'event': event,
-                    'commentary': commentary,
-                    'match_data': match_data
-                }
-                
-                response = send_to_discord_bot('/api/live-reporting/event', discord_payload)
-                message_id = response.get('message_id') if response else None
-                
-                logger.info(f"Posted event update {message_id} for {event['type']}")
-                events_processed += 1
-                
-            except Exception as e:
-                logger.error(f"Error processing event {event_key}: {e}")
-        
+        events_processed = _process_match_events(session_obj, match_data, thread_id)
+
+        # Send status updates if status changed
+        if session_obj.last_status != current_status:
+            _send_status_update(thread_id, session_obj.last_status, current_status, match_data)
+
         # Update session state
-        session_obj.last_status = match_data.get('status', 'UNKNOWN')
+        session_obj.last_status = current_status
         session_obj.last_score = f"{match_data.get('home_score', 0)}-{match_data.get('away_score', 0)}"
-        session_obj.parsed_event_keys = list(processed_event_keys)
-        session_obj.update_count += 1
+        session_obj.update_count = (session_obj.update_count or 0) + 1
         session_obj.last_update_at = datetime.utcnow()
-        
+        session_obj.error_count = 0  # Reset error count on success
+        session_obj.last_error = None
+
         # Check if match ended
-        match_ended = match_data.get('status') in ['FINAL', 'COMPLETED']
-        if match_ended:
+        match_ended = current_status in ['FINAL', 'COMPLETED', 'CANCELLED', 'POSTPONED']
+        if match_ended and session_obj.is_active:
             session_obj.is_active = False
             session_obj.ended_at = datetime.utcnow()
-            logger.info(f"Match {match_id} ended, deactivating session")
-        
+            logger.info(f"Match {match_id} ended with status {current_status}")
+
+            # Send final message
+            _send_final_message(thread_id, match_data)
+
+        logger.info(f"Session {session_obj.id}: {events_processed} events, status={current_status}, live={is_live}")
+
         return {
+            'session_id': session_obj.id,
             'match_id': match_id,
             'success': True,
-            'status': session_obj.last_status,
+            'status': current_status,
+            'score': session_obj.last_score,
             'events_processed': events_processed,
+            'is_live': is_live,
             'match_ended': match_ended
         }
-        
+
     except Exception as e:
         # Update session error count
         session_obj.error_count = (session_obj.error_count or 0) + 1
-        session_obj.last_error = str(e)
-        
+        session_obj.last_error = str(e)[:500]
+
+        # Deactivate session if too many errors
+        if session_obj.error_count >= 5:
+            session_obj.is_active = False
+            session_obj.ended_at = datetime.utcnow()
+            logger.error(f"Deactivating session {session_obj.id} after {session_obj.error_count} errors")
+
         logger.error(f"Error processing session {session_obj.id}: {e}")
         return {
+            'session_id': session_obj.id,
             'match_id': session_obj.match_id,
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'is_live': False
         }
+
+
+def _process_match_events(session_obj: LiveReportingSession, match_data: Dict[str, Any], thread_id: str) -> int:
+    """
+    Process and send new match events to Discord.
+
+    Returns number of events processed.
+    """
+    events_processed = 0
+
+    try:
+        # Get previously processed events
+        processed_event_keys = set(session_obj.parsed_event_keys or [])
+
+        # Extract current events from match data
+        current_events = match_data.get('events', [])
+
+        for event in current_events:
+            # Generate unique event key
+            event_key = _generate_event_key(event)
+
+            if event_key not in processed_event_keys:
+                # Send event to Discord
+                if _send_event_to_discord(thread_id, event, match_data):
+                    processed_event_keys.add(event_key)
+                    events_processed += 1
+                    logger.info(f"Sent {event.get('type')} event for match {session_obj.match_id}")
+
+        # Update processed events list
+        session_obj.parsed_event_keys = list(processed_event_keys)
+
+    except Exception as e:
+        logger.error(f"Error processing match events: {e}")
+
+    return events_processed
+
+
+def _generate_event_key(event: Dict[str, Any]) -> str:
+    """
+    Generate unique key for an event to prevent duplicates.
+    """
+    event_type = event.get('type', 'unknown')
+    minute = str(event.get('minute', '0'))
+    player = event.get('player', '')
+    team = event.get('team', '')
+
+    # Create deterministic key
+    return f"{event_type}:{minute}:{player}:{team}"
+
+
+def _send_event_to_discord(thread_id: str, event: Dict[str, Any], match_data: Dict[str, Any]) -> bool:
+    """
+    Send match event to Discord thread.
+    """
+    try:
+        from app.utils.discord_request_handler import send_to_discord_bot
+
+        # Format event message based on type
+        message = _format_event_message(event, match_data)
+
+        payload = {
+            'thread_id': thread_id,
+            'content': message,
+            'event_type': event.get('type'),
+            'match_data': {
+                'home_team': match_data.get('home_team'),
+                'away_team': match_data.get('away_team'),
+                'home_score': match_data.get('home_score'),
+                'away_score': match_data.get('away_score'),
+                'minute': match_data.get('minute'),
+                'status': match_data.get('status')
+            }
+        }
+
+        response = send_to_discord_bot('/api/live-reporting/event', payload)
+        return response and response.get('success', False)
+
+    except Exception as e:
+        logger.error(f"Error sending event to Discord: {e}")
+        return False
+
+
+def _format_event_message(event: Dict[str, Any], match_data: Dict[str, Any]) -> str:
+    """
+    Format match event into Discord message.
+    """
+    event_type = event.get('type', '').upper()
+    minute = event.get('minute', '0')
+    player = event.get('player', 'Unknown')
+    team = event.get('team', 'Unknown')
+
+    # Get current score
+    home_score = match_data.get('home_score', 0)
+    away_score = match_data.get('away_score', 0)
+    home_team = match_data.get('home_team', 'Home')
+    away_team = match_data.get('away_team', 'Away')
+
+    if event_type == 'GOAL':
+        return f"⚽ **GOAL!** {minute}' - {player} ({team})\n\n**{home_team}** {home_score} - {away_score} **{away_team}**"
+
+    elif event_type == 'YELLOW_CARD':
+        return f"🟨 **Yellow Card** {minute}' - {player} ({team})"
+
+    elif event_type == 'RED_CARD':
+        return f"🟥 **Red Card** {minute}' - {player} ({team})"
+
+    elif event_type == 'SUBSTITUTION':
+        return f"🔄 **Substitution** {minute}' - {team}\n{event.get('description', player)}"
+
+    else:
+        return f"📝 **{minute}'** - {event.get('description', f'{event_type} by {player}')}"
+
+
+def _send_status_update(thread_id: str, old_status: str, new_status: str, match_data: Dict[str, Any]):
+    """
+    Send match status change update to Discord.
+    """
+    try:
+        from app.utils.discord_request_handler import send_to_discord_bot
+
+        # Only send important status changes
+        if new_status in ['IN_PLAY', 'HALFTIME', 'FINAL', 'COMPLETED']:
+            message = _format_status_message(new_status, match_data)
+
+            if message:
+                payload = {
+                    'thread_id': thread_id,
+                    'content': message,
+                    'event_type': 'status_change'
+                }
+
+                send_to_discord_bot('/api/live-reporting/status', payload)
+                logger.info(f"Sent status update: {old_status} -> {new_status}")
+
+    except Exception as e:
+        logger.error(f"Error sending status update: {e}")
+
+
+def _format_status_message(status: str, match_data: Dict[str, Any]) -> Optional[str]:
+    """
+    Format status change into Discord message.
+    """
+    home_team = match_data.get('home_team', 'Home')
+    away_team = match_data.get('away_team', 'Away')
+
+    if status == 'IN_PLAY':
+        return f"🟢 **KICK-OFF!** {home_team} vs {away_team}"
+
+    elif status == 'HALFTIME':
+        home_score = match_data.get('home_score', 0)
+        away_score = match_data.get('away_score', 0)
+        return f"⏸️ **HALF-TIME**\n\n**{home_team}** {home_score} - {away_score} **{away_team}**"
+
+    elif status in ['FINAL', 'COMPLETED']:
+        home_score = match_data.get('home_score', 0)
+        away_score = match_data.get('away_score', 0)
+        return f"🏁 **FULL-TIME**\n\n**{home_team}** {home_score} - {away_score} **{away_team}**"
+
+    return None
+
+
+def _send_final_message(thread_id: str, match_data: Dict[str, Any]):
+    """
+    Send final match summary message.
+    """
+    try:
+        from app.utils.discord_request_handler import send_to_discord_bot
+
+        home_team = match_data.get('home_team', 'Home')
+        away_team = match_data.get('away_team', 'Away')
+        home_score = match_data.get('home_score', 0)
+        away_score = match_data.get('away_score', 0)
+
+        # Determine result
+        if home_score > away_score:
+            result = f"🏆 {home_team} wins!"
+        elif away_score > home_score:
+            result = f"🏆 {away_team} wins!"
+        else:
+            result = "🤝 It's a draw!"
+
+        message = f"""
+🏁 **MATCH FINISHED**
+
+**{home_team}** {home_score} - {away_score} **{away_team}**
+
+{result}
+
+Thanks for following the live updates! 📺
+"""
+
+        payload = {
+            'thread_id': thread_id,
+            'content': message,
+            'event_type': 'final'
+        }
+
+        send_to_discord_bot('/api/live-reporting/final', payload)
+        logger.info(f"Sent final message for {home_team} vs {away_team}")
+
+    except Exception as e:
+        logger.error(f"Error sending final message: {e}")
 
 
 def _extract_events_from_match_data(match_data: Dict[str, Any]) -> List[Dict[str, Any]]:

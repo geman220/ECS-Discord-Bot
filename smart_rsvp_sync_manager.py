@@ -50,7 +50,15 @@ class ContainerResilientSyncManager:
                 logger.info("⭐ First startup or no previous online time - performing full sync")
                 await self._perform_startup_sync(is_first_startup=True)
             else:
-                offline_duration = datetime.utcnow() - last_online_time
+                # Ensure both datetimes are timezone-aware for comparison
+                from datetime import timezone
+                current_time = datetime.now(timezone.utc)
+
+                # If last_online_time is naive, assume it's UTC
+                if last_online_time.tzinfo is None:
+                    last_online_time = last_online_time.replace(tzinfo=timezone.utc)
+
+                offline_duration = current_time - last_online_time
                 logger.info(f"📅 Last online: {last_online_time}, offline for: {offline_duration}")
                 
                 if offline_duration.total_seconds() > 300:  # Only if offline > 5 minutes

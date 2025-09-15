@@ -270,28 +270,66 @@ class TaskStatusCacheService:
                 'cached': True
             }
     
-    def update_match_cache(self, match_data: Dict[str, Any]) -> bool:
-        """Update cache for a single match using match data dictionary."""
+    def update_match_cache(self, match_data) -> bool:
+        """Update cache for a single match using match data dictionary or SQLAlchemy object."""
         try:
             redis_service = self.get_redis_client()
-            match_id = match_data['id']
+
+            # Handle both dictionary and SQLAlchemy object
+            if hasattr(match_data, 'id'):
+                # SQLAlchemy object
+                match_id = match_data.id
+                # Convert to dict for calculate_task_status
+                # Handle both MLSMatch (date_time) and regular Match (date/time)
+                if hasattr(match_data, 'date_time'):
+                    # MLSMatch object
+                    match_dict = {
+                        'id': match_data.id,
+                        'date': match_data.date_time.date() if match_data.date_time else None,
+                        'time': match_data.date_time.time() if match_data.date_time else None,
+                        'home_team_id': None,  # MLSMatch doesn't have team IDs
+                        'away_team_id': None,
+                        'home_team_message_id': None,
+                        'away_team_message_id': None,
+                        # Add other relevant fields as needed
+                    }
+                else:
+                    # Regular Match object
+                    match_dict = {
+                        'id': match_data.id,
+                        'date': match_data.date,
+                        'time': match_data.time,
+                        'home_team_id': match_data.home_team_id,
+                        'away_team_id': match_data.away_team_id,
+                        'home_team_message_id': match_data.home_team_message_id,
+                        'away_team_message_id': match_data.away_team_message_id,
+                        # Add other relevant fields as needed
+                    }
+            else:
+                # Dictionary
+                match_id = match_data['id']
+                match_dict = match_data
+
             cache_key = self.get_cache_key(match_id)
-            
-            status_data = self.calculate_task_status(match_data)
-            
+            status_data = self.calculate_task_status(match_dict)
+
             # Store in cache with TTL using connection pooling
             with redis_service.get_connection() as redis_client:
                 redis_client.setex(
-                    cache_key, 
-                    self.CACHE_TTL, 
+                    cache_key,
+                    self.CACHE_TTL,
                     json.dumps(status_data)
                 )
-            
+
             logger.debug(f"Updated cache for match {match_id}")
             return True
-            
+
         except Exception as e:
-            match_id = match_data.get('id', 'unknown')
+            # Handle both object types for error logging
+            if hasattr(match_data, 'id'):
+                match_id = getattr(match_data, 'id', 'unknown')
+            else:
+                match_id = match_data.get('id', 'unknown') if isinstance(match_data, dict) else 'unknown'
             logger.error(f"Failed to update cache for match {match_id}: {e}", exc_info=True)
             return False
     

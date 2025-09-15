@@ -1,0 +1,308 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Live Reporting Matches{% endblock %}
+
+{% block panel_description %}Manage matches for live reporting system{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_live.dashboard') }}">Live Reporting</a></li>
+<li class="breadcrumb-item active">Matches</li>
+{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<style>
+.match-card {
+    transition: all 0.2s ease;
+}
+
+.match-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.status-badge {
+    font-size: 0.8em;
+    padding: 0.3em 0.6em;
+}
+
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+}
+</style>
+{% endblock %}
+
+{% block panel_content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fas fa-futbol"></i> Live Reporting Matches
+        </h1>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin_live.dashboard') }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Search Matches</label>
+                    <input type="text" class="form-control" name="search"
+                           value="{{ request.args.get('search', '') }}"
+                           placeholder="Team name, competition...">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status Filter</label>
+                    <select class="form-select" name="status">
+                        <option value="">All Matches</option>
+                        <option value="upcoming" {{ 'selected' if request.args.get('status') == 'upcoming' }}>Upcoming</option>
+                        <option value="past" {{ 'selected' if request.args.get('status') == 'past' }}>Past</option>
+                        <option value="today" {{ 'selected' if request.args.get('status') == 'today' }}>Today</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Reporting Status</label>
+                    <select class="form-select" name="reporting">
+                        <option value="">Any Status</option>
+                        <option value="scheduled" {{ 'selected' if request.args.get('reporting') == 'scheduled' }}>Scheduled</option>
+                        <option value="active" {{ 'selected' if request.args.get('reporting') == 'active' }}>Active</option>
+                        <option value="none" {{ 'selected' if request.args.get('reporting') == 'none' }}>No Reporting</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Matches List -->
+    <div class="row">
+        {% for match in matches %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card match-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Match {{ match.id }}</strong>
+                    {% if match.match_id in sessions_by_match %}
+                        {% set session = sessions_by_match[match.match_id] %}
+                        {% if session.is_active %}
+                            <span class="badge bg-success status-badge">Live Reporting Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary status-badge">Reporting Ended</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="badge bg-light text-dark status-badge">No Live Reporting</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <!-- Teams -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-center flex-fill">
+                                <strong>
+                                    {% if match.is_home_game %}
+                                        Seattle Sounders FC
+                                    {% else %}
+                                        {{ match.opponent }}
+                                    {% endif %}
+                                </strong>
+                                <div class="text-muted small">Home</div>
+                            </div>
+                            <div class="mx-3">
+                                <i class="fas fa-vs"></i>
+                            </div>
+                            <div class="text-center flex-fill">
+                                <strong>
+                                    {% if match.is_home_game %}
+                                        {{ match.opponent }}
+                                    {% else %}
+                                        Seattle Sounders FC
+                                    {% endif %}
+                                </strong>
+                                <div class="text-muted small">Away</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Match Info -->
+                    <div class="small text-muted mb-3">
+                        {% if match.date_time %}
+                            <div><i class="fas fa-calendar"></i> {{ match.date_time.strftime('%B %d, %Y at %I:%M %p') }}</div>
+                        {% endif %}
+                        {% if match.competition %}
+                            <div><i class="fas fa-trophy"></i> {{ match.competition }}</div>
+                        {% endif %}
+                        {% if match.venue %}
+                            <div><i class="fas fa-map-marker-alt"></i> {{ match.venue }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Live Reporting Session Info -->
+                    {% if match.match_id in sessions_by_match %}
+                        {% set session = sessions_by_match[match.match_id] %}
+                        <div class="border-top pt-3 mt-3">
+                            <h6 class="text-primary mb-2">Live Reporting Session</h6>
+                            <div class="small">
+                                <div>Session ID: {{ session.id }}</div>
+                                {% if session.competition %}
+                                    <div>Competition: {{ session.competition }}</div>
+                                {% endif %}
+                                {% if session.update_count %}
+                                    <div>Updates: {{ session.update_count }}</div>
+                                {% endif %}
+                                {% if session.error_count and session.error_count > 0 %}
+                                    <div class="text-warning">Errors: {{ session.error_count }}</div>
+                                {% endif %}
+                                {% if session.last_status %}
+                                    <div>Status: {{ session.last_status }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin_live.match_detail', match_id=match.id) }}"
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i> Details
+                        </a>
+                        {% if match.match_id not in sessions_by_match %}
+                            <button class="btn btn-sm btn-success"
+                                    onclick="scheduleMatch({{ match.id }})">
+                                <i class="fas fa-broadcast-tower"></i> Schedule Reporting
+                            </button>
+                        {% elif sessions_by_match[match.match_id].is_active %}
+                            <button class="btn btn-sm btn-danger"
+                                    onclick="stopSession({{ sessions_by_match[match.match_id].id }})">
+                                <i class="fas fa-stop"></i> Stop Reporting
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-futbol fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No matches found</h4>
+                <p class="text-muted">Try adjusting your search filters or check back later.</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if total_matches > per_page %}
+    <div class="pagination-container">
+        <nav aria-label="Matches pagination">
+            <ul class="pagination">
+                {% set total_pages = (total_matches + per_page - 1) // per_page %}
+
+                <!-- Previous -->
+                {% if page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page - 1 }}{% if request.args.get('search') %}&search={{ request.args.get('search') }}{% endif %}{% if request.args.get('status') %}&status={{ request.args.get('status') }}{% endif %}{% if request.args.get('reporting') %}&reporting={{ request.args.get('reporting') }}{% endif %}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                </li>
+                {% endif %}
+
+                <!-- Page Numbers -->
+                {% for p in range(1, total_pages + 1) %}
+                    {% if p == page %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ p }}</span>
+                    </li>
+                    {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ p }}{% if request.args.get('search') %}&search={{ request.args.get('search') }}{% endif %}{% if request.args.get('status') %}&status={{ request.args.get('status') }}{% endif %}{% if request.args.get('reporting') %}&reporting={{ request.args.get('reporting') }}{% endif %}">{{ p }}</a>
+                    </li>
+                    {% elif p == page - 3 or p == page + 3 %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+
+                <!-- Next -->
+                {% if page < total_pages %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page + 1 }}{% if request.args.get('search') %}&search={{ request.args.get('search') }}{% endif %}{% if request.args.get('status') %}&status={{ request.args.get('status') }}{% endif %}{% if request.args.get('reporting') %}&reporting={{ request.args.get('reporting') }}{% endif %}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+function scheduleMatch(matchId) {
+    if (confirm('Schedule live reporting for this match?')) {
+        fetch(`/admin/live-reporting/api/schedule-match/${matchId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Success: ${data.message}`);
+                location.reload();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error scheduling match');
+        });
+    }
+}
+
+function stopSession(sessionId) {
+    if (confirm('Stop this live reporting session?')) {
+        fetch(`/admin/live-reporting/api/session/${sessionId}/stop`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Success: ${data.message}`);
+                location.reload();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error stopping session');
+        });
+    }
+}
+</script>
+{% endblock %}

@@ -353,6 +353,33 @@ def get_redis_service():
             except Exception as e:
                 logger.error(f"Redis lindex failed for {name}[{index}]: {e}")
                 return None
+
+        def get(self, key):
+            """Get value by key - for basic Redis operations"""
+            try:
+                client = self._manager.client
+                return client.get(key)
+            except Exception as e:
+                logger.error(f"Redis get failed for {key}: {e}")
+                return None
+
+        def set(self, key, value, **kwargs):
+            """Set value by key - for basic Redis operations"""
+            try:
+                client = self._manager.client
+                return client.set(key, value, **kwargs)
+            except Exception as e:
+                logger.error(f"Redis set failed for {key}: {e}")
+                return False
+
+        def setex(self, key, time, value):
+            """Set value by key with expiration time - for basic Redis operations"""
+            try:
+                client = self._manager.client
+                return client.setex(key, time, value)
+            except Exception as e:
+                logger.error(f"Redis setex failed for {key}: {e}")
+                return False
         
         def execute_command(self, *args, **kwargs):
             """Execute Redis command - for advanced operations"""

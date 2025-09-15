@@ -252,23 +252,29 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
 )
 def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
     """
-    [DEPRECATED - Use start_robust_live_reporting from tasks_robust_live_reporting.py]
-    
-    Start live match reporting for a specific match.
+    *** DEPRECATED V1 TASK - DO NOT USE! ***
 
-    This task:
-      - Retrieves the match by its identifier (using the get_match helper).
-      - Checks if reporting is already running.
-      - Updates match status to running and records start time.
-      - Triggers the initial match update task.
-      - Stores the task ID to prevent duplicate executions.
+    This V1 live reporting task is deprecated and should be replaced with the enterprise system.
 
-    Returns:
-        A dictionary indicating the reporting start result.
+    MIGRATION PATH:
+    - Remove calls to this task from your codebase
+    - Use MatchSchedulerService.schedule_season_matches() for season-wide scheduling
+    - Use RealtimeReportingService for live updates
+    - Use admin interface at /admin/live-reporting/ for management
 
-    Raises:
-        Retries the task on SQLAlchemy or general errors.
+    CURRENT LOCATION: {self.request.origin}
+    CURRENT TASK ID: {self.request.id}
+    CALLED AT: {datetime.utcnow().isoformat()}
+
+    ACTION REQUIRED: Update calling code to use enterprise live reporting system
     """
+    logger.error(
+        "*** DEPRECATED V1 TASK CALLED! *** "
+        f"start_live_reporting V1 task called from {self.request.origin} "
+        f"with task ID {self.request.id}. "
+        "MIGRATE TO: MatchSchedulerService + RealtimeReportingService. "
+        f"Match ID: {match_id}"
+    )
     try:
         logger.warning(f"[DEPRECATED] start_live_reporting called for match_id: {match_id} - should use start_robust_live_reporting")
         logger.info(f"Starting live reporting for match_id: {match_id}")
@@ -378,19 +384,27 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
 )
 def schedule_live_reporting(self, session) -> Dict[str, Any]:
     """
-    Schedule live reporting for upcoming matches.
+    *** DEPRECATED V1 TASK - DO NOT USE! ***
 
-    This task:
-      - Queries for matches within the next 48 hours that haven't started live reporting.
-      - Schedules each match to start live reporting at the appropriate time.
-      - Marks matches as scheduled.
+    This V1 scheduling task is deprecated and should be replaced with the enterprise system.
 
-    Returns:
-        A summary dictionary with the number of matches scheduled.
+    MIGRATION PATH:
+    - Remove calls to this task from your codebase
+    - Use MatchSchedulerService.schedule_season_matches() for season-wide scheduling
+    - Use admin interface at /admin/live-reporting/ for management
 
-    Raises:
-        Retries the task on errors.
+    CURRENT LOCATION: {self.request.origin}
+    CURRENT TASK ID: {self.request.id}
+    CALLED AT: {datetime.utcnow().isoformat()}
+
+    ACTION REQUIRED: Update calling code to use enterprise match scheduling system
     """
+    logger.error(
+        "*** DEPRECATED V1 TASK CALLED! *** "
+        f"schedule_live_reporting V1 task called from {self.request.origin} "
+        f"with task ID {self.request.id}. "
+        "MIGRATE TO: MatchSchedulerService.schedule_season_matches()"
+    )
     try:
         from datetime import timezone
         now = datetime.now(timezone.utc)

@@ -1,0 +1,433 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Match Detail{% endblock %}
+
+{% block panel_description %}Detailed view of match and live reporting status{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_live.dashboard') }}">Live Reporting</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin_live.matches') }}">Matches</a></li>
+<li class="breadcrumb-item active">Match {{ match.id }}</li>
+{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<style>
+.info-card {
+    border-left: 4px solid #007bff;
+}
+
+.teams-display {
+    background: var(--bs-gray-100);
+    border-radius: 10px;
+    padding: 2rem;
+    margin: 1rem 0;
+}
+
+[data-bs-theme="dark"] .teams-display {
+    background: var(--bs-gray-900);
+}
+
+.team-section {
+    text-align: center;
+}
+
+.vs-separator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #6c757d;
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-active { background-color: #28a745; }
+.status-inactive { background-color: #6c757d; }
+.status-error { background-color: #dc3545; }
+
+.detail-section {
+    background: var(--bs-body-bg);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid var(--bs-border-color);
+}
+
+[data-bs-theme="dark"] .detail-section {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+</style>
+{% endblock %}
+
+{% block panel_content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fas fa-futbol"></i> Match {{ match.id }} Detail
+        </h1>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin_live.matches') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Matches
+            </a>
+            {% if not live_session %}
+                <button class="btn btn-success" onclick="scheduleMatch({{ match.id }})">
+                    <i class="fas fa-broadcast-tower"></i> Schedule Live Reporting
+                </button>
+            {% elif live_session.is_active %}
+                <button class="btn btn-danger" onclick="stopSession({{ live_session.id }})">
+                    <i class="fas fa-stop"></i> Stop Live Reporting
+                </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Teams Display -->
+    <div class="teams-display">
+        <div class="row align-items-center">
+            <div class="col-md-5 team-section">
+                <h3 class="mb-2" style="color: var(--bs-body-color);">
+                    {% if match.is_home_game %}
+                        Seattle Sounders FC
+                    {% else %}
+                        {{ match.opponent }}
+                    {% endif %}
+                </h3>
+                <div class="text-muted">Home Team</div>
+            </div>
+            <div class="col-md-2 vs-separator">
+                <div>VS</div>
+                {% if match.date_time %}
+                    <div class="small text-muted mt-2">{{ match.date_time.strftime('%b %d, %Y') }}</div>
+                {% endif %}
+            </div>
+            <div class="col-md-5 team-section">
+                <h3 class="mb-2" style="color: var(--bs-body-color);">
+                    {% if match.is_home_game %}
+                        {{ match.opponent }}
+                    {% else %}
+                        Seattle Sounders FC
+                    {% endif %}
+                </h3>
+                <div class="text-muted">Away Team</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Match Information -->
+        <div class="col-md-6">
+            <div class="detail-section">
+                <h4 class="text-primary mb-3">
+                    <i class="fas fa-info-circle"></i> Match Information
+                </h4>
+
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Match ID:</strong></div>
+                    <div class="col-sm-8">{{ match.id }}</div>
+                </div>
+
+                {% if match.date_time %}
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Date:</strong></div>
+                    <div class="col-sm-8">{{ match.date_time.strftime('%A, %B %d, %Y at %I:%M %p') }}</div>
+                </div>
+                {% endif %}
+
+                {% if match.competition %}
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Competition:</strong></div>
+                    <div class="col-sm-8">{{ match.competition }}</div>
+                </div>
+                {% endif %}
+
+                {% if match.venue %}
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Venue:</strong></div>
+                    <div class="col-sm-8">{{ match.venue }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Live Reporting Session -->
+        <div class="col-md-6">
+            <div class="detail-section">
+                <h4 class="text-primary mb-3">
+                    <i class="fas fa-broadcast-tower"></i> Live Reporting Status
+                </h4>
+
+                {% if live_session %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Session ID:</strong></div>
+                        <div class="col-sm-8">{{ live_session.id }}</div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Status:</strong></div>
+                        <div class="col-sm-8">
+                            <span class="status-indicator status-{{ 'active' if live_session.is_active else 'inactive' }}"></span>
+                            {{ 'Active' if live_session.is_active else 'Inactive' }}
+                        </div>
+                    </div>
+
+                    {% if live_session.thread_id %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Discord Thread:</strong></div>
+                        <div class="col-sm-8">
+                            <code>{{ live_session.thread_id }}</code>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if live_session.competition %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Competition:</strong></div>
+                        <div class="col-sm-8">{{ live_session.competition }}</div>
+                    </div>
+                    {% endif %}
+
+                    {% if live_session.started_at %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Started:</strong></div>
+                        <div class="col-sm-8">{{ live_session.started_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</div>
+                    </div>
+                    {% endif %}
+
+                    {% if live_session.ended_at %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Ended:</strong></div>
+                        <div class="col-sm-8">{{ live_session.ended_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</div>
+                    </div>
+                    {% endif %}
+
+                    {% if live_session.last_status %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Last Status:</strong></div>
+                        <div class="col-sm-8">{{ live_session.last_status }}</div>
+                    </div>
+                    {% endif %}
+
+                    {% if live_session.update_count %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Updates:</strong></div>
+                        <div class="col-sm-8">{{ live_session.update_count }}</div>
+                    </div>
+                    {% endif %}
+
+                    {% if live_session.error_count and live_session.error_count > 0 %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Errors:</strong></div>
+                        <div class="col-sm-8">
+                            <span class="text-warning">{{ live_session.error_count }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if live_session.last_update_at %}
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><strong>Last Update:</strong></div>
+                        <div class="col-sm-8">{{ live_session.last_update_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</div>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-broadcast-tower fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Live Reporting Session</h5>
+                        <p class="text-muted">This match does not have an active live reporting session.</p>
+                        <button class="btn btn-primary" onclick="scheduleMatch({{ match.id }})">
+                            <i class="fas fa-plus"></i> Schedule Live Reporting
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Scheduling Information -->
+    {% if match_scheduling %}
+    <div class="detail-section">
+        <h4 class="text-primary mb-3">
+            <i class="fas fa-calendar-check"></i> Scheduling Information
+        </h4>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Category:</strong></div>
+                    <div class="col-sm-8">
+                        <span class="badge bg-{{ 'success' if match_scheduling.category == 'active_live' else 'primary' if match_scheduling.category == 'upcoming_live' else 'info' if match_scheduling.category == 'upcoming_threads' else 'secondary' }}">
+                            {{ match_scheduling.category.replace('_', ' ').title() }}
+                        </span>
+                    </div>
+                </div>
+
+                {% if match_scheduling.get('scheduled_time') %}
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Scheduled Time:</strong></div>
+                    <div class="col-sm-8">{{ match_scheduling.scheduled_time }}</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="col-md-6">
+                {% if match_scheduling.get('thread_id') %}
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Thread ID:</strong></div>
+                    <div class="col-sm-8"><code>{{ match_scheduling.thread_id }}</code></div>
+                </div>
+                {% endif %}
+
+                {% if match_scheduling.get('task_id') %}
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Task ID:</strong></div>
+                    <div class="col-sm-8"><code>{{ match_scheduling.task_id }}</code></div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="detail-section">
+        <h4 class="text-primary mb-3">
+            <i class="fas fa-cogs"></i> Actions
+        </h4>
+
+        <div class="d-flex gap-2 flex-wrap">
+            {% if live_session and live_session.is_active %}
+                <button class="btn btn-danger" onclick="stopSession({{ live_session.id }})">
+                    <i class="fas fa-stop"></i> Stop Live Reporting
+                </button>
+                <button class="btn btn-warning" onclick="sendCommand('refresh_session', {session_id: {{ live_session.id }}})">
+                    <i class="fas fa-sync"></i> Refresh Session
+                </button>
+            {% elif not live_session %}
+                <button class="btn btn-success" onclick="scheduleMatch({{ match.id }})">
+                    <i class="fas fa-broadcast-tower"></i> Schedule Live Reporting
+                </button>
+            {% endif %}
+
+            <button class="btn btn-info" onclick="forceSync()">
+                <i class="fas fa-sync-alt"></i> Force Sync
+            </button>
+
+            <button class="btn btn-secondary" onclick="location.reload()">
+                <i class="fas fa-refresh"></i> Refresh Page
+            </button>
+        </div>
+    </div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+function scheduleMatch(matchId) {
+    if (confirm('Schedule live reporting for this match?')) {
+        fetch(`/admin/live-reporting/api/schedule-match/${matchId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Success: ${data.message}`);
+                location.reload();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error scheduling match');
+        });
+    }
+}
+
+function stopSession(sessionId) {
+    if (confirm('Stop this live reporting session?')) {
+        fetch(`/admin/live-reporting/api/session/${sessionId}/stop`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Success: ${data.message}`);
+                location.reload();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error stopping session');
+        });
+    }
+}
+
+function sendCommand(command, params = {}) {
+    if (confirm(`Send "${command}" command to real-time service?`)) {
+        fetch('/admin/live-reporting/api/send-command', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                command: command,
+                params: params
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Command sent successfully: ${data.message}`);
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error sending command');
+        });
+    }
+}
+
+function forceSync() {
+    if (confirm('Force synchronization with real-time service?')) {
+        fetch('/admin/live-reporting/api/force-sync', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Sync successful: ${data.message}`);
+                location.reload();
+            } else {
+                alert(`Sync failed: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error performing sync');
+        });
+    }
+}
+</script>
+{% endblock %}

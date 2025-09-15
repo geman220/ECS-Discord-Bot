@@ -1,0 +1,329 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Live Reporting Dashboard{% endblock %}
+
+{% block panel_description %}Enterprise live reporting system control center{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">Live Reporting</li>
+{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<style>
+.status-card {
+    border-left: 4px solid #007bff;
+    margin-bottom: 20px;
+}
+
+.status-healthy {
+    border-left-color: #28a745 !important;
+}
+
+.status-degraded {
+    border-left-color: #ffc107 !important;
+}
+
+.status-offline {
+    border-left-color: #dc3545 !important;
+}
+
+.service-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.service-healthy { background-color: #28a745; }
+.service-degraded { background-color: #ffc107; }
+.service-offline { background-color: #dc3545; }
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.match-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.session-item {
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+}
+
+.session-item:last-child {
+    border-bottom: none;
+}
+
+.auto-refresh {
+    color: #6c757d;
+    font-size: 0.9em;
+}
+</style>
+{% endblock %}
+
+{% block panel_content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fas fa-broadcast-tower"></i> Live Reporting Dashboard
+        </h1>
+        <div class="auto-refresh">
+            <i class="fas fa-sync-alt" id="refreshIcon"></i>
+            Auto-refresh: <span id="countdown">30</span>s
+        </div>
+    </div>
+
+    <!-- System Status Cards -->
+    <div class="stats-grid">
+        <!-- Real-time Service Status -->
+        <div class="card status-card status-{{ 'healthy' if realtime_health.health == 'healthy' else 'degraded' if realtime_health.health == 'degraded' else 'offline' }}">
+            <div class="card-header">
+                <i class="fas fa-server"></i> Real-time Service
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="service-indicator service-{{ realtime_health.health }}"></span>
+                        <strong>{{ realtime_health.health.title() }}</strong>
+                    </div>
+                    <div class="text-muted">
+                        {% if realtime_health.heartbeat_age_seconds %}
+                            {{ realtime_health.heartbeat_age_seconds }}s ago
+                        {% else %}
+                            No heartbeat
+                        {% endif %}
+                    </div>
+                </div>
+                {% if realtime_health.is_running %}
+                    <small class="text-success">Service is running</small>
+                {% else %}
+                    <small class="text-danger">Service is offline</small>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Active Sessions -->
+        <div class="card status-card">
+            <div class="card-header">
+                <i class="fas fa-play-circle"></i> Active Sessions
+            </div>
+            <div class="card-body">
+                <h3 class="mb-0">{{ active_sessions|length }}</h3>
+                <small class="text-muted">Live reporting sessions</small>
+                {% if coordination_status.database_sessions %}
+                    <div class="mt-2">
+                        <small>Database: {{ coordination_status.database_sessions }} sessions</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Coordination Status -->
+        <div class="card status-card status-{{ 'healthy' if coordination_status.coordination_status == 'healthy' else 'degraded' }}">
+            <div class="card-header">
+                <i class="fas fa-link"></i> Coordination
+            </div>
+            <div class="card-body">
+                <div>
+                    <span class="service-indicator service-{{ coordination_status.coordination_status }}"></span>
+                    <strong>{{ coordination_status.coordination_status.title() }}</strong>
+                </div>
+                <small class="text-muted">
+                    Celery ↔ Real-time Bridge
+                </small>
+            </div>
+        </div>
+
+        <!-- Upcoming Matches -->
+        <div class="card status-card">
+            <div class="card-header">
+                <i class="fas fa-calendar"></i> Upcoming Matches
+            </div>
+            <div class="card-body">
+                <h3 class="mb-0">{{ upcoming_matches|length }}</h3>
+                <small class="text-muted">Next 7 days</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Active Sessions -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <span><i class="fas fa-broadcast-tower"></i> Active Sessions</span>
+                    <a href="{{ url_for('admin_live.sessions') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="match-list">
+                        {% for session in active_sessions %}
+                        <div class="session-item px-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Match {{ session.match_id }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        Session {{ session.id }} | {{ session.competition }}
+                                        {% if session.last_status %}
+                                            | {{ session.last_status }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div class="text-right">
+                                    <small class="text-muted">
+                                        {% if session.update_count %}
+                                            {{ session.update_count }} updates
+                                        {% endif %}
+                                        {% if session.error_count and session.error_count > 0 %}
+                                            <br><span class="text-warning">{{ session.error_count }} errors</span>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="px-3 py-4 text-center text-muted">
+                            <i class="fas fa-moon"></i><br>
+                            No active live reporting sessions
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Matches -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <span><i class="fas fa-calendar-alt"></i> Upcoming Matches</span>
+                    <a href="{{ url_for('admin_live.matches') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="match-list">
+                        {% for match in upcoming_matches %}
+                        <div class="session-item px-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>
+                                        {% if match.is_home_game %}
+                                            Seattle Sounders FC vs {{ match.opponent }}
+                                        {% else %}
+                                            {{ match.opponent }} vs Seattle Sounders FC
+                                        {% endif %}
+                                    </strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ match.date_time.strftime('%b %d, %Y at %I:%M %p') if match.date_time }}
+                                        {% if match.venue %}
+                                            | {{ match.venue }}
+                                        {% endif %}
+                                        {% if match.competition %}
+                                            | {{ match.competition }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div class="text-right">
+                                    <a href="{{ url_for('admin_live.match_detail', match_id=match.id) }}"
+                                       class="btn btn-sm btn-outline-info">Details</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="px-3 py-4 text-center text-muted">
+                            <i class="fas fa-calendar-times"></i><br>
+                            No upcoming matches in next 7 days
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-tools"></i> Quick Actions
+                </div>
+                <div class="card-body">
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('admin_live.schedule_season') }}" class="btn btn-primary">
+                            <i class="fas fa-calendar-plus"></i> Schedule Season
+                        </a>
+                        <a href="{{ url_for('admin_live.realtime_status') }}" class="btn btn-info">
+                            <i class="fas fa-heartbeat"></i> Real-time Status
+                        </a>
+                        <button class="btn btn-warning" onclick="forceSync()">
+                            <i class="fas fa-sync"></i> Force Sync
+                        </button>
+                        <button class="btn btn-secondary" onclick="refreshDashboard()">
+                            <i class="fas fa-refresh"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+let countdown = 30;
+let refreshTimer;
+
+function startCountdown() {
+    refreshTimer = setInterval(function() {
+        countdown--;
+        document.getElementById('countdown').textContent = countdown;
+
+        if (countdown <= 0) {
+            refreshDashboard();
+        }
+    }, 1000);
+}
+
+function refreshDashboard() {
+    document.getElementById('refreshIcon').classList.add('fa-spin');
+    location.reload();
+}
+
+function forceSync() {
+    if (confirm('Force synchronization with real-time service?')) {
+        fetch('/admin/live-reporting/api/force-sync', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Sync successful: ${data.message}`);
+                refreshDashboard();
+            } else {
+                alert(`Sync failed: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error performing sync');
+        });
+    }
+}
+
+// Start countdown when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    startCountdown();
+});
+</script>
+{% endblock %}

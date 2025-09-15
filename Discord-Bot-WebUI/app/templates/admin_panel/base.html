@@ -101,13 +101,15 @@
                         
                         <!-- League Operations -->
                         <li class="nav-item dropdown mb-2 mb-lg-0">
-                            <a class="nav-link dropdown-toggle {% if 'match' in request.endpoint or 'substitute' in request.endpoint or 'playoff' in request.endpoint or 'mls' in request.endpoint %}active{% endif %}" 
+                            <a class="nav-link dropdown-toggle {% if 'match' in request.endpoint or 'substitute' in request.endpoint or 'playoff' in request.endpoint or 'mls' in request.endpoint or 'admin_live' in request.endpoint %}active{% endif %}"
                                href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="ti ti-trophy me-1"></i><span class="d-lg-inline d-md-none">League Ops</span>
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.match_operations') }}">
                                     <i class="ti ti-trophy me-2"></i>Match Operations</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_live.dashboard') }}">
+                                    <i class="ti ti-broadcast me-2"></i>Live Reporting</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.match_verification') }}">
                                     <i class="ti ti-shield-check me-2"></i>Match Verification</a></li>

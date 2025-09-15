@@ -3,9 +3,16 @@
 """
 Live Reporting Event-Driven Orchestrator
 
-Industry-standard event-driven task orchestration to replace the problematic
-time-based cron scheduler. Uses intelligent queueing with circuit breaker
-protection and backpressure management.
+[DEPRECATED - V2 Real-Time System Active]
+
+WARNING: This orchestrator is deprecated in favor of V2 real-time system.
+The V2 system (tasks_live_reporting_v2.py) provides:
+- Real-time updates every 10-30 seconds for live matches
+- Self-scheduling based on match status
+- Direct ESPN API integration with caching
+- Better error handling and recovery
+
+This module is kept for reference but should not be used.
 """
 
 import logging

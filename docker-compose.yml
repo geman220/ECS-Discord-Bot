@@ -241,6 +241,42 @@ services:
         reservations:
           memory: 200M
 
+  realtime-live-reporting:
+    build:
+      context: ./Discord-Bot-WebUI
+      dockerfile: Dockerfile.webui
+    restart: unless-stopped
+    command: python run_realtime_service.py --log-level INFO
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./Discord-Bot-WebUI:/app
+      - realtime_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import redis; r=redis.from_url('redis://redis:6379/0'); exit(0 if r.get('realtime_service:status') == b'running' else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - web
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
   celery-beat:
     build:
       context: ./Discord-Bot-WebUI
@@ -395,7 +431,7 @@ services:
     restart: unless-stopped
     # Add healthcheck to monitor the bot's health
     healthcheck:
-      test: ["CMD", "sh", "-c", "netstat -tulpn | grep -q ':500[0-9] ' || exit 1"]
+      test: ["CMD", "sh", "-c", "netstat -tulpn | grep -q ':5001 ' || exit 1"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -421,3 +457,4 @@ volumes:
   celery_beat_data:
   celery_sync_data:
   celery_enterprise_data:
+  realtime_logs:

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 @celery_task(bind=True)
-def cleanup_security_logs(self, retention_days=90):
+def cleanup_security_logs(self, session, retention_days=90):
     """
     Clean up old security events from the database.
     
@@ -43,7 +43,7 @@ def cleanup_security_logs(self, retention_days=90):
 
 
 @celery_task(bind=True)
-def cleanup_expired_bans(self):
+def cleanup_expired_bans(self, session):
     """
     Clean up expired IP bans by marking them as inactive.
     This is mainly for housekeeping - expired bans are already ignored in queries.
@@ -74,7 +74,7 @@ def cleanup_expired_bans(self):
 
 
 @celery_task(bind=True)
-def security_maintenance(self):
+def security_maintenance(self, session):
     """
     Comprehensive security maintenance task.
     Runs both log cleanup and expired ban cleanup.
@@ -110,7 +110,7 @@ def security_maintenance(self):
 
 
 @celery_task(bind=True)
-def generate_security_report(self, days=7):
+def generate_security_report(self, session, days=7):
     """
     Generate a security report for the specified number of days.
     
@@ -174,7 +174,7 @@ def generate_security_report(self, days=7):
 
 
 @celery_task(bind=True)
-def smart_ban_cleanup(self):
+def smart_ban_cleanup(self, session):
     """
     Smart cleanup for IP bans - unban well-behaved IPs and maintain security.
     This balances security with usability by giving legitimate users a second chance.

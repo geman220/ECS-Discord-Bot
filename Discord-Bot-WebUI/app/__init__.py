@@ -906,6 +906,7 @@ def init_blueprints(app):
     from app.routes.notifications import notifications_bp
     from app.api_smart_sync import smart_sync_bp
     from app.health import health_bp
+    from app.routes.admin_live_reporting import admin_live_bp
 
     app.register_blueprint(health_bp, url_prefix='/api')
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -949,6 +950,7 @@ def init_blueprints(app):
     app.register_blueprint(admin_panel_bp)  # Centralized admin panel
     app.register_blueprint(notifications_bp)  # Blueprint has url_prefix='/api/v1/notifications'
     app.register_blueprint(smart_sync_bp)  # Smart RSVP sync API endpoints
+    app.register_blueprint(admin_live_bp)  # Live reporting admin interface
     csrf.exempt(smart_sync_bp)  # Exempt smart sync endpoints from CSRF
     
     # Import and register playoff management blueprint
@@ -970,12 +972,7 @@ def init_blueprints(app):
     from app.api_team_notifications import team_notifications_bp
     app.register_blueprint(team_notifications_bp)
     
-    # Register test routes (only in development)
-    if app.config.get('DEBUG', False):
-        from app.test_team_notifications_route import test_bp
-        app.register_blueprint(test_bp)
-        
-        # Live reporting test routes removed - use V2 production system for testing
+    # Test routes removed - use production systems for testing
     
     # Initialize enterprise RSVP system on app startup (simplified for Flask compatibility)
     try:
@@ -1000,6 +997,7 @@ def init_blueprints(app):
     # Register AI Enhancement Routes for Live Reporting
     from app.routes.ai_enhancement_routes import ai_enhancement_bp
     app.register_blueprint(ai_enhancement_bp)
+    csrf.exempt(ai_enhancement_bp)  # Exempt AI API endpoints from CSRF (used by Discord bot)
     
     # Register Security Status Routes
     try:
