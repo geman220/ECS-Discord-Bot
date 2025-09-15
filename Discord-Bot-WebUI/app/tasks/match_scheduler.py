@@ -11,6 +11,7 @@ import logging
 from datetime import datetime, timedelta
 from app.decorators import celery_task
 from app.services.match_scheduler_service import MatchSchedulerService
+from app.utils.task_session_manager import task_session
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +36,28 @@ def schedule_upcoming_matches(self, session):
         # Initialize enterprise service
         scheduler_service = MatchSchedulerService()
 
-        # Schedule upcoming season matches (auto-detects what needs scheduling)
-        result = scheduler_service.schedule_season_matches()
+        # Get current/active season for scheduling
+        from app.models import Season
+        with task_session() as session:
+            # Try to find current active season
+            current_season = session.query(Season).filter(
+                Season.year == datetime.now().year
+            ).first()
+
+            if not current_season:
+                # Fall back to most recent season
+                current_season = session.query(Season).order_by(Season.year.desc()).first()
+
+            if not current_season:
+                logger.warning("No season found for scheduling")
+                return {
+                    'success': False,
+                    'error': 'No active season found for scheduling',
+                    'enterprise_system': True
+                }
+
+        # Schedule upcoming season matches
+        result = scheduler_service.schedule_season_matches(current_season.id)
 
         if result['success']:
             logger.info(f"✅ Enterprise scheduler: {result['threads_scheduled']} threads, {result['reporting_scheduled']} live sessions")

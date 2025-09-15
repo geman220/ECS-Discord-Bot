@@ -431,7 +431,7 @@ services:
     restart: unless-stopped
     # Add healthcheck to monitor the bot's health
     healthcheck:
-      test: ["CMD", "sh", "-c", "netstat -tulpn | grep -q ':5001 ' || exit 1"]
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5001/health', timeout=5).raise_for_status()"]
       interval: 60s
       timeout: 10s
       retries: 3
