@@ -33,31 +33,53 @@ def schedule_upcoming_matches(self, session):
     try:
         logger.info("🏢 Enterprise match scheduler starting...")
 
-        # Initialize enterprise service
-        scheduler_service = MatchSchedulerService()
+        # Schedule upcoming MLS matches directly (not pub league seasons)
+        from app.models.external import MLSMatch
+        from app.core import celery
 
-        # Get current/active season for scheduling
-        from app.models import Season
         with task_session() as session:
-            # Try to find current active season
-            current_season = session.query(Season).filter(
-                Season.year == datetime.now().year
-            ).first()
+            # Get upcoming MLS matches that need scheduling
+            now = datetime.utcnow()
+            upcoming_matches = session.query(MLSMatch).filter(
+                MLSMatch.date_time > now,
+                MLSMatch.date_time <= now + timedelta(days=7)  # Look ahead 7 days
+            ).all()
 
-            if not current_season:
-                # Fall back to most recent season
-                current_season = session.query(Season).order_by(Season.year.desc()).first()
+            scheduled_threads = 0
+            scheduled_live = 0
 
-            if not current_season:
-                logger.warning("No season found for scheduling")
-                return {
-                    'success': False,
-                    'error': 'No active season found for scheduling',
-                    'enterprise_system': True
-                }
+            for match in upcoming_matches:
+                try:
+                    # Schedule thread creation (48 hours before)
+                    thread_time = match.date_time - timedelta(hours=48)
+                    if thread_time > now and not match.thread_created:
+                        # Use MLS-specific thread creation task
+                        create_mls_match_thread_task.apply_async(
+                            args=[match.id],
+                            eta=thread_time,
+                            expires=thread_time + timedelta(hours=2)
+                        )
+                        scheduled_threads += 1
 
-        # Schedule upcoming season matches
-        result = scheduler_service.schedule_season_matches(current_season.id)
+                    # Schedule live reporting start (5 minutes before)
+                    live_start_time = match.date_time - timedelta(minutes=5)
+                    if live_start_time > now:
+                        start_mls_live_reporting_task.apply_async(
+                            args=[match.id],
+                            eta=live_start_time,
+                            expires=live_start_time + timedelta(minutes=30)
+                        )
+                        scheduled_live += 1
+
+                except Exception as e:
+                    logger.error(f"Error scheduling MLS match {match.id}: {e}")
+
+            result = {
+                'success': True,
+                'total_matches': len(upcoming_matches),
+                'threads_scheduled': scheduled_threads,
+                'reporting_scheduled': scheduled_live
+            }
 
         if result['success']:
             logger.info(f"✅ Enterprise scheduler: {result['threads_scheduled']} threads, {result['reporting_scheduled']} live sessions")
@@ -219,3 +241,140 @@ def health_check_enterprise_system(self):
             'error': str(e),
             'timestamp': datetime.utcnow().isoformat()
         }
+
+
+@celery_task(
+    name='app.tasks.match_scheduler.create_mls_match_thread_task',
+    queue='discord',
+    max_retries=3,
+    soft_time_limit=60,
+    time_limit=90
+)
+def create_mls_match_thread_task(self, match_id: int, session) -> Dict[str, Any]:
+    """
+    Create Discord thread for an MLS match (48 hours before kickoff).
+    """
+    try:
+        from app.models.external import MLSMatch
+        from app.utils.discord_request_handler import send_to_discord_bot
+
+        # Get MLS match details
+        match = session.query(MLSMatch).filter_by(id=match_id).first()
+        if not match:
+            logger.error(f"MLS Match {match_id} not found")
+            return {"success": False, "error": "MLS Match not found"}
+
+        # Prepare thread creation request for MLS match
+        if match.is_home_game:
+            match_title = f"Seattle Sounders FC vs {match.opponent}"
+            home_team = "Seattle Sounders FC"
+            away_team = match.opponent
+        else:
+            match_title = f"{match.opponent} vs Seattle Sounders FC"
+            home_team = match.opponent
+            away_team = "Seattle Sounders FC"
+
+        thread_request = {
+            "channel_id": 1154148502426857633,  # MLS live reporting channel
+            "match_title": match_title,
+            "home_team": home_team,
+            "away_team": away_team,
+            "match_date": match.date_time.strftime("%B %d, %Y at %I:%M %p") if match.date_time else "TBD",
+            "competition": match.competition or "MLS",
+            "match_id": str(match.match_id)  # Use match_id field, not database id
+        }
+
+        # Call Discord bot API
+        response = send_to_discord_bot('/api/live-reporting/thread/create', thread_request)
+
+        if response and response.get('success'):
+            # Mark thread as created
+            match.thread_created = True
+            match.thread_creation_time = datetime.utcnow()
+            session.commit()
+
+            logger.info(f"Created MLS thread {response.get('thread_id')} for match {match.match_id}")
+
+            return {
+                "success": True,
+                "match_id": match_id,
+                "thread_id": response.get('thread_id'),
+                "thread_name": response.get('thread_name')
+            }
+        else:
+            error_msg = response.get('error', 'Unknown error') if response else 'No response'
+            logger.error(f"Failed to create MLS thread for match {match.match_id}: {error_msg}")
+            return {"success": False, "error": error_msg}
+
+    except Exception as e:
+        logger.error(f"Error creating MLS thread for match {match_id}: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@celery_task(
+    name='app.tasks.match_scheduler.start_mls_live_reporting_task',
+    queue='live_reporting',
+    max_retries=2,
+    soft_time_limit=30,
+    time_limit=45
+)
+def start_mls_live_reporting_task(self, match_id: int, session) -> Dict[str, Any]:
+    """
+    Start live reporting for an MLS match (5 minutes before kickoff).
+    """
+    try:
+        from app.models.external import MLSMatch
+        from app.models import LiveReportingSession
+
+        # Get MLS match details
+        match = session.query(MLSMatch).filter_by(id=match_id).first()
+        if not match:
+            logger.error(f"MLS Match {match_id} not found")
+            return {"success": False, "error": "MLS Match not found"}
+
+        # Check if live session already exists (use match_id as string)
+        existing_session = session.query(LiveReportingSession).filter_by(
+            match_id=str(match.match_id),  # LiveReportingSession expects string
+            is_active=True
+        ).first()
+
+        if existing_session:
+            logger.info(f"Live session already exists for MLS match {match.match_id}")
+            return {
+                "success": True,
+                "match_id": match_id,
+                "session_id": existing_session.id,
+                "message": "Session already active"
+            }
+
+        # Create live reporting session for MLS match
+        live_session = LiveReportingSession(
+            match_id=str(match.match_id),  # Use ESPN match_id as string
+            thread_id="",  # Will be set when thread is found
+            competition=match.competition or 'MLS',
+            is_active=True,
+            started_at=datetime.utcnow(),
+            last_update_at=datetime.utcnow(),
+            update_count=0,
+            error_count=0
+        )
+
+        session.add(live_session)
+        session.commit()
+
+        # Notify real-time service of new session
+        from app.services.realtime_bridge_service import notify_session_started
+        bridge_result = notify_session_started(live_session.id, str(match.match_id), "")
+
+        logger.info(f"Started MLS live reporting session {live_session.id} for match {match.match_id}")
+
+        return {
+            "success": True,
+            "match_id": match_id,
+            "session_id": live_session.id,
+            "espn_match_id": match.match_id
+        }
+
+    except Exception as e:
+        logger.error(f"Error starting MLS live reporting for match {match_id}: {e}")
+        return {"success": False, "error": str(e)}
