@@ -4,7 +4,7 @@
 
 {% block main_content %}
 
-<div class="container-xxl flex-grow-1 container-p-y">
+<div class="container-xxl flex-grow-1 container-p-y player-profile-page">
     
     <!-- Player Header Card -->
     <div class="card bg-primary mb-4">
@@ -1252,7 +1252,7 @@
 <script src="{{ url_for('static', filename='custom_js/match_stats.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/modals.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/admin_actions.js') }}"></script>
-<script src="{{ url_for('static', filename='custom_js/discord-membership-check.js') }}"></script>
+<!-- Discord membership check script loaded in base.html -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
@@ -1427,6 +1427,8 @@
 {% block custom_css %}
 <!-- Cropper.css -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
+<!-- Mobile optimizations -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-unified.css') }}" />
 
 <style>
     /* Player Header Styling */
@@ -1705,39 +1707,5 @@
         color: #72767d;
     }
     
-    /* Responsive Styles */
-    @media (max-width: 768px) {
-        .player-header-wrapper {
-            padding: 1rem !important;
-        }
-        
-        .player-info {
-            margin-top: 0.5rem;
-        }
-        
-        .profile-image-container {
-            width: 100px;
-            height: 100px;
-            margin-right: 1rem;
-        }
-        
-        .profile-image {
-            width: 100px;
-            height: 100px;
-        }
-        
-        .stat-box {
-            min-width: 60px;
-            padding: 0.75rem 0.5rem;
-        }
-        
-        .stat-icon {
-            font-size: 1.25rem;
-        }
-        
-        .stat-value {
-            font-size: 1.25rem;
-        }
-    }
 </style>
 {% endblock %}

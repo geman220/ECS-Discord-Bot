@@ -145,8 +145,8 @@ class ScheduleManager {
     // 2) EDIT/ADD MATCH LOGIC
     // ----------------------------------------------------------------
     setupAddMatchButtons() {
-        // .add-match-btn => open the edit modal in "Add" mode
-        document.querySelectorAll('.add-match-btn').forEach(btn => {
+        // .schedule-add-match-btn => open the edit modal in "Add" mode
+        document.querySelectorAll('.schedule-add-match-btn').forEach(btn => {
             btn.addEventListener('click', (evt) => {
                 evt.preventDefault();
                 const data = {
@@ -160,8 +160,8 @@ class ScheduleManager {
     }
 
     setupEditButtons() {
-        // .edit-match-btn => open the edit modal in "Edit" mode
-        document.querySelectorAll('.edit-match-btn').forEach(btn => {
+        // .schedule-edit-match-btn => open the edit modal in "Edit" mode
+        document.querySelectorAll('.schedule-edit-match-btn').forEach(btn => {
             btn.addEventListener('click', (evt) => {
                 evt.preventDefault();
                 const matchData = {
@@ -179,8 +179,8 @@ class ScheduleManager {
     }
 
     setupDeleteButtons() {
-        // .delete-match-btn => confirm + POST delete
-        document.querySelectorAll('.delete-match-btn').forEach(btn => {
+        // .schedule-delete-match-btn => confirm + POST delete
+        document.querySelectorAll('.schedule-delete-match-btn').forEach(btn => {
             btn.addEventListener('click', async (evt) => {
                 evt.preventDefault();
                 const matchId = btn.dataset.matchId;

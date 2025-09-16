@@ -168,31 +168,10 @@
     margin: 2px;
   }
   
-  /* Fix 9: Remove any "swipe to see more" nonsense */
-  .table-responsive::after,
-  .table-responsive::before,
-  .table-responsive tr::after,
-  .table-responsive tr::before,
-  .table-responsive td::after,
-  .table-responsive td::before,
-  .table-responsive tbody::after,
-  .table-responsive tbody::before,
-  .table-responsive thead::after,
-  .table-responsive thead::before {
+  /* Fix 9: Remove any "swipe to see more" indicators only */
+  .table-responsive::after {
     content: none !important;
-    display: none !important;
   }
-  
-  /* Also remove any Bootstrap table pseudo-elements */
-  .table::after,
-  .table::before,
-  .table tr::after,
-  .table tr::before,
-  .table td::after,
-  .table td::before,
-  .table th::after,
-  .table th::before {
-    content: none !important;
-    display: none !important;
-  }
+
 }
+

@@ -2,7 +2,7 @@
 {% import 'macros.html' as macros %}
 
 {% block main_content %}
-<div class="container-xxl flex-grow-1 container-p-y">
+<div class="container-xxl flex-grow-1 container-p-y standings-page">
     <!-- Page Header -->
     <div class="row mb-4">
         <div class="col-12">
@@ -347,6 +347,8 @@
 {% endblock %}
 
 {% block custom_css %}
+<!-- Mobile optimizations -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-unified.css') }}" />
 <style>
     /* Table header styling */
     .table thead th {
@@ -403,38 +405,6 @@
         font-size: 0.875rem;
     }
     
-    /* Responsive Styling for Nav Pills */
-    @media (max-width: 767.98px) {
-        .nav-pills {
-            display: flex;
-            overflow-x: auto;
-            white-space: nowrap;
-            -webkit-overflow-scrolling: touch;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-        }
-        
-        .nav-pills .nav-link {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.875rem;
-        }
-        
-        .table thead th {
-            font-size: 0.75rem;
-        }
-        
-        /* Hide some columns on mobile */
-        @media (max-width: 576px) {
-            .table th:nth-child(6),
-            .table td:nth-child(6),
-            .table th:nth-child(7),
-            .table td:nth-child(7),
-            .table th:nth-child(8),
-            .table td:nth-child(8) {
-                display: none;
-            }
-        }
-    }
     
     /* Table hover effect */
     .table-hover tbody tr:hover {

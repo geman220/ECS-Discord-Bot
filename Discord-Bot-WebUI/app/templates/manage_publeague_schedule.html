@@ -3,6 +3,7 @@
 {% block title %}Pub League Schedule Management{% endblock %}
 
 {% block custom_css %}
+<!-- Mobile optimizations loaded from base.html mobile.css -->
 <style>
     .table-responsive {
         margin-bottom: 1rem;
@@ -20,14 +21,14 @@
         cursor: pointer;
     }
 
-        .card-header[data-bs-toggle="collapse"]:hover {
-            background-color: var(--bs-gray-100);
-        }
+    .card-header[data-bs-toggle="collapse"]:hover {
+        background-color: var(--bs-gray-100);
+    }
 </style>
 {% endblock %}
 
 {% block main_content %}
-<div class="container-xxl flex-grow-1 container-p-y">
+<div class="container-xxl flex-grow-1 container-p-y schedule-page">
     <div class="row">
         <div class="col-12">
             <div class="card">
@@ -93,7 +94,7 @@
                                                 </h6>
                                             </div>
 
-                                            <button class="btn btn-sm btn-success add-match-btn ms-2"
+                                            <button class="btn btn-sm btn-success schedule-add-match-btn ms-2"
                                                     data-week="{{ week }}"
                                                     data-date="{{ data.date }}"
                                                     data-league-id="{{ league.id }}"
@@ -121,11 +122,11 @@
                                                     <tbody>
                                                         {% for match in data.matches %}
                                                         <tr>
-                                                            <td>{{ match.team_a }} vs {{ match.team_b }}</td>
-                                                            <td>{{ match.time }}</td>
-                                                            <td>{{ match.location }}</td>
+                                                            <td data-label="Teams">{{ match.team_a }} vs {{ match.team_b }}</td>
+                                                            <td data-label="Time">{{ match.time }}</td>
+                                                            <td data-label="Location">{{ match.location }}</td>
                                                             <td>
-                                                                <button class="btn btn-sm btn-primary edit-match-btn"
+                                                                <button class="btn btn-sm btn-primary schedule-edit-match-btn"
                                                                         data-match-id="{{ match.id }}"
                                                                         data-date="{{ data.date }}"
                                                                         data-time="{{ match.time }}"
@@ -137,7 +138,7 @@
                                                                         data-week="{{ week }}">
                                                                     <i class="ti ti-edit"></i> Edit
                                                                 </button>
-                                                                <button class="btn btn-sm btn-danger delete-match-btn"
+                                                                <button class="btn btn-sm btn-danger schedule-delete-match-btn"
                                                                         data-match-id="{{ match.id }}">
                                                                     <i class="ti ti-trash"></i> Delete
                                                                 </button>
@@ -164,6 +165,23 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Mobile Floating Action Button -->
+<div class="mobile-fab-container d-block d-lg-none">
+    <div class="mobile-fab-menu" id="mobileFabMenu">
+        <a href="#" class="mobile-fab-item" id="bulkScheduleBtn">
+            <i class="ti ti-calendar-plus"></i>
+            <span>Generate Bulk Schedule</span>
+        </a>
+        <button class="mobile-fab-item" id="singleWeekBtn">
+            <i class="ti ti-plus"></i>
+            <span>Add Single Week</span>
+        </button>
+    </div>
+    <button class="mobile-fab-main" id="mobileFabToggle">
+        <i class="ti ti-plus"></i>
+    </button>
 </div>
 
 <!-- Edit/Add Match Modal -->
@@ -295,6 +313,84 @@
     {% endfor %}
   ];
   {% endfor %}
+</script>
+
+<!-- Fix accordion JS conflicts -->
+<script>
+// Override the problematic accordion function to prevent errors
+if (window.accordionActiveFunction) {
+    const originalAccordionFunction = window.accordionActiveFunction;
+    window.accordionActiveFunction = function(e) {
+        try {
+            if (e && e.target && e.target.closest) {
+                const closestElement = e.target.closest('.accordion-item');
+                if (closestElement && closestElement.classList) {
+                    return originalAccordionFunction.call(this, e);
+                }
+            }
+        } catch (error) {
+            console.warn('Accordion function error prevented:', error);
+        }
+    };
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const fabToggle = document.getElementById('mobileFabToggle');
+    const fabMenu = document.getElementById('mobileFabMenu');
+    const bulkScheduleBtn = document.getElementById('bulkScheduleBtn');
+    const singleWeekBtn = document.getElementById('singleWeekBtn');
+
+    if (fabToggle && fabMenu) {
+        fabToggle.addEventListener('click', function() {
+            const isExpanded = fabMenu.classList.contains('show');
+
+            if (isExpanded) {
+                fabMenu.classList.remove('show');
+                fabToggle.classList.remove('expanded');
+            } else {
+                fabMenu.classList.add('show');
+                fabToggle.classList.add('expanded');
+            }
+        });
+
+        // Set up bulk schedule button
+        if (bulkScheduleBtn) {
+            bulkScheduleBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Get active league ID
+                const activeTab = document.querySelector('.nav-link.active');
+                if (activeTab) {
+                    const activeTabPane = document.querySelector(activeTab.getAttribute('href'));
+                    const leagueId = activeTabPane ? activeTabPane.id.replace('league-', '') : null;
+                    if (leagueId) {
+                        window.location.href = `{{ url_for('publeague.schedule.schedule_wizard', season_id=season.id) }}?league_id=${leagueId}`;
+                    }
+                }
+            });
+        }
+
+        // Set up single week button
+        if (singleWeekBtn) {
+            singleWeekBtn.addEventListener('click', function() {
+                // Get active league ID
+                const activeTab = document.querySelector('.nav-link.active');
+                if (activeTab) {
+                    const activeTabPane = document.querySelector(activeTab.getAttribute('href'));
+                    const leagueId = activeTabPane ? activeTabPane.id.replace('league-', '') : null;
+                    if (leagueId) {
+                        document.getElementById('singleWeekLeagueId').value = leagueId;
+                        const modal = new bootstrap.Modal(document.getElementById('addSingleWeekModal'));
+                        modal.show();
+                    }
+                }
+
+                // Close FAB menu
+                fabMenu.classList.remove('show');
+                fabToggle.classList.remove('expanded');
+            });
+        }
+    }
+});
 </script>
 
 <!-- 2) Include your main schedule-management.js AFTER that global -->
