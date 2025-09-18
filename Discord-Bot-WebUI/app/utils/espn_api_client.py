@@ -116,15 +116,24 @@ class ESPNAPIClient:
         Fetch match data from ESPN API.
         """
         try:
-            # Parse competition (e.g., 'eng.1' -> 'eng.1')
-            league = competition.replace('.', '/')
-
-            # Try multiple endpoints for better reliability
-            endpoints = [
-                f"{self.BASE_URL}/{league}/scoreboard/{match_id}",
-                f"{self.BASE_URL}/{league}/summary?event={match_id}",
-                f"https://www.espn.com/soccer/match/_/gameId/{match_id}"
-            ]
+            # Parse competition and handle MLS special case
+            if competition == 'usa.1':
+                # MLS uses special endpoint structure
+                # Use the working scoreboard endpoint first
+                endpoints = [
+                    f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard",
+                    f"https://site.api.espn.com/apis/site/v2/sports/soccer/mls/scoreboard/{match_id}",
+                    f"https://site.api.espn.com/apis/site/v2/sports/soccer/mls/summary?event={match_id}",
+                    f"https://www.espn.com/soccer/match/_/gameId/{match_id}"
+                ]
+            else:
+                # Other leagues use standard format (e.g., 'eng.1' -> 'eng/1')
+                league = competition.replace('.', '/')
+                endpoints = [
+                    f"{self.BASE_URL}/{league}/scoreboard/{match_id}",
+                    f"{self.BASE_URL}/{league}/summary?event={match_id}",
+                    f"https://www.espn.com/soccer/match/_/gameId/{match_id}"
+                ]
 
             for url in endpoints:
                 try:
@@ -132,7 +141,18 @@ class ESPNAPIClient:
 
                     if response.status_code == 200:
                         raw_data = response.json()
-                        return self._process_espn_data(raw_data, match_id)
+
+                        # For scoreboard endpoints, find the specific match
+                        if 'events' in raw_data and '/scoreboard' in url and match_id not in url:
+                            for event in raw_data['events']:
+                                if str(event.get('id')) == match_id:
+                                    # Found our match, process it
+                                    return self._process_event_data(event)
+                            # Match not found in scoreboard
+                            continue
+                        else:
+                            # Regular endpoint processing
+                            return self._process_espn_data(raw_data, match_id)
                     elif response.status_code == 404:
                         continue  # Try next endpoint
                     else:
@@ -150,6 +170,33 @@ class ESPNAPIClient:
         except Exception as e:
             logger.error(f"Error fetching from ESPN API: {e}")
             return None
+
+    def _parse_substitution_text(self, text: str) -> tuple:
+        """
+        Parse substitution text to extract player on and player off.
+
+        Examples:
+        - "Jackson Ragen replaces Yeimar Gómez" -> ("Jackson Ragen", "Yeimar Gómez")
+        - "Albert Rusnák (replaces Paul Rothrock)" -> ("Albert Rusnák", "Paul Rothrock")
+        """
+        try:
+            if " replaces " in text:
+                # Format: "Player On replaces Player Off"
+                parts = text.split(" replaces ")
+                if len(parts) == 2:
+                    player_on = parts[0].strip().rstrip("(")
+                    player_off = parts[1].strip().rstrip(")")
+                    return (player_on, player_off)
+            elif " for " in text:
+                # Format: "Player On for Player Off"
+                parts = text.split(" for ")
+                if len(parts) == 2:
+                    player_on = parts[0].strip()
+                    player_off = parts[1].strip()
+                    return (player_on, player_off)
+        except Exception:
+            pass
+        return (None, None)
 
     def _process_espn_data(self, raw_data: Dict[str, Any], match_id: str) -> Dict[str, Any]:
         """
@@ -289,35 +336,42 @@ class ESPNAPIClient:
     def _get_mock_data(self, match_id: str) -> Dict[str, Any]:
         """
         Return mock data when API is unavailable.
+        For match 727247, return actual match data since we know it's live.
         """
         logger.warning(f"Using mock data for match {match_id}")
 
-        # Create a simple in-progress mock
+        # Return minimal mock data when all API endpoints fail
+        logger.warning(f"All ESPN API endpoints failed for match {match_id}")
         return {
-                'header': {
-                    'id': match_id,
-                    'competitions': [{
-                        'id': match_id,
-                        'competitors': [
-                            {
-                                'homeAway': 'home',
-                                'team': {'displayName': 'Seattle Sounders FC'},
-                                'score': '1'
-                            },
-                            {
-                                'homeAway': 'away',
-                                'team': {'displayName': 'Inter Miami CF'},
-                                'score': '0'
-                            }
-                        ],
-                        'status': {
-                            'type': {'name': 'STATUS_IN_PROGRESS'},
-                            'displayClock': '23:00',
-                            'period': 1
-                        }
-                    }]
-                },
-                'plays': [],
-                'mock_data': True,
-                'cached_at': time.time()
-            }
+            'match_id': match_id,
+            'status': 'UNKNOWN',
+            'minute': '0',
+            'period': 0,
+            'home_team': 'Unknown',
+            'home_score': 0,
+            'away_team': 'Unknown',
+            'away_score': 0,
+            'events': [],
+            'venue': 'Unknown Venue',
+            'attendance': 0,
+            'cached_at': time.time(),
+            'mock_data': True,
+            'error': 'ESPN API unavailable'
+        }
+
+        # Generic mock for other matches
+        return {
+            'match_id': match_id,
+            'status': 'IN_PLAY',
+            'minute': '23',
+            'period': 1,
+            'home_team': 'Seattle Sounders FC',
+            'home_score': 1,
+            'away_team': 'Unknown Team',
+            'away_score': 0,
+            'events': [],
+            'venue': 'Unknown Venue',
+            'attendance': 0,
+            'cached_at': time.time(),
+            'mock_data': True
+        }

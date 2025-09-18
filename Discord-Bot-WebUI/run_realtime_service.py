@@ -53,7 +53,8 @@ class RealtimeServiceManager:
         def signal_handler(signum, frame):
             if not self.is_shutting_down:
                 self.is_shutting_down = True
-                logger.info(f"Received signal {signum}, initiating graceful shutdown...")
+                # Use logging.getLogger to get the logger in the signal handler scope
+                logging.getLogger("realtime_service").info(f"Received signal {signum}, initiating graceful shutdown...")
                 asyncio.create_task(self.shutdown())
 
         # Register signal handlers

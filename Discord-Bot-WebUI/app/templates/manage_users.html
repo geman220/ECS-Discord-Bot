@@ -2,15 +2,36 @@
 
 {% block extra_head %}
 <style>
-/* Simple styling for role selection */
+/* Role selection styling */
 #editRoles {
     min-height: 120px;
 }
 
-/* Highlight selected options */
 #editRoles option:checked {
     background-color: #0d6efd !important;
     color: white !important;
+}
+
+/* User name display */
+.user-display-name {
+    font-weight: 600;
+    color: var(--bs-body-color);
+    margin-bottom: 0.25rem;
+}
+
+.user-username {
+    font-size: 0.875rem;
+    color: var(--bs-secondary);
+}
+
+/* Ensure mobile action buttons in table cards are properly sized and visible */
+@media (max-width: 991.98px) {
+    /* Make action buttons in mobile table cards more visible */
+    .table-responsive .btn-sm {
+        font-size: 0.7rem;
+        padding: 0.35rem 0.6rem;
+        margin: 0.1rem;
+    }
 }
 </style>
 {% endblock %}
@@ -45,28 +66,28 @@
                 </div>
                 <div class="collapse show" id="filterCollapse">
                     <div class="card-body">
-                        <form method="get" action="{{ url_for('user_management.manage_users') }}" class="row g-3" id="filterForm">
-                            <div class="col-md-3">
+                        <form method="get" action="{{ url_for('user_management.manage_users') }}" class="row g-3 filter-form-row" id="filterForm">
+                            <div class="col-12 col-sm-6 col-lg-3 filter-form-col">
                                 {{ filter_form.search.label(class="form-label") }}
-                                {{ filter_form.search(class="form-control", placeholder="Search by username or email", id="searchInput") }}
+                                {{ filter_form.search(class="form-control", placeholder="Search by name, username or email", id="searchInput") }}
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-12 col-sm-6 col-lg-2 filter-form-col">
                                 {{ filter_form.role.label(class="form-label") }}
                                 {{ filter_form.role(class="form-select", id="roleFilter") }}
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-12 col-sm-6 col-lg-2 filter-form-col">
                                 {{ filter_form.approved.label(class="form-label") }}
                                 {{ filter_form.approved(class="form-select", id="approvedFilter") }}
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-12 col-sm-6 col-lg-2 filter-form-col">
                                 {{ filter_form.league.label(class="form-label") }}
                                 {{ filter_form.league(class="form-select", id="leagueFilter") }}
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-12 col-sm-6 col-lg-2 filter-form-col">
                                 {{ filter_form.active.label(class="form-label") }}
                                 {{ filter_form.active(class="form-select", id="activeFilter") }}
                             </div>
-                            <div class="col-md-1 d-flex align-items-end">
+                            <div class="col-12 col-sm-6 col-lg-1 d-flex align-items-end filter-form-col">
                                 <span class="text-muted small">Real-time filtering</span>
                             </div>
                         </form>
@@ -79,25 +100,25 @@
     <!-- Actions Row -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <a href="{{ url_for('user_management.create_user') }}" class="btn btn-primary me-2">
+            <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                <div class="d-flex flex-column flex-sm-row flex-wrap gap-2 actions-row">
+                    <a href="{{ url_for('user_management.create_user') }}" class="btn btn-primary">
                         <i class="ti ti-user-plus me-1"></i> Create New User
                     </a>
-                    <form method="POST" action="{{ url_for('user_management.update_players') }}" class="d-inline me-2">
+                    <form method="POST" action="{{ url_for('user_management.update_players') }}" class="d-flex">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-success">
+                        <button type="submit" class="btn btn-success w-100">
                             <i class="ti ti-refresh me-1"></i> Sync Players from WooCommerce
                         </button>
                     </form>
-                    
-                    <button type="button" class="btn btn-outline-info me-2" onclick="checkActiveSyncTasks()">
+
+                    <button type="button" class="btn btn-outline-info" onclick="checkActiveSyncTasks()">
                         <i class="ti ti-history me-1"></i> View Active Sync Tasks
                     </button>
-                    
+
                     <!-- Export Player Profiles Dropdown -->
-                    <div class="dropdown d-inline me-2">
-                        <button class="btn btn-info dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <div class="dropdown d-flex">
+                        <button class="btn btn-info dropdown-toggle w-100" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="ti ti-download me-1"></i> Export Player Profiles
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="exportDropdown">
@@ -123,14 +144,14 @@
                             {% endfor %}
                         </ul>
                     </div>
-                    
+
                     <!-- Reset Profile Compliance Button -->
                     <button type="button" class="btn btn-warning" id="resetComplianceBtn">
                         <i class="ti ti-refresh-alert me-1"></i> Reset Profile Compliance
                     </button>
                 </div>
                 <div class="d-flex align-items-center">
-                    <span class="text-muted me-2">Total: {{ pagination.total }} users</span>
+                    <span class="text-muted">Total: {{ pagination.total }} users</span>
                 </div>
             </div>
         </div>
@@ -139,123 +160,19 @@
     <!-- Users Table Card -->
     <div class="row">
         <div class="col-12">
-            <!-- Inline style fix for dropdown menus and table overflow -->
-            <style>
-                /* Fix for table overflow while maintaining dropdown functionality */
-                .table-responsive {
-                    overflow-x: auto;
-                    overflow-y: visible;
-                }
-                
-                .card {
-                    overflow: visible;
-                }
-                
-                /* Ensure table fits within container */
-                .table {
-                    min-width: 100%;
-                    table-layout: auto;
-                    word-wrap: break-word;
-                }
-                
-                /* Make table cells responsive */
-                .table th, .table td {
-                    padding: 0.75rem 0.5rem;
-                    vertical-align: top;
-                }
-                
-                /* Username column */
-                .table th:nth-child(1), .table td:nth-child(1) {
-                    width: 20%;
-                    min-width: 150px;
-                }
-                
-                /* Roles column */
-                .table th:nth-child(2), .table td:nth-child(2) {
-                    width: 20%;
-                    min-width: 140px;
-                }
-                
-                /* Teams column */
-                .table th:nth-child(3), .table td:nth-child(3) {
-                    width: 25%;
-                    min-width: 180px;
-                }
-                
-                /* Leagues column */
-                .table th:nth-child(4), .table td:nth-child(4) {
-                    width: 20%;
-                    min-width: 140px;
-                }
-                
-                /* Status column */
-                .table th:nth-child(5), .table td:nth-child(5) {
-                    width: 10%;
-                    min-width: 100px;
-                }
-                
-                /* Actions column */
-                .table th:last-child, .table td:last-child {
-                    width: 5%;
-                    min-width: 80px;
-                    text-align: right;
-                }
-                
-                /* Dropdown menu fixes */
-                .dropdown-menu {
-                    z-index: 9999 !important;
-                    position: absolute !important;
-                }
-                
-                table td {
-                    position: relative !important;
-                }
-                
-                table td:last-child .dropdown-menu {
-                    right: 0 !important;
-                    left: auto !important;
-                    transform: translateX(0) !important;
-                }
-                
-                /* Mobile responsive adjustments */
-                @media (max-width: 768px) {
-                    .table-responsive {
-                        overflow-x: auto;
-                    }
-                    
-                    .table th, .table td {
-                        font-size: 0.875rem;
-                        padding: 0.5rem 0.25rem;
-                    }
-                    
-                    /* Reduce column minimums on mobile */
-                    .table th:nth-child(1), .table td:nth-child(1) { min-width: 120px; }
-                    .table th:nth-child(2), .table td:nth-child(2) { min-width: 100px; }
-                    .table th:nth-child(3), .table td:nth-child(3) { min-width: 140px; }
-                    .table th:nth-child(4), .table td:nth-child(4) { min-width: 100px; }
-                    .table th:nth-child(5), .table td:nth-child(5) { min-width: 80px; }
-                    .table th:last-child, .table td:last-child { min-width: 60px; }
-                    
-                    /* Stack badges on mobile */
-                    .badge {
-                        font-size: 0.7rem;
-                        margin-bottom: 0.2rem;
-                        display: block;
-                    }
-                }
-            </style>
-        
             <div class="card shadow-sm">
                 <div class="card-header border-bottom py-3">
                     <h5 class="card-title mb-0">
                         <i class="ti ti-list me-2"></i>User List
                     </h5>
                 </div>
-                <div class="table-responsive overflow-visible">
-                    <table class="table table-hover mb-0 ecs-table ecs-table-hover">
+                <!-- Table View (mobile.css will convert to cards automatically) -->
+                <div>
+                    <div class="table-responsive overflow-visible">
+                        <table class="table table-hover mb-0 ecs-table ecs-table-hover user-management-table">
                         <thead class="table-light">
                             <tr>
-                                <th>Username</th>
+                                <th>Name</th>
                                 <th>Roles</th>
                                 <th>Teams</th>
                                 <th>Leagues</th>
@@ -266,7 +183,10 @@
                         <tbody>
                             {% for user in users %}
                             <tr>
-                                <td class="fw-semibold">{{ user.username }}</td>
+                                <td>
+                                    <div class="user-display-name">{{ user.actual_name }}</div>
+                                    <small class="user-username">@{{ user.username }}</small>
+                                </td>
                                 <td>
                                     {% for role in user.roles %}
                                     <span class="badge bg-label-primary">{{ role }}</span>
@@ -303,8 +223,9 @@
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td class="text-end position-relative" style="overflow: visible;">
-                                    <div class="dropdown">
+                                <td class="text-end position-relative" style="overflow: visible;" data-label="Actions">
+                                    <!-- Desktop Dropdown -->
+                                    <div class="dropdown d-none d-lg-block">
                                         <button class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow ecs-btn ecs-btn-sm ecs-btn-icon" type="button" id="userActions{{ user.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class="ti ti-dots-vertical"></i>
                                         </button>
@@ -336,12 +257,28 @@
                                             </li>
                                         </ul>
                                     </div>
+                                    <!-- Mobile Action Buttons (only shown on mobile via CSS) -->
+                                    <div class="d-lg-none">
+                                        <button class="btn btn-primary btn-sm edit-user-btn me-1 mb-1" data-user-id="{{ user.id }}">
+                                            <i class="ti ti-edit me-1"></i>Edit
+                                        </button>
+                                        {% if not user.is_approved %}
+                                        <button class="btn btn-success btn-sm approve-user-btn me-1 mb-1" data-user-id="{{ user.id }}">
+                                            <i class="ti ti-check me-1"></i>Approve
+                                        </button>
+                                        {% endif %}
+                                        <button class="btn btn-outline-danger btn-sm remove-user-btn mb-1" data-user-id="{{ user.id }}">
+                                            <i class="ti ti-user-off me-1"></i>Remove
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+            </div>
+
 
                 {% if pagination.pages > 1 %}
                 <div class="card-footer py-3" id="paginationContainer">
@@ -429,7 +366,7 @@
 
     <!-- EDIT USER MODAL -->
     <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
             <div class="modal-content">
                 <form method="POST" action="" id="editUserForm">
                     <div class="modal-header bg-light">

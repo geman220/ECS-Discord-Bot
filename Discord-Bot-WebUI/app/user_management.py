@@ -109,13 +109,21 @@ def manage_users():
         joinedload(User.player).joinedload(Player.other_leagues),
     )
 
+    # Track if we already joined Player to avoid duplicate joins
+    player_joined = False
+
     try:
         if form.validate():
             if form.search.data:
                 search_term = f"%{form.search.data}%"
                 # Create hash for email search
                 email_hash = create_hash(form.search.data)
+                # Search by player name, username, or email
+                if not player_joined:
+                    query = query.outerjoin(Player)
+                    player_joined = True
                 query = query.filter(
+                    (Player.name.ilike(search_term)) |
                     (User.username.ilike(search_term)) |
                     (User.email_hash == email_hash) if email_hash else False
                 )
@@ -129,14 +137,20 @@ def manage_users():
 
             if form.league.data:
                 if form.league.data == 'none':
-                    query = query.outerjoin(Player).filter(
-                        (Player.primary_league_id.is_(None)) & 
+                    if not player_joined:
+                        query = query.outerjoin(Player)
+                        player_joined = True
+                    query = query.filter(
+                        (Player.primary_league_id.is_(None)) &
                         (~Player.other_leagues.any())
                     )
                 else:
                     try:
                         league_id = int(form.league.data)
-                        query = query.join(Player).filter(
+                        if not player_joined:
+                            query = query.join(Player)
+                            player_joined = True
+                        query = query.filter(
                             (Player.primary_league_id == league_id) |
                             (Player.other_leagues.any(League.id == league_id))
                         )
@@ -147,7 +161,10 @@ def manage_users():
 
             if form.active.data:
                 is_current_player = form.active.data.lower() == 'true'
-                query = query.join(Player).filter(Player.is_current_player == is_current_player)
+                if not player_joined:
+                    query = query.join(Player)
+                    player_joined = True
+                query = query.filter(Player.is_current_player == is_current_player)
 
         # Pagination logic
         if is_ajax:
@@ -220,6 +237,7 @@ def manage_users():
             user_data = {
                 'id': user.id,
                 'username': user.username,
+                'actual_name': user.player.name if user.player else user.username,  # Display actual name if available
                 'email': user.email,
                 'roles': [role.name for role in user.roles],
                 'team': primary_team_name,
@@ -289,7 +307,8 @@ def manage_users():
                 
                 # Build actions dropdown
                 actions_html = f'''
-                <div class="dropdown">
+                <!-- Desktop Dropdown -->
+                <div class="dropdown d-none d-lg-block">
                     <button class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow" type="button" id="userActions{user["id"]}" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="ti ti-dots-vertical"></i>
                     </button>
@@ -321,11 +340,31 @@ def manage_users():
                             </a>
                         </li>
                     </ul>
+                </div>
+                <!-- Mobile Action Buttons (only shown on mobile via CSS) -->
+                <div class="d-lg-none">
+                    <button class="btn btn-primary btn-sm edit-user-btn me-1 mb-1" data-user-id="{user["id"]}">
+                        <i class="ti ti-edit me-1"></i>Edit
+                    </button>'''
+
+                if not user['is_approved']:
+                    actions_html += f'''
+                    <button class="btn btn-success btn-sm approve-user-btn me-1 mb-1" data-user-id="{user["id"]}">
+                        <i class="ti ti-check me-1"></i>Approve
+                    </button>'''
+
+                actions_html += f'''
+                    <button class="btn btn-outline-danger btn-sm remove-user-btn mb-1" data-user-id="{user["id"]}">
+                        <i class="ti ti-user-off me-1"></i>Remove
+                    </button>
                 </div>'''
                 
                 table_rows_html += f'''
                 <tr>
-                    <td class="fw-semibold">{escape(user["username"])}</td>
+                    <td class="fw-semibold">
+                        <div>{escape(user["actual_name"])}</div>
+                        <small class="text-muted">@{escape(user["username"])}</small>
+                    </td>
                     <td>{roles_html}</td>
                     <td><div class="text-truncate" style="max-width: 200px;">{teams_html}</div></td>
                     <td><div class="text-truncate" style="max-width: 150px;">{leagues_html}</div></td>

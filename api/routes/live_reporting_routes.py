@@ -36,6 +36,7 @@ class LiveEventRequest(BaseModel):
     thread_id: int
     event_type: str
     content: str
+    embed: Optional[Dict[str, Any]] = None
     match_data: Optional[Dict[str, Any]] = None
 
 
@@ -231,6 +232,7 @@ async def send_live_event(request: LiveEventRequest, bot: commands.Bot = Depends
     Send a live match event to Discord thread.
 
     Called by real-time service for goals, cards, etc.
+    Enhanced with professional embed formatting and ESPN integration.
     """
     try:
         # Get the thread
@@ -238,36 +240,70 @@ async def send_live_event(request: LiveEventRequest, bot: commands.Bot = Depends
         if not thread:
             raise HTTPException(status_code=404, detail=f"Thread {request.thread_id} not found")
 
-        # Create rich embed for the event with AI-enhanced titles
-        embed_config = get_event_embed_config(request.event_type, request.content, request.match_data)
-
-        if embed_config['use_embed']:
-            # Use AI-generated content as description, keep smart title logic
-            embed_title = embed_config['title']
-            embed_description = request.content  # This is the AI-generated commentary
+        # Use enhanced embed if provided by WebUI, otherwise fallback to old system
+        if request.embed:
+            # Use the enhanced embed format from WebUI with ESPN data
+            embed_data = request.embed
 
             embed = discord.Embed(
-                title=embed_title,
-                description=embed_description,
-                color=embed_config['color'],
-                timestamp=datetime.utcnow()
+                title=embed_data.get('title', '⚽ Live Match Event'),
+                description=embed_data.get('description', request.content),
+                color=embed_data.get('color', 0x005F4F),
+                timestamp=datetime.fromisoformat(embed_data.get('timestamp', datetime.utcnow().isoformat()))
             )
 
-            # Add fields if provided
-            for field in embed_config.get('fields', []):
+            # Add enhanced fields with match context
+            for field in embed_data.get('fields', []):
                 embed.add_field(
                     name=field['name'],
                     value=field['value'],
                     inline=field.get('inline', False)
                 )
 
-            # Add footer
-            embed.set_footer(text="ECS Live Reporting", icon_url="https://cdn.discordapp.com/attachments/123/456/sounders_logo.png")
+            # Add author if provided (team vs team)
+            if 'author' in embed_data:
+                embed.set_author(
+                    name=embed_data['author']['name'],
+                    icon_url=embed_data['author'].get('icon_url')
+                )
+
+            # Add thumbnail if provided (player image)
+            if 'thumbnail' in embed_data:
+                embed.set_thumbnail(url=embed_data['thumbnail']['url'])
+
+            # Add footer with ECS branding
+            footer_data = embed_data.get('footer', {})
+            embed.set_footer(
+                text=footer_data.get('text', 'ECS Live Reporting'),
+                icon_url=footer_data.get('icon_url', 'https://www.soundersfc.com/sites/seattle/files/imagecache/620x350/image_nodes/2013/03/Sounders_shield_full_color.png')
+            )
 
             message = await thread.send(embed=embed)
+
         else:
-            # Fallback to plain message for simple events
-            message = await thread.send(request.content)
+            # Fallback to legacy embed system
+            embed_config = get_event_embed_config(request.event_type, request.content, request.match_data)
+
+            if embed_config['use_embed']:
+                embed = discord.Embed(
+                    title=embed_config['title'],
+                    description=request.content,
+                    color=embed_config['color'],
+                    timestamp=datetime.utcnow()
+                )
+
+                # Add legacy fields
+                for field in embed_config.get('fields', []):
+                    embed.add_field(
+                        name=field['name'],
+                        value=field['value'],
+                        inline=field.get('inline', False)
+                    )
+
+                embed.set_footer(text="ECS Live Reporting")
+                message = await thread.send(embed=embed)
+            else:
+                message = await thread.send(request.content)
 
         logger.info(f"Sent {request.event_type} event to thread {request.thread_id}")
 

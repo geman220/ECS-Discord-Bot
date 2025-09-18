@@ -134,7 +134,7 @@ class SyncAIClient:
             # Fallback to simple message
             return self._generate_simple_fallback(event_context)
 
-    def _get_prompt_config(self, event_type: str, event_context: Dict[str, Any]) -> Optional[AIPromptConfig]:
+    def _get_prompt_config(self, event_type: str, event_context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Get appropriate prompt configuration from database based on event type and context."""
         try:
             # Try to use Flask app context if available
@@ -149,8 +149,19 @@ class SyncAIClient:
 
             with task_session() as session:
                 # Determine team involvement for filtering
-                home_team = event_context.get('home_team', {}).get('displayName', '')
-                away_team = event_context.get('away_team', {}).get('displayName', '')
+                # Handle both string and dict formats
+                home_team_data = event_context.get('home_team', '')
+                away_team_data = event_context.get('away_team', '')
+
+                if isinstance(home_team_data, dict):
+                    home_team = home_team_data.get('displayName', '')
+                else:
+                    home_team = str(home_team_data)
+
+                if isinstance(away_team_data, dict):
+                    away_team = away_team_data.get('displayName', '')
+                else:
+                    away_team = str(away_team_data)
                 is_sounders_match = 'Seattle' in home_team or 'Sounders' in home_team or 'Seattle' in away_team or 'Sounders' in away_team
 
                 # Check if this is a rivalry match
@@ -174,36 +185,51 @@ class SyncAIClient:
                     AIPromptConfig.is_active == True
                 )
 
+                prompt_config = None
+
                 # Priority 1: Check for rivalry-specific prompts
                 if rivalry_teams and event_type == 'goal':
                     rivalry_config = query.filter(
                         AIPromptConfig.prompt_type == 'rivalry'
                     ).first()
                     if rivalry_config:
-                        return rivalry_config
+                        prompt_config = rivalry_config
 
                 # Priority 2: Check for event-specific prompts
-                event_specific_configs = {
-                    'goal': 'sounders_goal' if is_sounders_event else 'opponent_goal',
-                    'yellow_card': 'card' if is_sounders_event else 'opponent_card',
-                    'red_card': 'sounders_red_card' if is_sounders_event else 'opponent_red_card',
-                    'substitution': 'substitution'
-                }
+                if not prompt_config:
+                    event_specific_configs = {
+                        'goal': 'sounders_goal' if is_sounders_event else 'opponent_goal',
+                        'yellow_card': 'card' if is_sounders_event else 'opponent_card',
+                        'red_card': 'sounders_red_card' if is_sounders_event else 'opponent_red_card',
+                        'substitution': 'substitution'
+                    }
 
-                if event_type in event_specific_configs:
-                    specific_type = event_specific_configs[event_type]
-                    specific_config = query.filter(
-                        AIPromptConfig.prompt_type == specific_type
-                    ).first()
-                    if specific_config:
-                        return specific_config
+                    if event_type in event_specific_configs:
+                        specific_type = event_specific_configs[event_type]
+                        specific_config = query.filter(
+                            AIPromptConfig.prompt_type == specific_type
+                        ).first()
+                        if specific_config:
+                            prompt_config = specific_config
 
                 # Priority 3: Fall back to general match commentary
-                general_config = query.filter(
-                    AIPromptConfig.prompt_type == 'match_commentary'
-                ).first()
+                if not prompt_config:
+                    general_config = query.filter(
+                        AIPromptConfig.prompt_type == 'match_commentary'
+                    ).first()
+                    prompt_config = general_config
 
-                return general_config
+                # Extract data while session is active to avoid detached instance errors
+                if prompt_config:
+                    return {
+                        'system_prompt': prompt_config.system_prompt,
+                        'user_prompt_template': prompt_config.user_prompt_template,
+                        'max_tokens': prompt_config.max_tokens,
+                        'temperature': prompt_config.temperature,
+                        'prompt_type': prompt_config.prompt_type
+                    }
+
+                return None
 
         except Exception as e:
             logger.error(f"Error retrieving prompt config for {event_type}: {e}")
@@ -229,10 +255,22 @@ class SyncAIClient:
                 logger.warning(f"No prompt configuration found for {event_type}, using fallback")
                 return self._generate_simple_fallback(event_context)
 
-            # Extract event details
+            # Extract event details - handle both string and dict formats
             event_type = event_context.get('event_type', 'unknown')
-            home_team = event_context.get('home_team', {}).get('displayName', 'Home Team')
-            away_team = event_context.get('away_team', {}).get('displayName', 'Away Team')
+
+            # Handle home_team format
+            home_team_data = event_context.get('home_team', 'Home Team')
+            if isinstance(home_team_data, dict):
+                home_team = home_team_data.get('displayName', 'Home Team')
+            else:
+                home_team = str(home_team_data)
+
+            # Handle away_team format
+            away_team_data = event_context.get('away_team', 'Away Team')
+            if isinstance(away_team_data, dict):
+                away_team = away_team_data.get('displayName', 'Away Team')
+            else:
+                away_team = str(away_team_data)
             scoring_team = event_context.get('scoring_team', '')
             player = event_context.get('player', 'Unknown Player')
             minute = event_context.get('minute', 0)
@@ -270,25 +308,102 @@ class SyncAIClient:
             history_context = ""  # Already included in match_context
 
             # Use database-configured prompt system instead of hardcoded prompts
-            system_prompt = prompt_config.system_prompt or "You are a passionate Seattle Sounders supporter providing biased live commentary. Always favor the Sounders and downplay opponents."
+            system_prompt = prompt_config.get('system_prompt') or "You are a passionate Seattle Sounders supporter providing biased live commentary. Always favor the Sounders and downplay opponents."
 
             # Build user prompt from template if available
-            if prompt_config.user_prompt_template:
-                user_prompt = prompt_config.user_prompt_template.format(
-                    player=player,
-                    minute=minute,
-                    event_type=event_type,
-                    sounders_team=sounders_team if sounders_is_home or sounders_is_away else "Seattle Sounders",
-                    opponent_team=opponent_team if sounders_is_home or sounders_is_away else "opponent",
-                    home_team=home_team,
-                    away_team=away_team,
-                    scoring_team=scoring_team,
-                    match_context=match_context,
-                    history_context=history_context,
-                    is_sounders_event=is_sounders_event,
-                    sounders_score=sounders_score if sounders_is_home or sounders_is_away else 0,
-                    opponent_score=opponent_score if sounders_is_home or sounders_is_away else 0
-                )
+            if prompt_config.get('user_prompt_template'):
+                # Format score string
+                score_string = f"{sounders_team if sounders_is_home or sounders_is_away else 'Seattle Sounders'} {sounders_score if sounders_is_home or sounders_is_away else home_score} - {opponent_score if sounders_is_home or sounders_is_away else away_score} {opponent_team if sounders_is_home or sounders_is_away else 'opponent'}"
+
+                # Build template variables dictionary
+                template_vars = {
+                    # Standard variables
+                    'player': player,
+                    'minute': minute,
+                    'event_type': event_type,
+                    'sounders_team': sounders_team if sounders_is_home or sounders_is_away else "Seattle Sounders",
+                    'opponent_team': opponent_team if sounders_is_home or sounders_is_away else "opponent",
+                    'home_team': home_team,
+                    'away_team': away_team,
+                    'scoring_team': scoring_team,
+                    'match_context': match_context,
+                    # Additional common variables that might be in templates
+                    'team': event_context.get('team', opponent_team if sounders_is_home or sounders_is_away else "opponent"),
+                    'description': event_context.get('description', f"{event_type} event in minute {minute}"),
+                    # Score variables from event context
+                    'home_score': event_context.get('home_score', home_score),
+                    'away_score': event_context.get('away_score', away_score),
+                    'history_context': history_context,
+                    'is_sounders_event': is_sounders_event,
+                    'sounders_score': sounders_score if sounders_is_home or sounders_is_away else 0,
+                    'opponent_score': opponent_score if sounders_is_home or sounders_is_away else 0,
+                    # Database template variables
+                    'athlete_name': player,
+                    'clock': f"{minute}'",
+                    'score': score_string,
+                    # Event-specific variables
+                    'team_name': event_context.get('team', ''),
+                    'events': event_context.get('description', ''),
+                }
+
+                # Add goal-specific context
+                if event_type == 'goal':
+                    # Determine match situation after this goal
+                    if is_sounders_event:
+                        new_sounders = sounders_score + 1 if sounders_is_home or sounders_is_away else 1
+                        new_opponent = opponent_score if sounders_is_home or sounders_is_away else home_score
+                    else:
+                        new_sounders = sounders_score if sounders_is_home or sounders_is_away else away_score
+                        new_opponent = opponent_score + 1 if sounders_is_home or sounders_is_away else home_score + 1
+
+                    if new_sounders > new_opponent:
+                        match_situation = "leading" if is_sounders_event else "behind"
+                    elif new_sounders < new_opponent:
+                        match_situation = "behind" if is_sounders_event else "leading"
+                    else:
+                        match_situation = "tied"
+
+                    template_vars['match_situation'] = match_situation
+
+                # Add substitution-specific variables
+                elif event_type == 'substitution':
+                    template_vars.update({
+                        'player_on': event_context.get('player_on', event_context.get('player', '')),
+                        'player_off': event_context.get('player_off', ''),
+                        'player_in': event_context.get('player_on', event_context.get('player', '')),
+                        'player_out': event_context.get('player_off', '')
+                    })
+
+                # Add card-specific variables
+                elif event_type in ['yellow_card', 'red_card']:
+                    template_vars.update({
+                        'reason': event_context.get('reason', 'Foul'),
+                        'card_type': event_type.replace('_', ' ').title()
+                    })
+
+                # Add halftime/fulltime specific variables with match context
+                elif event_type in ['halftime', 'half_time', 'fulltime', 'full_time']:
+                    # Determine match situation for context
+                    sounders_score = sounders_score if sounders_is_home or sounders_is_away else away_score
+                    opponent_score = opponent_score if sounders_is_home or sounders_is_away else home_score
+
+                    if sounders_score > opponent_score:
+                        match_situation = "leading"
+                    elif sounders_score < opponent_score:
+                        match_situation = "behind"
+                    else:
+                        match_situation = "tied"
+
+                    template_vars.update({
+                        'home_score': home_score,
+                        'away_score': away_score,
+                        'sounders_score': sounders_score,
+                        'opponent_score': opponent_score,
+                        'match_situation': match_situation,
+                        'competition': event_context.get('competition', 'MLS')
+                    })
+
+                user_prompt = prompt_config.get('user_prompt_template').format(**template_vars)
             else:
                 # Fallback to simple prompt construction
                 if event_type == 'goal':
@@ -309,6 +424,8 @@ class SyncAIClient:
                 else:
                     user_prompt = f"{event_type} in minute {minute}. Write brief Sounders-biased commentary."
 
+# Debug logging removed for production
+
             # Call OpenAI API with database-configured parameters
             client = openai.OpenAI(api_key=api_key)
 
@@ -318,15 +435,23 @@ class SyncAIClient:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                max_tokens=prompt_config.max_tokens or 50,
-                temperature=prompt_config.temperature or 0.8
+                max_tokens=prompt_config.get('max_tokens') or 50,
+                temperature=prompt_config.get('temperature') or 0.8
             )
 
             commentary = response.choices[0].message.content.strip()
 
-            # Clean up and validate
-            if len(commentary) > 200:
-                commentary = commentary[:197] + "..."
+            # Post-processing: Remove any hashtags that slipped through
+            import re
+            # Remove hashtags (# followed by word characters)
+            commentary = re.sub(r'#\w+', '', commentary)
+            # Clean up extra spaces
+            commentary = re.sub(r'\s+', ' ', commentary).strip()
+
+            # Clean up and validate - respect Discord embed limits
+            # Discord embed description limit is 4096 characters
+            if len(commentary) > 4000:
+                commentary = commentary[:3997] + "..."
 
             logger.info(f"Generated dynamic commentary for {event_type}: {commentary}")
             return commentary
@@ -343,8 +468,14 @@ class SyncAIClient:
             # Current score context
             home_score = event_context.get('home_score', 0)
             away_score = event_context.get('away_score', 0)
-            home_team = event_context.get('home_team', {}).get('displayName', 'Home')
-            away_team = event_context.get('away_team', {}).get('displayName', 'Away')
+            home_team = event_context.get('home_team', 'Home')
+            away_team = event_context.get('away_team', 'Away')
+
+            # Handle cases where team names might be nested in objects
+            if isinstance(home_team, dict):
+                home_team = home_team.get('displayName', 'Home')
+            if isinstance(away_team, dict):
+                away_team = away_team.get('displayName', 'Away')
 
             context_parts.append(f"Current Score: {home_team} {home_score} - {away_score} {away_team}")
 

@@ -19,7 +19,7 @@ from typing import Dict, Any, List, Optional, Set
 from datetime import datetime, timedelta
 import json
 
-from app.models import LiveReportingSession, Match
+from app.models import LiveReportingSession, MLSMatch
 from app.services.redis_connection_service import get_redis_service
 from app.utils.espn_api_client import ESPNAPIClient
 from app.utils.discord_request_handler import send_to_discord_bot
@@ -59,7 +59,7 @@ class RealtimeReportingService:
         logger.info("Starting real-time live reporting service")
 
         # Set status in Redis to coordinate with Celery tasks
-        self.redis_service.setex('realtime_service:status', 300, 'running')
+        self.redis_service.execute_command('setex', 'realtime_service:status', 300, 'running')
 
         try:
             await self._main_loop()
@@ -67,8 +67,8 @@ class RealtimeReportingService:
             logger.error(f"Fatal error in real-time service: {e}")
         finally:
             self.is_running = False
-            # Clear status in Redis
-            self.redis_service.delete('realtime_service:status')
+            # Clear status in Redis using execute_command
+            self.redis_service.execute_command('del', 'realtime_service:status')
 
     async def stop_service(self):
         """Stop the real-time reporting service."""
@@ -84,8 +84,8 @@ class RealtimeReportingService:
                 # Maintain heartbeat in Redis every 60 seconds
                 now = datetime.utcnow()
                 if (now - last_heartbeat).seconds >= 60:
-                    self.redis_service.setex('realtime_service:status', 300, 'running')
-                    self.redis_service.setex('realtime_service:heartbeat', 120, now.isoformat())
+                    self.redis_service.execute_command('setex', 'realtime_service:status', 300, 'running')
+                    self.redis_service.execute_command('setex', 'realtime_service:heartbeat', 120, now.isoformat())
                     last_heartbeat = now
 
                 # Load active sessions from database
@@ -123,19 +123,34 @@ class RealtimeReportingService:
                         'match_id': live_session.match_id,
                         'thread_id': live_session.thread_id,
                         'competition': live_session.competition,
-                        'created_at': live_session.created_at,
-                        'last_update_at': live_session.last_update_at,
-                        'update_count': live_session.update_count,
-                        'error_count': live_session.error_count
+                        'started_at': live_session.started_at,
+                        'last_update': live_session.last_update,
+                        'update_count': getattr(live_session, 'update_count', 0),
+                        'error_count': getattr(live_session, 'error_count', 0)
                     }
 
-                    # Get match details
-                    match = session.query(Match).filter_by(id=live_session.match_id).first()
+                    # Get match details - handle both match_id (ESPN ID) and id (database primary key)
+                    match = session.query(MLSMatch).filter_by(match_id=live_session.match_id).first()
+                    if not match:
+                        # Try looking up by database ID if match_id didn't work
+                        try:
+                            match = session.query(MLSMatch).filter_by(id=int(live_session.match_id)).first()
+                        except (ValueError, TypeError):
+                            pass
+
                     if match:
+                        # For MLSMatch, we have opponent and is_home_game
+                        home_team = "LAFC" if match.is_home_game else match.opponent
+                        away_team = match.opponent if match.is_home_game else "LAFC"
+
                         session_data.update({
-                            'home_team': match.home_team.name if match.home_team else 'TBD',
-                            'away_team': match.away_team.name if match.away_team else 'TBD',
-                            'match_date': match.date,
+                            'home_team': home_team,
+                            'away_team': away_team,
+                            'match_date': match.date_time,
+                            'opponent': match.opponent,
+                            'is_home_game': match.is_home_game,
+                            'venue': match.venue or 'TBD',
+                            'competition': match.competition or 'MLS',
                             'espn_match_id': match.espn_match_id
                         })
 
@@ -182,8 +197,9 @@ class RealtimeReportingService:
                 logger.warning(f"No ESPN match ID for session {session_id}")
                 return
 
-            # Get match data from ESPN
-            match_data = await self.espn_client.get_match_data(espn_match_id)
+            # Get match data from ESPN with correct competition
+            competition = session_data.get('competition', 'usa.1')  # Default to MLS if not specified
+            match_data = self.espn_client.get_match_data(espn_match_id, competition)
             if not match_data:
                 await self._handle_session_error(session_id, "Failed to fetch match data")
                 return
@@ -208,7 +224,14 @@ class RealtimeReportingService:
 
     def _is_match_live(self, match_data: Dict[str, Any]) -> bool:
         """Check if match is currently live."""
-        status = match_data.get('status', {}).get('type', {}).get('name', '')
+        # Handle different data structures
+        if isinstance(match_data.get('status'), str):
+            # Our mock data format
+            status = match_data.get('status', '')
+        else:
+            # ESPN API format
+            status = match_data.get('status', {}).get('type', {}).get('name', '')
+
         return status.upper() in ['IN_PLAY', 'HALFTIME', 'SECOND_HALF']
 
     async def _extract_new_events(self, session_id: int, match_data: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -236,7 +259,7 @@ class RealtimeReportingService:
             # Also check for score changes
             current_score = self._get_current_score(match_data)
             last_score_key = f"last_score_{session_id}"
-            last_score = await self.redis_service.get(last_score_key)
+            last_score = self.redis_service.execute_command('get', last_score_key)
 
             if last_score != current_score:
                 # Score changed, add score update event
@@ -247,7 +270,7 @@ class RealtimeReportingService:
                         'previous_score': last_score
                     })
 
-                self.redis_service.setex(last_score_key, 3600, current_score)
+                self.redis_service.execute_command('setex', last_score_key, 3600, current_score)
 
         except Exception as e:
             logger.error(f"Error extracting events for session {session_id}: {e}")
@@ -280,7 +303,15 @@ class RealtimeReportingService:
                 if not message_content:
                     continue
 
-                # Send to Discord bot API
+                # Send to Discord bot API - sanitize event data for JSON serialization
+                clean_event = {
+                    'type': str(event.get('type', 'unknown')),
+                    'player': str(event.get('player', 'Unknown')),
+                    'minute': str(event.get('minute', '0')),
+                    'team': str(event.get('team', 'Unknown')),
+                    'description': str(event.get('description', ''))
+                }
+
                 request_data = {
                     'thread_id': thread_id,
                     'event_type': event.get('type', 'unknown'),
@@ -288,11 +319,11 @@ class RealtimeReportingService:
                     'match_data': {
                         'session_id': session_id,
                         'match_id': session_data.get('match_id'),
-                        'event': event
+                        'event': clean_event
                     }
                 }
 
-                response = await send_to_discord_bot('/api/live-reporting/event', request_data)
+                response = send_to_discord_bot('/api/live-reporting/event', request_data)
 
                 if response and response.get('success'):
                     logger.debug(f"Sent {event.get('type')} event to Discord for session {session_id}")
@@ -309,22 +340,37 @@ class RealtimeReportingService:
             event_type = event.get('type', '').lower()
             session_id = session_data.get('id')
 
-            # Extract event details
-            player = event.get('participant', {}).get('displayName', 'Unknown Player')
+            # Extract event details (handle both ESPN and mock data formats)
+            if isinstance(event.get('participant'), dict):
+                # ESPN API format
+                player = event.get('participant', {}).get('displayName', 'Unknown Player')
+            else:
+                # Mock data format
+                player = event.get('player', 'Unknown Player')
+
             minute = event.get('minute', 0)
-            team = event.get('team', {}).get('displayName', 'Unknown Team')
+
+            if isinstance(event.get('team'), dict):
+                # ESPN API format
+                team = event.get('team', {}).get('displayName', 'Unknown Team')
+            else:
+                # Mock data format
+                team = event.get('team', 'Unknown Team')
 
             # Get match context
             home_team = session_data.get('home_team', 'Home Team')
             away_team = session_data.get('away_team', 'Away Team')
 
+            # Convert event type to lowercase for AI matching
+            ai_event_type = event_type.lower()
+
             # Use AI for goals, cards, and substitutions
-            if event_type in ['goal', 'yellow_card', 'red_card', 'substitution']:
+            if ai_event_type in ['goal', 'yellow_card', 'red_card', 'substitution']:
                 # Build AI context
                 ai_context = {
                     'home_team': {'displayName': home_team},
                     'away_team': {'displayName': away_team},
-                    'event_type': event_type,
+                    'event_type': ai_event_type,
                     'player': player,
                     'minute': minute,
                     'home_score': session_data.get('home_score', 0),
@@ -332,12 +378,17 @@ class RealtimeReportingService:
                 }
 
                 # Set scoring team for goals
-                if event_type == 'goal':
+                if ai_event_type == 'goal':
                     ai_context['scoring_team'] = team
 
                 # Set team for cards/subs
-                if event_type in ['yellow_card', 'red_card', 'substitution']:
+                if ai_event_type in ['yellow_card', 'red_card', 'substitution']:
                     ai_context['team'] = team
+
+                # Add substitution-specific data
+                if ai_event_type == 'substitution':
+                    ai_context['player_on'] = event.get('player_on', player)
+                    ai_context['player_off'] = event.get('player_off', 'Unknown Player')
 
                 # Get match history for this session
                 match_history = self.match_history.get(session_id, [])
@@ -468,7 +519,7 @@ class RealtimeReportingService:
                 'close_thread': False
             }
 
-            await send_to_discord_bot('/api/live-reporting/final', request_data)
+            send_to_discord_bot('/api/live-reporting/final', request_data)
         except Exception as e:
             logger.error(f"Error sending session end message: {e}")
 

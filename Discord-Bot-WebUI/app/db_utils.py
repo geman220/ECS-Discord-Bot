@@ -56,7 +56,8 @@ def insert_mls_match(
     stats_link: str,
     commentary_link: str,
     venue: str,
-    competition: str
+    competition: str,
+    espn_match_id: str = None
 ) -> MLSMatch:
     """
     Insert a new MLS match into the database.
@@ -72,6 +73,7 @@ def insert_mls_match(
         commentary_link (str): Link to match commentary.
         venue (str): Match venue.
         competition (str): Competition identifier.
+        espn_match_id (str, optional): ESPN match ID for live reporting.
 
     Returns:
         MLSMatch: The newly created MLSMatch object.
@@ -86,6 +88,7 @@ def insert_mls_match(
         commentary_link=commentary_link,
         venue=venue,
         competition=competition,
+        espn_match_id=espn_match_id,
         live_reporting_status='not_started',
         live_reporting_scheduled=False,
         live_reporting_started=False,

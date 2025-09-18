@@ -537,7 +537,10 @@ def schedule_live_reporting_route():
             match.live_reporting_scheduled = True
 
             time_diff = match.date_time - datetime.utcnow()
-            celery.send_task('app.tasks.start_live_reporting', args=[match_id], countdown=time_diff.total_seconds())
+            # Use V2 task with thread_id and competition
+            celery.send_task('app.tasks.tasks_live_reporting_v2.start_live_reporting_v2',
+                           args=[str(match_id), str(match.discord_thread_id), match.competition or 'usa.1'],
+                           countdown=time_diff.total_seconds())
 
             logger.info(f"Live reporting scheduled for match {match_id}")
             return jsonify({'success': True, 'message': 'Live reporting scheduled'})
@@ -565,7 +568,9 @@ def start_live_reporting_route(match_id):
                 logger.warning(f"Live reporting already running for match {match_id}")
                 return jsonify({'success': False, 'error': 'Live reporting already running'}), 400
 
-            task = celery.send_task('app.tasks.start_live_reporting', args=[match_id])
+            # Use V2 task with thread_id and competition
+            task = celery.send_task('app.tasks.tasks_live_reporting_v2.start_live_reporting_v2',
+                                   args=[str(match_id), str(match.discord_thread_id), match.competition or 'usa.1'])
             match.live_reporting_status = 'running'
             match.live_reporting_started = True
             match.live_reporting_task_id = task.id
