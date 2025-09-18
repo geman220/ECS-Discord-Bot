@@ -93,7 +93,7 @@ def update_rsvp_enterprise_from_discord():
                     from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
                     # Verify JWT token is present and valid
                     verify_jwt_in_request()
-                    current_user_id = get_jwt_identity()
+                    current_user_id = int(get_jwt_identity())
                     player = session_db.query(Player).filter_by(user_id=current_user_id).first()
                     if not player:
                         return jsonify({"error": "Player not found"}), 404
@@ -246,7 +246,7 @@ def bulk_update_rsvp_enterprise():
     with managed_session() as session_db:
         try:
             # Get current user and player
-            current_user_id = get_jwt_identity()
+            current_user_id = int(get_jwt_identity())
             player = session_db.query(Player).filter_by(user_id=current_user_id).first()
             if not player:
                 return jsonify({"error": "Player not found"}), 404
@@ -431,7 +431,7 @@ def get_rsvp_status(match_id: int):
     with managed_session() as session_db:
         try:
             # Get current user and player
-            current_user_id = get_jwt_identity()
+            current_user_id = int(get_jwt_identity())
             player = session_db.query(Player).filter_by(user_id=current_user_id).first()
             if not player:
                 return jsonify({"error": "Player not found"}), 404

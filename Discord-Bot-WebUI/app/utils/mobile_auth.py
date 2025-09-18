@@ -112,7 +112,7 @@ def mobile_api_auth_required(require_permissions=None):
                 # 2. Validate JWT Token
                 try:
                     verify_jwt_in_request()
-                    user_id = get_jwt_identity()
+                    user_id = int(get_jwt_identity())
                     g.current_user_id = user_id
                 except Exception as e:
                     logger.warning(f"JWT validation failed for mobile endpoint: {str(e)}")

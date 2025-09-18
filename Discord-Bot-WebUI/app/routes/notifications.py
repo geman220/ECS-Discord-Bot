@@ -18,7 +18,7 @@ csrf.exempt(notifications_bp)
 def register_fcm_token():
     """Register user's FCM token"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         data = request.get_json()
         
         fcm_token = data.get('fcm_token')
@@ -62,7 +62,7 @@ def register_fcm_token():
 def send_test_notification():
     """Send test notification to user (for debugging)"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         # Get user's FCM tokens
         user_tokens = UserFCMToken.query.filter_by(
@@ -184,7 +184,7 @@ def broadcast_notification():
     """Send notification to all users (admin only)"""
     try:
         # Add admin check here
-        current_user = User.query.get(get_jwt_identity())
+        current_user = User.query.get(int(get_jwt_identity()))
         if not current_user.has_role('Global Admin'):  # Using your existing has_role method
             return jsonify({'msg': 'Admin access required'}), 403
         
@@ -218,7 +218,7 @@ def broadcast_notification():
 def notification_settings():
     """Get or update user notification settings"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         user = User.query.get_or_404(user_id)
         
         if request.method == 'GET':

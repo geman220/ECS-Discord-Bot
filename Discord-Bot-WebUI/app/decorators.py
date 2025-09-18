@@ -299,7 +299,7 @@ def jwt_role_required(roles):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             verify_jwt_in_request()
-            current_user_id = get_jwt_identity()
+            current_user_id = int(get_jwt_identity())
 
             session = getattr(g, 'db_session', None)
             if session is None:
@@ -342,7 +342,7 @@ def jwt_permission_required(permission_name):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             verify_jwt_in_request()
-            current_user_id = get_jwt_identity()
+            current_user_id = int(get_jwt_identity())
 
             session = getattr(g, 'db_session', None)
             if session is None:
@@ -374,7 +374,7 @@ def jwt_admin_or_owner_required(func):
     @wraps(func)
     def decorated_function(*args, **kwargs):
         verify_jwt_in_request()
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())
 
         session = getattr(g, 'db_session', None)
         if session is None:
