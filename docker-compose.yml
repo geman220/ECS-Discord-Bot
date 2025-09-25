@@ -82,6 +82,7 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
+      - CELERY_WORKER=1
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_data:/tmp/celery
@@ -116,6 +117,7 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
+      - CELERY_WORKER=1
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_sync_data:/tmp/celery_sync
@@ -148,6 +150,7 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
+      - CELERY_WORKER=1
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_live_data:/tmp/celery_live
@@ -180,6 +183,7 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
+      - CELERY_WORKER=1
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_live_data:/tmp/celery_live
@@ -288,6 +292,7 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
+      - CELERY_WORKER=1
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_beat_data:/tmp/celerybeat
