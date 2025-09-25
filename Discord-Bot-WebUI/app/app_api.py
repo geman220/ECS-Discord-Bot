@@ -1230,8 +1230,17 @@ def get_all_matches():
         # Get query parameters with performance defaults
         upcoming = request.args.get('upcoming', 'false').lower() == 'true'
         completed = request.args.get('completed', 'false').lower() == 'true'
-        all_teams = request.args.get('all_teams', 'false').lower() == 'true'
         team_id = request.args.get('team_id', type=int)
+
+        # Smart default for all_teams: if not explicitly set and user has multiple teams, default to True
+        all_teams_param = request.args.get('all_teams')
+        if all_teams_param is None:
+            # Default to True if player has multiple teams (better mobile UX)
+            all_teams = player and len(player.teams) > 1
+            logger.debug(f"🔵 [MOBILE_API] Smart all_teams default: {all_teams} (player has {len(player.teams) if player else 0} teams)")
+        else:
+            all_teams = all_teams_param.lower() == 'true'
+            logger.debug(f"🔵 [MOBILE_API] Explicit all_teams parameter: {all_teams}")
         
         # Determine user access level for smart limits
         user_roles = [r.name for r in user.roles] if user.roles else []

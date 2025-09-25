@@ -73,6 +73,46 @@ def check_rate_limit(identifier, limit=100, window=60):
         return False, requests_made, int(now + window)
 
 
+def api_key_required(f):
+    """
+    Simple decorator that only validates the mobile API key.
+    Use this when JWT validation is handled separately with @jwt_required().
+    """
+    @functools.wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            # Validate API Key
+            api_key = request.headers.get('X-API-Key')
+            if not api_key:
+                logger.warning(f"Missing API key for mobile endpoint: {request.endpoint}")
+                return jsonify({
+                    'error': 'Missing API key',
+                    'code': 'MISSING_API_KEY'
+                }), 401
+
+            api_key_info = validate_mobile_api_key(api_key)
+            if not api_key_info:
+                logger.warning(f"Invalid API key for mobile endpoint: {request.endpoint}")
+                return jsonify({
+                    'error': 'Invalid API key',
+                    'code': 'INVALID_API_KEY'
+                }), 401
+
+            # Store API key info for use in endpoint
+            g.mobile_api_key_info = api_key_info
+
+            return f(*args, **kwargs)
+
+        except Exception as e:
+            logger.error(f"API key validation error: {str(e)}", exc_info=True)
+            return jsonify({
+                'error': 'API key validation error',
+                'code': 'API_KEY_ERROR'
+            }), 500
+
+    return decorated_function
+
+
 def mobile_api_auth_required(require_permissions=None):
     """
     Decorator for mobile API endpoints requiring authentication.

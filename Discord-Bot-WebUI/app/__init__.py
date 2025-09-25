@@ -973,6 +973,11 @@ def init_blueprints(app):
     app.register_blueprint(match_api, url_prefix='/api')
     app.register_blueprint(user_management_bp)
     app.register_blueprint(mobile_api, url_prefix='/api/v1')
+
+    # Register mobile substitute API
+    from app.routes.mobile_substitute_api import mobile_substitute_api
+    app.register_blueprint(mobile_substitute_api, url_prefix='/api/v1')
+    csrf.exempt(mobile_substitute_api)  # Exempt mobile substitute API from CSRF
     app.register_blueprint(user_bp, url_prefix='/api')
     app.register_blueprint(predictions_api, url_prefix='/api')
     app.register_blueprint(monitoring_bp)
