@@ -3,69 +3,29 @@
 """
 Healthcheck Script
 
-This script checks the health of the Redis server by attempting to ping it.
-If the check passes, the script exits with a status code of 0; otherwise, it exits with 1.
-
-Highly optimized version to reduce CPU usage with minimal dependencies.
+This script checks the health of the webui service by making an HTTP request
+to the health endpoint. This avoids potential threading issues with Redis connections.
 """
 
-import os
 import sys
-import time
-
-# Shared cache between process invocations (via file system)
-CACHE_FILE = "/tmp/redis_health_status"
-CACHE_TTL = 15  # Cache result for 15 seconds
 
 
-def check_redis_health():
+def check_webui_health():
     """
-    Check Redis health using the Redis Python library.
-    
+    Check webui health by hitting the HTTP health endpoint.
+
     Returns:
-        bool: True if Redis responds to a ping, False otherwise.
+        bool: True if the health endpoint responds with 200, False otherwise.
     """
-    # Try to use cached result first to avoid repeated checks
     try:
-        if os.path.exists(CACHE_FILE):
-            mtime = os.path.getmtime(CACHE_FILE)
-            if time.time() - mtime < CACHE_TTL:
-                with open(CACHE_FILE, 'r') as f:
-                    cached_status = f.read().strip()
-                    return cached_status == "OK"
-    except:
-        # Ignore any errors with the cache file
-        pass
-    
-    try:
-        # Use shared Redis connection manager to prevent connection leaks
-        from app.utils.redis_manager import get_redis_connection
-        
-        # Get Redis connection using the singleton manager
-        r = get_redis_connection()
-        
-        # Ping Redis to check if it's responsive
-        result = r.ping()
-        
-        # Cache the result
-        try:
-            with open(CACHE_FILE, 'w') as f:
-                f.write("OK" if result else "FAIL")
-        except:
-            pass
-            
-        return result
-    except Exception as e:
-        try:
-            # Cache the failure
-            with open(CACHE_FILE, 'w') as f:
-                f.write("FAIL")
-        except:
-            pass
+        import requests
+        resp = requests.get("http://localhost:5000/api/health/", timeout=3)
+        return resp.status_code == 200
+    except Exception:
         return False
 
 
 if __name__ == "__main__":
-    if check_redis_health():
+    if check_webui_health():
         sys.exit(0)
     sys.exit(1)
