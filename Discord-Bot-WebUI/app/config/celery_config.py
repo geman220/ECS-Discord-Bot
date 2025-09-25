@@ -207,10 +207,10 @@ class CeleryConfig:
         # },
         'collect-db-stats': {
             'task': 'app.tasks.monitoring_tasks.collect_db_stats',
-            'schedule': crontab(minute='*/5'),
+            'schedule': crontab(minute='*/15'),  # Reduced from every 5 to every 15 minutes
             'options': {
                 'queue': 'celery',
-                'expires': 330  # Task expires after 5.5 minutes
+                'expires': 840  # Task expires after 14 minutes
             }
         },
         'check-for-session-leaks': {
@@ -223,10 +223,10 @@ class CeleryConfig:
         },
         'monitor-redis-connections': {
             'task': 'app.tasks.monitoring_tasks.monitor_redis_connections',
-            'schedule': crontab(minute='*/10'),
+            'schedule': crontab(minute='*/30'),  # Reduced from every 10 to every 30 minutes
             'options': {
                 'queue': 'celery',
-                'expires': 540
+                'expires': 1740  # Task expires after 29 minutes
             }
         },
         'clean-zombie-tasks': {
@@ -369,10 +369,10 @@ class CeleryConfig:
         # Cache tasks (FIXED: removed double session usage)
         'update-task-status-cache': {
             'task': 'app.tasks.tasks_cache_management.update_task_status_cache',
-            'schedule': crontab(minute='*/3'),  # Every 3 minutes
+            'schedule': crontab(minute='*/10'),  # Reduced from every 3 to every 10 minutes
             'options': {
                 'queue': 'celery',
-                'expires': 150  # Task expires after 2.5 minutes
+                'expires': 540  # Task expires after 9 minutes
             }
         },
         'cache-health-check': {
@@ -407,10 +407,10 @@ class CeleryConfig:
         },
         'cleanup-expired-bans': {
             'task': 'app.tasks.security_cleanup.cleanup_expired_bans',
-            'schedule': crontab(hour='*/6'),  # Every 6 hours
+            'schedule': crontab(hour='*/12'),  # Reduced from every 6 to every 12 hours
             'options': {
                 'queue': 'celery',
-                'expires': 1740  # Task expires after 29 minutes
+                'expires': 3600  # Task expires after 1 hour
             }
         },
         'security-maintenance': {
@@ -423,10 +423,10 @@ class CeleryConfig:
         },
         'smart-ban-cleanup': {
             'task': 'app.tasks.security_cleanup.smart_ban_cleanup',
-            'schedule': crontab(minute='*/30'),  # Every 30 minutes - balance security with usability
+            'schedule': crontab(hour='*/2'),  # Reduced from every 30 minutes to every 2 hours
             'options': {
                 'queue': 'celery',
-                'expires': 1740  # Task expires after 29 minutes
+                'expires': 3600  # Task expires after 1 hour
             }
         },
         # [DEPRECATED] Live Reporting Health Check - Replaced by Enterprise Live Reporting System
