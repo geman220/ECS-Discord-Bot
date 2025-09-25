@@ -64,7 +64,8 @@ class CeleryConfig:
         'app.tasks.tasks_image_optimization',
         'app.tasks.tasks_ecs_fc_subs',
         'app.tasks.mobile_analytics_cleanup',
-        'app.tasks.security_cleanup'
+        'app.tasks.security_cleanup',
+        'app.tasks.emergency_recovery'
     )
 
     # Task Settings - Industry Best Practices
@@ -102,12 +103,13 @@ class CeleryConfig:
     task_send_sent_event = True  # Send task-sent events for monitoring
     task_send_events = True  # Enable event monitoring
 
-    # Worker Settings
-    worker_prefetch_multiplier = 1
-    worker_max_tasks_per_child = 100  # Restart worker after 100 tasks
-    worker_max_memory_per_child = 150000  # 150MB memory limit per worker
-    worker_concurrency = 4
+    # Worker Settings - Optimized for stability
+    worker_prefetch_multiplier = 1  # One task at a time prevents overload
+    worker_max_tasks_per_child = 50  # More frequent restarts prevent memory leaks
+    worker_max_memory_per_child = 100000  # Reduced from 150MB to 100MB
+    worker_concurrency = 2  # Reduced from 4 to prevent resource contention
     broker_connection_retry_on_startup = True
+    worker_send_task_events = True  # Enable task event monitoring
     
     # Production Worker Optimizations
     worker_disable_rate_limits = False  # Keep rate limiting enabled
@@ -178,6 +180,7 @@ class CeleryConfig:
         'app.tasks.tasks_ecs_fc_scheduled.*': {'queue': 'discord'},
         'app.tasks.monitoring_tasks.*': {'queue': 'celery'},
         'app.tasks.tasks_maintenance.*': {'queue': 'celery'},
+        'app.tasks.emergency_recovery.*': {'queue': 'celery'},
         'app.tasks.player_sync.*': {'queue': 'player_sync'},
         'app.tasks.tasks_substitute_pools.*': {'queue': 'celery'},
         'app.tasks.tasks_image_optimization.*': {'queue': 'celery'},
@@ -383,14 +386,28 @@ class CeleryConfig:
                 'expires': 540  # Task expires after 9 minutes
             }
         },
-        # Queue Health Monitor - Prevent queue clogging
+        # Queue Health Monitor - Prevent queue clogging (Enhanced)
         'monitor-and-cleanup-queues': {
             'task': 'app.tasks.queue_health_monitor.monitor_and_cleanup_queues',
-            'schedule': crontab(minute='*/5'),  # Every 5 minutes
+            'schedule': crontab(minute='*/3'),  # Every 3 minutes - more frequent monitoring
             'options': {
                 'queue': 'celery',
-                'expires': 240,  # Task expires after 4 minutes
-                'priority': 10  # Highest priority for queue health
+                'expires': 150,  # Task expires after 2.5 minutes
+                'priority': 10,  # Highest priority for queue health
+                'time_limit': 60,
+                'soft_time_limit': 45
+            }
+        },
+        # Emergency Queue Recovery - Last resort
+        'emergency-queue-recovery': {
+            'task': 'app.tasks.emergency_recovery.emergency_queue_recovery',
+            'schedule': crontab(minute='*/15'),  # Every 15 minutes
+            'options': {
+                'queue': 'celery',
+                'expires': 840,  # Task expires after 14 minutes
+                'priority': 8,
+                'time_limit': 120,
+                'soft_time_limit': 90
             }
         },
         # Security maintenance tasks

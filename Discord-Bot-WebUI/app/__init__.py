@@ -950,7 +950,7 @@ def init_blueprints(app):
     from app.admin_panel import admin_panel_bp
     from app.routes.notifications import notifications_bp
     from app.api_smart_sync import smart_sync_bp
-    from app.health import health_bp
+    from app.routes.health import health_bp
     from app.routes.admin_live_reporting import admin_live_bp
 
     app.register_blueprint(health_bp, url_prefix='/api')

@@ -13,6 +13,7 @@ from celery import current_app as celery_app
 from app.decorators import celery_task
 from app.utils.task_session_manager import task_session
 from app.services.redis_connection_service import get_redis_service
+from app.utils.queue_monitor import queue_monitor
 
 logger = logging.getLogger(__name__)
 
@@ -42,16 +43,25 @@ def monitor_and_cleanup_queues(self, session) -> Dict[str, Any]:
             'celery'
         ]
         
+        # Use enhanced queue monitor for comprehensive health check
+        health_check = queue_monitor.check_queue_health()
+
+        # Log alerts
+        for alert in health_check.get('alerts', []):
+            if 'EMERGENCY' in alert:
+                logger.critical(alert)
+            elif 'CRITICAL' in alert:
+                logger.error(alert)
+            else:
+                logger.warning(alert)
+
+        # Add enhanced monitoring to legacy monitoring
         for queue_name in queues_to_monitor:
             queue_stats = _get_queue_stats(redis_service, queue_name)
-            
-            if queue_stats['needs_cleanup']:
-                logger.warning(
-                    f"Queue {queue_name} needs cleanup: "
-                    f"{queue_stats['length']} tasks, "
-                    f"{queue_stats['expired_count']} expired"
-                )
-                
+
+            # Enhanced monitoring already handled critical cases
+            # Only do additional cleanup for moderate cases
+            if queue_stats['needs_cleanup'] and queue_stats['length'] < 100:
                 cleanup_result = _cleanup_queue(redis_service, queue_name, queue_stats)
                 cleanup_actions.append({
                     'queue': queue_name,
@@ -70,9 +80,11 @@ def monitor_and_cleanup_queues(self, session) -> Dict[str, Any]:
         
         return {
             'success': True,
-            'message': f'Monitored {len(queues_to_monitor)} queues',
+            'message': f'Enhanced monitoring: {len(health_check.get("actions_taken", []))} actions taken',
             'cleanup_actions': cleanup_actions,
-            'stuck_locks_cleared': stuck_locks
+            'stuck_locks_cleared': stuck_locks,
+            'health_check': health_check,
+            'queue_summary': queue_monitor.get_queue_summary()
         }
         
     except Exception as e:
