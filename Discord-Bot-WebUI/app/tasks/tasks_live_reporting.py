@@ -176,64 +176,27 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
             match.last_update_time = datetime.utcnow()
             session.add(match)
 
-        # Schedule the next update with updated parameters.
-        # Store the task ID to prevent duplicate executions
-        try:
-            # Check if we've been running too long to prevent infinite chains
-            max_chain_length = 120  # 120 × 30 seconds = 1 hour maximum per match
-            task_chain_length = getattr(self.request, 'task_chain_length', 0) + 1
-            
-            if task_chain_length > max_chain_length:
-                logger.warning(
-                    f"Match {match_id} reached maximum chain length of {max_chain_length}. "
-                    f"Stopping automatic updates to prevent runaway tasks."
-                )
-                return {
-                    'success': False,
-                    'message': f'Maximum chain length ({max_chain_length}) reached',
-                    'status': 'stopped',
-                    'score': new_score,
-                    'match_status': new_status
-                }
-                
-            logger.info(f"Scheduling next update for match {match_id}, chain length: {task_chain_length}/{max_chain_length}")
-            
-            # Create the next task
-            next_task = self.apply_async(
-                args=[match_id, thread_id, competition],
-                kwargs={
-                    'last_status': new_status,
-                    'last_score': new_score,
-                    'last_event_keys': current_event_keys,
-                    'task_id': None,  # This will be ignored by duplicate detection logic on first run
-                    'task_chain_length': task_chain_length  # Track how many times this task has chained itself
-                },
-                countdown=30,
-                queue='live_reporting'
-            )
-            logger.info(f"Scheduled next task with ID: {next_task.id}")
-        except Exception as e:
-            logger.error(f"Error scheduling next task: {str(e)}", exc_info=True)
-            # Create a minimal task result object for error handling
-            from collections import namedtuple
-            MockTask = namedtuple('MockTask', ['id'])
-            next_task = MockTask(id="error-scheduling-task")
-        
-        # Store the new task ID in the database
+        # DEPRECATED: DO NOT SCHEDULE NEXT UPDATE TASK
+        # The realtime service handles all live reporting now
+        logger.warning(
+            f"[DEPRECATED] process_match_update called for match {match_id}. "
+            f"This task should not be used - realtime service should handle updates. "
+            f"Stopping self-scheduling chain to prevent task accumulation."
+        )
+
+        # Mark the match as needing realtime service attention
         if match:
-            match.live_reporting_task_id = next_task.id
-            logger.info(f"Scheduled next update with task ID: {next_task.id} for match {match_id}")
-            
-        # We no longer need to update task kwargs since we're using the dictionary directly
-        # and it was already updated above
+            match.live_reporting_task_id = "DEPRECATED_STOPPED"
+            logger.info(f"Stopped deprecated task chain for match {match_id}")
 
         return {
             'success': True,
-            'message': 'Update processed',
-            'status': 'running',
+            'message': 'Update processed (deprecated task - no further scheduling)',
+            'status': 'stopped',
             'score': new_score,
             'match_status': new_status,
-            'next_task_id': next_task.id  # ADDED CODE: Return the next task ID
+            'next_task_id': None,  # No more task chaining
+            'warning': 'This task is deprecated. Use realtime service instead.'
         }
 
     except SQLAlchemyError as e:

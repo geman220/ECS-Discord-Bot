@@ -30,12 +30,17 @@ class ESPNAPIClient:
     """
 
     BASE_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer"
-    TIMEOUT = 5  # Short timeout for real-time updates
+    TIMEOUT = 3  # Reduced from 5 to 3 seconds for faster failure detection
+    MAX_RETRIES = 2  # Maximum retries per request
 
     # Cache TTLs
-    LIVE_MATCH_CACHE_TTL = 10  # 10 seconds for live matches
+    LIVE_MATCH_CACHE_TTL = 15  # Increased from 10 to 15 seconds to reduce API load
     SCHEDULED_MATCH_CACHE_TTL = 300  # 5 minutes for scheduled matches
     FINISHED_MATCH_CACHE_TTL = 3600  # 1 hour for finished matches
+
+    # Circuit breaker settings
+    FAILURE_THRESHOLD = 5  # Number of failures before circuit opens
+    RECOVERY_TIMEOUT = 60  # Seconds to wait before trying again
 
     def __init__(self):
         self.session = requests.Session()
@@ -44,9 +49,24 @@ class ESPNAPIClient:
             'Accept': 'application/json',
             'Accept-Encoding': 'gzip, deflate'
         })
+        # Configure connection pool and retry settings
+        adapter = requests.adapters.HTTPAdapter(
+            pool_connections=10,
+            pool_maxsize=10,
+            max_retries=requests.adapters.Retry(
+                total=self.MAX_RETRIES,
+                backoff_factor=0.3,
+                status_forcelist=[500, 502, 503, 504]
+            )
+        )
+        self.session.mount('http://', adapter)
+        self.session.mount('https://', adapter)
+
         self.redis_service = get_redis_service()
         self._last_request_time = {}
         self._request_counts = {}
+        self._failure_counts = {}  # Track failures for circuit breaker
+        self._circuit_open_until = {}  # Track when circuit can close
 
     def get_match_data(self, match_id: str, competition: str = 'eng.1') -> Optional[Dict[str, Any]]:
         """
@@ -78,11 +98,16 @@ class ESPNAPIClient:
                         logger.debug(f"Using cached finished data for {match_id}")
                         return cached_data
 
-            # Rate limiting - minimum 2 seconds between requests for same match
+            # Check circuit breaker
+            if self._is_circuit_open(match_id):
+                logger.warning(f"Circuit breaker open for {match_id}, using cached data or returning None")
+                return cached_data if cached_data else None
+
+            # Rate limiting - minimum 3 seconds between requests for same match (increased from 2)
             last_request = self._last_request_time.get(match_id, 0)
             time_since_last = time.time() - last_request
-            if time_since_last < 2:
-                wait_time = 2 - time_since_last
+            if time_since_last < 3:
+                wait_time = 3 - time_since_last
                 logger.debug(f"Rate limiting: waiting {wait_time:.1f}s for {match_id}")
                 time.sleep(wait_time)
 
@@ -96,6 +121,9 @@ class ESPNAPIClient:
 
                 # Track request count for monitoring
                 self._request_counts[match_id] = self._request_counts.get(match_id, 0) + 1
+
+                # Record success for circuit breaker
+                self._record_success(match_id)
 
                 return data
 
@@ -160,16 +188,53 @@ class ESPNAPIClient:
 
                 except requests.Timeout:
                     logger.warning(f"Timeout fetching from {url}")
+                    self._record_failure(match_id)
+                    continue
+                except requests.RequestException as e:
+                    logger.warning(f"Request error fetching from {url}: {e}")
+                    self._record_failure(match_id)
                     continue
                 except Exception as e:
-                    logger.warning(f"Error fetching from {url}: {e}")
+                    logger.error(f"Unexpected error fetching from {url}: {e}")
+                    self._record_failure(match_id)
                     continue
 
+            # All endpoints failed
+            self._record_failure(match_id)
             return None
 
         except Exception as e:
             logger.error(f"Error fetching from ESPN API: {e}")
+            self._record_failure(match_id)
             return None
+
+    def _is_circuit_open(self, match_id: str) -> bool:
+        """Check if circuit breaker is open for this match."""
+        open_until = self._circuit_open_until.get(match_id, 0)
+        if time.time() < open_until:
+            return True
+        # Reset failure count if circuit was closed
+        if match_id in self._failure_counts:
+            self._failure_counts[match_id] = 0
+        return False
+
+    def _record_failure(self, match_id: str):
+        """Record a failure and potentially open circuit breaker."""
+        self._failure_counts[match_id] = self._failure_counts.get(match_id, 0) + 1
+
+        if self._failure_counts[match_id] >= self.FAILURE_THRESHOLD:
+            self._circuit_open_until[match_id] = time.time() + self.RECOVERY_TIMEOUT
+            logger.error(
+                f"Circuit breaker opened for {match_id} after {self._failure_counts[match_id]} failures. "
+                f"Will retry after {self.RECOVERY_TIMEOUT} seconds."
+            )
+
+    def _record_success(self, match_id: str):
+        """Record a successful request and reset failure count."""
+        self._failure_counts[match_id] = 0
+        if match_id in self._circuit_open_until:
+            del self._circuit_open_until[match_id]
+            logger.info(f"Circuit breaker closed for {match_id} after successful request")
 
     def _parse_substitution_text(self, text: str) -> tuple:
         """

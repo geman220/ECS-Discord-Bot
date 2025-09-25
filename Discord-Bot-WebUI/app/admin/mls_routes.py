@@ -527,53 +527,63 @@ def start_match_reporting(match_id):
         return jsonify({'success': False, 'error': 'Match not found'}), 404
     
     try:
-        try:
-            from app.tasks.tasks_live_reporting_v2 import start_live_reporting_v2
-            v2_available = True
-        except ImportError:
-            # No fallback system - V2 is the only live reporting system
-            v2_available = False
-        
         # Check if already running
         if match.live_reporting_status == 'running':
             return jsonify({'success': False, 'error': 'Live reporting already running'}), 400
-        
-        # Start live reporting with event-driven orchestration
-        if v2_available:
-            logger.info(f"🚀 [ADMIN] Starting event-driven live reporting for match {match.match_id} in thread {match.discord_thread_id}")
-            
-            # First create the session
-            task_result = start_live_reporting_v2.delay(
-                str(match.match_id),
-                str(match.discord_thread_id),
-                match.competition or 'usa.1'
-            )
-            
-            # Then start the orchestration system
-            from app.tasks.live_reporting_orchestrator import start_orchestration
-            orchestration_result = start_orchestration.delay()
-            
-            reporting_type = "Event-Driven V2"
-            logger.info(f"Started orchestration with task ID: {orchestration_result.id}")
-        else:
-            logger.error(f"❌ [ADMIN] V2 not available, cannot start live reporting for match {match.match_id}")
+
+        # Use the enterprise match scheduler service
+        from app.services.match_scheduler_service import start_live_reporting_task
+        from app.models import LiveReportingSession
+
+        logger.info(f"🚀 [ADMIN] Starting enterprise live reporting for match {match.match_id} in thread {match.discord_thread_id}")
+
+        # Check if live session already exists
+        existing_session = session.query(LiveReportingSession).filter_by(
+            match_id=str(match.match_id),
+            is_active=True
+        ).first()
+
+        if existing_session:
+            logger.info(f"Live session already exists for match {match.match_id}")
             return jsonify({
-                'success': False, 
-                'error': 'V2 live reporting system not available'
-            }), 500
+                'success': True,
+                'match_id': match.match_id,
+                'session_id': existing_session.id,
+                'message': 'Session already active'
+            })
+
+        # Create live reporting session
+        live_session = LiveReportingSession(
+            match_id=str(match.match_id),
+            thread_id=str(match.discord_thread_id),
+            competition=match.competition or 'usa.1',
+            is_active=True,
+            started_at=datetime.utcnow(),
+            last_update=datetime.utcnow()
+        )
+
+        session.add(live_session)
+        session.commit()
+
+        # The realtime service will pick this up automatically
+        logger.info(f"Created live reporting session {live_session.id} for match {match.match_id}")
+
+        reporting_type = "Enterprise Realtime Service"
         
         # Update match status
-        match.live_reporting_status = 'scheduled'
-        match.live_reporting_task_id = task_result.id
+        match.live_reporting_status = 'running'
+        match.live_reporting_task_id = f"session_{live_session.id}"
+        match.live_reporting_started = True
         match.live_reporting_scheduled = True
         session.commit()
-        
+
         home_team = 'FC Cincinnati' if match.is_home_game else match.opponent
         away_team = match.opponent if match.is_home_game else 'FC Cincinnati'
         return jsonify({
             'success': True,
             'message': f'Live reporting started for {home_team} vs {away_team}',
-            'task_id': task_result.id
+            'session_id': live_session.id,
+            'reporting_type': reporting_type
         })
     except Exception as e:
         logger.error(f"Error starting live reporting: {str(e)}")
