@@ -13,10 +13,10 @@ from app.services.redis_connection_service import get_redis_service
 
 logger = logging.getLogger(__name__)
 
-health_bp = Blueprint('health', __name__, url_prefix='/health')
+health_bp = Blueprint('health', __name__)
 
 
-@health_bp.route('/', methods=['GET'])
+@health_bp.route('/health/', methods=['GET'])
 def basic_health():
     """Basic health check endpoint."""
     return jsonify({
@@ -26,7 +26,7 @@ def basic_health():
     }), 200
 
 
-@health_bp.route('/queues', methods=['GET'])
+@health_bp.route('/health/queues', methods=['GET'])
 def queue_health():
     """Detailed queue health check."""
     try:
@@ -58,7 +58,7 @@ def queue_health():
         }), 500
 
 
-@health_bp.route('/workers', methods=['GET'])
+@health_bp.route('/health/workers', methods=['GET'])
 def worker_health():
     """Check Celery worker health."""
     try:
@@ -116,7 +116,7 @@ def worker_health():
         }), 500
 
 
-@health_bp.route('/full', methods=['GET'])
+@health_bp.route('/health/full', methods=['GET'])
 def full_health_check():
     """Comprehensive health check."""
     try:
