@@ -35,7 +35,7 @@ class TaskMonitor:
         self._redis = get_safe_redis()
         self.redis = self._redis
         self.task_prefix = "task_monitor:"
-        self.zombie_threshold = 3600  # 1 hour
+        self.zombie_threshold = 7200  # 2 hours - increased to prevent false positives
     
     def register_task_start(self, task_id: str, task_name: str) -> None:
         """
@@ -131,10 +131,27 @@ class TaskMonitor:
                 
                 # Check if task has been running too long
                 start_time = float(task_info.get("start_time", 0))
-                if current_time - start_time > self.zombie_threshold:
+                runtime = current_time - start_time
+
+                if runtime > self.zombie_threshold:
                     task_id = task_info.get("task_id")
                     task_name = task_info.get("task_name")
-                    
+
+                    # Safety check: Don't revoke certain critical tasks that may run long
+                    safe_task_patterns = [
+                        'app.tasks.security_cleanup',  # These are legitimate and should run
+                        'app.tasks.tasks_cache_management',  # Cache tasks can be slow
+                        'app.tasks.monitoring_tasks',  # Monitoring tasks are periodic
+                    ]
+
+                    is_safe_task = any(pattern in task_name for pattern in safe_task_patterns)
+
+                    # For safe tasks, use a much longer threshold (6 hours)
+                    threshold_to_use = 21600 if is_safe_task else self.zombie_threshold
+
+                    if runtime < threshold_to_use:
+                        continue  # Don't mark as zombie yet
+
                     # Try to get the current state from Celery
                     try:
                         task_result = AsyncResult(task_id)
@@ -142,15 +159,26 @@ class TaskMonitor:
                     except Exception as e:
                         logger.error(f"Error getting task status for {task_id}: {e}")
                         continue
-                    
+
+                    # Additional safety: Only mark as zombie if truly stuck
+                    # If Celery says PENDING or SUCCESS, don't revoke
+                    if current_status in [PENDING, SUCCESS, FAILURE]:
+                        # Update our records to match Celery's status
+                        self.register_task_completion(task_id, current_status)
+                        continue
+
                     # If the task is still running according to Celery, it's a zombie
                     if current_status == STARTED:
-                        zombie_tasks.append({
-                            "task_id": task_id,
-                            "task_name": task_name,
-                            "runtime": current_time - start_time,
-                            "start_time": datetime.fromtimestamp(start_time).isoformat()
-                        })
+                        # Extra safety check: Log warning first, only revoke if runtime > 4 hours
+                        if runtime > 14400:  # 4 hours
+                            zombie_tasks.append({
+                                "task_id": task_id,
+                                "task_name": task_name,
+                                "runtime": runtime,
+                                "start_time": datetime.fromtimestamp(start_time).isoformat()
+                            })
+                        else:
+                            logger.warning(f"Long-running task detected but not yet revoking: {task_name} ({runtime:.0f}s)")
                     else:
                         # Update our records if Celery has a different status
                         self.register_task_completion(task_id, current_status)
@@ -464,10 +492,24 @@ def clean_zombie_tasks():
     # Detect zombies first (fastest operation)
     zombies = task_monitor.detect_zombie_tasks()
     logger.info(f"Found {len(zombies)} zombie tasks")
-    
-    # Clean them up
-    terminated = task_monitor.clean_up_zombie_tasks()
-    logger.info(f"Terminated {terminated} zombie tasks")
+
+    # Safety check: Don't revoke too many tasks at once
+    max_revocations_per_run = 5
+    if len(zombies) > max_revocations_per_run:
+        logger.warning(f"Too many zombie tasks detected ({len(zombies)}), limiting revocations to {max_revocations_per_run}")
+        zombies = zombies[:max_revocations_per_run]
+
+    # Clean them up with additional safety
+    terminated = 0
+    if len(zombies) > 0:
+        # Log what we're about to revoke for audit trail
+        for zombie in zombies:
+            logger.warning(f"About to revoke zombie task: {zombie['task_name']} (runtime: {zombie['runtime']:.0f}s)")
+
+        terminated = task_monitor.clean_up_zombie_tasks()
+        logger.info(f"Terminated {terminated} zombie tasks")
+    else:
+        logger.info("No zombie tasks found to terminate")
     
     # Check for orphaned database sessions (only if we found zombies or every 4th run)
     old_sessions = []
