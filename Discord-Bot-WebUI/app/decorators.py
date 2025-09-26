@@ -634,7 +634,19 @@ def celery_task(func=None, **task_kwargs):
                 except Exception as e:
                     # Record error in session tracking (rollback happens automatically in managed_session)
                     register_session_end(session_id, 'error-rollback')
-                    
+
+                    # Check for PGBouncer/connection errors that should trigger retry
+                    error_str = str(e).lower()
+                    if any(err in error_str for err in [
+                        'server closed the connection',
+                        'discard all cannot run',
+                        'server login has been failing',
+                        'connection refused'
+                    ]):
+                        logger.warning(f"Task {task_name} encountered connection error, will retry: {str(e)[:200]}")
+                        # Let Celery handle the retry with exponential backoff
+                        raise
+
                     logger.error(f"Task {task_name} failed: {str(e)}", exc_info=True)
                     raise
                 finally:

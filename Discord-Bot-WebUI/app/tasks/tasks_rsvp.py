@@ -1003,7 +1003,14 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
         raise self.retry(exc=e, countdown=30)
 
 
-@celery_task(name='app.tasks.tasks_rsvp.monitor_rsvp_health', max_retries=3, queue='discord')
+@celery_task(
+    name='app.tasks.tasks_rsvp.monitor_rsvp_health',
+    max_retries=3,
+    queue='discord',
+    retry_backoff=True,
+    retry_backoff_max=300,
+    retry_jitter=True
+)
 def monitor_rsvp_health(self, session) -> Dict[str, Any]:
     """
     Monitor the overall health of the RSVP system.
@@ -1108,8 +1115,21 @@ def monitor_rsvp_health(self, session) -> Dict[str, Any]:
         return result
 
     except SQLAlchemyError as e:
-        logger.error(f"Database error in health monitoring: {str(e)}", exc_info=True)
-        raise self.retry(exc=e, countdown=60)
+        error_msg = str(e).lower()
+        # Check if this is a connection error that should be retried
+        if any(err in error_msg for err in [
+            'server closed the connection',
+            'discard all cannot run',
+            'server login has been failing',
+            'resourceclosederror'
+        ]):
+            logger.warning(f"Database connection error in health monitoring, retrying: {str(e)[:200]}")
+            # Use exponential backoff for connection errors
+            countdown = min(60 * (2 ** self.request.retries), 300)
+            raise self.retry(exc=e, countdown=countdown)
+        else:
+            logger.error(f"Database error in health monitoring: {str(e)}", exc_info=True)
+            raise self.retry(exc=e, countdown=60)
     except Exception as e:
         logger.error(f"Error in health monitoring: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)

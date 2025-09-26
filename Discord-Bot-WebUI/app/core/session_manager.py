@@ -42,7 +42,12 @@ def managed_session():
         session.commit()
     except Exception as e:
         logger.error(f"Session error: {e}")
-        session.rollback()
+        try:
+            session.rollback()
+        except Exception as rollback_error:
+            # If rollback fails (e.g., due to PGBouncer DISCARD ALL error),
+            # just log and continue - the session will be closed anyway
+            logger.warning(f"Rollback failed (non-critical): {rollback_error}")
         raise
     finally:
         if not use_global:

@@ -26,7 +26,10 @@ logger = logging.getLogger(__name__)
     queue='live_reporting',
     max_retries=3,
     soft_time_limit=180,  # 3 minutes soft timeout
-    time_limit=300        # 5 minutes hard timeout
+    time_limit=300,       # 5 minutes hard timeout
+    retry_backoff=True,
+    retry_backoff_max=300,
+    retry_jitter=True
 )
 def check_and_start_missing_live_reporting(self, session) -> Dict[str, Any]:
     """
@@ -141,10 +144,22 @@ def check_and_start_missing_live_reporting(self, session) -> Dict[str, Any]:
         }
         
     except SQLAlchemyError as e:
-        logger.error(f"Database error in live reporting recovery: {str(e)}", exc_info=True)
-        session.rollback()
-        raise self.retry(exc=e, countdown=60)
+        error_msg = str(e).lower()
+        # Check for connection errors that should be retried with backoff
+        if any(err in error_msg for err in [
+            'server closed the connection',
+            'server login has been failing',
+            'discard all cannot run',
+            'resourceclosederror'
+        ]):
+            logger.warning(f"Database connection error in live reporting recovery, retrying: {str(e)[:200]}")
+            # Session rollback already handled by managed_session
+            # Use exponential backoff
+            countdown = min(60 * (2 ** self.request.retries), 300)
+            raise self.retry(exc=e, countdown=countdown)
+        else:
+            logger.error(f"Database error in live reporting recovery: {str(e)}", exc_info=True)
+            raise self.retry(exc=e, countdown=60)
     except Exception as e:
         logger.error(f"Error in live reporting recovery: {str(e)}", exc_info=True)
-        session.rollback()
         raise self.retry(exc=e, countdown=30)
