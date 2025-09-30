@@ -209,23 +209,27 @@ def add_player_to_pool(league_type: str):
             logger.error(f"Player not found: {player_id}")
             return jsonify({'success': False, 'message': 'Player not found'}), 404
         
-        # Check if player has the required role
-        required_role = LEAGUE_TYPES[league_type]['role']
-        
+        # Get the required role name for this league type
+        required_role_name = LEAGUE_TYPES[league_type]['role']
+
         if not player.user:
             logger.error(f"Player {player.name} (ID: {player_id}) has no associated user account")
             return jsonify({'success': False, 'message': 'Player has no associated user account'}), 400
-            
-        if not player.user.roles:
-            logger.error(f"Player {player.name} (ID: {player_id}) has no roles assigned")
-            return jsonify({'success': False, 'message': 'Player has no roles assigned'}), 400
-            
-        player_roles = [role.name for role in player.user.roles]
-        logger.info(f"Player {player.name} (ID: {player_id}) has roles: {player_roles}. Required role: {required_role}")
-        
-        if not any(role.name == required_role for role in player.user.roles):
-            logger.error(f"Player {player.name} does not have required role {required_role}")
-            return jsonify({'success': False, 'message': f'Player does not have {required_role} role'}), 400
+
+        # Assign the Flask role if not already assigned
+        from app.models import Role
+        required_role = session.query(Role).filter_by(name=required_role_name).first()
+        if not required_role:
+            logger.error(f"Role '{required_role_name}' not found in database")
+            return jsonify({'success': False, 'message': f'System error: {required_role_name} role not configured'}), 500
+
+        if required_role not in player.user.roles:
+            player.user.roles.append(required_role)
+            logger.info(f"Assigned '{required_role_name}' Flask role to player {player.name} (ID: {player_id})")
+            role_was_added = True
+        else:
+            logger.info(f"Player {player.name} already has '{required_role_name}' Flask role")
+            role_was_added = False
         
         # Check if already in pool for this league type
         logger.info(f"Checking for existing pool entry for player {player_id} in {league_type}")
@@ -321,7 +325,15 @@ def add_player_to_pool(league_type: str):
         logger.info(f"Attempting to commit transaction...")
         session.commit()
         logger.info(f"Transaction committed successfully")
-        
+
+        # Trigger Discord role update
+        from app.tasks.tasks_discord import assign_roles_to_player_task
+        try:
+            task = assign_roles_to_player_task.delay(player_id=player.id, only_add=False)
+            logger.info(f"Discord role update task queued for player {player.id} (task ID: {task.id})")
+        except Exception as e:
+            logger.error(f"Failed to queue Discord role update: {e}")
+
         return jsonify({
             'success': True,
             'message': message,
@@ -370,14 +382,58 @@ def remove_player_from_pool(league_type: str):
         # Deactivate the pool entry
         pool_entry.is_active = False
         session.add(pool_entry)
-        
+
+        # Remove the Flask role if player is not in any other pools
+        player = pool_entry.player
+        if player and player.user:
+            # Check if player is in any other active pools
+            other_active_pools = session.query(SubstitutePool).filter(
+                SubstitutePool.player_id == player_id,
+                SubstitutePool.is_active == True,
+                SubstitutePool.id != pool_entry.id
+            ).count()
+
+            if other_active_pools == 0:
+                # Remove all substitute roles if not in any active pools
+                from app.models import Role
+                for role_name in ['ECS FC Sub', 'Classic Sub', 'Premier Sub']:
+                    role = session.query(Role).filter_by(name=role_name).first()
+                    if role and role in player.user.roles:
+                        player.user.roles.remove(role)
+                        logger.info(f"Removed '{role_name}' Flask role from player {player.name}")
+            else:
+                # Only remove the specific role for this league type
+                from app.models import Role
+                role_name = LEAGUE_TYPES[league_type]['role']
+                role = session.query(Role).filter_by(name=role_name).first()
+                if role and role in player.user.roles:
+                    # Check if they're in another pool of the same type
+                    same_type_pools = session.query(SubstitutePool).filter(
+                        SubstitutePool.player_id == player_id,
+                        SubstitutePool.league_type == league_type,
+                        SubstitutePool.is_active == True,
+                        SubstitutePool.id != pool_entry.id
+                    ).count()
+
+                    if same_type_pools == 0:
+                        player.user.roles.remove(role)
+                        logger.info(f"Removed '{role_name}' Flask role from player {player.name}")
+
         log_pool_action(
             player_id, pool_entry.league_id, 'REMOVED',
             f"Player removed from {league_type} pool", safe_current_user.id, pool_entry.id, session
         )
         
         session.commit()
-        
+
+        # Trigger Discord role update
+        from app.tasks.tasks_discord import assign_roles_to_player_task
+        try:
+            task = assign_roles_to_player_task.delay(player_id=player_id, only_add=False)
+            logger.info(f"Discord role update task queued for player {player_id} after pool removal (task ID: {task.id})")
+        except Exception as e:
+            logger.error(f"Failed to queue Discord role update: {e}")
+
         return jsonify({
             'success': True,
             'message': f"{pool_entry.player.name} has been removed from the {league_type} substitute pool"

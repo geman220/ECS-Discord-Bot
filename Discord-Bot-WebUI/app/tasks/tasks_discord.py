@@ -196,6 +196,7 @@ def _extract_player_role_data(session, player_id: int):
             'name': player.name,
             'is_active': player.is_current_player,
             'is_coach': player.is_coach,
+            'is_ref': player.is_ref,
             'current_roles': player.discord_roles or [],
             'teams': teams,
             'user_roles': user_roles,
@@ -257,13 +258,18 @@ async def _execute_player_role_update_async(data):
         if 'pl-classic' in user_roles:
             if 'ECS-FC-PL-CLASSIC-COACH' not in expected_roles:
                 expected_roles.append('ECS-FC-PL-CLASSIC-COACH')
-        
+
         # Priority 2: Database league associations for coach assignments
         for league_name in league_names:
             if league_name.lower() == 'premier' and 'ECS-FC-PL-PREMIER-COACH' not in expected_roles:
                 expected_roles.append('ECS-FC-PL-PREMIER-COACH')
             elif league_name.lower() == 'classic' and 'ECS-FC-PL-CLASSIC-COACH' not in expected_roles:
                 expected_roles.append('ECS-FC-PL-CLASSIC-COACH')
+
+    # Add referee role if player is a referee
+    if data.get('is_ref'):
+        if 'Referee' not in expected_roles:
+            expected_roles.append('Referee')
     
     # Get app managed roles (these are roles our app can modify)
     app_managed_roles = [
@@ -273,7 +279,8 @@ async def _execute_player_role_update_async(data):
         'ECS-FC-PL-CLASSIC-COACH',
         'ECS-FC-PL-PREMIER-SUB',
         'ECS-FC-PL-CLASSIC-SUB',
-        'ECS-FC-LEAGUE-SUB'
+        'ECS-FC-LEAGUE-SUB',
+        'Referee'
     ]
     
     # Add team-specific player roles to managed roles
@@ -545,6 +552,7 @@ def _extract_assign_roles_data(session, player_id: int, team_id: Optional[int] =
         'name': player.name,
         'is_active': player.is_current_player,
         'is_coach': player.is_coach,
+        'is_ref': player.is_ref,
         'current_roles': player.discord_roles or [],
         'teams': teams,
         'user_roles': user_roles,
@@ -595,7 +603,12 @@ async def _execute_assign_roles_async(data):
             if 'pl-classic' in user_roles:
                 if 'ECS-FC-PL-CLASSIC-COACH' not in expected_roles:
                     expected_roles.append('ECS-FC-PL-CLASSIC-COACH')
-    
+
+        # Add referee role if player is a referee
+        if data.get('is_ref'):
+            if 'Referee' not in expected_roles:
+                expected_roles.append('Referee')
+
     # Prepare data for async-only function
     player_data = {
         'id': data['player_id'],
@@ -610,7 +623,8 @@ async def _execute_assign_roles_async(data):
             'ECS-FC-PL-CLASSIC-COACH',
             'ECS-FC-PL-PREMIER-SUB',
             'ECS-FC-PL-CLASSIC-SUB',
-            'ECS-FC-LEAGUE-SUB'
+            'ECS-FC-LEAGUE-SUB',
+            'Referee'
         ] + [f"ECS-FC-PL-{normalize_name(team['name'])}-Player" for team in data.get('teams', [])]
     }
     
