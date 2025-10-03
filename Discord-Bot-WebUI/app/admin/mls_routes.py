@@ -476,8 +476,8 @@ def schedule_match_task(match_id):
         # Schedule the match thread task
         task_result = schedule_mls_thread_task.delay(match_id)
         
-        home_team = 'FC Cincinnati' if match.is_home_game else match.opponent
-        away_team = match.opponent if match.is_home_game else 'FC Cincinnati'
+        home_team = 'Seattle Sounders FC' if match.is_home_game else match.opponent
+        away_team = match.opponent if match.is_home_game else 'Seattle Sounders FC'
         return jsonify({
             'success': True,
             'message': f'Match thread scheduled for {home_team} vs {away_team}',
@@ -503,8 +503,8 @@ def create_match_thread(match_id):
         # Force create the thread immediately
         task_result = force_create_mls_thread_task.delay(match_id)
         
-        home_team = 'FC Cincinnati' if match.is_home_game else match.opponent
-        away_team = match.opponent if match.is_home_game else 'FC Cincinnati'
+        home_team = 'Seattle Sounders FC' if match.is_home_game else match.opponent
+        away_team = match.opponent if match.is_home_game else 'Seattle Sounders FC'
         return jsonify({
             'success': True,
             'message': f'Thread creation initiated for {home_team} vs {away_team}',
@@ -577,8 +577,8 @@ def start_match_reporting(match_id):
         match.live_reporting_scheduled = True
         session.commit()
 
-        home_team = 'FC Cincinnati' if match.is_home_game else match.opponent
-        away_team = match.opponent if match.is_home_game else 'FC Cincinnati'
+        home_team = 'Seattle Sounders FC' if match.is_home_game else match.opponent
+        away_team = match.opponent if match.is_home_game else 'Seattle Sounders FC'
         return jsonify({
             'success': True,
             'message': f'Live reporting started for {home_team} vs {away_team}',
@@ -646,8 +646,8 @@ def stop_match_reporting(match_id):
         match.live_reporting_scheduled = False
         session.commit()
         
-        home_team = 'FC Cincinnati' if match.is_home_game else match.opponent
-        away_team = match.opponent if match.is_home_game else 'FC Cincinnati'
+        home_team = 'Seattle Sounders FC' if match.is_home_game else match.opponent
+        away_team = match.opponent if match.is_home_game else 'Seattle Sounders FC'
         
         message = f'Live reporting stopped for {home_team} vs {away_team}'
         if revoked_tasks:
@@ -969,8 +969,8 @@ def remove_specific_match(match_id):
         from app.core import celery
         import json
         
-        home_team = 'FC Cincinnati' if match.is_home_game else match.opponent
-        away_team = match.opponent if match.is_home_game else 'FC Cincinnati'
+        home_team = 'Seattle Sounders FC' if match.is_home_game else match.opponent
+        away_team = match.opponent if match.is_home_game else 'Seattle Sounders FC'
         match_info = f"{home_team} vs {away_team}"
         
         revoked_tasks = []
@@ -1121,8 +1121,8 @@ def force_schedule_match(match_id):
         scheduler = MatchScheduler()
         result = scheduler.schedule_match_tasks(match_id, force=True)
         
-        home_team = 'FC Cincinnati' if match.is_home_game else match.opponent
-        away_team = match.opponent if match.is_home_game else 'FC Cincinnati'
+        home_team = 'Seattle Sounders FC' if match.is_home_game else match.opponent
+        away_team = match.opponent if match.is_home_game else 'Seattle Sounders FC'
         
         if result.get('success'):
             return jsonify({
@@ -1273,8 +1273,8 @@ def schedule_mls_match_thread(match_id):
     
     try:
         task_result = schedule_mls_thread_task.delay(match_id)
-        home_team = 'FC Cincinnati' if match.is_home_game else match.opponent
-        away_team = match.opponent if match.is_home_game else 'FC Cincinnati'
+        home_team = 'Seattle Sounders FC' if match.is_home_game else match.opponent
+        away_team = match.opponent if match.is_home_game else 'Seattle Sounders FC'
         show_success(f'Match thread scheduled for {home_team} vs {away_team}. Task ID: {task_result.id}')
     except Exception as e:
         logger.error(f"Error scheduling match thread: {str(e)}")

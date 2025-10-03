@@ -314,10 +314,12 @@ class CeleryConfig:
         # Live Reporting Recovery - Check for matches that should be reporting but aren't
         'check-missing-live-reporting': {
             'task': 'app.tasks.tasks_live_reporting_recovery.check_and_start_missing_live_reporting',
-            'schedule': crontab(minute='*/3'),  # Every 3 minutes
+            'schedule': crontab(minute='*/5'),  # Every 5 minutes (reduced frequency to prevent accumulation)
             'options': {
                 'queue': 'live_reporting',
-                'expires': 150  # Task expires after 2.5 minutes
+                'expires': 240,  # Task expires after 4 minutes (less than schedule interval)
+                'time_limit': 45,
+                'soft_time_limit': 30
             }
         },
         # Legacy Robust Live Reporting - DISABLED (V2 is now active)
