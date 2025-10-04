@@ -286,6 +286,7 @@ services:
     restart: unless-stopped
     command: >
       sh -c "rm -f /tmp/celerybeat/celerybeat.pid &&
+      find /tmp/celerybeat -name 'celerybeat-schedule*' -type f -mmin +5 -delete &&
       python celery_beat.py -s /tmp/celerybeat/celerybeat-schedule"
     env_file:
       - .env

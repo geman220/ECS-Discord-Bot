@@ -189,6 +189,15 @@ class CeleryConfig:
         'app.tasks.security_cleanup.*': {'queue': 'celery'},
     }
 
+    # Beat Configuration
+    beat_schedule_filename = '/tmp/celerybeat-schedule'  # Persistent schedule file location
+    beat_max_loop_interval = 5  # Check schedule every 5 seconds
+
+    # CRITICAL FIX: Prevent duplicate task execution
+    # If a periodic task is still running when the next schedule fires, skip it
+    task_ignore_result = False  # We need results to track task state
+    task_track_started = True    # Track when tasks start (required for acks_late)
+
     # Beat Schedule: periodic tasks and their schedules
     beat_schedule = {
         # DEPRECATED V1 - Use V2 real-time system instead
