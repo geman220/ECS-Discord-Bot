@@ -38,17 +38,19 @@ if __name__ == '__main__':
                 log_memory_usage()
 
         # Start the Celery worker with the specified options.
+        # Changed from eventlet to prefork due to worker going silent after startup
         celery.worker_main([
             'worker',
             '--loglevel=INFO',
+            '--hostname=main-celery-worker@%h',  # Explicit hostname
             '-Q', 'celery',
-            '--pool=eventlet',
-            '--concurrency=8',
-            '--prefetch-multiplier=4',
-            '--max-tasks-per-child=100',
-            '--time-limit=1800',
-            '--soft-time-limit=1500',
-            '--max-memory-per-child=150000'
+            '--pool=prefork',  # Changed from eventlet - eventlet was deadlocking
+            '--concurrency=2',  # Reduced for prefork
+            '--prefetch-multiplier=1',
+            '--max-tasks-per-child=50',
+            '--time-limit=300',
+            '--soft-time-limit=240',
+            '--max-memory-per-child=250000'
         ])
     except Exception as e:
         logger.error(f"Failed to start worker: {e}", exc_info=True)

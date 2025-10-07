@@ -40,7 +40,8 @@ def schedule_upcoming_matches(self, session):
 
         with task_session() as session:
             # Get upcoming MLS matches that need scheduling
-            now = datetime.utcnow()
+            from datetime import timezone
+            now = datetime.now(timezone.utc)
             upcoming_matches = session.query(MLSMatch).filter(
                 MLSMatch.date_time > now,
                 MLSMatch.date_time <= now + timedelta(days=7)  # Look ahead 7 days
@@ -51,19 +52,33 @@ def schedule_upcoming_matches(self, session):
 
             for match in upcoming_matches:
                 try:
+                    # Ensure match.date_time is timezone-aware
+                    match_dt = match.date_time
+                    if match_dt.tzinfo is None:
+                        match_dt = match_dt.replace(tzinfo=timezone.utc)
+
                     # Schedule thread creation (48 hours before)
-                    thread_time = match.date_time - timedelta(hours=48)
-                    if thread_time > now and not match.thread_created:
-                        # Use MLS-specific thread creation task
-                        create_mls_match_thread_task.apply_async(
-                            args=[match.id],
-                            eta=thread_time,
-                            expires=thread_time + timedelta(hours=2)
-                        )
-                        scheduled_threads += 1
+                    thread_time = match_dt - timedelta(hours=48)
+
+                    if not match.thread_created:
+                        if thread_time > now:
+                            # Future: schedule for 48 hours before
+                            create_mls_match_thread_task.apply_async(
+                                args=[match.id],
+                                eta=thread_time,
+                                expires=thread_time + timedelta(hours=2)
+                            )
+                            scheduled_threads += 1
+                        else:
+                            # Past: create immediately (thread creation time has passed)
+                            create_mls_match_thread_task.apply_async(
+                                args=[match.id]
+                            )
+                            scheduled_threads += 1
+                            logger.info(f"Immediately creating thread for match {match.id} (overdue by {now - thread_time})")
 
                     # Schedule live reporting start (5 minutes before)
-                    live_start_time = match.date_time - timedelta(minutes=5)
+                    live_start_time = match_dt - timedelta(minutes=5)
                     if live_start_time > now:
                         start_mls_live_reporting_task.apply_async(
                             args=[match.id],
@@ -251,13 +266,14 @@ def health_check_enterprise_system(self):
     soft_time_limit=60,
     time_limit=90
 )
-def create_mls_match_thread_task(self, match_id: int, session) -> Dict[str, Any]:
+def create_mls_match_thread_task(self, session, match_id: int) -> Dict[str, Any]:
     """
     Create Discord thread for an MLS match (48 hours before kickoff).
     """
     try:
         from app.models.external import MLSMatch
-        from app.utils.discord_request_handler import send_to_discord_bot
+        from app.utils.sync_discord_client import get_sync_discord_client
+        from zoneinfo import ZoneInfo
 
         # Get MLS match details
         match = session.query(MLSMatch).filter_by(id=match_id).first()
@@ -265,47 +281,47 @@ def create_mls_match_thread_task(self, match_id: int, session) -> Dict[str, Any]
             logger.error(f"MLS Match {match_id} not found")
             return {"success": False, "error": "MLS Match not found"}
 
-        # Prepare thread creation request for MLS match
-        if match.is_home_game:
-            match_title = f"Seattle Sounders FC vs {match.opponent}"
-            home_team = "Seattle Sounders FC"
-            away_team = match.opponent
+        # Prepare match data for sync Discord client
+        match_dt = match.date_time
+        if match_dt.tzinfo is None:
+            utc_time = match_dt.replace(tzinfo=ZoneInfo('UTC'))
         else:
-            match_title = f"{match.opponent} vs Seattle Sounders FC"
-            home_team = match.opponent
-            away_team = "Seattle Sounders FC"
+            utc_time = match_dt.astimezone(ZoneInfo('UTC'))
+        pst_time = utc_time.astimezone(ZoneInfo('America/Los_Angeles'))
 
-        thread_request = {
-            "channel_id": 1154148502426857633,  # MLS live reporting channel
-            "match_title": match_title,
-            "home_team": home_team,
-            "away_team": away_team,
-            "match_date": match.date_time.strftime("%B %d, %Y at %I:%M %p") if match.date_time else "TBD",
-            "competition": match.competition or "MLS",
-            "match_id": str(match.match_id)  # Use match_id field, not database id
+        match_data = {
+            'id': match.id,
+            'match_id': match.match_id,
+            'home_team': 'Seattle Sounders FC' if match.is_home_game else match.opponent,
+            'away_team': match.opponent if match.is_home_game else 'Seattle Sounders FC',
+            'date': pst_time.strftime('%Y-%m-%d'),
+            'time': pst_time.strftime('%-I:%M %p PST'),
+            'venue': match.venue or 'TBD',
+            'competition': match.competition or 'MLS',
+            'is_home_game': match.is_home_game
         }
 
-        # Call Discord bot API
-        response = send_to_discord_bot('/api/live-reporting/thread/create', thread_request)
+        # Use sync Discord client (works reliably)
+        discord_client = get_sync_discord_client()
+        thread_id = discord_client.create_match_thread(match_data)
 
-        if response and response.get('success'):
+        if thread_id:
             # Mark thread as created
             match.thread_created = True
+            match.discord_thread_id = thread_id
             match.thread_creation_time = datetime.utcnow()
             session.commit()
 
-            logger.info(f"Created MLS thread {response.get('thread_id')} for match {match.match_id}")
+            logger.info(f"Created MLS thread {thread_id} for match {match.match_id}")
 
             return {
                 "success": True,
                 "match_id": match_id,
-                "thread_id": response.get('thread_id'),
-                "thread_name": response.get('thread_name')
+                "thread_id": thread_id
             }
         else:
-            error_msg = response.get('error', 'Unknown error') if response else 'No response'
-            logger.error(f"Failed to create MLS thread for match {match.match_id}: {error_msg}")
-            return {"success": False, "error": error_msg}
+            logger.error(f"Failed to create MLS thread for match {match.match_id}: No thread ID returned")
+            return {"success": False, "error": "No thread ID returned"}
 
     except Exception as e:
         logger.error(f"Error creating MLS thread for match {match_id}: {e}")

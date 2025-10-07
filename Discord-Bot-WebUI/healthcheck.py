@@ -23,11 +23,40 @@ def check_webui_health():
 
 
 def check_celery_health():
-    """Check celery health by testing Redis connectivity."""
+    """Check celery health by testing if worker process is running and responding."""
     try:
         import redis
+        import psutil
+        import time
+
+        # First check Redis connectivity
         r = redis.Redis(host="redis", port=6379, db=0, socket_timeout=3)
         r.ping()
+
+        # Check if celery worker process exists and is running
+        worker_found = False
+        for proc in psutil.process_iter(['name', 'cmdline', 'status']):
+            try:
+                if proc.info['cmdline']:
+                    cmdline = ' '.join(proc.info['cmdline'])
+                    # Look for celery worker process
+                    if 'celery' in cmdline and 'worker' in cmdline:
+                        worker_found = True
+                        # Check if process is not zombie/dead
+                        if proc.info['status'] in ['zombie', 'dead']:
+                            return False
+                        break
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+
+        if not worker_found:
+            return False
+
+        # Write heartbeat to Redis (worker-specific key)
+        hostname = os.getenv('HOSTNAME', 'unknown')
+        heartbeat_key = f"celery:worker_heartbeat:{hostname}"
+        r.setex(heartbeat_key, 60, int(time.time()))
+
         return True
     except Exception:
         return False

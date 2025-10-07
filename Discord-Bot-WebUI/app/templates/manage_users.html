@@ -12,6 +12,15 @@
     color: white !important;
 }
 
+/* Ensure Select2 dropdown appears above modal backdrop */
+.select2-container--open {
+    z-index: 10040 !important;
+}
+
+.select2-dropdown {
+    z-index: 10050 !important;
+}
+
 /* User name display */
 .user-display-name {
     font-weight: 600;
@@ -519,17 +528,16 @@
 
                 // Store user data globally for modal event handler
                 window.currentEditUserData = data;
-                
+
                 // Populate basic fields
                 document.getElementById('editUserId').value = data.id;
                 document.getElementById('editUsername').value = data.username;
                 document.getElementById('editEmail').value = data.email;
 
-                // Set user's current roles as selected using Select2
-                if (data.roles && Array.isArray(data.roles)) {
-                    const userRoleIds = data.roles.map(id => id.toString());
-                    $('#editRoles').val(userRoleIds).trigger('change');
-                }
+                // Store roles to set after modal is shown and Select2 is reinitialized
+                window.pendingRoleSelection = data.roles && Array.isArray(data.roles)
+                    ? data.roles.map(id => id.toString())
+                    : [];
                 
                 // Player profile section
                 const playerProfileSection = document.getElementById('playerProfileSection');
@@ -743,12 +751,31 @@
         // Initialize global variables
         editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
         editUserForm = document.getElementById('editUserForm');
-        
-        // Initialize Select2 for roles
+
+        // Initialize Select2 for roles with proper configuration
+        // Note: dropdownParent is removed to allow dropdown to append to body (fixes z-index issues)
         $('#editRoles').select2({
             placeholder: 'Select roles...',
             allowClear: true,
-            dropdownParent: $('#editUserModal')
+            width: '100%',
+            theme: 'bootstrap-5'
+        });
+
+        // Reinitialize Select2 when modal is shown to ensure proper rendering
+        $('#editUserModal').on('shown.bs.modal', function () {
+            $('#editRoles').select2('destroy');
+            $('#editRoles').select2({
+                placeholder: 'Select roles...',
+                allowClear: true,
+                width: '100%',
+                theme: 'bootstrap-5'
+            });
+
+            // Set the pending role selection after Select2 is reinitialized
+            if (window.pendingRoleSelection && window.pendingRoleSelection.length > 0) {
+                $('#editRoles').val(window.pendingRoleSelection).trigger('change');
+                window.pendingRoleSelection = null; // Clear after setting
+            }
         });
         
         // No need for complex modal event handlers - roles are pre-selected via server HTML

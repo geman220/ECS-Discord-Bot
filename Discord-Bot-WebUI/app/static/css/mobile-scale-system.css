@@ -202,7 +202,12 @@ div.modal-backdrop.show {
 }
 
 .select2-dropdown {
-  z-index: 1030 !important;
+  z-index: 10050 !important;
+}
+
+/* Select2 containers when opened (ensures dropdown is clickable above modals) */
+.select2-container--open {
+  z-index: 10040 !important;
 }
 
 /* LAYOUT ELEMENTS */

@@ -51,6 +51,7 @@ class CeleryConfig:
         'app.tasks.match_scheduler',  # ENTERPRISE - Match scheduling and live reporting coordination
         'app.tasks.tasks_live_reporting_recovery',
         'app.tasks.queue_health_monitor',
+        'app.tasks.queue_clogging_detector',
         'app.tasks.tasks_match_updates',
         'app.tasks.tasks_rsvp',
         'app.tasks.tasks_rsvp_ecs',
@@ -409,6 +410,17 @@ class CeleryConfig:
                 'soft_time_limit': 45
             }
         },
+        # Queue Clogging Detector - Pattern detection and alerting
+        'detect-queue-clogging': {
+            'task': 'app.tasks.queue_clogging_detector.detect_queue_clogging',
+            'schedule': crontab(minute='*/10'),  # Every 10 minutes - detect patterns over time
+            'options': {
+                'queue': 'celery',
+                'expires': 540,  # Task expires after 9 minutes
+                'time_limit': 45,
+                'soft_time_limit': 30
+            }
+        },
         # Emergency Queue Recovery - Last resort
         'emergency-queue-recovery': {
             'task': 'app.tasks.emergency_recovery.emergency_queue_recovery',
@@ -449,14 +461,15 @@ class CeleryConfig:
                 'expires': 3540  # Task expires after 59 minutes
             }
         },
-        'smart-ban-cleanup': {
-            'task': 'app.tasks.security_cleanup.smart_ban_cleanup',
-            'schedule': crontab(hour='*/2'),  # Reduced from every 30 minutes to every 2 hours
-            'options': {
-                'queue': 'celery',
-                'expires': 3600  # Task expires after 1 hour
-            }
-        },
+        # TEMPORARILY DISABLED - Bug causing task to run every minute instead of every 2 hours
+        # 'smart-ban-cleanup': {
+        #     'task': 'app.tasks.security_cleanup.smart_ban_cleanup',
+        #     'schedule': crontab(hour='*/2'),  # Reduced from every 30 minutes to every 2 hours
+        #     'options': {
+        #         'queue': 'celery',
+        #         'expires': 3600  # Task expires after 1 hour
+        #     }
+        # },
         # [DEPRECATED] Live Reporting Health Check - Replaced by Enterprise Live Reporting System
         # 'health-check-live-reporting': {
         #     'task': 'app.tasks.live_reporting_orchestrator.health_check_live_reporting',
