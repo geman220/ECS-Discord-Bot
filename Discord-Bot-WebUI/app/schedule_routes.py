@@ -89,7 +89,7 @@ class ScheduleManager:
 
         Returns:
             Dict: A mapping of week numbers to a dictionary containing the date
-                  and a list of match details.
+                  and a list of match details, sorted numerically by week.
         """
         formatted = {}
         displayed = set()
@@ -126,7 +126,14 @@ class ScheduleManager:
                 'location': schedule.location
             })
 
-        return formatted
+        # Sort weeks numerically before returning
+        try:
+            sorted_formatted = dict(sorted(formatted.items(), key=lambda x: int(x[0])))
+        except (ValueError, TypeError):
+            # If conversion to int fails, return unsorted
+            sorted_formatted = formatted
+
+        return sorted_formatted
 
     def update_match(self, match_id: int, data: Dict) -> Tuple[List[Any], Dict]:
         """
@@ -150,6 +157,11 @@ class ScheduleManager:
             return [], {'success': False, 'message': f'Invalid date/time: {str(e)}'}
 
         objects_to_update = []
+
+        # Store original values before updating for paired lookup
+        original_team_id = schedule.team_id
+        original_opponent = schedule.opponent
+        original_week = schedule.week
 
         schedule.date = match_date
         schedule.time = match_time
@@ -179,16 +191,21 @@ class ScheduleManager:
             match.away_team_id = data['team_b']
             objects_to_update.append(match)
 
+        # Use ORIGINAL values to find the paired schedule
         paired = self.session.query(Schedule).filter_by(
-            team_id=data['team_b'],
-            opponent=data['team_a'],
-            week=data['week']
+            team_id=original_opponent,
+            opponent=original_team_id,
+            week=original_week
         ).first()
 
         if paired:
             paired.date = match_date
             paired.time = match_time
             paired.location = data['location']
+            paired.week = data['week']
+            # CRITICAL: Update the paired entry's teams to match (swapped)
+            paired.team_id = data['team_b']
+            paired.opponent = data['team_a']
             objects_to_update.append(paired)
 
             paired_match = self.session.query(Match).filter_by(schedule_id=paired.id).first()
@@ -196,6 +213,9 @@ class ScheduleManager:
                 paired_match.date = match_date
                 paired_match.time = match_time
                 paired_match.location = data['location']
+                # Also update the match teams (swapped from main match)
+                paired_match.home_team_id = data['team_b']
+                paired_match.away_team_id = data['team_a']
                 objects_to_update.append(paired_match)
 
         return objects_to_update, {'success': True, 'message': 'Match updated'}
