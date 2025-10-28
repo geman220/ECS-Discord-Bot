@@ -219,7 +219,11 @@
                                                                     {% elif match.week_type == 'BONUS' %}
                                                                         - Additional activities
                                                                     {% elif match.week_type == 'PLAYOFF' %}
-                                                                        - TBD
+                                                                        {% if match.home_team_id != match.away_team_id %}
+                                                                            - vs {{ opponent_name }}
+                                                                        {% else %}
+                                                                            - TBD
+                                                                        {% endif %}
                                                                     {% endif %}
                                                                 </span>
                                                             {% else %}
@@ -385,7 +389,11 @@
                                                                     {% elif match.week_type == 'BONUS' %}
                                                                         - Additional activities
                                                                     {% elif match.week_type == 'PLAYOFF' %}
-                                                                        - TBD
+                                                                        {% if match.home_team_id != match.away_team_id %}
+                                                                            - vs {{ opponent_name }}
+                                                                        {% else %}
+                                                                            - TBD
+                                                                        {% endif %}
                                                                     {% endif %}
                                                                 </span>
                                                             {% else %}

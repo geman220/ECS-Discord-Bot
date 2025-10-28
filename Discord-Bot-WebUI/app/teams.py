@@ -135,27 +135,23 @@ def get_opponent_display_name(match, team_id):
     """
     Get the opponent display name for a match from a specific team's perspective.
     Handles regular matches, special weeks, and playoff games.
-    
+
     Args:
         match: Match object
         team_id: ID of the team viewing the match
-        
+
     Returns:
         String display name for the opponent or special week
     """
-    # Check if this is a playoff game that hasn't been assigned real teams yet
-    if hasattr(match, 'is_playoff_game') and match.is_playoff_game:
-        # If both teams are the same (placeholder) or one team appears multiple times
-        # in this playoff week, it's likely still using placeholder teams
-        if (match.home_team_id == match.away_team_id or 
-            _is_playoff_placeholder_match(match, team_id)):
+    # Check if this is a placeholder match (home and away teams are the same)
+    if match.home_team_id == match.away_team_id:
+        # For playoff placeholders, show the round
+        if hasattr(match, 'is_playoff_game') and match.is_playoff_game:
             playoff_round = getattr(match, 'playoff_round', 1)
             return f'Playoffs Round {playoff_round} - TBD'
-    
-    # Check if this is a special week (home_team_id == away_team_id)
-    if match.home_team_id == match.away_team_id:
+        # For special weeks, get the special week display name
         return _get_special_week_display_name(match)
-    
+
     # Regular match - return the opponent team name
     if match.home_team_id == team_id:
         return match.away_team.name if match.away_team else 'Unknown'
@@ -866,10 +862,21 @@ def report_match(match_id):
 
         # Increment version for optimistic locking (updated_at is handled by onupdate)
         match.version += 1
-        
+
         update_standings(session, match, old_home_score, old_away_score)
+
+        # Check if we should auto-generate playoff placement games
+        from app.playoff_routes import check_and_generate_placement_games
+        try:
+            placement_games_generated = check_and_generate_placement_games(session, match)
+            if placement_games_generated:
+                logger.info(f"Playoff placement games auto-generated after match {match_id} was reported")
+        except Exception as e:
+            logger.error(f"Error checking for placement game generation: {e}", exc_info=True)
+            # Don't fail the match reporting if placement game generation fails
+
         session.commit()
-        
+
         logger.info(f"Match ID {match_id} reported successfully.")
         return jsonify({
             'success': True,

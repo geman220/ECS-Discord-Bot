@@ -126,6 +126,11 @@
                         <div><i class="ti ti-calendar-event"></i> View Season Schedule</div>
                     </a>
                 </li>
+                <li class="menu-item {{ 'active' if 'playoff' in request.path and 'generator' in request.path }}">
+                    <a class="menu-link" href="{{ url_for('playoff.playoff_generator_redirect') }}">
+                        <div><i class="ti ti-tournament"></i> Playoff Generator</div>
+                    </a>
+                </li>
                 {% endif %}
             </ul>
         </li>

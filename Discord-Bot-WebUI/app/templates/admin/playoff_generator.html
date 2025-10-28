@@ -1,0 +1,574 @@
+{% extends "base.html" %}
+
+{% block title %}Playoff Schedule Generator - {{ league.name }}{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold py-3 mb-2">
+                <i class="ti ti-tournament me-2 text-primary"></i>Playoff Schedule Generator - {{ league.name }}
+            </h2>
+            <div class="d-flex align-items-center text-muted mb-3">
+                <i class="ti ti-calendar-event me-2"></i>
+                Generate playoff brackets and schedules for the top 8 teams
+            </div>
+            <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="ti ti-arrow-left me-1"></i> Back to Schedule Manager
+            </a>
+        </div>
+    </div>
+
+    <!-- How It Works Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header border-bottom py-3">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-info-circle me-2"></i>How It Works
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ol class="mb-2">
+                        <li>Review the top 8 teams from the regular season standings</li>
+                        <li>Click "Generate Preview" to create a randomized playoff bracket</li>
+                        <li>Review the generated groups and matchups</li>
+                        <li><strong>Optional: Swap entire groups A ↔ B if needed</strong></li>
+                        <li><strong>Optional: Edit teams, times, or fields directly in the match table</strong></li>
+                        <li>Click "Regenerate" if you want a different random bracket</li>
+                        <li>Click "Confirm & Apply" to save your schedule</li>
+                    </ol>
+                    <div class="alert alert-info mb-2">
+                        <i class="ti ti-info-circle me-2"></i>
+                        <strong>Fully Editable:</strong> You can swap which group is labeled A vs B, and edit all match details (teams, times, locations) before confirming. The algorithm ensures teams play consecutive games with no conflicts.
+                    </div>
+                    <div class="alert alert-success mb-0">
+                        <i class="ti ti-calendar-check me-2"></i>
+                        <strong>Best Practice - RSVP Timing:</strong> Generate the playoff schedule on Sunday night <em>before</em> the Monday 2am RSVP send. This way, RSVPs automatically send with correct team names. If you update after RSVPs were sent, you'll get an option to resend them.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Standings -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-label-primary border-bottom py-3">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-trophy me-2"></i>Current Standings (Top 8 Qualify)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="standingsTable">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Team</th>
+                                    <th>Points</th>
+                                    <th>W-L-D</th>
+                                    <th>GD</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for team in standings %}
+                                <tr class="{% if loop.index <= 8 %}playoff-qualified{% endif %}">
+                                    <td><strong>{{ loop.index }}</strong></td>
+                                    <td><strong>{{ team.team_name }}</strong></td>
+                                    <td>{{ team.points|default(0) }}</td>
+                                    <td>{{ team.wins|default(0) }}-{{ team.losses|default(0) }}-{{ team.draws|default(0) }}</td>
+                                    <td>{{ team.goal_difference|default(0) }}</td>
+                                    <td>
+                                        {% if loop.index <= 8 %}
+                                        <span class="badge bg-success">PLAYOFFS</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Eliminated</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generate Button -->
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <button id="previewBtn" class="btn btn-primary btn-lg" onclick="previewSchedule()">
+                <i class="ti ti-wand me-2"></i> Generate Preview
+            </button>
+            <p class="text-muted mt-2" id="generateHelpText">Generate a randomized playoff schedule for review</p>
+            <div id="existingScheduleNote" class="alert alert-info mt-3" style="display: none;">
+                <i class="ti ti-info-circle me-2"></i>
+                <strong>Existing Schedule Loaded:</strong> The current playoff schedule is displayed below. You can edit it directly or click "Regenerate New Schedule" to create a new random bracket.
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Section (Hidden initially) -->
+    <div id="previewSection" style="display: none;">
+        <hr class="my-4">
+        <h4 class="mb-4"><i class="ti ti-eye me-2"></i> Schedule Preview</h4>
+
+        <!-- Groups Display -->
+        <div class="row mb-4">
+            <div class="col-12 mb-3 text-center">
+                <button class="btn btn-outline-secondary btn-sm" onclick="swapGroups()">
+                    <i class="ti ti-switch-horizontal me-1"></i> Swap Groups A ↔ B
+                </button>
+                <p class="text-muted small mt-1 mb-0">Swap which group is labeled A vs B (updates all matches)</p>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card shadow-sm border-primary">
+                    <div class="card-header bg-label-primary border-bottom py-3">
+                        <h5 class="card-title mb-0">
+                            <i class="ti ti-users me-2"></i> Group A
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <ul id="groupAList" class="list-group list-group-flush">
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card shadow-sm border-info">
+                    <div class="card-header bg-label-info border-bottom py-3">
+                        <h5 class="card-title mb-0">
+                            <i class="ti ti-users me-2"></i> Group B
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <ul id="groupBList" class="list-group list-group-flush">
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Matches Display -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-label-success border-bottom py-3">
+                        <h5 class="card-title mb-0">
+                            <i class="ti ti-calendar-event me-2"></i> Generated Playoff Matches
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="matchesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Week</th>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Home Team</th>
+                                        <th>Away Team</th>
+                                        <th>Location</th>
+                                        <th>Group</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="matchesTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirmation Buttons -->
+        <div class="row">
+            <div class="col-12 text-center">
+                <button class="btn btn-success btn-lg me-2 mb-2" onclick="confirmSchedule()">
+                    <i class="ti ti-check me-2"></i> Confirm & Apply This Schedule
+                </button>
+                <button class="btn btn-warning btn-lg me-2 mb-2" onclick="previewSchedule()">
+                    <i class="ti ti-refresh me-2"></i> Regenerate (Discard Edits)
+                </button>
+                <button class="btn btn-outline-secondary btn-lg mb-2" onclick="cancelPreview()">
+                    <i class="ti ti-x me-2"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Playoff qualified teams - light green background */
+.playoff-qualified {
+    background-color: rgba(40, 199, 111, 0.1) !important;
+}
+
+/* Hover effect on playoff qualified rows */
+.playoff-qualified:hover {
+    background-color: rgba(40, 199, 111, 0.2) !important;
+}
+
+/* Ensure text is readable on the light background */
+.playoff-qualified td {
+    color: inherit !important;
+}
+
+/* Editable fields in preview table */
+#matchesTableBody input,
+#matchesTableBody select {
+    font-size: 0.875rem;
+    border: 1px solid #d9dee3;
+    transition: all 0.2s;
+}
+
+#matchesTableBody input:focus,
+#matchesTableBody select:focus {
+    border-color: #696cff;
+    box-shadow: 0 0 0 0.2rem rgba(105, 108, 255, 0.15);
+}
+
+#matchesTableBody input:hover,
+#matchesTableBody select:hover {
+    border-color: #b4b7ff;
+}
+</style>
+
+<script>
+let previewData = null;
+
+// Get CSRF token from meta tag
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+}
+
+// Load existing schedule on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadExistingSchedule();
+});
+
+function loadExistingSchedule() {
+    const leagueId = {{ league.id }};
+
+    fetch(`/admin/playoffs/league/${leagueId}/current-schedule`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.exists) {
+            // Schedule exists, display it
+            previewData = data.preview;
+            displayPreview(data.preview);
+
+            // Update button text to indicate we're viewing existing schedule
+            const btn = document.getElementById('previewBtn');
+            btn.innerHTML = '<i class="ti ti-wand me-2"></i> Regenerate New Schedule';
+
+            // Show existing schedule note and hide help text
+            document.getElementById('existingScheduleNote').style.display = 'block';
+            document.getElementById('generateHelpText').style.display = 'none';
+        }
+        // If no schedule exists, do nothing (show generate button as is)
+    })
+    .catch(error => {
+        console.error('Error loading existing schedule:', error);
+        // Fail silently - user can still generate new schedule
+    });
+}
+
+function previewSchedule() {
+    const leagueId = {{ league.id }};
+    const btn = document.getElementById('previewBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader me-2"></i> Generating...';
+
+    // Hide existing schedule note when generating new one
+    document.getElementById('existingScheduleNote').style.display = 'none';
+    document.getElementById('generateHelpText').style.display = 'block';
+
+    fetch(`/admin/playoffs/league/${leagueId}/preview-schedule`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            previewData = data.preview;
+            displayPreview(data.preview);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="ti ti-wand me-2"></i> Generate Preview';
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error
+            });
+            btn.disabled = false;
+            btn.innerHTML = '<i class="ti ti-wand me-2"></i> Generate Preview';
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error generating preview: ' + error
+        });
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-wand me-2"></i> Generate Preview';
+    });
+}
+
+function displayPreview(preview) {
+    // Show preview section
+    document.getElementById('previewSection').style.display = 'block';
+
+    // Display Group A
+    const groupAList = document.getElementById('groupAList');
+    groupAList.innerHTML = '';
+    preview.group_a.forEach((team, index) => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item';
+        li.innerHTML = `<strong>A${index + 1}:</strong> ${team.name}`;
+        groupAList.appendChild(li);
+    });
+
+    // Display Group B
+    const groupBList = document.getElementById('groupBList');
+    groupBList.innerHTML = '';
+    preview.group_b.forEach((team, index) => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item';
+        li.innerHTML = `<strong>B${index + 1}:</strong> ${team.name}`;
+        groupBList.appendChild(li);
+    });
+
+    // Get all teams for dropdowns
+    const allTeams = [...new Set([
+        ...preview.group_a.map(t => t.name),
+        ...preview.group_b.map(t => t.name)
+    ])];
+
+    // Display Matches (editable)
+    const tbody = document.getElementById('matchesTableBody');
+    tbody.innerHTML = '';
+    preview.matches.forEach((match, index) => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+            <td>${match.week}</td>
+            <td><input type="date" class="form-control form-control-sm" value="${match.date}" data-index="${index}" data-field="date"></td>
+            <td><input type="time" class="form-control form-control-sm" value="${match.time}" data-index="${index}" data-field="time"></td>
+            <td>
+                <select class="form-select form-select-sm" data-index="${index}" data-field="home_team">
+                    ${allTeams.map(team => `<option value="${team}" ${team === match.home_team ? 'selected' : ''}>${team}</option>`).join('')}
+                </select>
+            </td>
+            <td>
+                <select class="form-select form-select-sm" data-index="${index}" data-field="away_team">
+                    ${allTeams.map(team => `<option value="${team}" ${team === match.away_team ? 'selected' : ''}>${team}</option>`).join('')}
+                </select>
+            </td>
+            <td>
+                <select class="form-select form-select-sm" data-index="${index}" data-field="location">
+                    <option value="North" ${match.location === 'North' ? 'selected' : ''}>North</option>
+                    <option value="South" ${match.location === 'South' ? 'selected' : ''}>South</option>
+                </select>
+            </td>
+            <td><span class="badge bg-${match.group === 'A' ? 'primary' : 'info'}">Group ${match.group}</span></td>
+        `;
+    });
+
+    // Add event listeners to update preview data when edited
+    tbody.querySelectorAll('input, select').forEach(element => {
+        element.addEventListener('change', function() {
+            const index = parseInt(this.dataset.index);
+            const field = this.dataset.field;
+            previewData.matches[index][field] = this.value;
+        });
+    });
+
+    // Scroll to preview
+    document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+function confirmSchedule() {
+    Swal.fire({
+        title: 'Confirm Playoff Schedule',
+        text: 'Are you sure you want to apply this playoff schedule? This will update your existing playoff matches.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, apply it!'
+    }).then((result) => {
+        if (!result.isConfirmed) {
+            return;
+        }
+
+        const leagueId = {{ league.id }};
+
+        // Show loading state
+        const confirmBtn = event.target;
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="ti ti-loader me-2"></i> Applying...';
+
+        // Send the edited preview data
+        fetch(`/admin/playoffs/league/${leagueId}/apply-schedule`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                matches: previewData.matches,
+                group_a: previewData.group_a,
+                group_b: previewData.group_b
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success with option to resend RSVPs
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Schedule Updated!',
+                    html: `
+                        <p>Playoff schedule has been successfully updated.</p>
+                        <hr>
+                        <p class="text-muted small mb-2"><strong>Need to resend RSVPs?</strong></p>
+                        <p class="text-muted small">If RSVPs were already sent with placeholder teams, you can resend them now with the correct teams.</p>
+                        <p class="text-muted small"><em>Note: If you updated before RSVPs were sent (e.g., Sunday night before Monday 2am), you don't need to resend - they'll send automatically with correct teams.</em></p>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="ti ti-send me-1"></i> Resend RSVPs Now',
+                    cancelButtonText: 'Done (No Resend Needed)',
+                    confirmButtonColor: '#696cff',
+                    cancelButtonColor: '#28c76f'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        resendPlayoffRSVPs();
+                    } else {
+                        window.location.reload();
+                    }
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.error
+                });
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="ti ti-check me-2"></i> Confirm & Apply This Schedule';
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error applying schedule: ' + error
+            });
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="ti ti-check me-2"></i> Confirm & Apply Schedule';
+        });
+    });
+}
+
+function cancelPreview() {
+    document.getElementById('previewSection').style.display = 'none';
+    previewData = null;
+}
+
+function swapGroups() {
+    if (!previewData) return;
+
+    // Swap the entire groups
+    const tempGroup = previewData.group_a;
+    previewData.group_a = previewData.group_b;
+    previewData.group_b = tempGroup;
+
+    // Update all matches to reflect the new group assignments
+    previewData.matches.forEach(match => {
+        // Swap group labels
+        if (match.group === 'A') {
+            match.group = 'B';
+        } else if (match.group === 'B') {
+            match.group = 'A';
+        }
+    });
+
+    // Refresh the display
+    displayPreview(previewData);
+
+    // Show notification
+    Swal.fire({
+        icon: 'success',
+        title: 'Groups Swapped',
+        text: 'Group A and Group B have been swapped. All matches have been updated.',
+        timer: 2000,
+        showConfirmButton: false
+    });
+}
+
+function resendPlayoffRSVPs() {
+    const leagueId = {{ league.id }};
+
+    // Show loading
+    Swal.fire({
+        title: 'Sending RSVPs...',
+        text: 'Please wait while we queue the RSVP messages.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    fetch(`/admin/playoffs/league/${leagueId}/resend-playoff-rsvps`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'RSVPs Queued!',
+                html: `
+                    <p>${data.message}</p>
+                    <p class="text-muted small mt-2">RSVP messages will be sent to Discord in a few seconds.</p>
+                    <p class="text-muted small"><strong>Remember:</strong> Delete the old placeholder RSVP messages in Discord manually.</p>
+                `,
+                confirmButtonText: 'OK'
+            }).then(() => {
+                window.location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error || 'Failed to queue RSVP messages'
+            });
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error sending RSVPs: ' + error
+        });
+    });
+}
+</script>
+{% endblock main_content %}

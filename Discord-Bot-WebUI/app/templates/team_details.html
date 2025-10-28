@@ -226,7 +226,13 @@
                                                         <i class="fas fa-futbol text-primary"></i> {{ match.time.strftime('%I:%M %p') }}
                                                     </div>
                                                     <div class="match-teams">
-                                                        {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                                        {% if match.week_type == 'PLAYOFF' and match.home_team_id != match.away_team_id %}
+                                                            {# Confirmed playoff match - show actual matchup #}
+                                                            <h6 class="mb-0">
+                                                                <span class="badge bg-info">Playoff</span>
+                                                                {{ display_home }} vs {{ display_away }}
+                                                            </h6>
+                                                        {% elif match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
                                                             <h6 class="mb-0">
                                                                 <span class="badge bg-info">
                                                                     {% if match.week_type == 'FUN' %}
@@ -267,7 +273,13 @@
                                                             <i class="ti ti-clock"></i> {{ match.time.strftime('%I:%M %p') }}
                                                         </div>
                                                         <div class="match-teams">
-                                                            {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                                            {% if match.week_type == 'PLAYOFF' and match.home_team_id != match.away_team_id %}
+                                                                {# Confirmed playoff match - show actual matchup #}
+                                                                <h6 class="mb-0">
+                                                                    <span class="badge bg-info">Playoff</span>
+                                                                    {{ display_home }} vs {{ display_away }}
+                                                                </h6>
+                                                            {% elif match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
                                                                 <h6 class="mb-0">
                                                                     <span class="badge bg-info">
                                                                         {% if match.week_type == 'FUN' %}
@@ -451,7 +463,11 @@
                                                     {% elif next_match.week_type == 'BONUS' %}
                                                         - Additional activities
                                                     {% elif next_match.week_type == 'PLAYOFF' %}
-                                                        - TBD
+                                                        {% if next_match.home_team_id != next_match.away_team_id %}
+                                                            - vs {{ next_match.opponent_name }}
+                                                        {% else %}
+                                                            - TBD
+                                                        {% endif %}
                                                     {% endif %}
                                                 </span>
                                             {% elif next_match.week_type == 'PRACTICE' or (next_match.is_practice_game if next_match.is_practice_game is defined else False) %}

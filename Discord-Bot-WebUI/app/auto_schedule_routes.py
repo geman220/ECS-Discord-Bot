@@ -589,19 +589,68 @@ def reorder_weeks():
 @role_required(['Pub League Admin', 'Global Admin'])
 def delete_match():
     """
-    Delete a specific match.
+    Delete a specific match and all its related records.
     """
     session = g.db_session
-    
+
     try:
         data = request.get_json()
         match_id = data.get('match_id')
-        
+
         match = session.query(Match).get(match_id)
         if not match:
             return jsonify({'success': False, 'error': 'Match not found'})
-        
-        # Delete corresponding schedule entries
+
+        # Import all models that might reference matches
+        from app.models import (
+            Schedule, Availability, ScheduledMessage, PlayerEvent,
+            TemporarySubAssignment, SubstituteRequest
+        )
+        from app.database.db_models import ActiveMatchReporter, LiveMatch
+
+        # 1. Delete LiveMatch records
+        live_matches = session.query(LiveMatch).filter_by(match_id=match_id).all()
+        for live_match in live_matches:
+            session.delete(live_match)
+        logger.info(f"Deleted {len(live_matches)} LiveMatch records")
+
+        # 2. Delete ActiveMatchReporter records
+        reporters = session.query(ActiveMatchReporter).filter_by(match_id=match_id).all()
+        for reporter in reporters:
+            session.delete(reporter)
+        logger.info(f"Deleted {len(reporters)} ActiveMatchReporter records")
+
+        # 3. Delete PlayerEvent records (match events)
+        events = session.query(PlayerEvent).filter_by(match_id=match_id).all()
+        for event in events:
+            session.delete(event)
+        logger.info(f"Deleted {len(events)} PlayerEvent records")
+
+        # 4. Delete ScheduledMessage records
+        messages = session.query(ScheduledMessage).filter_by(match_id=match_id).all()
+        for message in messages:
+            session.delete(message)
+        logger.info(f"Deleted {len(messages)} ScheduledMessage records")
+
+        # 5. Delete Availability records (RSVPs)
+        availabilities = session.query(Availability).filter_by(match_id=match_id).all()
+        for availability in availabilities:
+            session.delete(availability)
+        logger.info(f"Deleted {len(availabilities)} Availability records")
+
+        # 6. Delete SubstituteRequest records
+        sub_requests = session.query(SubstituteRequest).filter_by(match_id=match_id).all()
+        for sub_request in sub_requests:
+            session.delete(sub_request)
+        logger.info(f"Deleted {len(sub_requests)} SubstituteRequest records")
+
+        # 7. Delete TemporarySubAssignment records (should cascade, but let's be explicit)
+        temp_subs = session.query(TemporarySubAssignment).filter_by(match_id=match_id).all()
+        for temp_sub in temp_subs:
+            session.delete(temp_sub)
+        logger.info(f"Deleted {len(temp_subs)} TemporarySubAssignment records")
+
+        # 8. Delete corresponding schedule entries
         schedule = session.query(Schedule).get(match.schedule_id)
         if schedule:
             # Find and delete the paired schedule
@@ -611,16 +660,19 @@ def delete_match():
                 week=schedule.week,
                 date=schedule.date
             ).first()
-            
+
             if paired_schedule:
                 session.delete(paired_schedule)
-            
+
             session.delete(schedule)
-        
+
+        # 9. Finally delete the match itself
         session.delete(match)
         session.commit()
+
+        logger.info(f"Successfully deleted match {match_id} and all related records")
         return jsonify({'success': True, 'message': 'Match deleted successfully'})
-        
+
     except Exception as e:
         session.rollback()
         logger.error(f"Error deleting match: {str(e)}")
