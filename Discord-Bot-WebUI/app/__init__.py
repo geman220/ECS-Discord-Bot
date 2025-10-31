@@ -1004,9 +1004,10 @@ def init_blueprints(app):
     csrf.exempt(smart_sync_bp)  # Exempt smart sync endpoints from CSRF
     
     # Import and register playoff management blueprint
-    from app.playoff_routes import playoff_bp
+    from app.playoff_routes import playoff_bp, api_playoffs_bp
     app.register_blueprint(playoff_bp)
-    
+    app.register_blueprint(api_playoffs_bp)
+
     # Register cache admin routes
     from app.cache_admin_routes import cache_admin_bp
     from app.api_enterprise_rsvp import enterprise_rsvp_bp

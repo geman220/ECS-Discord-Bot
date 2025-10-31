@@ -55,6 +55,16 @@
         </li>
         {% endif %}
 
+        <!-- Coach Dashboard - Coaches and Admins -->
+        {% if 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if request.endpoint == 'teams.coach_dashboard' }}">
+            <a class="menu-link" href="{{ url_for('teams.coach_dashboard') }}">
+                <i data-feather="clipboard" class="menu-icon"></i>
+                <div>Coach Dashboard</div>
+            </a>
+        </li>
+        {% endif %}
+
         <!-- Help Topics - Available for everyone logged in -->
         {% if safe_current_user.is_authenticated %}
         <li class="menu-item {{ 'active' if request.endpoint == 'help.index' }}">
@@ -129,6 +139,11 @@
                 <li class="menu-item {{ 'active' if 'playoff' in request.path and 'generator' in request.path }}">
                     <a class="menu-link" href="{{ url_for('playoff.playoff_generator_redirect') }}">
                         <div><i class="ti ti-tournament"></i> Playoff Generator</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ 'active' if 'playoff' in request.path and 'bracket' in request.path }}">
+                    <a class="menu-link" href="{{ url_for('playoff.view_bracket_redirect') }}">
+                        <div><i class="ti ti-trophy"></i> Playoff Bracket</div>
                     </a>
                 </li>
                 {% endif %}

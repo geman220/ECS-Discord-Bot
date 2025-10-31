@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% from 'playoff_bracket_macro.html' import render_playoff_bracket %}
+{% from 'macros.html' import render_report_match_modal %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+    <!-- Page Header -->
+    <div class="card bg-primary mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="text-white mb-1">
+                        <i class="ti ti-trophy me-2"></i>{{ league.name }} Playoffs
+                    </h2>
+                    <p class="text-white-50 mb-0">
+                        {{ season.name }} - Interactive Bracket & Match Reporting
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Playoff Bracket -->
+    <div class="row">
+        <div class="col-12">
+            {{ render_playoff_bracket(league.id, season.id) }}
+        </div>
+    </div>
+
+    <!-- Instructions Card for Mobile -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h5 class="card-title text-info">
+                        <i class="ti ti-info-circle me-2"></i>How to Report Matches
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>From Mobile (On the Field):</h6>
+                            <ol class="mb-0">
+                                <li>Tap any match card in the bracket above</li>
+                                <li>Enter final scores</li>
+                                <li>Add goals, assists, and cards</li>
+                                <li>Tap "Submit" to save</li>
+                            </ol>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Group Stage Updates:</h6>
+                            <ul class="mb-0">
+                                <li>Standings update automatically</li>
+                                <li>Placement finals generate after Week 2 morning</li>
+                                <li>Bracket refreshes every 30 seconds</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Match Reporting Modals -->
+{% if playoff_matches %}
+    {% for match in playoff_matches %}
+        {% if match.home_team and match.away_team %}
+            {# Set up team names for the modal #}
+            {% set match_dict = namespace(
+                id=match.id,
+                home_team_name=match.home_team.name,
+                away_team_name=match.away_team.name,
+                home_team_score=match.home_team_score,
+                away_team_score=match.away_team_score,
+                reported=(match.home_team_score is not none and match.away_team_score is not none),
+                home_team=match.home_team,
+                away_team=match.away_team,
+                goal_scorers=match.goal_scorers,
+                assists=match.assists,
+                yellow_cards=match.yellow_cards,
+                red_cards=match.red_cards
+            ) %}
+
+            {{ render_report_match_modal(match, player_choices) }}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+<style>
+/* Mobile-specific optimizations for bracket */
+@media (max-width: 767px) {
+    .playoff-bracket-container {
+        padding: 0;
+    }
+
+    .bracket-match-card {
+        margin-bottom: 0.5rem;
+    }
+
+    .bracket-match-card .match-report-btn {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+        width: 100%;
+    }
+
+    .group-standings {
+        font-size: 0.9rem;
+    }
+
+    /* Make modal full screen on mobile */
+    .ecs-modal .modal-dialog {
+        margin: 0;
+        max-width: 100%;
+        height: 100%;
+    }
+
+    .ecs-modal .modal-content {
+        height: 100%;
+        border-radius: 0;
+    }
+}
+
+/* Ensure modals are above bracket */
+.modal {
+    z-index: 1060;
+}
+
+.modal-backdrop {
+    z-index: 1050;
+}
+
+/* Touch-friendly buttons */
+@media (hover: none) and (pointer: coarse) {
+    .bracket-match-card {
+        cursor: pointer;
+        -webkit-tap-highlight-color: rgba(105, 108, 255, 0.2);
+    }
+
+    .match-report-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+</style>
+
+<script>
+// Override the playoff bracket's match report handler to use modals on this page
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait for playoff bracket to initialize
+    setTimeout(function() {
+        if (window.playoffBracket) {
+            window.playoffBracket.handleMatchReport = function(matchId) {
+                const modalId = `reportMatchModal-${matchId}`;
+                const modalElement = document.getElementById(modalId);
+
+                if (modalElement) {
+                    const modal = new bootstrap.Modal(modalElement);
+                    modal.show();
+                } else {
+                    console.error('Match report modal not found:', modalId);
+                    alert('Unable to load match report form. Please refresh the page and try again.');
+                }
+            };
+
+            console.log('Playoff bracket match reporting configured for mobile');
+        }
+    }, 500);
+
+    // Handle form submissions
+    document.querySelectorAll('.report-match-form').forEach(form => {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const matchId = this.dataset.matchId;
+            const formData = new FormData(this);
+
+            try {
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById(`reportMatchModal-${matchId}`));
+                    if (modal) {
+                        modal.hide();
+                    }
+
+                    // Show success message
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Match Reported!',
+                            text: 'Match has been successfully reported.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    }
+
+                    // Refresh bracket
+                    if (window.playoffBracket) {
+                        await window.playoffBracket.refresh();
+                    }
+                } else {
+                    throw new Error(data.message || 'Failed to report match');
+                }
+            } catch (error) {
+                console.error('Error reporting match:', error);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: error.message || 'Failed to report match. Please try again.',
+                        confirmButtonText: 'OK'
+                    });
+                } else {
+                    alert('Error: ' + (error.message || 'Failed to report match'));
+                }
+            }
+        });
+    });
+});
+</script>
+
+{% endblock %}

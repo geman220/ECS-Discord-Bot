@@ -1,0 +1,485 @@
+{% extends "base.html" %}
+{% from 'macros.html' import render_report_match_modal %}
+
+{% block title %}{{ title }}{% endblock %}
+
+<!-- Match Card Macro -->
+{% macro render_match_card(match, player_choices) %}
+<div class="p-3 border-bottom">
+    <div class="row">
+        <div class="col-md-7 mb-3 mb-md-0">
+            <div class="d-flex justify-content-between mb-2">
+                <span class="fw-bold">{{ match.home_team.name if match.home_team else match.opponent_name }}</span>
+                <span class="fw-bold fs-4 {% if match.home_team_score is not none %}text-primary{% else %}text-muted{% endif %}">{{ match.home_team_score if match.home_team_score is not none else '-' }}</span>
+            </div>
+            <div class="text-center text-muted small mb-2">vs</div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="fw-bold">{{ match.away_team.name if match.away_team else match.opponent_name }}</span>
+                <span class="fw-bold fs-4 {% if match.away_team_score is not none %}text-primary{% else %}text-muted{% endif %}">{{ match.away_team_score if match.away_team_score is not none else '-' }}</span>
+            </div>
+            <div class="small text-muted">
+                <div><i class="ti ti-calendar me-1"></i>{{ match.date.strftime('%a, %b %d, %Y') }}</div>
+                <div><i class="ti ti-clock me-1"></i>{{ match.time.strftime('%I:%M %p') }}</div>
+                <div><i class="ti ti-map-pin me-1"></i>{{ match.location }}</div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            {% if match.home_team_score is not none %}
+            <div class="alert alert-success py-2 mb-2"><i class="ti ti-check-circle me-1"></i><strong>Reported</strong></div>
+            {% else %}
+            <div class="alert alert-warning py-2 mb-2"><i class="ti ti-alert-circle me-1"></i><strong>Not Reported</strong></div>
+            {% endif %}
+
+            {# RSVP Counts - show for all matches #}
+            {% if match.rsvp_counts %}
+            <div class="mb-2">
+                <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span><i class="ti ti-users me-1"></i>RSVPs:</span>
+                </div>
+                <div class="d-flex gap-2">
+                    <span class="badge bg-success">✓ {{ match.rsvp_counts.YES }}</span>
+                    <span class="badge bg-danger">✗ {{ match.rsvp_counts.NO }}</span>
+                    <span class="badge bg-warning">? {{ match.rsvp_counts.MAYBE }}</span>
+                </div>
+            </div>
+            {% endif %}
+
+            {# Sub Request Status #}
+            {% if match.sub_requests %}
+            <div class="alert alert-info py-2 mb-2 small">
+                <i class="ti ti-user-plus me-1"></i>
+                {% for sub_req in match.sub_requests %}
+                    {% if sub_req.status == 'OPEN' %}
+                    <strong>{{ sub_req.substitutes_needed }} sub(s) requested</strong>
+                    {% elif sub_req.status == 'FILLED' %}
+                    <strong>Sub filled</strong>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {# Match Reporting Button #}
+            <button class="btn btn-primary btn-lg w-100 mb-2" data-bs-toggle="modal" data-bs-target="#reportMatchModal-{{ match.id }}">
+                <i class="ti ti-pencil me-2"></i>{% if match.home_team_score is not none %}Edit{% else %}Report{% endif %}
+            </button>
+
+            {# Request Sub Button (only for future matches) #}
+            {% if match.date and match.date > today and match.home_team_score is none %}
+                {% set has_open_request = namespace(value=false) %}
+                {% if match.sub_requests %}
+                    {% for sub_req in match.sub_requests %}
+                        {% if sub_req.status == 'OPEN' %}
+                            {% set has_open_request.value = true %}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {% if not has_open_request.value %}
+                    {% if match.is_ecs_fc %}
+                        {# ECS FC: Use team_id from match.team_id #}
+                        <button class="btn btn-outline-secondary w-100" onclick="requestSub('{{ match.id }}', '{{ match.league_type }}', '{{ match.team_id if hasattr(match, 'team_id') else (match.home_team_id if match.home_team_id else match.away_team_id) }}')">
+                            <i class="ti ti-user-plus me-2"></i>Request Sub
+                        </button>
+                    {% else %}
+                        {# Pub League: Use home_team_id or away_team_id #}
+                        <button class="btn btn-outline-secondary w-100" onclick="requestSub('{{ match.id }}', '{{ match.league_type if match.league_type else 'Pub League' }}', '{{ match.home_team_id if match.home_team_id else match.away_team_id }}')">
+                            <i class="ti ti-user-plus me-2"></i>Request Sub
+                        </button>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+
+    <!-- Page Header -->
+    <div class="card bg-primary mb-4">
+        <div class="card-body">
+            <h2 class="text-white mb-1">
+                <i class="ti ti-dashboard me-2"></i>Coach Dashboard
+            </h2>
+            {% if coached_teams %}
+            <p class="text-white-50 mb-0">
+                Managing
+                {% for team in coached_teams %}
+                    <span class="badge bg-label-light">{{ team.name }}</span>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </p>
+            {% else %}
+            <p class="text-white-50 mb-0">
+                Team statistics, player roster, and match reporting
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if no_coach_access %}
+    <!-- Not Coaching Message -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-body text-center py-5">
+                    <i class="ti ti-info-circle mb-3" style="font-size: 3rem; color: #17a2b8;"></i>
+                    <h5>Not Currently Coaching</h5>
+                    <p class="text-muted mb-0">
+                        You are not currently assigned as a coach for any teams.<br>
+                        This dashboard is available for coaches to view team stats and report matches.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+
+    {% for team in coached_teams %}
+    {% set stats = team_stats.get(team.id) %}
+
+    <!-- Team Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <h4 class="fw-bold">
+                <i class="ti ti-users me-2"></i>{{ team.name }}
+                {% if stats.league_type %}
+                    {% if stats.league_type == 'ECS FC' %}
+                        <span class="badge bg-label-info">{{ stats.league_type }}</span>
+                    {% elif stats.league_type == 'Premier' %}
+                        <span class="badge bg-label-success">Premier Division</span>
+                    {% elif stats.league_type == 'Classic' %}
+                        <span class="badge bg-label-warning">Classic Division</span>
+                    {% else %}
+                        <span class="badge bg-label-primary">{{ team.league.name }}</span>
+                    {% endif %}
+                {% elif team.league %}
+                    <span class="badge bg-label-primary">{{ team.league.name }}</span>
+                {% endif %}
+            </h4>
+        </div>
+    </div>
+
+    {% if stats %}
+    <!-- Team Stats Row -->
+    <div class="row g-3 mb-4">
+        <!-- Team Record -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100">
+                <div class="card-header"><h6 class="mb-0"><i class="ti ti-trophy me-2"></i>Season Record</h6></div>
+                <div class="card-body">
+                    {% if stats.standings %}
+                    <div class="stat-row mb-2 d-flex justify-content-between">
+                        <span class="text-muted">Record:</span>
+                        <span class="fw-bold">{{ stats.standings.wins }}-{{ stats.standings.losses }}-{{ stats.standings.draws }}</span>
+                    </div>
+                    <div class="stat-row mb-2 d-flex justify-content-between">
+                        <span class="text-muted">Points:</span>
+                        <span class="fw-bold text-primary">{{ stats.standings.points }}</span>
+                    </div>
+                    <div class="stat-row mb-2 d-flex justify-content-between">
+                        <span class="text-muted">Goals For:</span>
+                        <span>{{ stats.standings.goals_for }}</span>
+                    </div>
+                    <div class="stat-row mb-2 d-flex justify-content-between">
+                        <span class="text-muted">Goals Against:</span>
+                        <span>{{ stats.standings.goals_against }}</span>
+                    </div>
+                    <div class="stat-row d-flex justify-content-between">
+                        <span class="text-muted">Goal Diff:</span>
+                        <span class="{% if stats.standings.goal_difference > 0 %}text-success{% elif stats.standings.goal_difference < 0 %}text-danger{% endif %}">
+                            {% if stats.standings.goal_difference > 0 %}+{% endif %}{{ stats.standings.goal_difference }}
+                        </span>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0 small">No standings data</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Scorers -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100">
+                <div class="card-header"><h6 class="mb-0"><i class="ti ti-ball-football me-2"></i>Top Scorers</h6></div>
+                <div class="card-body">
+                    {% if stats.top_scorers %}
+                    {% for player, pstats in stats.top_scorers %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small">{{ player.name }}</span>
+                        <span class="badge bg-primary">{{ pstats.goals }}</span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted mb-0 small">No goals scored</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Assist Leaders -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100">
+                <div class="card-header"><h6 class="mb-0"><i class="ti ti-user-check me-2"></i>Assist Leaders</h6></div>
+                <div class="card-body">
+                    {% if stats.top_assists %}
+                    {% for player, pstats in stats.top_assists %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small">{{ player.name }}</span>
+                        <span class="badge bg-info">{{ pstats.assists }}</span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted mb-0 small">No assists recorded</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Player Roster -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between" data-bs-toggle="collapse" data-bs-target="#roster-{{ team.id }}" style="cursor:pointer;">
+                    <h6 class="mb-0"><i class="ti ti-users me-2"></i>Roster <span class="badge bg-label-primary">{{ stats.roster|length }}</span></h6>
+                    <i class="ti ti-chevron-down"></i>
+                </div>
+                <div id="roster-{{ team.id }}" class="collapse show">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead><tr><th>Player</th><th class="text-center d-none d-md-table-cell">G</th><th class="text-center d-none d-md-table-cell">A</th><th class="text-center d-none d-lg-table-cell">YC</th><th class="text-center d-none d-lg-table-cell">RC</th><th class="text-center">Attendance</th></tr></thead>
+                            <tbody>
+                                {% for player, attendance, season_stats in stats.roster %}
+                                <tr>
+                                    <td class="fw-semibold">{{ player.name }}</td>
+                                    <td class="text-center d-none d-md-table-cell">
+                                        {% if season_stats and season_stats.goals > 0 %}<span class="badge bg-label-primary">{{ season_stats.goals }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
+                                    </td>
+                                    <td class="text-center d-none d-md-table-cell">
+                                        {% if season_stats and season_stats.assists > 0 %}<span class="badge bg-label-info">{{ season_stats.assists }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
+                                    </td>
+                                    <td class="text-center d-none d-lg-table-cell">
+                                        {% if season_stats and season_stats.yellow_cards > 0 %}<span class="badge bg-label-warning">{{ season_stats.yellow_cards }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
+                                    </td>
+                                    <td class="text-center d-none d-lg-table-cell">
+                                        {% if season_stats and season_stats.red_cards > 0 %}<span class="badge bg-label-danger">{{ season_stats.red_cards }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if attendance %}
+                                        {% set rate = (attendance.season_attendance_rate * 100)|int %}
+                                        <span class="badge {% if rate >= 80 %}bg-success{% elif rate >= 60 %}bg-warning{% else %}bg-danger{% endif %}">{{ rate }}%</span>
+                                        {% else %}<span class="text-muted">N/A</span>{% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    <!-- Match Reporting Section -->
+    <h4 class="fw-bold mb-3"><i class="ti ti-clipboard-check me-2"></i>Match Reporting</h4>
+
+    {% if todays_matches %}
+    <div class="card border-warning shadow mb-4">
+        <div class="card-header bg-warning"><h6 class="mb-0"><i class="ti ti-clock-play me-2"></i>Today's Matches <span class="badge bg-label-light">{{ todays_matches|length }}</span></h6></div>
+        <div class="list-group list-group-flush">
+            {% for match in todays_matches %}{{ render_match_card(match, player_choices) }}{% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if needs_reporting %}
+    <div class="card border-danger shadow mb-4">
+        <div class="card-header bg-danger text-white"><h6 class="mb-0"><i class="ti ti-alert-triangle me-2"></i>Needs Reporting <span class="badge bg-white text-danger">{{ needs_reporting|length }}</span></h6></div>
+        <div class="list-group list-group-flush">
+            {% for match in needs_reporting %}{{ render_match_card(match, player_choices) }}{% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if upcoming_matches %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between" data-bs-toggle="collapse" data-bs-target="#upcomingMatches" style="cursor:pointer;">
+            <h6 class="mb-0"><i class="ti ti-calendar-event me-2"></i>Upcoming <span class="badge bg-label-primary">{{ upcoming_matches|length }}</span></h6>
+            <i class="ti ti-chevron-down"></i>
+        </div>
+        <div id="upcomingMatches" class="collapse show">
+            <div class="list-group list-group-flush">
+                {% for match in upcoming_matches %}{{ render_match_card(match, player_choices) }}{% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if past_matches %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between" data-bs-toggle="collapse" data-bs-target="#pastMatches" style="cursor:pointer;">
+            <h6 class="mb-0"><i class="ti ti-history me-2"></i>Past <span class="badge bg-label-secondary">{{ past_matches|length }}</span></h6>
+            <i class="ti ti-chevron-down"></i>
+        </div>
+        <div id="pastMatches" class="collapse">
+            <div class="list-group list-group-flush">
+                {% for match in past_matches %}{{ render_match_card(match, player_choices) }}{% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if not current_matches and not future_matches and not past_matches %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="ti ti-calendar-off mb-3" style="font-size:3rem;color:#999;"></i>
+            <h6 class="text-muted">No Matches Scheduled</h6>
+        </div>
+    </div>
+    {% endif %}
+
+    {% endif %}
+</div>
+
+<!-- Match Modals -->
+{% if not no_coach_access %}
+{% set all_matches = (todays_matches if todays_matches else []) + (needs_reporting if needs_reporting else []) + (upcoming_matches if upcoming_matches else []) + (past_matches if past_matches else []) %}
+{% for match in all_matches %}
+    {% if match and (match.home_team or match.away_team) %}{{ render_report_match_modal(match, player_choices) }}{% endif %}
+{% endfor %}
+{% endif %}
+
+<style>
+@media(max-width:767px){.ecs-modal .modal-dialog{margin:0;max-width:100%;height:100%}.ecs-modal .modal-content{height:100%;border-radius:0}.btn{min-height:44px}}
+.card-header[data-bs-toggle=collapse] .ti-chevron-down{transition:transform .3s}
+.card-header[aria-expanded=false] .ti-chevron-down{transform:rotate(-90deg)}
+</style>
+
+<script>
+// Get today's date for comparison
+const today = new Date().toISOString().split('T')[0];
+
+// Get CSRF token
+function getCsrfToken() {
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    return csrfMeta ? csrfMeta.content : '';
+}
+
+// Request Sub function
+async function requestSub(matchId, leagueType, teamId) {
+    // Show confirmation dialog
+    if (typeof Swal !== 'undefined') {
+        const result = await Swal.fire({
+            title: 'Request Substitute',
+            html: `
+                <div class="mb-3">
+                    <label class="form-label">Number of subs needed:</label>
+                    <input type="number" id="subs-needed" class="form-control" value="1" min="1" max="5">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Positions needed:</label>
+                    <input type="text" id="positions" class="form-control" placeholder="e.g., Forward, Midfielder">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Notes (optional):</label>
+                    <textarea id="notes" class="form-control" rows="3" placeholder="Any additional information..."></textarea>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Request Sub',
+            preConfirm: () => {
+                return {
+                    substitutes_needed: document.getElementById('subs-needed').value,
+                    positions_needed: document.getElementById('positions').value,
+                    notes: document.getElementById('notes').value
+                };
+            }
+        });
+
+        if (result.isConfirmed) {
+            try {
+                // Determine endpoint and build FormData based on league type
+                let endpoint;
+                const formData = new FormData();
+                const csrfToken = getCsrfToken();
+
+                formData.append('csrf_token', csrfToken);
+                formData.append('substitutes_needed', result.value.substitutes_needed);
+                formData.append('positions_needed', result.value.positions_needed);
+                formData.append('notes', result.value.notes);
+
+                if (leagueType === 'ECS FC') {
+                    // ECS FC: endpoint expects integer match_id in URL path
+                    endpoint = `/ecs-fc/sub-request/${matchId}`;
+                } else {
+                    // Pub League (Premier or Classic): needs match_id and team_id in form data
+                    endpoint = '/admin/request_sub';
+                    formData.append('match_id', matchId);
+                    formData.append('team_id', teamId);
+                }
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: formData
+                });
+
+                // Both endpoints redirect on success, so any 2xx or 3xx response means success
+                if (response.ok || (response.status >= 300 && response.status < 400)) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Sub Requested!',
+                        text: 'Substitute request has been created. Notifications are being sent to available substitutes.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => window.location.reload());
+                } else {
+                    throw new Error('Failed to request substitute');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Failed to request substitute'
+                });
+            }
+        }
+    } else {
+        // Fallback if SweetAlert2 is not available
+        if (confirm('Request a substitute for this match?')) {
+            window.location.href = endpoint;
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+document.querySelectorAll('.report-match-form').forEach(form=>{
+form.addEventListener('submit',async function(e){
+e.preventDefault();
+const matchId=this.dataset.matchId;
+const formData=new FormData(this);
+try{
+const response=await fetch(this.action,{method:'POST',body:formData});
+const data=await response.json();
+if(data.success){
+const modal=bootstrap.Modal.getInstance(document.getElementById(`reportMatchModal-${matchId}`));
+if(modal)modal.hide();
+if(typeof Swal!=='undefined'){
+Swal.fire({icon:'success',title:'Match Reported!',timer:2000,showConfirmButton:false}).then(()=>window.location.reload());
+}else{window.location.reload();}
+}else{throw new Error(data.message||'Failed to report match');}
+}catch(error){
+console.error('Error:',error);
+if(typeof Swal!=='undefined'){Swal.fire({icon:'error',title:'Error',text:error.message||'Failed to report match'});}
+else{alert('Error: '+error.message);}
+}
+});
+});
+});
+</script>
+{% endblock %}

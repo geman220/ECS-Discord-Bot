@@ -1,0 +1,229 @@
+{# Playoff Bracket Macro #}
+{#
+    Usage:
+    {% from 'playoff_bracket_macro.html' import render_playoff_bracket %}
+    {{ render_playoff_bracket(league_id, season_id) }}
+#}
+
+{% macro render_playoff_bracket(league_id, season_id, current_team_id=None) %}
+<div class="playoff-bracket-container"
+     data-league-id="{{ league_id }}"
+     data-season-id="{{ season_id }}"
+     data-current-team="{{ current_team_id or '' }}">
+
+    {# Loading state #}
+    <div class="bracket-loading text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading playoff bracket...</span>
+        </div>
+        <p class="text-muted mt-2">Loading playoff bracket...</p>
+    </div>
+
+    {# Error state (hidden by default) #}
+    <div class="bracket-error alert alert-warning d-none">
+        <i class="ti ti-alert-circle me-2"></i>
+        <span class="bracket-error-message">No playoff data available</span>
+    </div>
+
+    {# Bracket content (populated by JavaScript) #}
+    <div class="bracket-content d-none">
+        {# Header #}
+        <div class="bracket-header mb-4">
+            <h3 class="fw-bold text-primary">
+                <i class="ti ti-trophy me-2"></i>
+                Playoff Bracket
+            </h3>
+            <p class="text-muted mb-0">
+                <span class="badge bg-label-info">
+                    <i class="ti ti-calendar me-1"></i>
+                    <span class="bracket-status-text">Group Stage in Progress</span>
+                </span>
+            </p>
+        </div>
+
+        {# Bracket visualization #}
+        <div class="bracket-visual">
+            <div class="row g-4">
+                {# Left side - Group A #}
+                <div class="col-lg-6 col-12">
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="ti ti-users me-2"></i>Group A
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {# Group A matches #}
+                            <div class="group-matches" id="groupAMatches">
+                                {# Populated by JavaScript #}
+                            </div>
+
+                            {# Group A standings #}
+                            <div class="group-standings mt-3" id="groupAStandings">
+                                <h6 class="fw-bold text-muted mb-2">
+                                    <i class="ti ti-list-numbers me-1"></i>Standings
+                                </h6>
+                                <div class="standings-table">
+                                    {# Populated by JavaScript #}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# Right side - Group B #}
+                <div class="col-lg-6 col-12">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="ti ti-users me-2"></i>Group B
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {# Group B matches #}
+                            <div class="group-matches" id="groupBMatches">
+                                {# Populated by JavaScript #}
+                            </div>
+
+                            {# Group B standings #}
+                            <div class="group-standings mt-3" id="groupBStandings">
+                                <h6 class="fw-bold text-muted mb-2">
+                                    <i class="ti ti-list-numbers me-1"></i>Standings
+                                </h6>
+                                <div class="standings-table">
+                                    {# Populated by JavaScript #}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Placement Finals - Week 2 Afternoon #}
+            <div class="placement-finals mt-4" id="placementFinals">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning">
+                        <h5 class="mb-0">
+                            <i class="ti ti-trophy me-2"></i>Placement Finals - Week 2
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            {# Championship and 7th place at 11:50 #}
+                            <div class="col-md-6 col-12">
+                                <div class="placement-match championship-match" data-placement="1st">
+                                    <div class="placement-label">
+                                        <i class="ti ti-trophy text-warning"></i>
+                                        <strong>Championship</strong>
+                                        <span class="text-muted small">(11:50 South)</span>
+                                    </div>
+                                    <div class="match-detail" id="championshipMatch">
+                                        {# Populated by JavaScript #}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 col-12">
+                                <div class="placement-match" data-placement="7th">
+                                    <div class="placement-label">
+                                        <strong>7th Place Game</strong>
+                                        <span class="text-muted small">(11:50 North)</span>
+                                    </div>
+                                    <div class="match-detail" id="seventhPlaceMatch">
+                                        {# Populated by JavaScript #}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {# 3rd and 5th place at 10:40 #}
+                            <div class="col-md-6 col-12">
+                                <div class="placement-match" data-placement="3rd">
+                                    <div class="placement-label">
+                                        <i class="ti ti-medal text-info"></i>
+                                        <strong>3rd Place Game</strong>
+                                        <span class="text-muted small">(10:40 South)</span>
+                                    </div>
+                                    <div class="match-detail" id="thirdPlaceMatch">
+                                        {# Populated by JavaScript #}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 col-12">
+                                <div class="placement-match" data-placement="5th">
+                                    <div class="placement-label">
+                                        <strong>5th Place Game</strong>
+                                        <span class="text-muted small">(10:40 North)</span>
+                                    </div>
+                                    <div class="match-detail" id="fifthPlaceMatch">
+                                        {# Populated by JavaScript #}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Include the bracket CSS #}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/playoff_bracket.css') }}">
+
+{# Include the bracket JavaScript #}
+<script src="{{ url_for('static', filename='custom_js/playoff_bracket.js') }}"></script>
+
+{# Initialize bracket on page load #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const bracketContainer = document.querySelector('.playoff-bracket-container');
+    if (bracketContainer) {
+        const leagueId = bracketContainer.dataset.leagueId;
+        const seasonId = bracketContainer.dataset.seasonId;
+        const currentTeamId = bracketContainer.dataset.currentTeam || null;
+
+        if (window.PlayoffBracket) {
+            window.playoffBracket = new PlayoffBracket(leagueId, seasonId, currentTeamId);
+            window.playoffBracket.initialize();
+        }
+    }
+});
+</script>
+{% endmacro %}
+
+
+{# Compact match card for use within the bracket #}
+{% macro render_bracket_match_card(match_id) %}
+<div class="bracket-match-card"
+     data-match-id="{{ match_id }}"
+     data-bs-toggle="tooltip"
+     title="Click to report match">
+    <div class="match-teams">
+        <div class="team home-team">
+            <span class="team-name">TBD</span>
+            <span class="team-score">-</span>
+        </div>
+        <div class="match-divider">vs</div>
+        <div class="team away-team">
+            <span class="team-name">TBD</span>
+            <span class="team-score">-</span>
+        </div>
+    </div>
+    <div class="match-info">
+        <span class="match-time">
+            <i class="ti ti-clock"></i>
+            <span class="time-text">TBD</span>
+        </span>
+        <span class="match-location">
+            <i class="ti ti-map-pin"></i>
+            <span class="location-text">TBD</span>
+        </span>
+    </div>
+    <button class="btn btn-sm btn-primary match-report-btn"
+            onclick="openMatchReportModal({{ match_id }})">
+        <i class="ti ti-pencil"></i>
+        <span class="d-none d-md-inline">Report</span>
+    </button>
+</div>
+{% endmacro %}

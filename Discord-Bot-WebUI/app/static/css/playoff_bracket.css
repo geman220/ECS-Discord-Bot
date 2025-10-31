@@ -1,0 +1,422 @@
+/* Playoff Bracket Styles */
+/* All styles scoped under .playoff-bracket-container to avoid conflicts */
+
+.playoff-bracket-container {
+    margin: 1rem 0;
+    /* Ensure our styles don't leak out */
+    isolation: isolate;
+}
+
+.bracket-loading {
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.bracket-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bracket-header {
+    text-align: center;
+}
+
+.bracket-header h3 {
+    margin-bottom: 0.5rem;
+}
+
+/* Group Cards */
+.group-matches {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Bracket Match Card */
+.bracket-match-card {
+    position: relative;
+    padding: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fff;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    color: #333;
+}
+
+/* Dark mode support */
+[data-style="dark"] .bracket-match-card {
+    background: #2f3349;
+    border-color: #434968;
+    color: #d4d5dd;
+}
+
+.bracket-match-card:hover {
+    border-color: #696cff;
+    box-shadow: 0 4px 12px rgba(105, 108, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.bracket-match-card.reported {
+    border-color: #28a745;
+    background-color: #f0f9f4;
+}
+
+.bracket-match-card.current-team {
+    border-color: #ffc107;
+    background-color: #fff9e6;
+    border-width: 3px;
+}
+
+[data-style="dark"] .bracket-match-card.current-team {
+    background-color: #3e3416;
+    border-color: #ffc107;
+}
+
+.bracket-match-card .match-teams {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.bracket-match-card .team {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+}
+
+[data-style="dark"] .bracket-match-card .team {
+    background-color: #25293c;
+}
+
+.bracket-match-card .team.winner {
+    background-color: #d4edda;
+    font-weight: 600;
+}
+
+[data-style="dark"] .bracket-match-card .team.winner {
+    background-color: #1e4620;
+    color: #d4edda;
+}
+
+.bracket-match-card .team-name {
+    font-size: 0.95rem;
+    flex: 1;
+}
+
+.bracket-match-card .team-score {
+    font-size: 1.1rem;
+    font-weight: 700;
+    min-width: 30px;
+    text-align: right;
+    color: #696cff;
+}
+
+.bracket-match-card .match-divider {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #999;
+    margin: 0.25rem 0;
+}
+
+.bracket-match-card .match-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.bracket-match-card .match-info span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.bracket-match-card .match-report-btn {
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+/* Group Standings */
+.group-standings {
+    padding-top: 1rem;
+    border-top: 2px solid #e0e0e0;
+}
+
+[data-style="dark"] .group-standings {
+    border-top-color: #434968;
+}
+
+.standings-table {
+    width: 100%;
+}
+
+.standings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    border-bottom: 1px solid #e0e0e0;
+    transition: background-color 0.2s ease;
+}
+
+[data-style="dark"] .standings-row {
+    border-bottom-color: #434968;
+}
+
+.standings-row:hover {
+    background-color: #f8f9fa;
+}
+
+[data-style="dark"] .standings-row:hover {
+    background-color: #25293c;
+}
+
+.standings-row.current-team {
+    background-color: #fff9e6;
+    font-weight: 600;
+}
+
+[data-style="dark"] .standings-row.current-team {
+    background-color: #3e3416;
+}
+
+.standings-row .position {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #696cff;
+    color: white;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.standings-row.position-1 .position {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.standings-row.position-2 .position {
+    background-color: #c0c0c0;
+}
+
+.standings-row.position-3 .position {
+    background-color: #cd7f32;
+}
+
+.standings-row .team-name {
+    flex: 1;
+    margin-left: 0.75rem;
+    font-size: 0.95rem;
+}
+
+.standings-row .stats {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+}
+
+.standings-row .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.standings-row .stat-label {
+    color: #999;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+.standings-row .stat-value {
+    font-weight: 700;
+    color: #333;
+}
+
+/* Placement Finals */
+.placement-finals {
+    margin-top: 2rem;
+}
+
+.placement-match {
+    padding: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fff;
+    height: 100%;
+}
+
+[data-style="dark"] .placement-match {
+    background: #2f3349;
+    border-color: #434968;
+}
+
+.placement-match.championship-match {
+    border-color: #ffc107;
+    background-color: #fff9e6;
+}
+
+[data-style="dark"] .placement-match.championship-match {
+    background-color: #3e3416;
+    border-color: #ffc107;
+}
+
+.placement-match .placement-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+[data-style="dark"] .placement-match .placement-label {
+    border-bottom-color: #434968;
+}
+
+.placement-match .placement-label strong {
+    flex: 1;
+}
+
+.placement-match .placement-label .small {
+    font-size: 0.85rem;
+}
+
+.placement-match .match-detail {
+    min-height: 120px;
+}
+
+.placement-match .tbd-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 120px;
+    color: #999;
+    font-style: italic;
+}
+
+/* Round labels */
+.round-label {
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #696cff;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+/* Status badges */
+.match-status-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991px) {
+    .bracket-match-card {
+        padding: 0.75rem;
+    }
+
+    .bracket-match-card .team-name {
+        font-size: 0.85rem;
+    }
+
+    .bracket-match-card .team-score {
+        font-size: 1rem;
+    }
+
+    .standings-row .stats {
+        gap: 0.5rem;
+    }
+
+    .placement-finals .row {
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 767px) {
+    .bracket-match-card .match-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+
+    .standings-row .stats {
+        flex-direction: column;
+        gap: 0.25rem;
+        align-items: flex-end;
+    }
+
+    .standings-row .stat {
+        flex-direction: row;
+        gap: 0.5rem;
+    }
+
+    .placement-match .placement-label {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* Animation for updates */
+@keyframes highlight-update {
+    0% {
+        background-color: #fff9e6;
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+.bracket-match-card.just-updated {
+    animation: highlight-update 2s ease-in-out;
+}
+
+.standings-row.just-updated {
+    animation: highlight-update 2s ease-in-out;
+}
+
+/* Loading skeleton */
+.bracket-match-skeleton {
+    height: 150px;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s ease-in-out infinite;
+    border-radius: 8px;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Print styles */
+@media print {
+    .bracket-match-card .match-report-btn {
+        display: none;
+    }
+
+    .bracket-match-card {
+        page-break-inside: avoid;
+    }
+}

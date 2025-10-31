@@ -14,7 +14,7 @@ from flask import Blueprint, render_template, request, jsonify, redirect, url_fo
 from flask_login import login_required, current_user
 
 from app.decorators import role_required
-from app.models import League, Team, Match, Schedule, Season, Standings, WeekConfiguration, ScheduledMessage
+from app.models import League, Team, Match, Schedule, Season, Standings, WeekConfiguration, ScheduledMessage, PlayerEvent, PlayerEventType, Player
 from app.alert_helpers import show_success, show_error, show_warning
 from app.playoff_generator import PlayoffGenerator
 from app.schedule_routes import ScheduleManager
@@ -133,6 +133,125 @@ def playoff_generator(league_id: int):
                          league=league,
                          standings=standings,
                          title=f'Playoff Generator - {league.name}')
+
+
+@playoff_bp.route('/bracket', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
+def view_bracket_redirect():
+    """
+    Redirect to playoff bracket for current season's Premier league.
+    """
+    session = g.db_session
+
+    # Get current Pub League season
+    from app.models import Season
+    current_season = session.query(Season).filter_by(
+        is_current=True,
+        league_type='Pub League'
+    ).first()
+
+    if not current_season:
+        show_error('No current Pub League season found')
+        return redirect(url_for('main.index'))
+
+    # Find Premier league in current season
+    premier_league = session.query(League).filter_by(
+        season_id=current_season.id,
+        name='Premier'
+    ).first()
+
+    if not premier_league:
+        show_error('Premier league not found in current season')
+        return redirect(url_for('main.index'))
+
+    return redirect(url_for('playoff.view_bracket', league_id=premier_league.id))
+
+
+@playoff_bp.route('/league/<int:league_id>/bracket', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
+def view_bracket(league_id: int):
+    """
+    View playoff bracket with match reporting capabilities.
+    Optimized for mobile match reporting from the field.
+
+    Args:
+        league_id: ID of the league
+    """
+    session = g.db_session
+    league = session.query(League).get(league_id)
+
+    if not league:
+        show_error('League not found')
+        return redirect(url_for('main.index'))
+
+    if not league.season:
+        show_error('No active season found')
+        return redirect(url_for('main.index'))
+
+    # Get all playoff matches for this league
+    playoff_matches = session.query(Match).join(
+        Team, Match.home_team_id == Team.id
+    ).filter(
+        Team.league_id == league_id,
+        Match.is_playoff_game == True
+    ).order_by(Match.playoff_round, Match.date, Match.time).all()
+
+    # Get all teams involved in playoffs for player dropdown
+    playoff_team_ids = set()
+    for match in playoff_matches:
+        playoff_team_ids.add(match.home_team_id)
+        playoff_team_ids.add(match.away_team_id)
+
+    playoff_teams = session.query(Team).filter(Team.id.in_(playoff_team_ids)).all()
+
+    # Build player choices for match reporting modals
+    player_choices = {}
+    for match in playoff_matches:
+        # Get players from both teams
+        home_players = session.query(Player).join(
+            Player.teams
+        ).filter(Team.id == match.home_team_id).all()
+
+        away_players = session.query(Player).join(
+            Player.teams
+        ).filter(Team.id == match.away_team_id).all()
+
+        player_choices[match.id] = {
+            match.home_team.name if match.home_team else 'Home': {
+                p.id: p.name for p in home_players
+            },
+            match.away_team.name if match.away_team else 'Away': {
+                p.id: p.name for p in away_players
+            }
+        }
+
+    # Get match events for each match (for editing)
+    for match in playoff_matches:
+        match.goal_scorers = session.query(PlayerEvent).filter_by(
+            match_id=match.id,
+            event_type=PlayerEventType.GOAL
+        ).all()
+        match.assists = session.query(PlayerEvent).filter_by(
+            match_id=match.id,
+            event_type=PlayerEventType.ASSIST
+        ).all()
+        match.yellow_cards = session.query(PlayerEvent).filter_by(
+            match_id=match.id,
+            event_type=PlayerEventType.YELLOW_CARD
+        ).all()
+        match.red_cards = session.query(PlayerEvent).filter_by(
+            match_id=match.id,
+            event_type=PlayerEventType.RED_CARD
+        ).all()
+
+    return render_template('playoff_bracket_view.html',
+                         league=league,
+                         season=league.season,
+                         playoff_matches=playoff_matches,
+                         player_choices=player_choices,
+                         title=f'Playoff Bracket - {league.name}')
 
 
 @playoff_bp.route('/league/<int:league_id>/assign', methods=['POST'])
@@ -1082,6 +1201,217 @@ def auto_assign_playoffs(league_id: int):
     except Exception as e:
         logger.error(f"Error auto-assigning playoffs: {e}")
         session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# API Blueprint for public/player-facing endpoints
+from flask import Blueprint
+api_playoffs_bp = Blueprint('api_playoffs', __name__, url_prefix='/api/playoffs')
+
+
+@api_playoffs_bp.route('/bracket/<int:league_id>', methods=['GET'])
+@login_required
+def get_bracket_data(league_id: int):
+    """
+    Get playoff bracket data for frontend display.
+
+    Returns group stage matches, standings, and placement finals.
+
+    Args:
+        league_id: ID of the league
+    """
+    session = g.db_session
+    league = session.query(League).get(league_id)
+
+    if not league or not league.season:
+        return jsonify({'success': False, 'error': 'League or season not found'}), 404
+
+    try:
+        # Get all playoff matches for this league
+        playoff_matches = session.query(Match).join(
+            Team, Match.home_team_id == Team.id
+        ).filter(
+            Team.league_id == league_id,
+            Match.is_playoff_game == True
+        ).order_by(Match.playoff_round, Match.date, Match.time).all()
+
+        if not playoff_matches:
+            return jsonify({
+                'success': True,
+                'groupA': None,
+                'groupB': None,
+                'placementMatches': [],
+                'status': 'not_started'
+            })
+
+        # Separate matches by round
+        group_stage_matches = [m for m in playoff_matches if m.playoff_round in [1, 2] and not (m.notes and any(word in m.notes.lower() for word in ['championship', 'place']))]
+        placement_matches = [m for m in playoff_matches if m.notes and any(word in m.notes.lower() for word in ['championship', 'place'])]
+
+        # Extract teams and reconstruct groups
+        playoff_team_ids = set()
+        for match in group_stage_matches:
+            playoff_team_ids.add(match.home_team_id)
+            playoff_team_ids.add(match.away_team_id)
+
+        # Build opponent mapping
+        from collections import defaultdict
+        team_opponents = defaultdict(set)
+        for match in group_stage_matches:
+            team_opponents[match.home_team_id].add(match.away_team_id)
+            team_opponents[match.away_team_id].add(match.home_team_id)
+
+        # Find groups using BFS
+        groups = []
+        visited = set()
+        for team_id in playoff_team_ids:
+            if team_id in visited:
+                continue
+            group = set([team_id])
+            queue = [team_id]
+            visited.add(team_id)
+            while queue:
+                current = queue.pop(0)
+                for opponent in team_opponents[current]:
+                    if opponent not in visited:
+                        visited.add(opponent)
+                        group.add(opponent)
+                        queue.append(opponent)
+            groups.append(list(group))
+
+        if len(groups) < 2:
+            # Groups not yet established - return empty data
+            return jsonify({
+                'success': True,
+                'groupA': None,
+                'groupB': None,
+                'placementMatches': [],
+                'status': 'not_started'
+            })
+
+        # Convert to Team objects
+        group_a_teams = [session.query(Team).get(tid) for tid in groups[0]]
+        group_b_teams = [session.query(Team).get(tid) for tid in groups[1]]
+
+        # Calculate standings for each group
+        generator = PlayoffGenerator(league_id, league.season.id, session)
+
+        # Determine which round to use for standings calculation
+        max_round_reported = 1
+        for match in group_stage_matches:
+            if match.home_team_score is not None and match.away_team_score is not None:
+                max_round_reported = max(max_round_reported, match.playoff_round or 1)
+
+        group_a_standings = generator.calculate_group_standings(group_a_teams, playoff_round=max_round_reported)
+        group_b_standings = generator.calculate_group_standings(group_b_teams, playoff_round=max_round_reported)
+
+        # Calculate detailed stats for standings
+        def calculate_standings_dict(teams, group_name):
+            standings_list = []
+            for team in teams:
+                # Calculate stats from playoff matches
+                team_matches = [m for m in group_stage_matches if m.home_team_id == team.id or m.away_team_id == team.id]
+
+                points = 0
+                goals_for = 0
+                goals_against = 0
+
+                for match in team_matches:
+                    if match.home_team_score is None or match.away_team_score is None:
+                        continue
+
+                    if match.home_team_id == team.id:
+                        goals_for += match.home_team_score
+                        goals_against += match.away_team_score
+                        if match.home_team_score > match.away_team_score:
+                            points += 3
+                        elif match.home_team_score == match.away_team_score:
+                            points += 1
+                    else:
+                        goals_for += match.away_team_score
+                        goals_against += match.home_team_score
+                        if match.away_team_score > match.home_team_score:
+                            points += 3
+                        elif match.away_team_score == match.home_team_score:
+                            points += 1
+
+                goal_difference = goals_for - goals_against
+
+                standings_list.append({
+                    'team_id': team.id,
+                    'team_name': team.name,
+                    'points': points,
+                    'goals_for': goals_for,
+                    'goals_against': goals_against,
+                    'goal_difference': goal_difference
+                })
+
+            # Sort by points, then GD, then GF
+            standings_list.sort(key=lambda x: (x['points'], x['goal_difference'], x['goals_for']), reverse=True)
+            return standings_list
+
+        group_a_standings_dict = calculate_standings_dict(group_a_teams, 'A')
+        group_b_standings_dict = calculate_standings_dict(group_b_teams, 'B')
+
+        # Format matches
+        def format_match(match):
+            return {
+                'id': match.id,
+                'home_team_id': match.home_team_id,
+                'home_team_name': match.home_team.name if match.home_team else 'TBD',
+                'away_team_id': match.away_team_id,
+                'away_team_name': match.away_team.name if match.away_team else 'TBD',
+                'home_team_score': match.home_team_score,
+                'away_team_score': match.away_team_score,
+                'date': match.date.isoformat() if match.date else None,
+                'time': match.time.strftime('%H:%M') if match.time else None,
+                'location': match.location,
+                'playoff_round': match.playoff_round,
+                'description': match.notes or ''
+            }
+
+        # Separate group stage matches by group
+        group_a_match_list = [format_match(m) for m in group_stage_matches if m.home_team_id in groups[0]]
+        group_b_match_list = [format_match(m) for m in group_stage_matches if m.home_team_id in groups[1]]
+
+        # Format placement matches
+        placement_match_list = [format_match(m) for m in placement_matches]
+
+        # Determine overall status
+        group_stage_complete = all(
+            m.home_team_score is not None and m.away_team_score is not None
+            for m in group_stage_matches
+        )
+
+        if placement_matches and all(m.home_team_score is not None and m.away_team_score is not None for m in placement_matches):
+            status = 'completed'
+        elif placement_matches:
+            status = 'placement_finals'
+        elif group_stage_complete:
+            status = 'week2_morning'
+        elif any(m.playoff_round == 2 for m in group_stage_matches):
+            status = 'week2_morning'
+        else:
+            status = 'group_stage'
+
+        return jsonify({
+            'success': True,
+            'groupA': {
+                'teams': [{'id': t.id, 'name': t.name} for t in group_a_teams],
+                'matches': group_a_match_list,
+                'standings': group_a_standings_dict
+            },
+            'groupB': {
+                'teams': [{'id': t.id, 'name': t.name} for t in group_b_teams],
+                'matches': group_b_match_list,
+                'standings': group_b_standings_dict
+            },
+            'placementMatches': placement_match_list,
+            'status': status
+        })
+
+    except Exception as e:
+        logger.error(f"Error fetching bracket data: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

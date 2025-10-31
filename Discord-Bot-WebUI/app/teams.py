@@ -29,9 +29,11 @@ from PIL import Image
 from io import BytesIO
 
 from app.models import (
-    Team, Player, League, Season, Match, Standings,
+    Team, Player, League, Season, Match, Standings, Schedule,
     PlayerEventType, PlayerEvent, PlayerTeamSeason, User,
-    PlayerSeasonStats, player_teams
+    PlayerSeasonStats, player_teams, Availability,
+    EcsFcMatch, EcsFcAvailability, SubstituteRequest,
+    EcsFcSubRequest, get_active_substitutes, PlayerAttendanceStats
 )
 from app.models_ecs import is_ecs_fc_team
 from app.ecs_fc_schedule import EcsFcScheduleManager, is_user_ecs_fc_coach
@@ -39,6 +41,7 @@ from app.forms import ReportMatchForm
 from app.teams_helpers import populate_team_stats, update_standings, process_events, process_own_goals
 from app.utils.user_helpers import safe_current_user
 from app.decorators import role_required
+from app.admin_helpers import determine_match_league_type
 
 logger = logging.getLogger(__name__)
 teams_bp = Blueprint('teams', __name__)
@@ -1743,3 +1746,490 @@ def assign_discord_roles_to_team(team_id):
         'total_players': len(players_with_discord),
         'results': assignment_results
     })
+
+
+@teams_bp.route('/coach/dashboard', methods=['GET'])
+@login_required
+@role_required(['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+def coach_dashboard():
+    """
+    Coach Dashboard - comprehensive view of team(s) with:
+    - Team record and standings
+    - Top performers (goals, assists)
+    - Player roster with attendance
+    - Match reporting interface
+
+    Mobile-optimized for easy field reporting.
+    Admins can access but will see a message if they're not coaching.
+    """
+    session = g.db_session
+    user = safe_current_user  # Already a proxy object, don't call it
+
+    # Get the player associated with this user
+    player = session.query(Player).filter_by(user_id=user.id).first()
+
+    if not player:
+        # Allow admins to see the page with a message
+        return render_template('coach_dashboard.html',
+                             coached_teams=[],
+                             team_stats={},
+                             current_match=None,
+                             past_matches=[],
+                             future_matches=[],
+                             player_choices={},
+                             no_coach_access=True,
+                             title='Coach Dashboard')
+
+    # Find all teams where this player is marked as coach
+    coached_teams = session.query(Team).join(
+        player_teams
+    ).filter(
+        player_teams.c.player_id == player.id,
+        player_teams.c.is_coach == True
+    ).all()
+
+    if not coached_teams:
+        # Allow admins to see the page with a message
+        return render_template('coach_dashboard.html',
+                             coached_teams=[],
+                             team_stats={},
+                             current_match=None,
+                             past_matches=[],
+                             future_matches=[],
+                             player_choices={},
+                             no_coach_access=True,
+                             title='Coach Dashboard')
+
+    # Detect league type for each team and separate ECS FC vs Pub League teams
+    team_ids = [team.id for team in coached_teams]
+    ecs_fc_team_ids = []
+    pub_league_team_ids = []
+    team_league_types = {}  # team_id -> league_type mapping
+
+    for team in coached_teams:
+        # Ensure league is loaded
+        if not team.league:
+            team.league = session.query(League).get(team.league_id)
+
+        league_name = team.league.name.lower() if team.league and team.league.name else ''
+
+        if 'ecs' in league_name:
+            ecs_fc_team_ids.append(team.id)
+            team_league_types[team.id] = 'ECS FC'
+        elif 'premier' in league_name:
+            pub_league_team_ids.append(team.id)
+            team_league_types[team.id] = 'Premier'
+        elif 'classic' in league_name:
+            pub_league_team_ids.append(team.id)
+            team_league_types[team.id] = 'Classic'
+        else:
+            # Fallback: check season league_type
+            if team.league and team.league.season:
+                season_type = team.league.season.league_type
+                if season_type == 'ECS FC':
+                    ecs_fc_team_ids.append(team.id)
+                    team_league_types[team.id] = 'ECS FC'
+                else:
+                    pub_league_team_ids.append(team.id)
+                    team_league_types[team.id] = 'Pub League'
+
+    # Query Pub League matches
+    all_matches = []
+    if pub_league_team_ids:
+        pub_matches = session.query(Match).join(
+            Schedule, Match.schedule_id == Schedule.id
+        ).filter(
+            or_(
+                Match.home_team_id.in_(pub_league_team_ids),
+                Match.away_team_id.in_(pub_league_team_ids)
+            )
+        ).order_by(Match.date.asc(), Match.time.asc()).all()
+
+        # Mark as Pub League matches and load relationships
+        for match in pub_matches:
+            match.league_type = 'Pub League'
+            match.is_ecs_fc = False
+            match.home_team = session.query(Team).get(match.home_team_id)
+            match.away_team = session.query(Team).get(match.away_team_id)
+            # Refine league type (Premier vs Classic)
+            if match.home_team and match.home_team.id in team_league_types:
+                match.league_type = team_league_types[match.home_team.id]
+
+        all_matches.extend(pub_matches)
+
+    # Query ECS FC matches
+    if ecs_fc_team_ids:
+        ecs_matches = session.query(EcsFcMatch).filter(
+            EcsFcMatch.team_id.in_(ecs_fc_team_ids)
+        ).order_by(EcsFcMatch.match_date.asc(), EcsFcMatch.match_time.asc()).all()
+
+        # Mark as ECS FC matches and normalize field names for template compatibility
+        for match in ecs_matches:
+            match.league_type = 'ECS FC'
+            match.is_ecs_fc = True
+
+            # Normalize field names to match Pub League structure
+            match.date = match.match_date
+            match.time = match.match_time
+
+            # Load the actual team and create a pseudo away team
+            match.home_team = session.query(Team).get(match.team_id) if match.is_home_match else None
+            match.away_team = session.query(Team).get(match.team_id) if not match.is_home_match else None
+
+            # Use actual team IDs for compatibility
+            if match.is_home_match:
+                match.home_team_id = match.team_id
+                match.away_team_id = None
+            else:
+                match.home_team_id = None
+                match.away_team_id = match.team_id
+
+            # Normalize score field names
+            match.home_team_score = match.home_score
+            match.away_team_score = match.away_score
+
+        all_matches.extend(ecs_matches)
+
+    # Sort all matches by date and time
+    all_matches.sort(key=lambda m: (m.date, m.time) if m.date and m.time else (datetime.max.date(), datetime.max.time()))
+
+    # Separate matches into categories based on date AND report status
+    from datetime import date as dt_date, datetime as dt_datetime
+    today = dt_date.today()
+    now = dt_datetime.now()
+
+    todays_matches = []
+    needs_reporting = []  # Past unreported matches
+    upcoming_matches = []  # Future matches
+    past_matches = []  # Past reported matches
+
+    for match in all_matches:
+        match_datetime = dt_datetime.combine(match.date, match.time) if match.date and match.time else None
+        is_reported = match.home_team_score is not None and match.away_team_score is not None
+        # Check if this is a special week match (TST, FUN, BYE, etc.) that doesn't need reporting
+        is_special = getattr(match, 'is_special_week', False) or getattr(match, 'week_type', 'REGULAR') in ['TST', 'FUN', 'BYE', 'PRACTICE']
+
+        if match_datetime:
+            if match.date == today:
+                # ALL matches today (except special weeks)
+                if not is_special:
+                    todays_matches.append(match)
+                else:
+                    past_matches.append(match)  # Special weeks go straight to past
+            elif match.date < today:
+                # Past matches - split by report status
+                if is_reported or is_special:
+                    # Reported matches OR special weeks go to past
+                    past_matches.append(match)
+                else:
+                    # Unreported regular matches - keep them visible!
+                    needs_reporting.append(match)
+            else:
+                # Future matches
+                upcoming_matches.append(match)
+
+    # Reverse past matches so most recent is first
+    past_matches.reverse()
+
+    # Sort needs_reporting by date (oldest first) so oldest unreported are most urgent
+    needs_reporting.sort(key=lambda m: (m.date, m.time) if m.date and m.time else (datetime.max.date(), datetime.max.time()))
+
+    # Build player choices for match reporting modals
+    player_choices = {}
+    for match in all_matches:
+        if hasattr(match, 'is_ecs_fc') and match.is_ecs_fc:
+            # ECS FC match - only one actual team
+            team = match.home_team if match.home_team else match.away_team
+            if team:
+                players = session.query(Player).join(
+                    Player.teams
+                ).filter(Team.id == team.id).all()
+
+                player_choices[match.id] = {
+                    team.name: {p.id: p.name for p in players},
+                    match.opponent_name: {}  # No player choices for opponent string
+                }
+        elif match.home_team and match.away_team:
+            # Pub League match - both teams are actual teams
+            home_players = session.query(Player).join(
+                Player.teams
+            ).filter(Team.id == match.home_team_id).all()
+
+            away_players = session.query(Player).join(
+                Player.teams
+            ).filter(Team.id == match.away_team_id).all()
+
+            player_choices[match.id] = {
+                match.home_team.name: {
+                    p.id: p.name for p in home_players
+                },
+                match.away_team.name: {
+                    p.id: p.name for p in away_players
+                }
+            }
+
+    # Get match events for each match (for editing) - only for Pub League matches
+    for match in all_matches:
+        if not (hasattr(match, 'is_ecs_fc') and match.is_ecs_fc):
+            # Only query PlayerEvent for Pub League matches
+            match.goal_scorers = session.query(PlayerEvent).filter_by(
+                match_id=match.id,
+                event_type=PlayerEventType.GOAL
+            ).all()
+            match.assists = session.query(PlayerEvent).filter_by(
+                match_id=match.id,
+                event_type=PlayerEventType.ASSIST
+            ).all()
+            match.yellow_cards = session.query(PlayerEvent).filter_by(
+                match_id=match.id,
+                event_type=PlayerEventType.YELLOW_CARD
+            ).all()
+            match.red_cards = session.query(PlayerEvent).filter_by(
+                match_id=match.id,
+                event_type=PlayerEventType.RED_CARD
+            ).all()
+        else:
+            # ECS FC matches don't use PlayerEvent
+            match.goal_scorers = []
+            match.assists = []
+            match.yellow_cards = []
+            match.red_cards = []
+
+    # Add RSVP counts and sub request data for each match (filtered by coached team only)
+    for match in all_matches:
+        # Determine which team is the coached team in this match
+        coached_team_id = None
+        if hasattr(match, 'is_ecs_fc') and match.is_ecs_fc:
+            coached_team_id = match.team_id
+        else:
+            # Pub League - check which team is coached
+            if match.home_team_id in team_ids:
+                coached_team_id = match.home_team_id
+            elif match.away_team_id in team_ids:
+                coached_team_id = match.away_team_id
+
+        # Get players on the coached team to filter RSVPs
+        coached_team_player_ids = []
+        if coached_team_id:
+            coached_team_players = session.query(Player.id).join(
+                player_teams, Player.id == player_teams.c.player_id
+            ).filter(player_teams.c.team_id == coached_team_id).all()
+            coached_team_player_ids = [p.id for p in coached_team_players]
+
+        # Determine which models to use based on league type
+        if hasattr(match, 'is_ecs_fc') and match.is_ecs_fc:
+            # ECS FC match - use EcsFcAvailability and EcsFcSubRequest (filtered by team players)
+            if coached_team_player_ids:
+                availability_data = session.query(
+                    EcsFcAvailability.response,
+                    func.count(EcsFcAvailability.id)
+                ).filter(
+                    EcsFcAvailability.match_id == match.id,
+                    EcsFcAvailability.player_id.in_(coached_team_player_ids)
+                ).group_by(EcsFcAvailability.response).all()
+            else:
+                availability_data = []
+
+            sub_requests = session.query(EcsFcSubRequest).filter_by(
+                match_id=match.id
+            ).filter(EcsFcSubRequest.status != 'CANCELLED').all()
+
+        else:
+            # Pub League match - use Availability and SubstituteRequest (filtered by team players)
+            if coached_team_player_ids:
+                availability_data = session.query(
+                    Availability.response,
+                    func.count(Availability.id)
+                ).filter(
+                    Availability.match_id == match.id,
+                    Availability.player_id.in_(coached_team_player_ids)
+                ).group_by(Availability.response).all()
+            else:
+                availability_data = []
+
+            sub_requests = session.query(SubstituteRequest).filter_by(
+                match_id=match.id
+            ).filter(SubstituteRequest.status != 'CANCELLED').all()
+
+        # Process RSVP counts
+        rsvp_counts = {'YES': 0, 'NO': 0, 'MAYBE': 0}
+        for response, count in availability_data:
+            if response and response.upper() in rsvp_counts:
+                rsvp_counts[response.upper()] = count
+
+        match.rsvp_counts = rsvp_counts
+        match.sub_requests = sub_requests
+
+    # Gather team statistics for each coached team
+    team_stats = {}
+    for team in coached_teams:
+        # Get the league type for this team
+        league_type = team_league_types.get(team.id, 'Pub League')
+
+        # Get current season based on team's league type
+        if league_type == 'ECS FC':
+            current_season = session.query(Season).filter_by(
+                is_current=True,
+                league_type='ECS FC'
+            ).first()
+        else:
+            current_season = session.query(Season).filter_by(
+                is_current=True,
+                league_type='Pub League'
+            ).first()
+
+        if current_season:
+            # Get team league to get the season
+            team_league = session.query(League).get(team.league_id) if team.league_id else None
+            if team_league:
+                league_season_id = team_league.season_id
+            else:
+                league_season_id = current_season.id
+
+            # Get team standings
+            standings = session.query(Standings).filter_by(
+                team_id=team.id,
+                season_id=league_season_id
+            ).first()
+
+            # Get top scorers for this team
+            top_scorers = session.query(Player, PlayerSeasonStats).join(
+                PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id
+            ).join(
+                player_teams, Player.id == player_teams.c.player_id
+            ).filter(
+                player_teams.c.team_id == team.id,
+                PlayerSeasonStats.season_id == league_season_id,
+                PlayerSeasonStats.goals > 0
+            ).order_by(PlayerSeasonStats.goals.desc()).limit(5).all()
+
+            # Get assist leaders
+            top_assists = session.query(Player, PlayerSeasonStats).join(
+                PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id
+            ).join(
+                player_teams, Player.id == player_teams.c.player_id
+            ).filter(
+                player_teams.c.team_id == team.id,
+                PlayerSeasonStats.season_id == league_season_id,
+                PlayerSeasonStats.assists > 0
+            ).order_by(PlayerSeasonStats.assists.desc()).limit(5).all()
+
+            # Get roster with attendance and stats including cards
+            roster_query = session.query(Player, PlayerAttendanceStats, PlayerSeasonStats).outerjoin(
+                PlayerAttendanceStats, and_(
+                    Player.id == PlayerAttendanceStats.player_id,
+                    PlayerAttendanceStats.current_season_id == league_season_id  # Fixed: current_season_id
+                )
+            ).outerjoin(
+                PlayerSeasonStats, and_(
+                    Player.id == PlayerSeasonStats.player_id,
+                    PlayerSeasonStats.season_id == league_season_id
+                )
+            ).join(
+                player_teams, Player.id == player_teams.c.player_id
+            ).filter(
+                player_teams.c.team_id == team.id
+            ).order_by(Player.name).all()
+
+            # Calculate attendance from Availability if PlayerAttendanceStats is not populated
+            roster = []
+            for player, attendance_stats, season_stats in roster_query:
+                # If no cached attendance stats OR if the cached data is empty (season_matches_invited = 0), calculate from RSVP responses
+                needs_calculation = (
+                    not attendance_stats or
+                    not hasattr(attendance_stats, 'season_matches_invited') or
+                    attendance_stats.season_matches_invited is None or
+                    attendance_stats.season_matches_invited == 0
+                )
+
+                if needs_calculation:
+                    if league_type == 'ECS FC':
+                        # Get all ECS FC matches for this team
+                        team_matches = session.query(EcsFcMatch).filter(
+                            EcsFcMatch.team_id == team.id
+                        ).all()
+
+                        if team_matches:
+                            match_ids = [m.id for m in team_matches]
+
+                            # Count YES responses for this player from EcsFcAvailability
+                            yes_count = session.query(func.count(EcsFcAvailability.id)).filter(
+                                EcsFcAvailability.player_id == player.id,
+                                EcsFcAvailability.match_id.in_(match_ids),
+                                EcsFcAvailability.response.in_(['YES', 'yes', 'Yes'])
+                            ).scalar() or 0
+
+                            # Total matches
+                            total_matches = len(match_ids)
+
+                            # Create a temporary attendance object
+                            if total_matches > 0:
+                                from collections import namedtuple
+                                TempAttendance = namedtuple('TempAttendance', ['season_attendance_rate'])
+                                attendance_stats = TempAttendance(season_attendance_rate=yes_count / total_matches)
+                    else:
+                        # Pub League - Get all matches for this team
+                        # Note: We filter by team only since Schedule.season_id may be NULL
+                        # The team's league determines the season, so all team matches are current season
+                        team_matches = session.query(Match).join(
+                            Schedule, Match.schedule_id == Schedule.id
+                        ).filter(
+                            or_(
+                                Match.home_team_id == team.id,
+                                Match.away_team_id == team.id
+                            )
+                        ).all()
+
+                        if team_matches:
+                            match_ids = [m.id for m in team_matches]
+
+                            # Count YES responses for this player from Availability
+                            yes_count = session.query(func.count(Availability.id)).filter(
+                                Availability.player_id == player.id,
+                                Availability.match_id.in_(match_ids),
+                                Availability.response.in_(['YES', 'yes', 'Yes'])
+                            ).scalar() or 0
+
+                            # Total matches
+                            total_matches = len(match_ids)
+
+                            # Create a temporary attendance object
+                            if total_matches > 0:
+                                from collections import namedtuple
+                                TempAttendance = namedtuple('TempAttendance', ['season_attendance_rate'])
+                                attendance_stats = TempAttendance(season_attendance_rate=yes_count / total_matches)
+
+                roster.append((player, attendance_stats, season_stats))
+
+            team_stats[team.id] = {
+                'standings': standings,
+                'top_scorers': top_scorers,
+                'top_assists': top_assists,
+                'roster': roster,
+                'season': current_season,
+                'league_type': league_type,
+                'season_id': league_season_id
+            }
+        else:
+            # No current season, store empty stats
+            team_stats[team.id] = {
+                'standings': None,
+                'top_scorers': [],
+                'top_assists': [],
+                'roster': [],
+                'season': None,
+                'league_type': league_type,
+                'season_id': None
+            }
+
+    return render_template('coach_dashboard.html',
+                         coached_teams=coached_teams,
+                         team_stats=team_stats,
+                         team_league_types=team_league_types,
+                         todays_matches=todays_matches,
+                         needs_reporting=needs_reporting,
+                         upcoming_matches=upcoming_matches,
+                         past_matches=past_matches,
+                         player_choices=player_choices,
+                         today=today,
+                         title='Coach Dashboard')
