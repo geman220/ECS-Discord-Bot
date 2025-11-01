@@ -150,9 +150,18 @@ def sync_coach_roles():
         for player_id, data in player_roles.items():
             player = data['player']
             has_coach_role = data['has_coach_role']
-            
+
             if player.is_coach != has_coach_role:
+                # Update both player.is_coach AND player_teams.is_coach to maintain consistency
                 player.is_coach = has_coach_role
+
+                # Update all team relationships for this player
+                from sqlalchemy import text
+                g.db_session.execute(
+                    text("UPDATE player_teams SET is_coach = :is_coach WHERE player_id = :player_id"),
+                    {"is_coach": has_coach_role, "player_id": player.id}
+                )
+
                 updated_players += 1
                 click.echo(f"Updated player {player.name} is_coach to {has_coach_role}")
         
