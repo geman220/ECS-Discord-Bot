@@ -915,34 +915,35 @@ def resend_playoff_rsvps(league_id: int):
 
         created_messages = []
 
-        for match in playoff_matches:
-            # Create new ScheduledMessage for immediate sending
+        # Stagger message sending to respect rate limits
+        # Send one every 15 seconds to avoid overwhelming the discord queue
+        stagger_seconds = 15
+
+        for i, match in enumerate(playoff_matches):
+            # Calculate staggered send time
+            send_time = datetime.utcnow() + timedelta(seconds=i * stagger_seconds)
+
+            # Create new ScheduledMessage with staggered send time
             scheduled_message = ScheduledMessage(
                 match_id=match.id,
                 message_type='AVAILABILITY',
-                scheduled_send_time=datetime.utcnow(),  # Send immediately
+                scheduled_send_time=send_time,  # Staggered to prevent queue flooding
                 status='PENDING'
             )
             session.add(scheduled_message)
             session.flush()  # Get the ID
             created_messages.append(scheduled_message)
 
-        session.commit()
-
-        # Queue all messages to send immediately
-        from app.tasks.tasks_rsvp import send_availability_message
-        for msg in created_messages:
-            send_availability_message.apply_async(
-                kwargs={'scheduled_message_id': msg.id},
-                countdown=5
-            )
-
-        # Also update the Match records with notification status
-        for match in playoff_matches:
-            match.last_discord_notification = datetime.utcnow()
+            # Update match notification status
+            match.last_discord_notification = send_time
             match.notification_status = 'resent'
 
+            logger.info(f"Scheduled playoff RSVP for match {match.id} to send at {send_time} (position {i+1}, +{i*stagger_seconds}s)")
+
         session.commit()
+
+        # Messages will be picked up by the scheduled message processor
+        # No need to manually enqueue - this respects existing rate limiting
 
         logger.info(f"Queued {len(created_messages)} playoff RSVP messages to resend for league {league_id}")
 

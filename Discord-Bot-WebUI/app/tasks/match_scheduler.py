@@ -335,7 +335,7 @@ def create_mls_match_thread_task(self, session, match_id: int) -> Dict[str, Any]
     soft_time_limit=30,
     time_limit=45
 )
-def start_mls_live_reporting_task(self, match_id: int, session) -> Dict[str, Any]:
+def start_mls_live_reporting_task(self, session, match_id: int) -> Dict[str, Any]:
     """
     Start live reporting for an MLS match (5 minutes before kickoff).
     """
