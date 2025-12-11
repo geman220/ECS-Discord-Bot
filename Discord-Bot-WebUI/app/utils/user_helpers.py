@@ -86,9 +86,11 @@ def get_user():
             else:
                 session = getattr(g, 'db_session', None)
                 if session is None:
-                    # Check if we're in degraded mode before logging error
-                    if not (hasattr(g, '_session_creation_failed') and g._session_creation_failed):
-                        logger.error("No database session available to load authenticated user.")
+                    # Only log error if session creation failed (not if teardown already cleaned it up)
+                    # Session may be None after teardown_request runs - this is normal behavior
+                    if hasattr(g, '_session_creation_failed') and g._session_creation_failed:
+                        logger.debug("Using minimal user wrapper - session creation failed")
+                    # Don't log error - session may have been cleaned up by teardown_request
                     user = UserWrapper()
                 else:
                     # Import user-related models; eager-load frequently used relationships.

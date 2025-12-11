@@ -454,6 +454,10 @@ def create_app(config_object='web_config.Config'):
     app.cli.add_command(init_discord_roles)
     app.cli.add_command(sync_coach_roles)
 
+    # Register wallet CLI commands
+    from app.wallet_pass.cli import wallet as wallet_cli
+    app.cli.add_command(wallet_cli)
+
     # Configure session management to use Redis (skip in testing).
     if not app.config.get('TESTING'):
         # Create a Redis client specifically for sessions that shares the connection pool
@@ -945,8 +949,9 @@ def init_blueprints(app):
     from app.store import store_bp
     from app.draft_predictions_routes import draft_predictions_bp
     from app.wallet_routes import wallet_bp
-    from app.admin.wallet_admin_routes import wallet_admin_bp
+    from app.admin.wallet import wallet_admin_bp, wallet_config_bp, pass_studio_bp
     from app.admin.notification_admin_routes import notification_admin_bp
+    from app.wallet_pass.routes import public_wallet_bp, webhook_bp, validation_bp
     from app.admin_panel import admin_panel_bp
     from app.routes.notifications import notifications_bp
     from app.api_smart_sync import smart_sync_bp
@@ -994,9 +999,38 @@ def init_blueprints(app):
     app.register_blueprint(redis_bp)
     app.register_blueprint(store_bp)  # Blueprint has url_prefix='/store'
     app.register_blueprint(draft_predictions_bp)  # Blueprint has url_prefix='/draft-predictions'
+
+    # Ensure wallet database schema is up to date before registering wallet routes
+    try:
+        from app.models.wallet import ensure_wallet_columns
+        with app.app_context():
+            ensure_wallet_columns()
+    except Exception as e:
+        logger.warning(f"Could not ensure wallet columns (may be first run): {e}")
+
     app.register_blueprint(wallet_bp)  # Blueprint has url_prefix='/wallet'
     app.register_blueprint(wallet_admin_bp)  # Blueprint has url_prefix='/admin/wallet'
+    app.register_blueprint(wallet_config_bp)  # Blueprint has url_prefix='/admin/wallet/config'
+    app.register_blueprint(pass_studio_bp)  # Blueprint has url_prefix='/admin/wallet/studio'
+    
     app.register_blueprint(notification_admin_bp)  # Blueprint has url_prefix='/admin/notifications'
+    app.register_blueprint(public_wallet_bp)  # Public wallet download routes (WooCommerce integration)
+    app.register_blueprint(webhook_bp)  # WooCommerce webhook handlers
+    app.register_blueprint(validation_bp)  # Wallet pass validation API
+    csrf.exempt(webhook_bp)  # Exempt webhooks from CSRF (external WooCommerce requests)
+    csrf.exempt(validation_bp)  # Exempt validation API from CSRF (scanner app)
+
+    # Register Apple Wallet web service routes for push updates
+    # These routes are called by Apple devices to register/unregister and get pass updates
+    try:
+        from app.wallet_pass.services.push_service import register_apple_wallet_routes
+        register_apple_wallet_routes(app)
+        # Exempt Apple Wallet routes from CSRF (Apple device callbacks)
+        apple_wallet_bp = app.blueprints.get('apple_wallet')
+        if apple_wallet_bp:
+            csrf.exempt(apple_wallet_bp)
+    except Exception as e:
+        logger.warning(f"Could not register Apple Wallet routes: {e}")
     app.register_blueprint(admin_panel_bp)  # Centralized admin panel
     app.register_blueprint(notifications_bp)  # Blueprint has url_prefix='/api/v1/notifications'
     app.register_blueprint(smart_sync_bp)  # Smart RSVP sync API endpoints

@@ -25,6 +25,7 @@ from app.models import Team, Player, MLSMatch, League, player_teams
 from sqlalchemy.orm import Session
 from sqlalchemy import update
 from app.utils.discord_request_handler import make_discord_request
+from app.utils.sync_ai_client import get_sync_ai_client
 
 logger = logging.getLogger(__name__)
 
@@ -1541,9 +1542,32 @@ async def create_match_thread(session: Session, match: MLSMatch) -> Optional[str
                     return thread['id']
                     
         # No duplicate found, proceed with thread creation
+        # Generate AI description using configured prompts
+        try:
+            match_context = {
+                'home_team': home_team_name,
+                'away_team': away_team_name,
+                'match_date': pst_time.strftime("%m/%d/%Y %I:%M %p %Z"),
+                'venue': match.venue if match.venue else "TBD",
+                'competition': match.competition if match.competition else "MLS",
+                'is_home_game': match.is_home_game,
+                'opponent': match.opponent
+            }
+
+            ai_client = get_sync_ai_client()
+            ai_description = ai_client.generate_match_thread_context(match_context)
+
+            # Use AI description if generated, otherwise use basic fallback
+            description = ai_description if ai_description else f"**{home_team_name} vs {away_team_name}**"
+
+            logger.info(f"Generated AI description for match thread: {description[:100]}...")
+        except Exception as e:
+            logger.warning(f"Failed to generate AI description, using fallback: {e}")
+            description = f"**{home_team_name} vs {away_team_name}**"
+
         embed_data = {
             "title": f"Match Thread: {home_team_name} vs {away_team_name}",
-            "description": "**Let's go Sounders!**",
+            "description": description,
             "color": 0x5B9A49,
             "fields": [
                 {"name": "Date and Time", "value": pst_time.strftime("%m/%d/%Y %I:%M %p %Z"), "inline": False},

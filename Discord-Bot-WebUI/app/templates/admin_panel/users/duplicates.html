@@ -1,0 +1,287 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Duplicate Management - Admin Panel{% endblock %}
+
+{% block panel_description %}Detect and manage duplicate user registrations{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.user_management') }}">User Management</a></li>
+<li class="breadcrumb-item active">Duplicates</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Stats Cards -->
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card h-100 bg-warning bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-copy fs-1 text-warning mb-2"></i>
+                <h3 class="mb-0">{{ stats.total_groups }}</h3>
+                <small class="text-muted">Duplicate Groups</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card h-100 bg-danger bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-users fs-1 text-danger mb-2"></i>
+                <h3 class="mb-0">{{ stats.total_potential_duplicates }}</h3>
+                <small class="text-muted">Affected Users</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card h-100 bg-info bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-mail fs-1 text-info mb-2"></i>
+                <h3 class="mb-0">{{ stats.by_email }}</h3>
+                <small class="text-muted">By Email</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card h-100 bg-primary bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-brand-discord fs-1 text-primary mb-2"></i>
+                <h3 class="mb-0">{{ stats.by_discord }}</h3>
+                <small class="text-muted">By Discord</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6 mb-2 mb-md-0">
+                        <button id="scan-btn" class="btn btn-primary me-2">
+                            <i class="ti ti-scan me-1"></i>Scan for Duplicates
+                        </button>
+                        <span class="text-muted small">Last scan: {{ stats.last_scan or 'Never' }}</span>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <span class="text-muted">Showing {{ duplicate_groups|length }} potential duplicate groups</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Duplicate Groups -->
+    {% if duplicate_groups %}
+        {% for group in duplicate_groups %}
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        {% if group.match_type == 'email' %}
+                        <i class="ti ti-mail me-2 text-info"></i>Email Match: {{ group.match_value }}
+                        {% elif group.match_type == 'name' %}
+                        <i class="ti ti-user me-2 text-success"></i>Name Match: {{ group.match_value }}
+                        {% elif group.match_type == 'discord' %}
+                        <i class="ti ti-brand-discord me-2 text-primary"></i>Discord Match: {{ group.match_value }}
+                        {% endif %}
+                        <span class="badge bg-secondary ms-2">{{ group.users|length }} users</span>
+                    </h6>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-danger" onclick="dismissGroup({{ group.users|map(attribute='id')|list|tojson }})">
+                            <i class="ti ti-x me-1"></i>Not Duplicates
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;">
+                                        <input type="radio" name="primary-{{ loop.index }}" disabled title="Select Primary">
+                                    </th>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Player Name</th>
+                                    <th>Discord ID</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in group.users %}
+                                <tr>
+                                    <td>
+                                        <input type="radio" name="primary-{{ loop.parent.loop.index }}"
+                                               value="{{ user.id }}"
+                                               class="primary-select"
+                                               data-group="{{ loop.parent.loop.index }}">
+                                    </td>
+                                    <td><strong>{{ user.username }}</strong></td>
+                                    <td>{{ user.email }}</td>
+                                    <td>{{ user.player.name if user.player else '-' }}</td>
+                                    <td>
+                                        {% if user.player and user.player.discord_id %}
+                                        <code>{{ user.player.discord_id }}</code>
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.approval_status == 'approved' %}
+                                        <span class="badge bg-success">Approved</span>
+                                        {% elif user.approval_status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ user.approval_status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><small>{{ user.created_at[:10] if user.created_at else 'N/A' }}</small></td>
+                                    <td>
+                                        <a href="{{ url_for('admin_panel.user_details_api', user_id=user.id) }}"
+                                           class="btn btn-sm btn-outline-primary" title="View Details" target="_blank">
+                                            <i class="ti ti-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-primary btn-sm merge-btn"
+                            data-group="{{ loop.index }}"
+                            data-users="{{ group.users|map(attribute='id')|list|tojson }}" disabled>
+                        <i class="ti ti-git-merge me-1"></i>Merge Selected (select primary first)
+                    </button>
+                    <small class="text-muted ms-2">Select the account to keep as primary, then merge.</small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="ti ti-check-circle fs-1 text-success mb-3"></i>
+                <h5 class="text-success">No Duplicates Found</h5>
+                <p class="text-muted">No potential duplicate registrations detected.</p>
+                <button id="scan-btn-alt" class="btn btn-outline-primary">
+                    <i class="ti ti-scan me-1"></i>Run Scan
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+// Enable merge button when primary is selected
+document.querySelectorAll('.primary-select').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const groupId = this.dataset.group;
+        const mergeBtn = document.querySelector(`.merge-btn[data-group="${groupId}"]`);
+        if (mergeBtn) {
+            mergeBtn.disabled = false;
+            mergeBtn.innerHTML = '<i class="ti ti-git-merge me-1"></i>Merge into Selected';
+        }
+    });
+});
+
+// Merge functionality
+document.querySelectorAll('.merge-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const groupId = this.dataset.group;
+        const allUserIds = JSON.parse(this.dataset.users);
+        const primaryRadio = document.querySelector(`input[name="primary-${groupId}"]:checked`);
+
+        if (!primaryRadio) {
+            AdminPanel.showMobileToast('Please select a primary account first', 'warning');
+            return;
+        }
+
+        const primaryUserId = parseInt(primaryRadio.value);
+        const duplicateUserIds = allUserIds.filter(id => id !== primaryUserId);
+
+        if (!confirm(`Merge ${duplicateUserIds.length} accounts into the selected primary account? This cannot be undone.`)) {
+            return;
+        }
+
+        fetch('{{ url_for("admin_panel.merge_duplicate_users") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                primary_user_id: primaryUserId,
+                duplicate_user_ids: duplicateUserIds
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+                location.reload();
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error merging accounts', 'danger');
+        });
+    });
+});
+
+// Dismiss group
+function dismissGroup(userIds) {
+    if (!confirm('Mark these users as NOT duplicates? They will no longer appear together.')) return;
+
+    fetch('{{ url_for("admin_panel.dismiss_duplicate") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_ids: userIds })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            AdminPanel.showMobileToast(data.message, 'success');
+            location.reload();
+        } else {
+            AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        AdminPanel.showMobileToast('Error dismissing group', 'danger');
+    });
+}
+
+// Scan button
+document.getElementById('scan-btn')?.addEventListener('click', runScan);
+document.getElementById('scan-btn-alt')?.addEventListener('click', runScan);
+
+function runScan() {
+    const btn = event.target.closest('button');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Scanning...';
+
+    fetch('{{ url_for("admin_panel.scan_for_duplicates") }}', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+                location.reload();
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error running scan', 'danger');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="ti ti-scan me-1"></i>Scan for Duplicates';
+        });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,232 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Discord Players - Admin Panel{% endblock %}
+
+{% block panel_description %}{{ current_section }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.discord_overview') }}">Discord Management</a></li>
+<li class="breadcrumb-item active">Players</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Stats Cards Row -->
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center py-3">
+                <h4 class="mb-0 text-primary">{{ stats.total_players }}</h4>
+                <small class="text-muted">Total Players</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center py-3">
+                <h4 class="mb-0 text-success">{{ stats.in_server }}</h4>
+                <small class="text-muted">In Server</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center py-3">
+                <h4 class="mb-0 text-danger">{{ stats.not_in_server }}</h4>
+                <small class="text-muted">Not In Server</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center py-3">
+                <h4 class="mb-0 text-warning">{{ stats.unknown_status }}</h4>
+                <small class="text-muted">Unknown</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="col-12 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="btn-group" role="group">
+                            <a href="{{ url_for('admin_panel.discord_players', status='not_in_server', per_page=per_page) }}"
+                               class="btn btn-{{ 'danger' if status_filter == 'not_in_server' else 'outline-danger' }}">
+                                Not In Server
+                            </a>
+                            <a href="{{ url_for('admin_panel.discord_players', status='unknown', per_page=per_page) }}"
+                               class="btn btn-{{ 'warning' if status_filter == 'unknown' else 'outline-warning' }}">
+                                Unknown
+                            </a>
+                            <a href="{{ url_for('admin_panel.discord_players', status='in_server', per_page=per_page) }}"
+                               class="btn btn-{{ 'success' if status_filter == 'in_server' else 'outline-success' }}">
+                                In Server
+                            </a>
+                            <a href="{{ url_for('admin_panel.discord_players', status='all', per_page=per_page) }}"
+                               class="btn btn-{{ 'primary' if status_filter == 'all' else 'outline-primary' }}">
+                                All
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <select id="per-page-select" class="form-select form-select-sm d-inline-block w-auto">
+                            <option value="10" {{ 'selected' if per_page == 10 }}>10 per page</option>
+                            <option value="20" {{ 'selected' if per_page == 20 }}>20 per page</option>
+                            <option value="50" {{ 'selected' if per_page == 50 }}>50 per page</option>
+                            <option value="100" {{ 'selected' if per_page == 100 }}>100 per page</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Players List -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="ti ti-users me-2"></i>{{ current_section }}</h5>
+                <span class="badge bg-secondary">{{ pagination.total }} players</span>
+            </div>
+            <div class="card-body p-0">
+                {% if players %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Player</th>
+                                <th>Discord ID</th>
+                                <th>Status</th>
+                                <th>Teams</th>
+                                <th>Last Checked</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player in players %}
+                            <tr>
+                                <td>
+                                    <strong>{{ player.name }}</strong>
+                                    {% if player.user %}
+                                    <br><small class="text-muted">{{ player.user.email }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <code>{{ player.discord_id }}</code>
+                                </td>
+                                <td>
+                                    {% if player.discord_in_server == True %}
+                                    <span class="badge bg-success">In Server</span>
+                                    {% elif player.discord_in_server == False %}
+                                    <span class="badge bg-danger">Not In Server</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Unknown</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if player_current_teams.get(player.id) %}
+                                        {% for team in player_current_teams[player.id][:2] %}
+                                        <span class="badge bg-secondary">{{ team.name }}</span>
+                                        {% endfor %}
+                                        {% if player_current_teams[player.id]|length > 2 %}
+                                        <span class="text-muted">+{{ player_current_teams[player.id]|length - 2 }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                    <span class="text-muted">No current teams</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if player.discord_last_checked %}
+                                    {{ player.discord_last_checked.strftime('%b %d, %Y %H:%M') }}
+                                    {% else %}
+                                    <span class="text-muted">Never</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="updatePlayerRoles({{ player.id }})" title="Update Roles">
+                                        <i class="ti ti-refresh"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-users-minus fs-1 text-muted mb-3"></i>
+                    <p class="text-muted">No players found for this filter.</p>
+                </div>
+                {% endif %}
+            </div>
+            {% if pagination.pages > 1 %}
+            <div class="card-footer">
+                <nav>
+                    <ul class="pagination pagination-sm mb-0 justify-content-center">
+                        {% if pagination.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin_panel.discord_players', status=status_filter, page=pagination.prev_num, per_page=per_page) }}">&laquo;</a>
+                        </li>
+                        {% endif %}
+
+                        {% for p in range(1, pagination.pages + 1) %}
+                            {% if p >= pagination.page - 2 and p <= pagination.page + 2 %}
+                            <li class="page-item {{ 'active' if p == pagination.page }}">
+                                <a class="page-link" href="{{ url_for('admin_panel.discord_players', status=status_filter, page=p, per_page=per_page) }}">{{ p }}</a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if pagination.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin_panel.discord_players', status=status_filter, page=pagination.next_num, per_page=per_page) }}">&raquo;</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.getElementById('per-page-select').addEventListener('change', function() {
+    const perPage = this.value;
+    window.location.href = `{{ url_for('admin_panel.discord_players', status=status_filter) }}&per_page=${perPage}`;
+});
+
+function updatePlayerRoles(playerId) {
+    const btn = event.currentTarget;
+    btn.innerHTML = '<i class="ti ti-loader spin"></i>';
+    btn.disabled = true;
+
+    fetch(`{{ url_for('admin_panel.discord_update_player_roles', player_id=0) }}`.replace('0', playerId), { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast('Roles updated successfully', 'success');
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error updating roles', 'danger');
+        })
+        .finally(() => {
+            btn.innerHTML = '<i class="ti ti-refresh"></i>';
+            btn.disabled = false;
+        });
+}
+
+// Spin animation
+const style = document.createElement('style');
+style.textContent = `.spin { animation: spin 1s linear infinite; } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

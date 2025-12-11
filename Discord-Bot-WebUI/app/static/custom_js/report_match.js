@@ -1,5 +1,38 @@
 // report_match.js - Consolidated match reporting functionality
 
+/**
+ * MODAL CREATION STRATEGY - IMPORTANT DOCUMENTATION
+ * =================================================
+ *
+ * Match report modals can be created via TWO mechanisms:
+ *
+ * 1. SERVER-SIDE RENDERING (Primary):
+ *    - File: /app/templates/macros.html
+ *    - Macro: render_report_match_modal(match, player_choices)
+ *    - Used by: coach_dashboard.html, playoff_bracket_view.html, match_modals.html
+ *    - Benefits: Faster initial page load, SEO-friendly, no flash of unstyled content
+ *
+ * 2. JAVASCRIPT DYNAMIC CREATION (Fallback):
+ *    - Function: createDynamicModal(matchId, data) in this file (lines ~456-623)
+ *    - Used when: Modal not found in DOM, AJAX modal loading required
+ *    - Benefits: Enables single-page-app behavior, reduces initial HTML payload
+ *
+ * CRITICAL: Changes to modal structure MUST be made in BOTH locations:
+ *    1. /app/templates/macros.html (render_report_match_modal macro)
+ *    2. /app/static/custom_js/report_match.js (createDynamicModal function)
+ *
+ * Recent Changes (2025-12-10):
+ *    - Button text standardized to "Submit" (was "Submit Report" / "Save Changes")
+ *    - Footer buttons always visible (flexbox sticky footer)
+ *    - Modal body is only scrollable area (header/footer stay fixed)
+ *    - Z-index fixed to 9999 (was causing navbar overlap at 1050)
+ *
+ * Future Optimization:
+ *    - Consider extracting modal HTML to separate template file
+ *    - Use JavaScript template literals to import from single source
+ *    - This would eliminate duplication and ensure consistency
+ */
+
 // This ensures that all AJAX requests include the CSRF token
 $(document).ready(function () {
     // Set up CSRF token for all AJAX requests
@@ -590,7 +623,7 @@ function createDynamicModal(matchId, data) {
                     <div class="modal-footer ecs-modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         <button type="submit" class="btn btn-primary" id="submitBtn-${matchId}">
-                            ${data.reported ? 'Save Changes' : 'Submit Report'}
+                            Submit
                         </button>
                     </div>
                 </form>

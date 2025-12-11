@@ -1,0 +1,143 @@
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.com.ecsfc.membership",
+  "teamIdentifier": "{{team_identifier}}",
+  "organizationName": "Emerald City Supporters",
+  "serialNumber": "ecs-v1-{{serial_number}}",
+  "description": "Emerald City Supporters Member",
+  "barcode": {
+    "format": "PKBarcodeFormatQR",
+    "message": "{{barcode_data}}",
+    "messageEncoding": "utf-8"
+  },
+  "storeCard": {
+    "primaryFields": [
+      {
+        "key": "name",
+        "label": "Member",
+        "value": "{{member_name}}"
+      }
+    ],
+    "secondaryFields": [
+      {
+        "key": "year",
+        "label": "Year",
+        "value": "{{membership_year}}"
+      },
+      {
+        "key": "valid_until",
+        "label": "Valid Through",
+        "value": "{{valid_until_display}}"
+      }
+    ],
+    "auxiliaryFields": [
+      {
+        "key": "since",
+        "label": "Supporting Since",
+        "value": "{{member_since}}"
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "value": "{{status}}"
+      }
+    ],
+    "backFields": [
+      {
+        "key": "organization",
+        "label": "Organization",
+        "value": "Emerald City Supporters"
+      },
+      {
+        "key": "membership_type",
+        "label": "Membership Type",
+        "value": "Annual Member"
+      },
+      {
+        "key": "issued",
+        "label": "Issued",
+        "value": "{{issue_date}}"
+      },
+      {
+        "key": "email",
+        "label": "Email",
+        "value": "{{member_email}}"
+      },
+      {
+        "key": "website",
+        "label": "ECS Website",
+        "value": "https://weareecs.com"
+      },
+      {
+        "key": "discord",
+        "label": "Discord",
+        "value": "{{discord_url}}"
+      },
+      {
+        "key": "qr_purpose",
+        "label": "QR Code",
+        "value": "Present this pass for membership verification at ECS events, match days, and supporter gatherings."
+      }
+    ]
+  },
+  "locations": [
+    {
+      "latitude": 47.5951,
+      "longitude": -122.3316,
+      "relevantText": "Lumen Field - Match Day!"
+    },
+    {
+      "latitude": 47.7240,
+      "longitude": -122.2958,
+      "relevantText": "Hellbent Brewing"
+    },
+    {
+      "latitude": 47.6517,
+      "longitude": -122.3505,
+      "relevantText": "Shawn O'Donnell's - Fremont"
+    },
+    {
+      "latitude": 47.6669,
+      "longitude": -122.3875,
+      "relevantText": "Rough & Tumble Pub"
+    },
+    {
+      "latitude": 47.5993,
+      "longitude": -122.3358,
+      "relevantText": "Temple Billiards"
+    },
+    {
+      "latitude": 47.5822,
+      "longitude": -122.3894,
+      "relevantText": "Mission Cantina"
+    },
+    {
+      "latitude": 47.6784,
+      "longitude": -122.3234,
+      "relevantText": "Atlantic Crossing"
+    },
+    {
+      "latitude": 47.5896,
+      "longitude": -122.3363,
+      "relevantText": "The Press Box"
+    },
+    {
+      "latitude": 47.6012,
+      "longitude": -122.3357,
+      "relevantText": "Golden Rooster"
+    },
+    {
+      "latitude": 47.1982,
+      "longitude": -122.2157,
+      "relevantText": "Purdy's Public House - Sumner"
+    }
+  ],
+  "backgroundColor": "#213e96",
+  "foregroundColor": "#ffffff",
+  "labelColor": "#c8c8c8",
+  "logoText": "Emerald City Supporters",
+  "webServiceURL": "{{web_service_url}}",
+  "authenticationToken": "{{authentication_token}}",
+  "expirationDate": "{{expiration_date}}",
+  "voided": false
+}

@@ -21,12 +21,34 @@
     },
     
     /**
-     * Process all tables with .mobile-card-table class
+     * Process all tables (prioritize .mobile-card-table, then all .table-responsive tables)
      */
     processAllTables: function() {
-      const tables = document.querySelectorAll('table.mobile-card-table');
-      tables.forEach(table => {
+      // First process tables with explicit mobile-card-table class
+      const mobileCardTables = document.querySelectorAll('table.mobile-card-table');
+      mobileCardTables.forEach(table => {
         this.processTable(table);
+      });
+
+      // Then process all tables within .table-responsive containers
+      const responsiveTables = document.querySelectorAll('.table-responsive table');
+      responsiveTables.forEach(table => {
+        // Skip if already processed or if it's within a horizontal-mobile table
+        if (!table.classList.contains('mobile-card-processed') &&
+            !table.closest('.table-horizontal-mobile')) {
+          this.processTable(table);
+        }
+      });
+
+      // Process any standalone .table elements not in .table-responsive (fallback)
+      const standaloneTables = document.querySelectorAll('table.table:not(.mobile-card-processed)');
+      standaloneTables.forEach(table => {
+        // Only process if not already in a .table-responsive container
+        if (!table.closest('.table-responsive') &&
+            !table.closest('.table-horizontal-mobile') &&
+            window.innerWidth < 992) {
+          this.processTable(table);
+        }
       });
     },
     

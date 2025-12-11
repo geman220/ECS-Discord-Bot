@@ -338,33 +338,114 @@ class PitchViewSystem {
     
     handlePositionDrop(event, position, teamId) {
         event.preventDefault();
-        
+
         const zone = event.currentTarget;
         zone.classList.remove('drag-over');
-        
+
         const playerId = event.dataTransfer.getData('text/plain');
         const isPositioned = event.dataTransfer.getData('positioned') === 'true';
-        
+
         if (!playerId) {
             this.showToast('No player data found', 'error');
             return;
         }
-        
-        // Check position limits
-        const maxPlayers = parseInt(zone.getAttribute('data-max-players'));
+
+        // Soft warning for position capacity (doesn't block)
         const currentPlayers = zone.querySelector('.position-players').children.length;
-        
-        if (currentPlayers >= maxPlayers) {
-            this.showToast(`Maximum ${maxPlayers} players allowed in ${position} position`, 'warning');
-            return;
+        const recommended = this.getRecommendedMax(position);
+
+        if (currentPlayers >= recommended) {
+            this.showPositionWarning(position, currentPlayers + 1, recommended);
+            // CONTINUE with draft - don't block
         }
-        
+
         if (isPositioned) {
             // Moving from one position to another
             this.movePlayerBetweenPositions(playerId, position, teamId);
         } else {
             // Drafting new player
             this.draftPlayerToPosition(playerId, position, teamId);
+        }
+
+        // Update capacity indicators after drop
+        setTimeout(() => this.updatePositionCapacity(position, teamId), 100);
+    }
+
+    getRecommendedMax(position) {
+        /**
+         * Get recommended maximum players for a position
+         */
+        const recommendations = {
+            'gk': 1,
+            'lb': 1,
+            'cb': 2,
+            'rb': 1,
+            'lwb': 1,
+            'rwb': 1,
+            'cdm': 2,
+            'cm': 2,
+            'cam': 1,
+            'lw': 1,
+            'rw': 1,
+            'st': 2,
+            'bench': 999
+        };
+        return recommendations[position.toLowerCase()] || 1;
+    }
+
+    showPositionWarning(position, currentCount, recommendedMax) {
+        /**
+         * Show a toast warning when position capacity is exceeded
+         */
+        const positionName = position.toUpperCase();
+        const toast = document.createElement('div');
+        toast.className = 'position-warning-toast';
+        toast.innerHTML = `
+            <i class="ti ti-alert-triangle text-warning me-2"></i>
+            <div>
+                <strong>${positionName} Position Over Capacity</strong>
+                <div class="small text-muted">Current: ${currentCount} | Recommended: ${recommendedMax}</div>
+            </div>
+        `;
+
+        document.body.appendChild(toast);
+
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    updatePositionCapacity(position, teamId) {
+        /**
+         * Update visual capacity indicators for a position
+         */
+        const slot = document.querySelector(`[data-position="${position}"][data-team-id="${teamId}"]`);
+        if (!slot) return;
+
+        const indicator = slot.querySelector('.capacity-indicator');
+        if (!indicator) return;
+
+        const currentCount = slot.querySelectorAll('.positioned-player').length;
+        const recommended = this.getRecommendedMax(position);
+
+        // Update current count display
+        const currentSpan = indicator.querySelector('.current');
+        if (currentSpan) {
+            currentSpan.textContent = currentCount;
+        }
+
+        // Update visual state
+        indicator.classList.remove('at-capacity', 'over-capacity');
+        slot.classList.remove('at-capacity', 'over-capacity');
+
+        if (currentCount === recommended) {
+            indicator.classList.add('at-capacity');
+            slot.classList.add('at-capacity');
+        } else if (currentCount > recommended) {
+            indicator.classList.add('over-capacity');
+            slot.classList.add('over-capacity');
         }
     }
     

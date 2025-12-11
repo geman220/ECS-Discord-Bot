@@ -60,6 +60,14 @@ from .live_reporting_session import (
     LiveReportingSession
 )
 
+from .scheduled_task import (
+    ScheduledTask, TaskType, TaskState
+)
+
+from .match_status import (
+    MatchStatus
+)
+
 from .ecs_fc import (
     EcsFcMatch, EcsFcAvailability, EcsFcScheduleTemplate,
     get_ecs_fc_teams, is_ecs_fc_team, get_ecs_fc_matches_for_team,
@@ -102,6 +110,22 @@ from .ai_prompt_config import (
     AIPromptConfig, AIPromptTemplate
 )
 
+from .wallet import (
+    WalletPassType, WalletPass, WalletPassDevice, WalletPassCheckin,
+    PassValidityType, PassStatus, CheckInType,
+    create_ecs_membership_pass, create_pub_league_pass, create_pub_league_pass_manual
+)
+
+from .wallet_asset import (
+    WalletAsset, WalletTemplate, WalletCertificate
+)
+
+from .wallet_config import (
+    WalletLocation, WalletSponsor, WalletSubgroup,
+    WalletPassFieldConfig, WalletBackField,
+    initialize_wallet_config_defaults
+)
+
 # Make all models available at package level for backward compatibility
 __all__ = [
     # Database instance
@@ -141,7 +165,13 @@ __all__ = [
     
     # Live reporting models
     'LiveReportingSession',
-    
+
+    # Task scheduling models
+    'ScheduledTask', 'TaskType', 'TaskState',
+
+    # Match status enum
+    'MatchStatus',
+
     # ECS FC models
     'EcsFcMatch', 'EcsFcAvailability', 'EcsFcScheduleTemplate',
     'get_ecs_fc_teams', 'is_ecs_fc_team', 'get_ecs_fc_matches_for_team',
@@ -171,5 +201,18 @@ __all__ = [
     'IPBan', 'SecurityEvent',
 
     # AI Prompt Configuration models
-    'AIPromptConfig', 'AIPromptTemplate'
+    'AIPromptConfig', 'AIPromptTemplate',
+
+    # Wallet pass models
+    'WalletPassType', 'WalletPass', 'WalletPassDevice', 'WalletPassCheckin',
+    'PassValidityType', 'PassStatus', 'CheckInType',
+    'create_ecs_membership_pass', 'create_pub_league_pass', 'create_pub_league_pass_manual',
+
+    # Wallet asset models
+    'WalletAsset', 'WalletTemplate', 'WalletCertificate',
+
+    # Wallet configuration models
+    'WalletLocation', 'WalletSponsor', 'WalletSubgroup',
+    'WalletPassFieldConfig', 'WalletBackField',
+    'initialize_wallet_config_defaults'
 ]

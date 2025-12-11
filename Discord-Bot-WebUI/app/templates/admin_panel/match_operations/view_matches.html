@@ -208,20 +208,103 @@
 {% block custom_js %}
 <script>
 function viewMatchDetails(matchId) {
-    // Placeholder for match details modal
+    // Show loading
     Swal.fire({
-        title: 'Match Details',
-        text: 'Match details functionality coming soon!',
-        icon: 'info'
+        title: 'Loading Match Details',
+        html: '<div class="text-center"><div class="spinner-border text-primary" role="status"></div></div>',
+        allowOutsideClick: false,
+        showConfirmButton: false
     });
+
+    // Fetch match details via AJAX
+    fetch(`{{ url_for('admin_panel.get_match_details') }}?match_id=${matchId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    title: `Match #${matchId}`,
+                    html: data.html,
+                    width: '700px',
+                    showCloseButton: true,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: data.message || 'Failed to load match details',
+                    icon: 'error'
+                });
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                title: 'Error',
+                text: 'Failed to load match details',
+                icon: 'error'
+            });
+        });
 }
 
 function editMatch(matchId) {
-    // Placeholder for match editing
+    // Navigate to match results page where editing can be done
+    // For now, show a modal with basic edit options
     Swal.fire({
         title: 'Edit Match',
-        text: 'Match editing functionality coming soon!',
-        icon: 'info'
+        html: `
+            <div class="text-start">
+                <p>What would you like to do?</p>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('admin_panel.match_results') }}?match_id=${matchId}" class="btn btn-primary">
+                        <i class="ti ti-pencil me-2"></i>Enter/Update Results
+                    </a>
+                    <a href="{{ url_for('admin_panel.match_schedule') }}" class="btn btn-outline-secondary">
+                        <i class="ti ti-calendar me-2"></i>Reschedule Match
+                    </a>
+                    <button onclick="verifyMatch(${matchId})" class="btn btn-outline-success">
+                        <i class="ti ti-check me-2"></i>Verify Match
+                    </button>
+                </div>
+            </div>
+        `,
+        showConfirmButton: false,
+        showCloseButton: true,
+        width: '400px'
+    });
+}
+
+function verifyMatch(matchId) {
+    Swal.close();
+    Swal.fire({
+        title: 'Verify Match?',
+        text: 'This will mark the match as verified.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Verify',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Submit verification
+            fetch(`{{ url_for('admin_panel.match_operations') }}/verify-match/${matchId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Verified!', data.message, 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.message || 'Verification failed', 'error');
+                }
+            })
+            .catch(error => {
+                Swal.fire('Error', 'Failed to verify match', 'error');
+            });
+        }
     });
 }
 </script>

@@ -322,8 +322,8 @@ def warm_cache():
                 # This would normally use cache_manager methods to store the season
                 cached_items += 1
             
-            # Cache active leagues
-            leagues = db.session.query(League).filter_by(is_active=True).all()
+            # Cache leagues from current season
+            leagues = db.session.query(League).join(Season).filter(Season.is_current == True).all()
             cached_items += len(leagues)
             
             # Cache team data for current season

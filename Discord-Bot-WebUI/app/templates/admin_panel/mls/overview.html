@@ -1,0 +1,284 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}MLS Match Management - Admin Panel{% endblock %}
+
+{% block panel_description %}MLS match scheduling and live reporting management{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">MLS Management</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Stats Cards -->
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card h-100 bg-primary bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-calendar fs-1 text-primary mb-2"></i>
+                <h3 class="mb-0">{{ stats.total_matches }}</h3>
+                <small class="text-muted">Total Matches</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card h-100 bg-info bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-clock fs-1 text-info mb-2"></i>
+                <h3 class="mb-0">{{ stats.upcoming_matches }}</h3>
+                <small class="text-muted">Upcoming</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card h-100 bg-warning bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-broadcast fs-1 text-warning mb-2"></i>
+                <h3 class="mb-0">{{ stats.live_matches }}</h3>
+                <small class="text-muted">Live Now</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card h-100 bg-success bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-check fs-1 text-success mb-2"></i>
+                <h3 class="mb-0">{{ stats.finished_matches }}</h3>
+                <small class="text-muted">Finished</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="ti ti-bolt me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.mls_matches') }}" class="btn btn-primary w-100">
+                            <i class="ti ti-list me-2"></i>All Matches
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <button id="fetch-espn-btn" class="btn btn-success w-100">
+                            <i class="ti ti-download me-2"></i>Fetch from ESPN
+                        </button>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <button id="schedule-all-btn" class="btn btn-info w-100">
+                            <i class="ti ti-calendar-event me-2"></i>Schedule All
+                        </button>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.mls_task_monitoring') }}" class="btn btn-outline-secondary w-100">
+                            <i class="ti ti-list-check me-2"></i>Task Monitor
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Matches -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="ti ti-calendar me-2"></i>Upcoming Matches</h5>
+                <a href="{{ url_for('admin_panel.mls_matches') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if matches %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Match</th>
+                                <th>Date/Time</th>
+                                <th>Competition</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for match in matches %}
+                            <tr>
+                                <td>
+                                    {% if match.is_home_game %}
+                                    <strong>Seattle Sounders FC</strong> vs {{ match.opponent }}
+                                    {% else %}
+                                    {{ match.opponent }} vs <strong>Seattle Sounders FC</strong>
+                                    {% endif %}
+                                    {% if match.venue %}
+                                    <br><small class="text-muted">{{ match.venue }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ match.date_time.strftime('%b %d, %Y') }}<br>
+                                    <small class="text-muted">{{ match.date_time.strftime('%I:%M %p') }} UTC</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ match.competition or 'MLS' }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ match.status_color }}">
+                                        <i class="ti {{ match.status_icon }} me-1"></i>{{ match.status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        {% if not match.thread_created %}
+                                        <button class="btn btn-outline-primary" onclick="createThread({{ match.id }})" title="Create Thread">
+                                            <i class="ti ti-message-plus"></i>
+                                        </button>
+                                        {% endif %}
+                                        {% if match.live_reporting_status != 'running' %}
+                                        <button class="btn btn-outline-success" onclick="startReporting({{ match.id }})" title="Start Reporting">
+                                            <i class="ti ti-player-play"></i>
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-outline-warning" onclick="stopReporting({{ match.id }})" title="Stop Reporting">
+                                            <i class="ti ti-player-stop"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="ti ti-calendar-off fs-1 text-muted mb-3"></i>
+                    <p class="text-muted">No upcoming matches found.</p>
+                    <button id="fetch-espn-empty-btn" class="btn btn-success">
+                        <i class="ti ti-download me-2"></i>Fetch Matches from ESPN
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+function fetchFromESPN() {
+    const btn = event.currentTarget;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-loader spin me-2"></i>Fetching...';
+    btn.disabled = true;
+
+    fetch('{{ url_for("admin_panel.mls_fetch_espn") }}', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error fetching matches', 'danger');
+        })
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+}
+
+function scheduleAll() {
+    if (!confirm('This will schedule tasks for all upcoming matches. Continue?')) return;
+
+    const btn = document.getElementById('schedule-all-btn');
+    btn.innerHTML = '<i class="ti ti-loader spin me-2"></i>Scheduling...';
+    btn.disabled = true;
+
+    fetch('{{ url_for("admin_panel.mls_schedule_all") }}', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error scheduling matches', 'danger');
+        })
+        .finally(() => {
+            btn.innerHTML = '<i class="ti ti-calendar-event me-2"></i>Schedule All';
+            btn.disabled = false;
+        });
+}
+
+function createThread(matchId) {
+    fetch(`{{ url_for('admin_panel.mls_create_thread', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error creating thread', 'danger');
+        });
+}
+
+function startReporting(matchId) {
+    fetch(`{{ url_for('admin_panel.mls_start_reporting', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error starting reporting', 'danger');
+        });
+}
+
+function stopReporting(matchId) {
+    if (!confirm('Stop live reporting for this match?')) return;
+
+    fetch(`{{ url_for('admin_panel.mls_stop_reporting', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error stopping reporting', 'danger');
+        });
+}
+
+document.getElementById('fetch-espn-btn').addEventListener('click', fetchFromESPN);
+document.getElementById('schedule-all-btn').addEventListener('click', scheduleAll);
+
+const emptyBtn = document.getElementById('fetch-espn-empty-btn');
+if (emptyBtn) emptyBtn.addEventListener('click', fetchFromESPN);
+
+// Add spin animation
+const style = document.createElement('style');
+style.textContent = `
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

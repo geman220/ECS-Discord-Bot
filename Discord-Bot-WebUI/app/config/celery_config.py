@@ -26,7 +26,7 @@ class CeleryConfig:
     # Broker and Backend Settings
     broker_url = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
     broker_transport_options = {
-        'visibility_timeout': 3600,  # 1 hour
+        'visibility_timeout': 604800,  # 7 days (prevents task loss for advance scheduling)
         'socket_timeout': 30,
         'socket_connect_timeout': 5,
         # Automatically expire unprocessed messages
@@ -88,7 +88,7 @@ class CeleryConfig:
     }
     
     # Task Result Settings - Industry Best Practices
-    result_expires = 1800  # Results expire after 30 minutes (faster cleanup)
+    result_expires = 604800  # Results expire after 7 days (safety net for scheduled tasks)
     result_compression = 'gzip'  # Compress results to save memory
     result_accept_content = ['json']
     result_persistent = False  # Don't persist results beyond expiry

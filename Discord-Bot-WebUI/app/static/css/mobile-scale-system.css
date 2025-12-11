@@ -134,19 +134,8 @@ body:not(.auth-page) .form-select {
    
    ============================================================================ */
 
-/* MODALS - Highest priority for user interaction */
-.modal {
-  z-index: 1060 !important;
-}
-
-.modal-backdrop {
-  z-index: 1040 !important;
-}
-
-/* Override any conflicting modal backdrop rules from other files */
-.modal-backdrop.show {
-  z-index: 1040 !important;
-}
+/* MODALS - REMOVED CONFLICTING LOW Z-INDEX (was 1060, now using 9999 from mobile-modals.css) */
+/* The 1060 z-index was causing modals to appear BEHIND navbar (1055) */
 
 /* GLOBAL MODAL FIX - Force modals above everything */
 .modal,
@@ -157,12 +146,8 @@ div.modal,
 div.modal.show,
 div.modal.fade,
 div.modal.fade.show,
-#reportMatchModal-254,
-#reportMatchModal-271,
-#reportMatchModal-273,
-#reportMatchModal-251,
-#reportMatchModal-265,
-#reportMatchModal-264 {
+/* Use attribute selector to match ALL match report modals instead of hardcoding specific IDs */
+[id^="reportMatchModal-"] {
   z-index: 9999 !important;
 }
 

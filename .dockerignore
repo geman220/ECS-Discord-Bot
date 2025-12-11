@@ -1,0 +1,11 @@
+logs/
+*.log
+__pycache__/
+*.pyc
+.git/
+.env
+venv/
+node_modules/
+.vscode/
+*.sqlite3
+EOF

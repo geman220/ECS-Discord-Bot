@@ -30605,10 +30605,10 @@ html[data-style="dark"] {
   --ecs-z-dropdown: 1000;
   --ecs-z-sticky: 1020;
   --ecs-z-fixed: 1030;
-  --ecs-z-backdrop: 1040;
-  --ecs-z-modal: 1050;
-  --ecs-z-popover: 1060;
-  --ecs-z-tooltip: 1070;
+  --ecs-z-backdrop: 9998;  /* Updated from 1040 - matches modal fixes */
+  --ecs-z-modal: 9999;     /* Updated from 1050 - matches modal fixes */
+  --ecs-z-popover: 10060;  /* Updated from 1060 - above modal content */
+  --ecs-z-tooltip: 10070;  /* Updated from 1070 - above modal content */
   --ecs-z-toast: 1080;
 }
 
@@ -30843,10 +30843,10 @@ body {
   --z-tooltip: 1020;
   --z-popover: 1030;
   
-  /* Modal system layers */
-  --z-modal-backdrop: 1040;
-  --z-modal: 1050;
-  --z-modal-dropdown: 1060;  /* Dropdowns inside modals */
+  /* Modal system layers - Updated to match mobile z-index fixes */
+  --z-modal-backdrop: 9998;  /* Updated from 1040 - matches mobile-modals.css */
+  --z-modal: 9999;           /* Updated from 1050 - ensures modals appear above navbar (1055) */
+  --z-modal-dropdown: 10060; /* Updated from 1060 - dropdowns inside modals stay above modal content */
   
   /* Notification layers */
   --z-toast: 1070;

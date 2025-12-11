@@ -5,6 +5,8 @@
 {% block custom_css %}
 <!-- Draft System Styles -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/draft-system.css') }}?v={{ range(1, 1000000) | random }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/draft-highlighting.css') }}?v={{ range(1, 1000000) | random }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/draft-status.css') }}?v={{ range(1, 1000000) | random }}">
 
 <style>
 /* FIFA Player Card Styles */
@@ -652,7 +654,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Listen for socket events to update team counts
     if (typeof io !== 'undefined') {
-        const socket = io('/draft');
+        const socket = io('/');  // Fixed: Connect to default namespace where backend handlers listen
         
         socket.on('player_drafted_enhanced', function(data) {
             console.log('Player drafted:', data);
@@ -1010,4 +1012,7 @@ function displayPlayerProfile(data, playerId) {
     };
 }
 </script>
+
+<!-- Mobile Draft Enhancements -->
+<script src="{{ url_for('static', filename='js/mobile-draft.js') }}"></script>
 {% endblock %}

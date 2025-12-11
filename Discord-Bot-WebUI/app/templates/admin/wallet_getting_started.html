@@ -1,0 +1,552 @@
+{% extends 'admin/layout.html' %}
+{% block title %}Getting Started with Digital Wallets{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Getting Started - Theme-aware styling */
+    .hero-section {
+        background: linear-gradient(135deg, var(--bs-primary) 0%, #1a472a 100%);
+        color: #fff;
+        border-radius: 16px;
+        padding: 40px;
+        position: relative;
+        overflow: hidden;
+    }
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 400px;
+        height: 400px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 50%;
+    }
+    .progress-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: conic-gradient(
+            var(--bs-success) calc(var(--progress) * 1%),
+            rgba(255,255,255,0.2) calc(var(--progress) * 1%)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    .progress-circle-inner {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    }
+    .step-card {
+        border-left: 4px solid transparent;
+        transition: all 0.3s;
+    }
+    .step-card:hover {
+        transform: translateX(5px);
+    }
+    .step-card.completed {
+        border-left-color: var(--bs-success);
+        background: var(--bs-success-bg-subtle);
+    }
+    .step-card.in-progress {
+        border-left-color: var(--bs-warning);
+        background: var(--bs-warning-bg-subtle);
+    }
+    .step-card.pending {
+        border-left-color: var(--bs-secondary);
+    }
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    .prereq-item {
+        padding: 16px;
+        border-radius: 8px;
+        background: var(--bs-tertiary-bg);
+        margin-bottom: 12px;
+    }
+    .prereq-item i {
+        font-size: 1.5rem;
+    }
+    .quick-link-card {
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s;
+    }
+    .quick-link-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--bs-box-shadow);
+    }
+    .time-estimate {
+        background: rgba(255,255,255,0.15);
+        padding: 8px 16px;
+        border-radius: 20px;
+        display: inline-block;
+    }
+</style>
+{% endblock custom_css %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Hero Section -->
+    <div class="hero-section mb-4">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-6 fw-bold mb-3">
+                    <i class="ti ti-device-mobile me-2"></i>Digital Wallet Passes
+                </h1>
+                <p class="lead mb-4 opacity-90">
+                    Create Apple Wallet and Google Wallet passes for ECS Members and Pub League players.
+                    Enable contactless check-ins at matches and events.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    {% if progress.total_percent == 100 %}
+                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-light btn-lg">
+                        <i class="ti ti-dashboard me-1"></i>Go to Dashboard
+                    </a>
+                    <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="btn btn-outline-light btn-lg">
+                        <i class="ti ti-plus me-1"></i>Create Pass
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('wallet_config.setup_wizard') }}" class="btn btn-light btn-lg">
+                        <i class="ti ti-wand me-1"></i>Start Setup Wizard
+                    </a>
+                    <a href="#prerequisites" class="btn btn-outline-light btn-lg">
+                        <i class="ti ti-list-check me-1"></i>View Prerequisites
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-4 text-center mt-4 mt-lg-0">
+                <div class="progress-circle mx-auto" style="--progress: {{ progress.total_percent }}">
+                    <div class="progress-circle-inner">
+                        <span class="display-5 fw-bold">{{ progress.total_percent }}%</span>
+                        <small class="opacity-75">Complete</small>
+                    </div>
+                </div>
+                <div class="time-estimate mt-3">
+                    <i class="ti ti-clock me-1"></i>
+                    {% if progress.total_percent == 100 %}
+                    Setup Complete!
+                    {% elif progress.total_percent > 50 %}
+                    Almost done
+                    {% else %}
+                    ~15-20 min setup
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Setup Progress -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="ti ti-list-numbers me-2"></i>Setup Progress
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Step 1: Certificates -->
+                    <div class="step-card card mb-3 {{ 'completed' if progress.certificates else 'in-progress' if progress.total_percent == 0 else 'pending' }}">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="step-number bg-{{ 'success' if progress.certificates else 'warning' if progress.total_percent == 0 else 'secondary' }} text-white me-3">
+                                {% if progress.certificates %}
+                                <i class="ti ti-check"></i>
+                                {% else %}
+                                1
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">Upload Signing Certificates</h6>
+                                <p class="mb-0 text-muted small">
+                                    Apple Developer certificates that prove your passes are authentic.
+                                    Required: Pass certificate (.pem), Private key (.pem), Apple WWDR certificate.
+                                </p>
+                            </div>
+                            <div>
+                                {% if progress.certificates %}
+                                <span class="badge bg-label-success"><i class="ti ti-check me-1"></i>Done</span>
+                                {% else %}
+                                <a href="{{ url_for('wallet_config.certificates') }}" class="btn btn-sm btn-primary">
+                                    Configure
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Assets -->
+                    <div class="step-card card mb-3 {{ 'completed' if progress.assets else 'in-progress' if progress.certificates and not progress.assets else 'pending' }}">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="step-number bg-{{ 'success' if progress.assets else 'warning' if progress.certificates and not progress.assets else 'secondary' }} text-white me-3">
+                                {% if progress.assets %}
+                                <i class="ti ti-check"></i>
+                                {% else %}
+                                2
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">Upload Pass Images</h6>
+                                <p class="mb-0 text-muted small">
+                                    Logo and icon images that appear on your digital passes.
+                                    Required: Icon (87x87px), Logo (480x150px) for each pass type.
+                                </p>
+                            </div>
+                            <div>
+                                {% if progress.assets %}
+                                <span class="badge bg-label-success"><i class="ti ti-check me-1"></i>Done</span>
+                                {% elif progress.certificates %}
+                                <a href="{{ url_for('wallet_config.assets') }}" class="btn btn-sm btn-primary">
+                                    Configure
+                                </a>
+                                {% else %}
+                                <span class="badge bg-label-secondary">Pending</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Templates -->
+                    <div class="step-card card mb-3 {{ 'completed' if progress.templates else 'in-progress' if progress.assets and not progress.templates else 'pending' }}">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="step-number bg-{{ 'success' if progress.templates else 'warning' if progress.assets and not progress.templates else 'secondary' }} text-white me-3">
+                                {% if progress.templates %}
+                                <i class="ti ti-check"></i>
+                                {% else %}
+                                3
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">Configure Pass Templates</h6>
+                                <p class="mb-0 text-muted small">
+                                    Define how your passes look - colors, fields, and layout.
+                                    Set default templates for ECS Membership and Pub League passes.
+                                </p>
+                            </div>
+                            <div>
+                                {% if progress.templates %}
+                                <span class="badge bg-label-success"><i class="ti ti-check me-1"></i>Done</span>
+                                {% elif progress.assets %}
+                                <a href="{{ url_for('wallet_config.templates') }}" class="btn btn-sm btn-primary">
+                                    Configure
+                                </a>
+                                {% else %}
+                                <span class="badge bg-label-secondary">Pending</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Testing -->
+                    <div class="step-card card mb-3 {{ 'completed' if progress.templates else 'pending' }}">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="step-number bg-{{ 'success' if progress.templates else 'secondary' }} text-white me-3">
+                                {% if progress.templates %}
+                                <i class="ti ti-check"></i>
+                                {% else %}
+                                4
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">Test Your Configuration</h6>
+                                <p class="mb-0 text-muted small">
+                                    Verify everything works by running diagnostics and creating a test pass.
+                                </p>
+                            </div>
+                            <div>
+                                {% if progress.templates %}
+                                <span class="badge bg-label-success"><i class="ti ti-check me-1"></i>Ready</span>
+                                {% elif progress.assets %}
+                                <a href="{{ url_for('wallet_config.setup_wizard', step='testing') }}" class="btn btn-sm btn-primary">
+                                    Run Tests
+                                </a>
+                                {% else %}
+                                <span class="badge bg-label-secondary">Pending</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 5: WooCommerce -->
+                    <div class="step-card card {{ 'completed' if progress.woocommerce else 'pending' }}">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="step-number bg-{{ 'success' if progress.woocommerce else 'secondary' }} text-white me-3">
+                                {% if progress.woocommerce %}
+                                <i class="ti ti-check"></i>
+                                {% else %}
+                                5
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">Connect WooCommerce</h6>
+                                <p class="mb-0 text-muted small">
+                                    Link your online store so purchases automatically generate wallet passes.
+                                    Customers get download links on checkout and in emails.
+                                </p>
+                            </div>
+                            <div>
+                                {% if progress.woocommerce %}
+                                <span class="badge bg-label-success"><i class="ti ti-check me-1"></i>Connected</span>
+                                {% elif progress.templates %}
+                                <a href="{{ url_for('wallet_config.setup_wizard', step='woocommerce') }}" class="btn btn-sm btn-primary">
+                                    Connect
+                                </a>
+                                {% else %}
+                                <span class="badge bg-label-secondary">Pending</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prerequisites Section -->
+            <div class="card mb-4" id="prerequisites">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="ti ti-checklist me-2"></i>Before You Begin
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        Make sure you have these ready before starting the setup process.
+                        Don't worry if you're not technical - we'll guide you through each step!
+                    </p>
+
+                    <div class="prereq-item d-flex align-items-start">
+                        <i class="ti ti-brand-apple text-dark me-3"></i>
+                        <div>
+                            <h6 class="mb-1">Apple Developer Account</h6>
+                            <p class="text-muted small mb-2">
+                                Required for Apple Wallet passes. Costs $99/year.
+                                <a href="https://developer.apple.com/programs/" target="_blank" rel="noopener">
+                                    Sign up here <i class="ti ti-external-link"></i>
+                                </a>
+                            </p>
+                            <div class="alert alert-info small mb-0 py-2">
+                                <i class="ti ti-info-circle me-1"></i>
+                                If your organization already has one, ask your admin for access.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="prereq-item d-flex align-items-start">
+                        <i class="ti ti-certificate text-primary me-3"></i>
+                        <div>
+                            <h6 class="mb-1">Pass Type ID & Certificates</h6>
+                            <p class="text-muted small mb-2">
+                                You'll create these in your Apple Developer account. We'll show you exactly how during setup.
+                            </p>
+                            <ul class="small text-muted mb-0 ps-3">
+                                <li>Pass Type ID (like a unique identifier for your passes)</li>
+                                <li>Pass certificate (proves passes are from you)</li>
+                                <li>Private key (for signing passes securely)</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="prereq-item d-flex align-items-start">
+                        <i class="ti ti-photo text-success me-3"></i>
+                        <div>
+                            <h6 class="mb-1">Logo & Icon Images</h6>
+                            <p class="text-muted small mb-0">
+                                PNG images of your organization's logo. We recommend having these ready:
+                            </p>
+                            <ul class="small text-muted mb-0 ps-3 mt-2">
+                                <li><strong>Icon:</strong> 87 x 87 pixels (appears on pass and in notifications)</li>
+                                <li><strong>Logo:</strong> 480 x 150 pixels (appears at top of pass)</li>
+                                <li><strong>Strip:</strong> 375 x 123 pixels (optional background strip)</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="prereq-item d-flex align-items-start">
+                        <i class="ti ti-palette text-warning me-3"></i>
+                        <div>
+                            <h6 class="mb-1">Brand Colors (Optional)</h6>
+                            <p class="text-muted small mb-0">
+                                Know your organization's brand colors? Have them ready in hex format (e.g., #1a472a).
+                                If not, we'll use ECS defaults and you can customize later.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Links -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="ti ti-bolt me-1"></i>Quick Links
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <a href="{{ url_for('wallet_config.setup_wizard') }}" class="quick-link-card d-flex align-items-center p-3 border-bottom">
+                        <div class="avatar me-3">
+                            <span class="avatar-initial rounded bg-primary bg-opacity-10">
+                                <i class="ti ti-wand text-primary"></i>
+                            </span>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Setup Wizard</h6>
+                            <small class="text-muted">Guided step-by-step setup</small>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('wallet_config.help_page') }}" class="quick-link-card d-flex align-items-center p-3 border-bottom">
+                        <div class="avatar me-3">
+                            <span class="avatar-initial rounded bg-info bg-opacity-10">
+                                <i class="ti ti-help text-info"></i>
+                            </span>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Help & Documentation</h6>
+                            <small class="text-muted">Detailed guides and FAQ</small>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('wallet_config.diagnostics') }}" class="quick-link-card d-flex align-items-center p-3 border-bottom">
+                        <div class="avatar me-3">
+                            <span class="avatar-initial rounded bg-warning bg-opacity-10">
+                                <i class="ti ti-stethoscope text-warning"></i>
+                            </span>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Diagnostics</h6>
+                            <small class="text-muted">Test your configuration</small>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="quick-link-card d-flex align-items-center p-3">
+                        <div class="avatar me-3">
+                            <span class="avatar-initial rounded bg-success bg-opacity-10">
+                                <i class="ti ti-dashboard text-success"></i>
+                            </span>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Dashboard</h6>
+                            <small class="text-muted">Main wallet management</small>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Pass Types Status -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="ti ti-wallet me-1"></i>Pass Type Status
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-3">Each pass type can be configured independently.</p>
+
+                    <!-- ECS Membership -->
+                    <div class="border rounded p-3 mb-3 {% if progress.ecs.ready %}border-success bg-success bg-opacity-10{% elif progress.ecs.exists %}border-warning{% else %}border-secondary{% endif %}">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar avatar-sm me-2">
+                                    <span class="avatar-initial rounded bg-primary">
+                                        <i class="ti ti-id-badge-2"></i>
+                                    </span>
+                                </div>
+                                <h6 class="mb-0">ECS Membership</h6>
+                            </div>
+                            {% if progress.ecs.ready %}
+                            <span class="badge bg-label-success">Ready</span>
+                            {% elif not progress.ecs.exists %}
+                            <span class="badge bg-label-secondary">Not Initialized</span>
+                            {% else %}
+                            <span class="badge bg-label-warning">Incomplete</span>
+                            {% endif %}
+                        </div>
+                        <ul class="list-unstyled small mb-0 ms-4">
+                            <li class="{% if progress.certificates %}text-success{% else %}text-warning{% endif %}">
+                                <i class="ti ti-{% if progress.certificates %}check{% else %}x{% endif %} me-1"></i>Certificates
+                            </li>
+                            <li class="{% if progress.ecs.assets_complete %}text-success{% else %}text-warning{% endif %}">
+                                <i class="ti ti-{% if progress.ecs.assets_complete %}check{% else %}x{% endif %} me-1"></i>Assets
+                            </li>
+                            <li class="{% if progress.ecs.template_complete %}text-success{% else %}text-warning{% endif %}">
+                                <i class="ti ti-{% if progress.ecs.template_complete %}check{% else %}x{% endif %} me-1"></i>Template
+                            </li>
+                        </ul>
+                        {% if progress.ecs.ready %}
+                        <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="btn btn-sm btn-success mt-2 w-100">
+                            <i class="ti ti-plus me-1"></i>Create Pass
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    <!-- Pub League -->
+                    <div class="border rounded p-3 {% if progress.pub.ready %}border-success bg-success bg-opacity-10{% elif progress.pub.exists %}border-warning{% else %}border-secondary{% endif %}">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar avatar-sm me-2">
+                                    <span class="avatar-initial rounded bg-warning">
+                                        <i class="ti ti-ball-football"></i>
+                                    </span>
+                                </div>
+                                <h6 class="mb-0">Pub League</h6>
+                            </div>
+                            {% if progress.pub.ready %}
+                            <span class="badge bg-label-success">Ready</span>
+                            {% elif not progress.pub.exists %}
+                            <span class="badge bg-label-secondary">Not Initialized</span>
+                            {% else %}
+                            <span class="badge bg-label-warning">Incomplete</span>
+                            {% endif %}
+                        </div>
+                        <ul class="list-unstyled small mb-0 ms-4">
+                            <li class="{% if progress.certificates %}text-success{% else %}text-warning{% endif %}">
+                                <i class="ti ti-{% if progress.certificates %}check{% else %}x{% endif %} me-1"></i>Certificates
+                            </li>
+                            <li class="{% if progress.pub.assets_complete %}text-success{% else %}text-warning{% endif %}">
+                                <i class="ti ti-{% if progress.pub.assets_complete %}check{% else %}x{% endif %} me-1"></i>Assets
+                            </li>
+                            <li class="{% if progress.pub.template_complete %}text-success{% else %}text-warning{% endif %}">
+                                <i class="ti ti-{% if progress.pub.template_complete %}check{% else %}x{% endif %} me-1"></i>Template
+                            </li>
+                        </ul>
+                        {% if progress.pub.ready %}
+                        <a href="{{ url_for('wallet_admin.create_pub_league_pass') }}" class="btn btn-sm btn-success mt-2 w-100">
+                            <i class="ti ti-plus me-1"></i>Create Pass
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support -->
+            <div class="card bg-body-tertiary border-0">
+                <div class="card-body">
+                    <h6 class="mb-2">
+                        <i class="ti ti-headset me-1"></i>Need Help?
+                    </h6>
+                    <p class="small text-muted mb-3">
+                        Stuck on a step? Check our documentation or reach out for assistance.
+                    </p>
+                    <a href="{{ url_for('wallet_config.help_page') }}" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="ti ti-book me-1"></i>View Documentation
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

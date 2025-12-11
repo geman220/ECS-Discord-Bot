@@ -490,20 +490,45 @@ function viewRoleDetails(roleId) {
 }
 
 function assignRole(roleId) {
-    // TODO: Load available users
     document.getElementById('assignRoleId').value = roleId;
     document.getElementById('assigningRoleName').textContent = 'Loading...';
     assignRoleForm.action = `{{ url_for('admin_panel.assign_role_to_user_comprehensive', role_id=0) }}`.replace('0', roleId);
-    
-    // Get role name
-    fetch(`{{ url_for('admin_panel.role_comprehensive_details', role_id=0) }}`.replace('0', roleId))
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('assigningRoleName').textContent = data.role.name;
-            }
-        });
-    
+
+    // Clear and show loading in user select
+    const userSelect = document.getElementById('selectUser');
+    userSelect.innerHTML = '<option value="">Loading users...</option>';
+
+    // Get role name and available users
+    Promise.all([
+        fetch(`{{ url_for('admin_panel.role_comprehensive_details', role_id=0) }}`.replace('0', roleId)).then(r => r.json()),
+        fetch(`{{ url_for('admin_panel.get_available_users_for_role', role_id=0) }}`.replace('0', roleId)).then(r => r.json())
+    ]).then(([roleData, usersData]) => {
+        // Set role name
+        if (roleData.success) {
+            document.getElementById('assigningRoleName').textContent = roleData.role.name;
+        }
+
+        // Populate user dropdown
+        userSelect.innerHTML = '<option value="">Choose a user...</option>';
+        if (usersData.success && usersData.users.length > 0) {
+            usersData.users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = `${user.username} (${user.email})`;
+                if (!user.is_active) {
+                    option.textContent += ' [Inactive]';
+                    option.classList.add('text-muted');
+                }
+                userSelect.appendChild(option);
+            });
+        } else {
+            userSelect.innerHTML = '<option value="">No available users (all have this role)</option>';
+        }
+    }).catch(error => {
+        console.error('Error loading data:', error);
+        userSelect.innerHTML = '<option value="">Error loading users</option>';
+    });
+
     assignRoleModal.show();
 }
 

@@ -2626,7 +2626,7 @@ def get_wallet_pass_info():
             response_data = {
                 "passUrl": f"{base_url}/api/v1/wallet/pass/{current_user_id}",
                 "downloadUrl": f"{base_url}/api/v1/membership/wallet/pass/download",
-                "passTypeIdentifier": "pass.com.ecsfc.membership.v3",
+                "passTypeIdentifier": "pass.com.weareecs.membership",
                 "serialNumber": str(player.id)
             }
             

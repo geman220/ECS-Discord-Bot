@@ -1,0 +1,225 @@
+{% extends 'admin/layout.html' %}
+{% block title %}Certificate Help{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-primary mb-1">
+                <i class="ti ti-help me-2"></i>Certificate Setup Help
+            </h2>
+            <p class="text-muted mb-0">How to obtain and configure Apple Wallet certificates</p>
+        </div>
+        <a href="{{ url_for('wallet_config.certificates') }}" class="btn btn-outline-secondary">
+            <i class="ti ti-arrow-left me-1"></i> Back to Certificates
+        </a>
+    </div>
+
+    <!-- Overview -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="ti ti-info-circle me-2"></i>Overview</h5>
+        </div>
+        <div class="card-body">
+            <p>Apple Wallet passes must be cryptographically signed to be valid. This requires:</p>
+            <ol>
+                <li><strong>Apple Developer Program membership</strong> ($99/year)</li>
+                <li><strong>Pass Type ID</strong> - A unique identifier for your pass type</li>
+                <li><strong>Signing Certificate</strong> - Used to sign passes</li>
+                <li><strong>WWDR Certificate</strong> - Apple's intermediate certificate</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Step by Step Guide -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="ti ti-list-numbers me-2"></i>Step-by-Step Guide</h5>
+        </div>
+        <div class="card-body">
+            <div class="accordion" id="certSteps">
+                <!-- Step 1 -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#step1">
+                            <span class="badge bg-primary me-2">1</span>
+                            Create a Pass Type ID
+                        </button>
+                    </h2>
+                    <div id="step1" class="accordion-collapse collapse show" data-bs-parent="#certSteps">
+                        <div class="accordion-body">
+                            <ol>
+                                <li>Log in to the <a href="https://developer.apple.com/account" target="_blank">Apple Developer Portal</a></li>
+                                <li>Go to <strong>Certificates, Identifiers & Profiles</strong></li>
+                                <li>Select <strong>Identifiers</strong> from the sidebar</li>
+                                <li>Click the <strong>+</strong> button and select <strong>Pass Type IDs</strong></li>
+                                <li>Enter a description (e.g., "ECS Membership Pass")</li>
+                                <li>Enter an identifier (e.g., <code>pass.com.weareecs.membership</code>)</li>
+                                <li>Click <strong>Continue</strong> and then <strong>Register</strong></li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step2">
+                            <span class="badge bg-primary me-2">2</span>
+                            Create a Pass Signing Certificate
+                        </button>
+                    </h2>
+                    <div id="step2" class="accordion-collapse collapse" data-bs-parent="#certSteps">
+                        <div class="accordion-body">
+                            <ol>
+                                <li>In the Developer Portal, go to <strong>Certificates</strong></li>
+                                <li>Click the <strong>+</strong> button</li>
+                                <li>Under <strong>Services</strong>, select <strong>Pass Type ID Certificate</strong></li>
+                                <li>Select your Pass Type ID from the dropdown</li>
+                                <li>Follow the instructions to create a Certificate Signing Request (CSR) using Keychain Access on Mac:
+                                    <ul>
+                                        <li>Open Keychain Access</li>
+                                        <li>Go to <strong>Keychain Access > Certificate Assistant > Request a Certificate from a Certificate Authority</strong></li>
+                                        <li>Enter your email, leave CA Email blank, select "Saved to disk"</li>
+                                        <li>Save the CSR file</li>
+                                    </ul>
+                                </li>
+                                <li>Upload the CSR to the Developer Portal</li>
+                                <li>Download the generated certificate (.cer file)</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step3">
+                            <span class="badge bg-primary me-2">3</span>
+                            Export as .p12 File
+                        </button>
+                    </h2>
+                    <div id="step3" class="accordion-collapse collapse" data-bs-parent="#certSteps">
+                        <div class="accordion-body">
+                            <ol>
+                                <li>Double-click the downloaded .cer file to install it in Keychain Access</li>
+                                <li>In Keychain Access, find your certificate under <strong>My Certificates</strong></li>
+                                <li>Expand the certificate to see the private key</li>
+                                <li>Select both the certificate and private key</li>
+                                <li>Right-click and choose <strong>Export 2 items...</strong></li>
+                                <li>Save as a .p12 file with a strong password</li>
+                                <li><strong>Remember this password!</strong> You'll need it when uploading</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step4">
+                            <span class="badge bg-primary me-2">4</span>
+                            Download WWDR Certificate
+                        </button>
+                    </h2>
+                    <div id="step4" class="accordion-collapse collapse" data-bs-parent="#certSteps">
+                        <div class="accordion-body">
+                            <p>Download Apple's Worldwide Developer Relations (WWDR) intermediate certificate:</p>
+                            <ul>
+                                <li><a href="https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer" target="_blank">WWDR G4 Certificate</a> (recommended for new passes)</li>
+                            </ul>
+                            <div class="alert alert-info mt-3">
+                                <i class="ti ti-info-circle me-1"></i>
+                                The WWDR certificate is the same for all developers and doesn't require any account-specific setup.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5 -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step5">
+                            <span class="badge bg-primary me-2">5</span>
+                            Upload to This System
+                        </button>
+                    </h2>
+                    <div id="step5" class="accordion-collapse collapse" data-bs-parent="#certSteps">
+                        <div class="accordion-body">
+                            <p>Upload your certificates to this system:</p>
+                            <ol>
+                                <li>Go to <a href="{{ url_for('wallet_config.certificates') }}">Certificate Management</a></li>
+                                <li>Upload your <strong>.p12 certificate</strong> (enter the password you set)</li>
+                                <li>Upload the <strong>WWDR certificate</strong></li>
+                                <li>Enter your <strong>Team Identifier</strong> and <strong>Pass Type Identifier</strong></li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Finding Your Identifiers -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="ti ti-search me-2"></i>Finding Your Identifiers</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Team Identifier</h6>
+                    <p>Your 10-character Team ID can be found:</p>
+                    <ul>
+                        <li>In the Apple Developer Portal under <strong>Membership</strong></li>
+                        <li>Or in the URL when viewing your team: <code>developer.apple.com/account/#!/membership/XXXXXXXXXX</code></li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Pass Type Identifier</h6>
+                    <p>The identifier you created in Step 1, formatted like:</p>
+                    <code>pass.com.weareecs.membership</code>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Troubleshooting -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="ti ti-bug me-2"></i>Troubleshooting</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Issue</th>
+                            <th>Solution</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>"Invalid certificate" error</td>
+                            <td>Ensure your certificate hasn't expired and matches your Pass Type ID</td>
+                        </tr>
+                        <tr>
+                            <td>Can't export .p12</td>
+                            <td>Make sure you installed the certificate on the same Mac where you created the CSR</td>
+                        </tr>
+                        <tr>
+                            <td>Pass won't open on device</td>
+                            <td>Check that Team ID and Pass Type ID match exactly, including the "pass." prefix</td>
+                        </tr>
+                        <tr>
+                            <td>"Certificate chain invalid"</td>
+                            <td>Make sure you've uploaded the correct WWDR certificate (G4 for newer passes)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

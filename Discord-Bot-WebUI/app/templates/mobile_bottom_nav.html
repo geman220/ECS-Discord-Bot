@@ -1,0 +1,471 @@
+<!-- Mobile Bottom Navigation Bar -->
+<!-- Only visible on mobile devices (< 768px) -->
+<!-- Provides quick access to primary app features -->
+
+<nav class="mobile-bottom-nav d-md-none" id="mobileBottomNav">
+    <div class="bottom-nav-container">
+        <!-- Home -->
+        <a href="{{ url_for('main.index') }}"
+           class="bottom-nav-item {% if request.endpoint == 'main.index' %}active{% endif %}"
+           data-page="home">
+            <i class="ti ti-home bottom-nav-icon"></i>
+            <span class="bottom-nav-label">Home</span>
+        </a>
+
+        <!-- Teams -->
+        <a href="{{ url_for('teams.teams_overview') }}"
+           class="bottom-nav-item {% if 'team' in request.endpoint %}active{% endif %}"
+           data-page="teams">
+            <i class="ti ti-users bottom-nav-icon"></i>
+            <span class="bottom-nav-label">Teams</span>
+        </a>
+
+        <!-- Schedule -->
+        <a href="{{ url_for('teams.view_standings') }}"
+           class="bottom-nav-item {% if 'standings' in request.endpoint or 'season' in request.endpoint %}active{% endif %}"
+           data-page="schedule">
+            <i class="ti ti-calendar bottom-nav-icon"></i>
+            <span class="bottom-nav-label">Schedule</span>
+        </a>
+
+        <!-- More Menu -->
+        <button class="bottom-nav-item"
+                data-page="more"
+                data-bs-toggle="offcanvas"
+                data-bs-target="#mobileMoreMenu"
+                aria-controls="mobileMoreMenu">
+            <i class="ti ti-dots-vertical bottom-nav-icon"></i>
+            <span class="bottom-nav-label">More</span>
+        </button>
+    </div>
+</nav>
+
+<!-- More Menu Offcanvas (Slide up from bottom) -->
+<div class="offcanvas offcanvas-bottom mobile-more-menu"
+     tabindex="-1"
+     id="mobileMoreMenu"
+     aria-labelledby="mobileMoreMenuLabel"
+     style="height: 60vh; border-radius: 16px 16px 0 0;">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="mobileMoreMenuLabel">
+            <i class="ti ti-menu-2 me-2"></i>More Options
+        </h5>
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="offcanvas"
+                aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div class="list-group list-group-flush">
+            <!-- Profile -->
+            {% if current_user.is_authenticated and current_user.player %}
+            <a href="{{ url_for('players.player_profile', player_id=current_user.player.id) }}"
+               class="list-group-item list-group-item-action">
+                <i class="ti ti-user me-3"></i>
+                My Profile
+            </a>
+            {% elif current_user.is_authenticated %}
+            <a href="{{ url_for('main.my_profile') }}"
+               class="list-group-item list-group-item-action">
+                <i class="ti ti-user me-3"></i>
+                My Profile
+            </a>
+            {% endif %}
+
+            <!-- Draft Leagues (if user has access) -->
+            {% if current_user.is_authenticated and ('Admin' in user_roles or 'Global Admin' in user_roles or 'Coach' in user_roles or 'Pub League Admin' in user_roles or 'Pub League Coach' in user_roles) %}
+            <div class="list-group-item" style="background-color: var(--bs-secondary-bg); padding: 8px 16px;">
+                <small class="text-muted fw-bold">DRAFT</small>
+            </div>
+            <a href="{{ url_for('draft_enhanced.draft_league', league_name='premier') }}"
+               class="list-group-item list-group-item-action">
+                <i class="ti ti-trophy me-3"></i>
+                Premier League Draft
+            </a>
+            <a href="{{ url_for('draft_enhanced.draft_league', league_name='classic') }}"
+               class="list-group-item list-group-item-action">
+                <i class="ti ti-layout-cards me-3"></i>
+                Classic League Draft
+            </a>
+            {% endif %}
+
+            <!-- Coach Dashboard (if coach) -->
+            {% if current_user.is_authenticated and ('Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Admin' in user_roles or 'Global Admin' in user_roles) %}
+            <a href="{{ url_for('teams.coach_dashboard') }}"
+               class="list-group-item list-group-item-action">
+                <i class="ti ti-clipboard me-3"></i>
+                Coach Dashboard
+            </a>
+            {% endif %}
+
+            <!-- Admin Panel (if admin) -->
+            {% if current_user.is_authenticated and ('Admin' in user_roles or 'Global Admin' in user_roles) %}
+            <a href="{{ url_for('admin_panel.dashboard') }}"
+               class="list-group-item list-group-item-action">
+                <i class="ti ti-shield me-3"></i>
+                Admin Panel
+            </a>
+            {% endif %}
+
+            <!-- Wallet (if admin) -->
+            {% if current_user.is_authenticated and ('Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Admin' in user_roles) %}
+            <a href="{{ url_for('wallet_admin.wallet_management') }}"
+               class="list-group-item list-group-item-action">
+                <i class="ti ti-wallet me-3"></i>
+                Wallet Management
+            </a>
+            {% endif %}
+
+            <!-- Feedback -->
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('feedback.submit_feedback') }}"
+               class="list-group-item list-group-item-action">
+                <i class="ti ti-message-circle me-3"></i>
+                Submit Feedback
+            </a>
+            {% endif %}
+
+            <!-- Help -->
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('help.index') }}"
+               class="list-group-item list-group-item-action">
+                <i class="ti ti-help-circle me-3"></i>
+                Help Topics
+            </a>
+            {% endif %}
+
+            <div class="dropdown-divider"></div>
+
+            <!-- Theme Toggle -->
+            <button class="list-group-item list-group-item-action"
+                    id="mobileThemeToggle"
+                    onclick="toggleTheme()">
+                <i class="ti ti-moon me-3" id="mobileThemeIcon"></i>
+                <span id="mobileThemeText">Dark Mode</span>
+            </button>
+
+            {% if current_user.is_authenticated %}
+            <div class="dropdown-divider"></div>
+
+            <!-- Logout -->
+            <a href="{{ url_for('auth.logout') }}"
+               class="list-group-item list-group-item-action text-danger">
+                <i class="ti ti-logout me-3"></i>
+                Logout
+            </a>
+            {% else %}
+            <div class="dropdown-divider"></div>
+
+            <!-- Login -->
+            <a href="{{ url_for('auth.login') }}"
+               class="list-group-item list-group-item-action">
+                <i class="ti ti-login me-3"></i>
+                Login
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Bottom Nav Styles -->
+<style>
+/* Mobile Bottom Navigation */
+.mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--bs-body-bg);
+    border-top: 1px solid var(--bs-border-color);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1050;
+    padding-bottom: env(safe-area-inset-bottom); /* iPhone notch support */
+}
+
+.bottom-nav-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 100%;
+    padding: 0 8px;
+}
+
+.bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
+    padding: 8px 4px;
+    color: var(--bs-secondary);
+    text-decoration: none;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.bottom-nav-item:hover,
+.bottom-nav-item:focus {
+    color: var(--bs-primary);
+    background: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.bottom-nav-item.active {
+    color: var(--bs-primary);
+    font-weight: 600;
+}
+
+.bottom-nav-item.active .bottom-nav-icon {
+    transform: scale(1.1);
+}
+
+.bottom-nav-icon {
+    font-size: 24px;
+    margin-bottom: 4px;
+    transition: transform 0.2s ease;
+}
+
+.bottom-nav-label {
+    font-size: 11px;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* More menu styling */
+.mobile-more-menu .list-group-item {
+    padding: 16px 20px;
+    font-size: 16px;
+    border: none;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.mobile-more-menu .list-group-item i {
+    font-size: 20px;
+    width: 24px;
+}
+
+.mobile-more-menu .offcanvas-header {
+    border-bottom: 1px solid var(--bs-border-color);
+    padding: 20px;
+}
+
+/* Add padding to main content to account for bottom nav */
+@media (max-width: 767.98px) {
+    .layout-page {
+        padding-bottom: 80px !important;
+    }
+
+    .container-xxl,
+    .container-fluid {
+        padding-bottom: 24px;
+    }
+}
+
+/* Hide on desktop */
+@media (min-width: 768px) {
+    .mobile-bottom-nav,
+    .mobile-more-menu {
+        display: none !important;
+    }
+}
+
+/* Active state ripple effect */
+.bottom-nav-item:active {
+    transform: scale(0.95);
+}
+
+/* Badge for notifications (future use) */
+.bottom-nav-item .badge {
+    position: absolute;
+    top: 4px;
+    right: 20%;
+    padding: 2px 6px;
+    font-size: 10px;
+    border-radius: 10px;
+}
+
+/* ========================================
+   Dark Mode Support
+   ======================================== */
+
+[data-style="dark"] .mobile-bottom-nav {
+    background: #1a1d23;
+    border-top-color: #2d3139;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.4);
+}
+
+[data-style="dark"] .bottom-nav-item {
+    color: #9ca3af;
+}
+
+[data-style="dark"] .bottom-nav-item:hover,
+[data-style="dark"] .bottom-nav-item:focus {
+    color: var(--bs-primary);
+    background: rgba(var(--bs-primary-rgb), 0.15);
+}
+
+[data-style="dark"] .bottom-nav-item.active {
+    color: var(--bs-primary);
+}
+
+[data-style="dark"] .mobile-more-menu .offcanvas {
+    background: #1a1d23;
+    color: #e5e7eb;
+}
+
+[data-style="dark"] .mobile-more-menu .offcanvas-header {
+    border-bottom-color: #2d3139;
+}
+
+[data-style="dark"] .mobile-more-menu .list-group-item {
+    background: #1a1d23;
+    color: #e5e7eb;
+    border-bottom-color: #2d3139;
+}
+
+[data-style="dark"] .mobile-more-menu .list-group-item:hover,
+[data-style="dark"] .mobile-more-menu .list-group-item:focus {
+    background: #2d3139;
+    color: #fff;
+}
+
+[data-style="dark"] .mobile-more-menu .offcanvas-title {
+    color: #e5e7eb;
+}
+
+[data-style="dark"] .mobile-more-menu .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+[data-style="dark"] .dropdown-divider {
+    border-top-color: #2d3139;
+}
+
+/* Theme switcher in more menu */
+[data-style="dark"] .theme-option {
+    background: #2d3139;
+    border-color: #3d4148;
+}
+
+[data-style="dark"] .theme-option:hover {
+    background: #3d4148;
+}
+
+[data-style="dark"] .theme-option.active {
+    border-color: var(--bs-primary);
+}
+</style>
+
+<!-- Mobile Bottom Nav JavaScript -->
+<script>
+(function() {
+    'use strict';
+
+    // Update active state based on current page
+    function updateActiveState() {
+        const path = window.location.pathname;
+        const items = document.querySelectorAll('.bottom-nav-item[data-page]');
+
+        items.forEach(item => {
+            const page = item.dataset.page;
+            const isActive = path.includes(page) ||
+                           (page === 'home' && path === '/');
+
+            if (isActive) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    }
+
+    // Add haptic feedback on tap
+    function setupHapticFeedback() {
+        if (!window.Haptics) return;
+
+        document.querySelectorAll('.bottom-nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                window.Haptics.light();
+            });
+        });
+    }
+
+    // Update theme toggle text/icon
+    function updateThemeToggle() {
+        const themeIcon = document.getElementById('mobileThemeIcon');
+        const themeText = document.getElementById('mobileThemeText');
+
+        if (!themeIcon || !themeText) return;
+
+        const isDark = document.documentElement.classList.contains('dark-style') ||
+                      document.documentElement.getAttribute('data-theme') === 'dark';
+
+        if (isDark) {
+            themeIcon.classList.remove('ti-moon');
+            themeIcon.classList.add('ti-sun');
+            themeText.textContent = 'Light Mode';
+        } else {
+            themeIcon.classList.remove('ti-sun');
+            themeIcon.classList.add('ti-moon');
+            themeText.textContent = 'Dark Mode';
+        }
+    }
+
+    // Toggle theme function
+    window.toggleTheme = function() {
+        // Try to find existing theme toggle button
+        const mainThemeToggle = document.querySelector('.style-switcher-toggle, #darkModeToggle, [data-theme-toggle]');
+
+        if (mainThemeToggle) {
+            mainThemeToggle.click();
+        } else {
+            // Fallback: toggle class directly
+            document.documentElement.classList.toggle('dark-style');
+            document.documentElement.classList.toggle('light-style');
+        }
+
+        // Update mobile theme toggle
+        setTimeout(updateThemeToggle, 100);
+
+        // Haptic feedback
+        if (window.Haptics) window.Haptics.light();
+
+        // Close offcanvas
+        const offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById('mobileMoreMenu'));
+        if (offcanvas) offcanvas.hide();
+    };
+
+    // Initialize on page load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            updateActiveState();
+            setupHapticFeedback();
+            updateThemeToggle();
+        });
+    } else {
+        updateActiveState();
+        setupHapticFeedback();
+        updateThemeToggle();
+    }
+
+    // Update on navigation (for SPAs)
+    window.addEventListener('popstate', updateActiveState);
+
+    // Update theme toggle when theme changes
+    const observer = new MutationObserver(updateThemeToggle);
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'data-theme']
+    });
+
+    console.log('📱 Mobile Bottom Navigation: Initialized');
+})();
+</script>

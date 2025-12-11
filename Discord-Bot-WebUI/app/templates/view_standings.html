@@ -82,8 +82,8 @@
                             {% for standing in premier_standings %}
                             {% set stats = premier_stats.get(standing.team.id, {'top_scorer_name': 'N/A', 'top_scorer_goals': 0, 'top_assister_name': 'N/A', 'top_assister_assists': 0, 'recent_form': 'N/A', 'avg_goals_per_match': 0}) %}
                             <tr>
-                                <td class="text-center fw-bold">{{ loop.index }}</td>
-                                <td>
+                                <td class="text-center fw-bold" data-label="#">{{ loop.index }}</td>
+                                <td data-label="Team">
                                     <div class="d-flex align-items-center">
                                         {{ macros.team_avatar(standing.team, 'sm', 'bg-success me-2') }}
                                         <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
@@ -104,14 +104,14 @@
                                         </a>
                                     </div>
                                 </td>
-                                <td class="text-center">{{ standing.played }}</td>
-                                <td class="text-center">{{ standing.wins }}</td>
-                                <td class="text-center">{{ standing.draws }}</td>
-                                <td class="text-center">{{ standing.losses }}</td>
-                                <td class="text-center">{{ standing.goals_for }}</td>
-                                <td class="text-center">{{ standing.goals_against }}</td>
-                                <td class="text-center">{{ standing.goal_difference }}</td>
-                                <td class="text-center fw-bold">{{ standing.points }}</td>
+                                <td class="text-center" data-label="P">{{ standing.played }}</td>
+                                <td class="text-center" data-label="W">{{ standing.wins }}</td>
+                                <td class="text-center" data-label="D">{{ standing.draws }}</td>
+                                <td class="text-center" data-label="L">{{ standing.losses }}</td>
+                                <td class="text-center" data-label="GF">{{ standing.goals_for }}</td>
+                                <td class="text-center" data-label="GA">{{ standing.goals_against }}</td>
+                                <td class="text-center" data-label="GD">{{ standing.goal_difference }}</td>
+                                <td class="text-center fw-bold" data-label="Pts">{{ standing.points }}</td>
                             </tr>
                             {% endfor %}
                             {% if premier_standings|length == 0 %}
@@ -163,8 +163,8 @@
                             {% for standing in classic_standings %}
                             {% set stats = classic_stats.get(standing.team.id, {'top_scorer_name': 'N/A', 'top_scorer_goals': 0, 'top_assister_name': 'N/A', 'top_assister_assists': 0, 'recent_form': 'N/A', 'avg_goals_per_match': 0}) %}
                             <tr>
-                                <td class="text-center fw-bold">{{ loop.index }}</td>
-                                <td>
+                                <td class="text-center fw-bold" data-label="#">{{ loop.index }}</td>
+                                <td data-label="Team">
                                     <div class="d-flex align-items-center">
                                         {{ macros.team_avatar(standing.team, 'sm', 'bg-primary me-2') }}
                                         <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
@@ -185,14 +185,14 @@
                                         </a>
                                     </div>
                                 </td>
-                                <td class="text-center">{{ standing.played }}</td>
-                                <td class="text-center">{{ standing.wins }}</td>
-                                <td class="text-center">{{ standing.draws }}</td>
-                                <td class="text-center">{{ standing.losses }}</td>
-                                <td class="text-center">{{ standing.goals_for }}</td>
-                                <td class="text-center">{{ standing.goals_against }}</td>
-                                <td class="text-center">{{ standing.goal_difference }}</td>
-                                <td class="text-center fw-bold">{{ standing.points }}</td>
+                                <td class="text-center" data-label="P">{{ standing.played }}</td>
+                                <td class="text-center" data-label="W">{{ standing.wins }}</td>
+                                <td class="text-center" data-label="D">{{ standing.draws }}</td>
+                                <td class="text-center" data-label="L">{{ standing.losses }}</td>
+                                <td class="text-center" data-label="GF">{{ standing.goals_for }}</td>
+                                <td class="text-center" data-label="GA">{{ standing.goals_against }}</td>
+                                <td class="text-center" data-label="GD">{{ standing.goal_difference }}</td>
+                                <td class="text-center fw-bold" data-label="Pts">{{ standing.points }}</td>
                             </tr>
                             {% endfor %}
                             {% if classic_standings|length == 0 %}
@@ -245,8 +245,8 @@
                             {% for standing in ecsfc_standings %}
                             {% set stats = ecsfc_stats.get(standing.team.id, {'top_scorer_name': 'N/A', 'top_scorer_goals': 0, 'top_assister_name': 'N/A', 'top_assister_assists': 0, 'recent_form': 'N/A', 'avg_goals_per_match': 0}) %}
                             <tr>
-                                <td class="text-center fw-bold">{{ loop.index }}</td>
-                                <td>
+                                <td class="text-center fw-bold" data-label="#">{{ loop.index }}</td>
+                                <td data-label="Team">
                                     <div class="d-flex align-items-center">
                                         <div class="avatar avatar-sm bg-warning me-2 d-flex align-items-center justify-content-center">
                                             <span class="team-initial text-white">{{ standing.team.name[0] }}</span>
@@ -269,14 +269,14 @@
                                         </a>
                                     </div>
                                 </td>
-                                <td class="text-center">{{ standing.played }}</td>
-                                <td class="text-center">{{ standing.wins }}</td>
-                                <td class="text-center">{{ standing.draws }}</td>
-                                <td class="text-center">{{ standing.losses }}</td>
-                                <td class="text-center">{{ standing.goals_for }}</td>
-                                <td class="text-center">{{ standing.goals_against }}</td>
-                                <td class="text-center">{{ standing.goal_difference }}</td>
-                                <td class="text-center fw-bold">{{ standing.points }}</td>
+                                <td class="text-center" data-label="P">{{ standing.played }}</td>
+                                <td class="text-center" data-label="W">{{ standing.wins }}</td>
+                                <td class="text-center" data-label="D">{{ standing.draws }}</td>
+                                <td class="text-center" data-label="L">{{ standing.losses }}</td>
+                                <td class="text-center" data-label="GF">{{ standing.goals_for }}</td>
+                                <td class="text-center" data-label="GA">{{ standing.goals_against }}</td>
+                                <td class="text-center" data-label="GD">{{ standing.goal_difference }}</td>
+                                <td class="text-center fw-bold" data-label="Pts">{{ standing.points }}</td>
                             </tr>
                             {% endfor %}
                             {% if ecsfc_standings|length == 0 %}

@@ -58,7 +58,7 @@
                         
                         <!-- System Management -->
                         <li class="nav-item dropdown mb-2 mb-lg-0">
-                            <a class="nav-link dropdown-toggle {% if 'feature_toggles' in request.endpoint or 'monitoring' in request.endpoint or 'cache' in request.endpoint %}active{% endif %}" 
+                            <a class="nav-link dropdown-toggle {% if 'feature_toggles' in request.endpoint or 'monitoring' in request.endpoint or 'cache' in request.endpoint or 'health' in request.endpoint or 'redis' in request.endpoint or 'docker' in request.endpoint %}active{% endif %}"
                                href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="ti ti-settings me-1"></i><span class="d-lg-inline d-md-none">System</span>
                             </a>
@@ -73,7 +73,15 @@
                                     <i class="ti ti-api me-2"></i>API Management</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.navigation_settings') }}">
                                     <i class="ti ti-navigation me-2"></i>Navigation Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="dropdown-header">Infrastructure</li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.health_dashboard') }}">
+                                    <i class="ti ti-heartbeat me-2"></i>System Health</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.redis_management') }}">
+                                    <i class="ti ti-database me-2"></i>Redis Management</a></li>
                                 {% if 'Global Admin' in user_roles %}
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.docker_management') }}">
+                                    <i class="ti ti-box me-2"></i>Docker Management</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.performance_monitoring') }}">
                                     <i class="ti ti-chart-line me-2"></i>Performance Monitor</a></li>
@@ -124,19 +132,65 @@
                             </ul>
                         </li>
                         
+                        <!-- Discord & Bot -->
+                        <li class="nav-item dropdown mb-2 mb-lg-0">
+                            <a class="nav-link dropdown-toggle {% if 'discord' in request.endpoint or 'mls' in request.endpoint %}active{% endif %}"
+                               href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="ti ti-brand-discord me-1"></i><span class="d-lg-inline d-md-none">Discord & Bot</span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.discord_overview') }}">
+                                    <i class="ti ti-brand-discord me-2"></i>Discord Overview</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.discord_players') }}">
+                                    <i class="ti ti-users me-2"></i>Player Status</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.discord_roles') }}">
+                                    <i class="ti ti-shield me-2"></i>Role Sync</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.discord_onboarding') }}">
+                                    <i class="ti ti-user-plus me-2"></i>Onboarding</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="dropdown-header">MLS Management</li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.mls_overview') }}">
+                                    <i class="ti ti-calendar me-2"></i>MLS Overview</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.mls_matches') }}">
+                                    <i class="ti ti-list me-2"></i>All Matches</a></li>
+                            </ul>
+                        </li>
+
+                        <!-- Reports & Content -->
+                        <li class="nav-item dropdown mb-2 mb-lg-0">
+                            <a class="nav-link dropdown-toggle {% if 'reports' in request.endpoint or 'feedback' in request.endpoint or 'draft' in request.endpoint or 'rsvp' in request.endpoint %}active{% endif %}"
+                               href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="ti ti-report-analytics me-1"></i><span class="d-lg-inline d-md-none">Reports</span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.reports_dashboard') }}">
+                                    <i class="ti ti-report-analytics me-2"></i>Reports Dashboard</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.feedback_list') }}">
+                                    <i class="ti ti-message-report me-2"></i>Feedback Management</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="dropdown-header">Draft Management</li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.draft_overview') }}">
+                                    <i class="ti ti-list-numbers me-2"></i>Draft Overview</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.draft_history') }}">
+                                    <i class="ti ti-history me-2"></i>Draft History</a></li>
+                            </ul>
+                        </li>
+
                         <!-- External Services -->
                         <li class="nav-item dropdown mb-2 mb-lg-0">
-                            <a class="nav-link dropdown-toggle {% if 'mobile_features' in request.endpoint or 'discord' in request.endpoint or 'store' in request.endpoint %}active{% endif %}" 
+                            <a class="nav-link dropdown-toggle {% if 'mobile_features' in request.endpoint or 'store' in request.endpoint %}active{% endif %}"
                                href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="ti ti-world me-1"></i><span class="d-lg-inline d-md-none">Services</span>
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.mobile_features') }}">
                                     <i class="ti ti-device-mobile me-2"></i>Mobile Features</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.discord_bot_management') }}">
-                                    <i class="ti ti-brand-discord me-2"></i>Discord Bot</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.store_management') }}">
                                     <i class="ti ti-shopping-cart me-2"></i>Store Management</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="dropdown-header">External Links</li>
+                                <li><a class="dropdown-item" href="{{ url_for('wallet_admin.wallet_management') }}">
+                                    <i class="ti ti-wallet me-2"></i>Digital Wallet</a></li>
                             </ul>
                         </li>
                         

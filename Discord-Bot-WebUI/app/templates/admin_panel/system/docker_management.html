@@ -1,0 +1,349 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Docker Management - Admin Panel{% endblock %}
+
+{% block panel_description %}Docker container monitoring and management{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.system_monitoring') }}">System</a></li>
+<li class="breadcrumb-item active">Docker Management</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Header -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="ti ti-box me-2"></i>Docker Container Management</h5>
+                <button id="refresh-btn" class="btn btn-primary btn-sm">
+                    <i class="ti ti-refresh me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container Stats -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 bg-success bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-circle-check fs-1 text-success mb-2"></i>
+                <h3 class="mb-0" id="running-count">{{ containers|selectattr('status', 'startswith', 'running')|list|length }}</h3>
+                <small class="text-muted">Running</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 bg-warning bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-circle-pause fs-1 text-warning mb-2"></i>
+                <h3 class="mb-0" id="stopped-count">{{ containers|rejectattr('status', 'startswith', 'running')|list|length }}</h3>
+                <small class="text-muted">Stopped</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 bg-info bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-box fs-1 text-info mb-2"></i>
+                <h3 class="mb-0" id="total-count">{{ containers|length }}</h3>
+                <small class="text-muted">Total Containers</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container List -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="ti ti-list me-2"></i>Containers</h5>
+            </div>
+            <div class="card-body">
+                {% if containers %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Image</th>
+                                <th>Status</th>
+                                <th>Ports</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="container-list">
+                            {% for container in containers %}
+                            <tr data-container-id="{{ container.id }}">
+                                <td>
+                                    <i class="ti ti-box me-2 text-muted"></i>
+                                    <strong>{{ container.name }}</strong>
+                                </td>
+                                <td><code class="small">{{ container.image }}</code></td>
+                                <td>
+                                    {% if container.status.startswith('running') %}
+                                    <span class="badge bg-success">
+                                        <i class="ti ti-circle-check me-1"></i>Running
+                                    </span>
+                                    {% elif container.status.startswith('exited') %}
+                                    <span class="badge bg-danger">
+                                        <i class="ti ti-circle-x me-1"></i>Exited
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-warning">
+                                        <i class="ti ti-circle-pause me-1"></i>{{ container.status }}
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if container.ports %}
+                                    <span class="small">{{ container.ports }}</span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        {% if container.status.startswith('running') %}
+                                        <button class="btn btn-outline-warning" onclick="manageContainer('{{ container.id }}', 'stop')" title="Stop">
+                                            <i class="ti ti-player-stop"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="manageContainer('{{ container.id }}', 'restart')" title="Restart">
+                                            <i class="ti ti-refresh"></i>
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-outline-success" onclick="manageContainer('{{ container.id }}', 'start')" title="Start">
+                                            <i class="ti ti-player-play"></i>
+                                        </button>
+                                        {% endif %}
+                                        <button class="btn btn-outline-secondary" onclick="viewLogs('{{ container.id }}', '{{ container.name }}')" title="View Logs">
+                                            <i class="ti ti-file-text"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="ti ti-box-off fs-1 text-muted mb-3"></i>
+                    <p class="text-muted">No Docker containers found or Docker is not available.</p>
+                    <a href="{{ url_for('admin_panel.health_dashboard') }}" class="btn btn-outline-primary">
+                        <i class="ti ti-heartbeat me-2"></i>Check System Health
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="ti ti-link me-2"></i>Related Tools</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.health_dashboard') }}" class="btn btn-outline-primary w-100">
+                            <i class="ti ti-heartbeat me-2"></i>Health Dashboard
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.redis_management') }}" class="btn btn-outline-primary w-100">
+                            <i class="ti ti-database me-2"></i>Redis Management
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="btn btn-outline-primary w-100">
+                            <i class="ti ti-activity me-2"></i>System Monitoring
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.task_monitoring_page') }}" class="btn btn-outline-primary w-100">
+                            <i class="ti ti-list-check me-2"></i>Task Monitor
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Modal -->
+<div class="modal fade" id="logModal" tabindex="-1" aria-labelledby="logModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logModalLabel">
+                    <i class="ti ti-file-text me-2"></i>Container Logs
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="log-content">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Loading logs...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="refreshLogs()">
+                    <i class="ti ti-refresh me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+let currentContainerId = null;
+let logModal = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    logModal = new bootstrap.Modal(document.getElementById('logModal'));
+});
+
+function refreshContainers() {
+    const refreshBtn = document.getElementById('refresh-btn');
+    refreshBtn.innerHTML = '<i class="ti ti-loader spin me-1"></i>Refreshing...';
+    refreshBtn.disabled = true;
+
+    fetch('{{ url_for("admin_panel.docker_status_api") }}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateContainerDisplay(data.containers);
+                AdminPanel.showMobileToast('Container status refreshed', 'success');
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error refreshing containers:', error);
+            AdminPanel.showMobileToast('Error refreshing container status', 'danger');
+        })
+        .finally(() => {
+            refreshBtn.innerHTML = '<i class="ti ti-refresh me-1"></i>Refresh';
+            refreshBtn.disabled = false;
+        });
+}
+
+function updateContainerDisplay(containers) {
+    const running = containers.filter(c => c.status && c.status.startsWith('running')).length;
+    const stopped = containers.length - running;
+
+    document.getElementById('running-count').textContent = running;
+    document.getElementById('stopped-count').textContent = stopped;
+    document.getElementById('total-count').textContent = containers.length;
+}
+
+function manageContainer(containerId, action) {
+    if (!confirm(`Are you sure you want to ${action} this container?`)) {
+        return;
+    }
+
+    fetch(`{{ url_for('admin_panel.docker_manage_container', container_id='CONTAINER_ID', action='ACTION') }}`
+        .replace('CONTAINER_ID', containerId)
+        .replace('ACTION', action), {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            AdminPanel.showMobileToast(data.message, 'success');
+            setTimeout(refreshContainers, 1000);
+        } else {
+            AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error managing container:', error);
+        AdminPanel.showMobileToast('Error managing container', 'danger');
+    });
+}
+
+function viewLogs(containerId, containerName) {
+    currentContainerId = containerId;
+    document.getElementById('logModalLabel').innerHTML =
+        `<i class="ti ti-file-text me-2"></i>Logs: ${containerName}`;
+    document.getElementById('log-content').innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Loading logs...</p>
+        </div>
+    `;
+
+    logModal.show();
+    fetchLogs(containerId);
+}
+
+function fetchLogs(containerId) {
+    fetch(`{{ url_for('admin_panel.docker_view_logs', container_id='CONTAINER_ID') }}`
+        .replace('CONTAINER_ID', containerId))
+    .then(response => response.json())
+    .then(data => {
+        const logContent = document.getElementById('log-content');
+        if (data.error) {
+            logContent.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+        } else {
+            const logs = data.logs || 'No logs available';
+            logContent.innerHTML = `
+                <pre class="bg-dark text-light p-3 rounded" style="max-height: 400px; overflow-y: auto; font-size: 0.8rem;">${escapeHtml(logs)}</pre>
+            `;
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching logs:', error);
+        document.getElementById('log-content').innerHTML =
+            `<div class="alert alert-danger">Error loading logs: ${error}</div>`;
+    });
+}
+
+function refreshLogs() {
+    if (currentContainerId) {
+        document.getElementById('log-content').innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Refreshing logs...</p>
+            </div>
+        `;
+        fetchLogs(currentContainerId);
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+document.getElementById('refresh-btn').addEventListener('click', refreshContainers);
+
+// Add spin animation
+const style = document.createElement('style');
+style.textContent = `
+    .spin {
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

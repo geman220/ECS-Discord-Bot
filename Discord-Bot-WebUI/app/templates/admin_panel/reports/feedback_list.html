@@ -1,0 +1,236 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Feedback Management - Admin Panel{% endblock %}
+
+{% block panel_description %}Manage user feedback and support requests{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.reports_dashboard') }}">Reports</a></li>
+<li class="breadcrumb-item active">Feedback</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Stats -->
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center py-3">
+                <h4 class="mb-0 text-primary">{{ stats.total }}</h4>
+                <small class="text-muted">Total</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center py-3">
+                <h4 class="mb-0 text-warning">{{ stats.open }}</h4>
+                <small class="text-muted">Open</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center py-3">
+                <h4 class="mb-0 text-info">{{ stats.in_progress }}</h4>
+                <small class="text-muted">In Progress</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center py-3">
+                <h4 class="mb-0 text-success">{{ stats.closed }}</h4>
+                <small class="text-muted">Closed</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="col-12 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8 mb-2 mb-md-0">
+                        <div class="btn-group" role="group">
+                            <a href="{{ url_for('admin_panel.feedback_list') }}" class="btn btn-{{ 'primary' if not status_filter else 'outline-primary' }}">All</a>
+                            <a href="{{ url_for('admin_panel.feedback_list', status='Open') }}" class="btn btn-{{ 'warning' if status_filter == 'Open' else 'outline-warning' }}">Open</a>
+                            <a href="{{ url_for('admin_panel.feedback_list', status='In Progress') }}" class="btn btn-{{ 'info' if status_filter == 'In Progress' else 'outline-info' }}">In Progress</a>
+                            <a href="{{ url_for('admin_panel.feedback_list', status='Closed') }}" class="btn btn-{{ 'success' if status_filter == 'Closed' else 'outline-success' }}">Closed</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <select id="priority-filter" class="form-select form-select-sm d-inline-block w-auto">
+                            <option value="">All Priorities</option>
+                            <option value="High" {{ 'selected' if priority_filter == 'High' }}>High</option>
+                            <option value="Medium" {{ 'selected' if priority_filter == 'Medium' }}>Medium</option>
+                            <option value="Low" {{ 'selected' if priority_filter == 'Low' }}>Low</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback List -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="ti ti-message-circle me-2"></i>Feedback Items</h5>
+                <span class="badge bg-secondary">{{ pagination.total }} items</span>
+            </div>
+            <div class="card-body p-0">
+                {% if feedbacks %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Subject</th>
+                                <th>User</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for feedback in feedbacks %}
+                            <tr>
+                                <td>#{{ feedback.id }}</td>
+                                <td>
+                                    <a href="{{ url_for('admin_panel.view_feedback', feedback_id=feedback.id) }}">
+                                        {{ feedback.subject|truncate(50) }}
+                                    </a>
+                                </td>
+                                <td>{{ feedback.user.username if feedback.user else 'Anonymous' }}</td>
+                                <td>
+                                    {% if feedback.status == 'Open' %}
+                                    <span class="badge bg-warning">Open</span>
+                                    {% elif feedback.status == 'In Progress' %}
+                                    <span class="badge bg-info">In Progress</span>
+                                    {% elif feedback.status == 'Closed' %}
+                                    <span class="badge bg-success">Closed</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ feedback.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if feedback.priority == 'High' %}
+                                    <span class="badge bg-danger">High</span>
+                                    {% elif feedback.priority == 'Medium' %}
+                                    <span class="badge bg-warning">Medium</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Low</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ feedback.created_at.strftime('%b %d, %Y') if feedback.created_at else 'N/A' }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('admin_panel.view_feedback', feedback_id=feedback.id) }}" class="btn btn-outline-primary" title="View">
+                                            <i class="ti ti-eye"></i>
+                                        </a>
+                                        {% if feedback.status != 'Closed' %}
+                                        <button class="btn btn-outline-success" onclick="closeFeedback({{ feedback.id }})" title="Close">
+                                            <i class="ti ti-check"></i>
+                                        </button>
+                                        {% endif %}
+                                        <button class="btn btn-outline-danger" onclick="deleteFeedback({{ feedback.id }})" title="Delete">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-message-off fs-1 text-muted mb-3"></i>
+                    <p class="text-muted">No feedback found with current filters.</p>
+                </div>
+                {% endif %}
+            </div>
+            {% if pagination.pages > 1 %}
+            <div class="card-footer">
+                <nav>
+                    <ul class="pagination pagination-sm mb-0 justify-content-center">
+                        {% if pagination.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin_panel.feedback_list', page=pagination.prev_num, status=status_filter, priority=priority_filter) }}">&laquo;</a>
+                        </li>
+                        {% endif %}
+
+                        {% for p in range(1, pagination.pages + 1) %}
+                            {% if p >= pagination.page - 2 and p <= pagination.page + 2 %}
+                            <li class="page-item {{ 'active' if p == pagination.page }}">
+                                <a class="page-link" href="{{ url_for('admin_panel.feedback_list', page=p, status=status_filter, priority=priority_filter) }}">{{ p }}</a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if pagination.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin_panel.feedback_list', page=pagination.next_num, status=status_filter, priority=priority_filter) }}">&raquo;</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.getElementById('priority-filter').addEventListener('change', function() {
+    const priority = this.value;
+    const url = new URL(window.location.href);
+    if (priority) {
+        url.searchParams.set('priority', priority);
+    } else {
+        url.searchParams.delete('priority');
+    }
+    window.location.href = url.toString();
+});
+
+function closeFeedback(feedbackId) {
+    if (!confirm('Close this feedback?')) return;
+
+    fetch(`{{ url_for('admin_panel.close_feedback', feedback_id=0) }}`.replace('0', feedbackId), { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+                location.reload();
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error closing feedback', 'danger');
+        });
+}
+
+function deleteFeedback(feedbackId) {
+    if (!confirm('Delete this feedback? This cannot be undone.')) return;
+
+    fetch(`{{ url_for('admin_panel.delete_feedback', feedback_id=0) }}`.replace('0', feedbackId), { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+                location.reload();
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error deleting feedback', 'danger');
+        });
+}
+</script>
+{% endblock %}

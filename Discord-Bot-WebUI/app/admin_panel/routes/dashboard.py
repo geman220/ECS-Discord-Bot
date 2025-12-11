@@ -770,22 +770,54 @@ def quick_generate_reports():
 @login_required
 @role_required(['Global Admin'])
 def navigation_settings():
-    """Get or update navigation settings via AJAX."""
+    """Navigation settings page with toggles for sidebar visibility."""
     try:
+        # Define navigation items with metadata
+        nav_items_config = [
+            {'key': 'teams_navigation_enabled', 'label': 'Teams', 'icon': 'users-group', 'description': 'Team listings and management'},
+            {'key': 'store_navigation_enabled', 'label': 'Store', 'icon': 'shopping-cart', 'description': 'Club store access'},
+            {'key': 'matches_navigation_enabled', 'label': 'Matches', 'icon': 'ball-football', 'description': 'Match schedules and results'},
+            {'key': 'leagues_navigation_enabled', 'label': 'Leagues', 'icon': 'trophy', 'description': 'League standings and info'},
+            {'key': 'drafts_navigation_enabled', 'label': 'Drafts', 'icon': 'list-numbers', 'description': 'Draft tools and history'},
+            {'key': 'players_navigation_enabled', 'label': 'Players', 'icon': 'user', 'description': 'Player directory'},
+            {'key': 'messaging_navigation_enabled', 'label': 'Messaging', 'icon': 'message', 'description': 'Team messaging features'},
+            {'key': 'mobile_features_navigation_enabled', 'label': 'Mobile Features', 'icon': 'device-mobile', 'description': 'Mobile app settings'},
+            {'key': 'admin_panel_navigation_enabled', 'label': 'Admin Panel', 'icon': 'settings', 'description': 'Admin panel access'},
+        ]
+
         if request.method == 'GET':
-            # Get current navigation settings
-            settings = {
-                'teams_navigation_enabled': AdminConfig.get_setting('teams_navigation_enabled', True),
-                'store_navigation_enabled': AdminConfig.get_setting('store_navigation_enabled', True),
-                'matches_navigation_enabled': AdminConfig.get_setting('matches_navigation_enabled', True),
-                'leagues_navigation_enabled': AdminConfig.get_setting('leagues_navigation_enabled', True),
-                'drafts_navigation_enabled': AdminConfig.get_setting('drafts_navigation_enabled', True),
-                'players_navigation_enabled': AdminConfig.get_setting('players_navigation_enabled', True),
-                'messaging_navigation_enabled': AdminConfig.get_setting('messaging_navigation_enabled', True),
-                'mobile_features_navigation_enabled': AdminConfig.get_setting('mobile_features_navigation_enabled', True),
-                'admin_panel_navigation_enabled': AdminConfig.get_setting('admin_panel_navigation_enabled', True),
-            }
-            return jsonify({'success': True, 'settings': settings})
+            # Check if this is an AJAX request for JSON
+            if request.headers.get('Accept') == 'application/json' or request.args.get('format') == 'json':
+                settings = {item['key']: AdminConfig.get_setting(item['key'], True) for item in nav_items_config}
+                return jsonify({'success': True, 'settings': settings})
+
+            # Build nav_items with current enabled status
+            nav_items = []
+            for item in nav_items_config:
+                nav_items.append({
+                    'key': item['key'],
+                    'label': item['label'],
+                    'icon': item['icon'],
+                    'description': item['description'],
+                    'enabled': AdminConfig.get_setting(item['key'], True)
+                })
+
+            # Get recent changes for audit display
+            recent_changes = AdminAuditLog.query.filter(
+                AdminAuditLog.resource_type == 'navigation_settings'
+            ).order_by(AdminAuditLog.timestamp.desc()).limit(10).all()
+
+            recent_changes_data = []
+            for change in recent_changes:
+                recent_changes_data.append({
+                    'setting': change.resource_id.replace('_navigation_enabled', '').replace('_', ' ').title() if change.resource_id else 'Unknown',
+                    'new_value': change.new_value,
+                    'created_at': change.timestamp
+                })
+
+            return render_template('admin_panel/dashboard/navigation_settings.html',
+                                 nav_items=nav_items,
+                                 recent_changes=recent_changes_data)
         
         elif request.method == 'POST':
             # Update navigation settings

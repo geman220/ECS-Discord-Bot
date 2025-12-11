@@ -11,10 +11,14 @@
             const storedTheme = localStorage.getItem('template-style');
             const serverTheme = '{{ session.get('theme', 'light') }}';
             const finalTheme = storedTheme || serverTheme;
-            
+
             // Apply theme immediately to prevent flash
             document.documentElement.setAttribute('data-style', finalTheme);
-            
+
+            // Also update the class (light-style or dark-style) for CSS selectors that use class
+            document.documentElement.classList.remove('light-style', 'dark-style');
+            document.documentElement.classList.add(finalTheme + '-style');
+
             // Sync server session if needed
             if (storedTheme && storedTheme !== serverTheme) {
                 // Theme differs from server, we'll sync it after page loads
@@ -57,13 +61,20 @@
     {% assets "vendor_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
-    
-    <!-- Mobile UI Fix System -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-scale-system.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/component-mobile-fixes.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-mobile.css') }}" />
-    
+
+    <!-- Template styles (loads BEFORE mobile CSS so mobile overrides work) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/template-styles.css') }}" />
+
+    <!-- Mobile UI System (Consolidated from 4 files) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-unified.css') }}" />
+
+    <!-- Mobile Component-Specific CSS (New Mobile Overhaul) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-modals.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-tables.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-forms.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-toggles.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-dark-mode.css') }}" />
+
     <!-- Page-specific CSS (conditional loading) -->
     {% block page_css %}
     {% endblock %}
@@ -93,9 +104,6 @@
 
     <!-- DataTables CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
-    
-    <!-- Template styles MUST load after DataTables to override sorting arrows -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/template-styles.css') }}" />
 
     <!-- EasyMDE CSS (markdown editor) -->
     <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
@@ -239,7 +247,14 @@
     <script src="{{ url_for('static', filename='vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/libs/hammer/hammer.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/js/menu.js') }}"></script>
-    
+
+    <!-- Mobile Enhancement System (Phase 2) -->
+    <script src="{{ url_for('static', filename='js/mobile-haptics.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/mobile-gestures.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/mobile-keyboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/mobile-forms.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/profile-verification.js') }}"></script>
+
     <!-- SweetAlert Notification Handler -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -614,10 +629,11 @@
     
     <!-- Mobile menu fix for iOS and other mobile devices -->
     <script src="{{ url_for('static', filename='custom_js/mobile-menu-fix.js') }}"></script>
-    
+
     <!-- Mobile table enhancement for better display -->
-    <script src="{{ url_for('static', filename='js/mobile-table-enhancer.js') }}"></script>
-    
+    <!-- DISABLED: Conflicts with responsive-tables.js (adds data-title instead of data-label) -->
+    <!-- <script src="{{ url_for('static', filename='js/mobile-table-enhancer.js') }}"></script> -->
+
     <!-- Enhanced Mobile Functionality v3.0 -->
     <script src="{{ url_for('static', filename='custom_js/mobile-tables.js') }}" defer></script>
     
@@ -654,5 +670,8 @@
             cleanupBackdrops();
         });
     </script>
+
+    <!-- Mobile Bottom Navigation (Phase 3) -->
+    {% include 'mobile_bottom_nav.html' %}
 </body>
 </html>

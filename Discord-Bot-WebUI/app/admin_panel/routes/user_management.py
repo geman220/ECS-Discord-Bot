@@ -22,8 +22,8 @@ from sqlalchemy.orm import joinedload
 from .. import admin_panel_bp
 from app.core import db
 from app.models.admin_config import AdminAuditLog
-from app.models.core import User, Role
-from app.models import Player
+from app.models.core import User, Role, League
+from app.models import Player, Team
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
@@ -82,17 +82,59 @@ def user_management():
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional
 def user_approvals():
-    """User approvals management page."""
+    """User approvals management page with filtering."""
     try:
         current_user_safe = safe_current_user
-        
-        # Get pending approval users
-        pending_users = db.session.query(User).options(
+
+        # Get filter parameters
+        status_filter = request.args.get('status', '').strip()
+        league_filter = request.args.get('league', '').strip()
+        search_query = request.args.get('search', '').strip()
+
+        # Build query for users
+        query = db.session.query(User).options(
             joinedload(User.player),
             joinedload(User.roles)
-        ).filter_by(approval_status='pending').order_by(User.created_at.desc()).all()
-        
-        # Get recent approval actions
+        )
+
+        # Apply status filter (default to pending if not specified)
+        if status_filter == 'approved':
+            query = query.filter(User.approval_status == 'approved')
+        elif status_filter == 'denied':
+            query = query.filter(User.approval_status == 'denied')
+        elif status_filter == 'all':
+            pass  # No filter, show all
+        else:
+            # Default to pending
+            query = query.filter(User.approval_status == 'pending')
+            status_filter = 'pending'
+
+        # Apply league filter
+        if league_filter:
+            # Filter by roles that match league patterns
+            if league_filter == 'pl-classic':
+                query = query.join(User.roles).filter(Role.name.ilike('%classic%'))
+            elif league_filter == 'pl-premier':
+                query = query.join(User.roles).filter(Role.name.ilike('%premier%'))
+            elif league_filter == 'ecs-fc':
+                query = query.join(User.roles).filter(
+                    or_(Role.name.ilike('%ecs%fc%'), Role.name.ilike('%ecsfc%'))
+                )
+
+        # Apply search filter
+        if search_query:
+            search_term = f'%{search_query}%'
+            query = query.filter(
+                or_(
+                    User.username.ilike(search_term),
+                    User.email.ilike(search_term)
+                )
+            )
+
+        # Order by creation date
+        pending_users = query.order_by(User.created_at.desc()).all()
+
+        # Get recent approval actions (always show recent activity)
         recent_actions = []
         try:
             recent_actions = db.session.query(User).options(
@@ -101,7 +143,7 @@ def user_approvals():
                 User.approval_status.in_(['approved', 'denied']),
                 User.approved_at >= datetime.utcnow() - timedelta(days=30)
             ).order_by(User.approved_at.desc()).limit(20).all()
-            
+
             # Add approved_by_user information
             for user in recent_actions:
                 if user.approved_by:
@@ -109,19 +151,23 @@ def user_approvals():
         except Exception as e:
             logger.error(f"Error loading recent actions: {str(e)}")
             recent_actions = []
-        
+
         # Count statistics
         stats = {
-            'pending_count': len(pending_users),
+            'pending_count': db.session.query(func.count(User.id)).filter(User.approval_status == 'pending').scalar(),
             'total_approved': db.session.query(func.count(User.id)).filter(User.approval_status == 'approved').scalar(),
             'total_denied': db.session.query(func.count(User.id)).filter(User.approval_status == 'denied').scalar()
         }
-        
+
         return render_template(
             'admin_panel/users/approvals.html',
             pending_users=pending_users,
             recent_actions=recent_actions,
-            stats=stats
+            stats=stats,
+            # Pass filter values back to template for form persistence
+            status_filter=status_filter,
+            league_filter=league_filter,
+            search_query=search_query
         )
     except Exception as e:
         logger.error(f"Error loading user approvals: {e}")
@@ -406,7 +452,7 @@ def get_user_details():
 
 @admin_panel_bp.route('/api/users/<int:user_id>/details')
 @login_required
-@role_required(['Global Admin', 'Pub League Admin'])  
+@role_required(['Global Admin', 'Pub League Admin'])
 def user_details_api(user_id):
     """Get detailed user information for modal display."""
     try:
@@ -414,13 +460,14 @@ def user_details_api(user_id):
             joinedload(User.player),
             joinedload(User.roles)
         ).get_or_404(user_id)
-        
+
         user_data = {
             'id': user.id,
             'first_name': getattr(user, 'first_name', None),
             'last_name': getattr(user, 'last_name', None),
             'username': user.username,
             'email': user.email,
+            'real_name': user.player.name if user.player else None,
             'phone': getattr(user, 'phone', None),
             'discord_username': getattr(user, 'discord_username', None),
             'status': getattr(user, 'status', user.approval_status),
@@ -428,31 +475,58 @@ def user_details_api(user_id):
             'last_login': getattr(user, 'last_login', None),
             'role': user.roles[0].name if user.roles else None,
             'all_roles': [role.name for role in user.roles],
+            'roles': [role.id for role in user.roles],  # Array of role IDs for form
             'approval_status': user.approval_status,
             'approval_league': user.approval_league,
             'approval_notes': user.approval_notes,
-            'is_approved': user.is_approved
+            'is_approved': user.is_approved,
+            'is_active': user.is_active
         }
-        
+
         # Add profile information if available
         if user.player:
-            user_data.update({
-                'preferred_league': getattr(user.player, 'preferred_league', user.approval_league),
-                'experience_level': getattr(user.player, 'experience_level', None),
-                'registration_notes': getattr(user.player, 'player_notes', None),
+            # Get all team IDs for players on multiple teams
+            all_team_ids = [team.id for team in user.player.teams] if user.player.teams else []
+            # Get secondary leagues (other_leagues relationship)
+            other_league_ids = [lg.id for lg in user.player.other_leagues] if user.player.other_leagues else []
+
+            # Find secondary team (first team that's not the primary team)
+            secondary_team_id = None
+            secondary_league_id = other_league_ids[0] if other_league_ids else None
+            for team in user.player.teams:
+                if team.id != user.player.primary_team_id:
+                    secondary_team_id = team.id
+                    # Also get that team's league if we don't have a secondary league yet
+                    if not secondary_league_id and team.league_id:
+                        secondary_league_id = team.league_id
+                    break
+
+            user_data['has_player'] = True
+            user_data['player'] = {
+                'id': user.player.id,
+                'name': user.player.name,
+                'league_id': user.player.primary_league_id,
+                'team_id': user.player.primary_team_id,
+                'secondary_league_id': secondary_league_id,
+                'secondary_team_id': secondary_team_id,
+                'team_ids': all_team_ids,
+                'is_current_player': user.player.is_current_player,
                 'discord_id': user.player.discord_id,
                 'jersey_size': user.player.jersey_size,
                 'phone': user.player.phone,
                 'pronouns': user.player.pronouns,
                 'favorite_position': user.player.favorite_position,
                 'profile_picture_url': user.player.profile_picture_url
-            })
-            
-        return jsonify(user_data)
-        
+            }
+        else:
+            user_data['has_player'] = False
+            user_data['player'] = None
+
+        return jsonify({'success': True, 'user': user_data})
+
     except Exception as e:
         logger.error(f"Error getting user details: {e}")
-        return jsonify({'error': 'Failed to get user details'}), 500
+        return jsonify({'success': False, 'error': 'Failed to get user details'}), 500
 
 
 @admin_panel_bp.route('/users/manage')
@@ -462,31 +536,106 @@ def user_details_api(user_id):
 def users_comprehensive():
     """Comprehensive user management page."""
     try:
-        # Get all users with their roles
-        users = User.query.options(joinedload(User.roles)).order_by(User.username).all()
+        from app.models import League, Season
+        from datetime import datetime, timedelta
+
+        # Get filter parameters
+        search = request.args.get('search', '').strip()
+        role_filter = request.args.get('role', '').strip()
+        approved_filter = request.args.get('approved', '').strip()
+        active_filter = request.args.get('active', '').strip()
+        league_filter = request.args.get('league', '').strip()
+        page = request.args.get('page', 1, type=int)
+        per_page = 50
+
+        # Build query with eager loading
+        query = User.query.options(
+            joinedload(User.roles),
+            joinedload(User.player)
+        )
+
+        # Apply filters
+        if search:
+            search_term = f'%{search}%'
+            # Note: User.email is encrypted, so we can only search username with ILIKE
+            # For exact email match, we check the email_hash
+            # Player.name IS a real column and can be searched with ILIKE
+            from app.utils.pii_encryption import create_hash
+            email_hash = create_hash(search.lower()) if '@' in search else None
+
+            if email_hash:
+                # If search looks like an email, try exact match via hash
+                query = query.filter(
+                    or_(
+                        User.username.ilike(search_term),
+                        User.email_hash == email_hash
+                    )
+                )
+            else:
+                # Search username and player name (via outerjoin)
+                query = query.outerjoin(Player, User.player).filter(
+                    or_(
+                        User.username.ilike(search_term),
+                        Player.name.ilike(search_term)
+                    )
+                )
+
+        if role_filter:
+            query = query.join(User.roles).filter(Role.name == role_filter)
+
+        if approved_filter:
+            if approved_filter == 'true':
+                query = query.filter(User.is_approved == True)
+            elif approved_filter == 'false':
+                query = query.filter(
+                    or_(User.is_approved == False, User.is_approved == None)
+                )
+
+        if active_filter:
+            if active_filter == 'true':
+                query = query.filter(User.is_active == True)
+            elif active_filter == 'false':
+                query = query.filter(
+                    or_(User.is_active == False, User.is_active == None)
+                )
+
+        # Order and paginate
+        query = query.order_by(User.username)
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        users = pagination.items
+
+        # Get all roles and leagues for filter dropdowns
         all_roles = Role.query.order_by(Role.name).all()
-        
-        # Calculate statistics
+        # Get leagues from current seasons only
+        all_leagues = League.query.join(Season).filter(Season.is_current == True).order_by(League.name).all()
+
+        # Calculate statistics (for stat cards)
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
         stats = {
-            'total_users': len(users),
-            'active_users': len([u for u in users if u.is_active]),
-            'pending_approval': len([u for u in users if u.approval_status == 'pending']),
-            'users_with_roles': len([u for u in users if u.roles])
+            'total_users': User.query.count(),
+            'active_users': User.query.filter(User.is_active == True).count(),
+            'approved_users': User.query.filter(User.is_approved == True).count(),
+            'pending_approval': User.query.filter(
+                or_(User.is_approved == False, User.is_approved == None)
+            ).count(),
+            'recent_registrations': User.query.filter(
+                User.created_at >= thirty_days_ago
+            ).count(),
+            'total_roles': len(all_roles)
         }
-        
+
         return render_template('admin_panel/users/manage_users_comprehensive.html',
                              users=users,
                              roles=all_roles,
+                             Role=Role,  # Pass Role model for template
                              stats=stats,
-                             pagination=None,
-                             filter_form=None,
-                             edit_form=None,
-                             leagues=[],
-                             search='',
-                             role_filter='',
-                             approved_filter='',
-                             active_filter='',
-                             league_filter='')
+                             pagination=pagination,
+                             leagues=all_leagues,
+                             search=search,
+                             role_filter=role_filter,
+                             approved_filter=approved_filter,
+                             active_filter=active_filter,
+                             league_filter=league_filter)
     except Exception as e:
         logger.error(f"Error loading user management: {e}")
         flash('User management unavailable. Verify database connection and user models.', 'error')
@@ -1638,6 +1787,230 @@ def update_user_active():
         return jsonify({'success': False, 'message': 'Error updating user status'})
 
 
+@admin_panel_bp.route('/users/<int:user_id>/edit', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def edit_user_comprehensive(user_id):
+    """Comprehensive user edit via modal form."""
+    try:
+        user = User.query.options(
+            joinedload(User.player),
+            joinedload(User.roles)
+        ).get_or_404(user_id)
+
+        # Get form data
+        username = request.form.get('username')
+        email = request.form.get('email')
+        real_name = request.form.get('real_name')
+        is_approved = request.form.get('is_approved') == 'on'
+        is_active = request.form.get('is_active') == 'on'
+        is_current_player = request.form.get('is_current_player') == 'on'
+        role_ids = request.form.getlist('roles')
+        league_id = request.form.get('league_id')
+        team_id = request.form.get('team_id')
+        secondary_league_id = request.form.get('secondary_league_id')
+        secondary_team_id = request.form.get('secondary_team_id')
+
+        # Store old values for audit log
+        old_values = {
+            'username': user.username,
+            'email': user.email,
+            'is_approved': user.is_approved,
+            'is_active': user.is_active,
+            'roles': [r.id for r in user.roles],
+            'league_id': user.player.primary_league_id if user.player else None,
+            'team_id': user.player.primary_team_id if user.player else None,
+            'is_current_player': user.player.is_current_player if user.player else None
+        }
+
+        # Update user fields
+        if username:
+            user.username = username
+        if email:
+            user.email = email
+        user.is_approved = is_approved
+        user.is_active = is_active
+
+        # Update player profile if exists
+        if user.player:
+            if real_name:
+                user.player.name = real_name
+
+            # Primary league and team
+            user.player.primary_league_id = int(league_id) if league_id else None
+            user.player.primary_team_id = int(team_id) if team_id else None
+
+            # Active player status
+            user.player.is_current_player = is_current_player
+
+            # Handle secondary team (add to teams relationship if not already there)
+            if secondary_team_id:
+                secondary_team = Team.query.get(int(secondary_team_id))
+                if secondary_team and secondary_team not in user.player.teams:
+                    user.player.teams.append(secondary_team)
+
+            # Handle secondary league (add to other_leagues relationship)
+            if secondary_league_id:
+                secondary_league = League.query.get(int(secondary_league_id))
+                if secondary_league and secondary_league not in user.player.other_leagues:
+                    user.player.other_leagues.append(secondary_league)
+
+        # Update roles
+        if role_ids:
+            new_roles = Role.query.filter(Role.id.in_(role_ids)).all()
+            user.roles = new_roles
+
+        db.session.commit()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='edit_user_comprehensive',
+            resource_type='user_management',
+            resource_id=str(user_id),
+            old_value=str(old_values),
+            new_value=str({
+                'username': user.username,
+                'email': user.email,
+                'is_approved': user.is_approved,
+                'is_active': user.is_active,
+                'roles': [r.id for r in user.roles]
+            }),
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        flash(f'User {user.username} updated successfully', 'success')
+        return redirect(url_for('admin_panel.users_comprehensive'))
+
+    except Exception as e:
+        logger.error(f"Error editing user {user_id}: {e}")
+        flash('Error updating user', 'error')
+        return redirect(url_for('admin_panel.users_comprehensive'))
+
+
+@admin_panel_bp.route('/users/<int:user_id>/approve', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def approve_user_comprehensive(user_id):
+    """Quick approve user via AJAX from comprehensive management."""
+    try:
+        user = User.query.get_or_404(user_id)
+        old_status = user.is_approved
+
+        user.is_approved = True
+        user.approval_status = 'approved'
+        db.session.commit()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='approve_user_quick',
+            resource_type='user_management',
+            resource_id=str(user_id),
+            old_value=str(old_status),
+            new_value='True',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({'success': True, 'message': f'User {user.username} approved successfully'})
+
+    except Exception as e:
+        logger.error(f"Error approving user {user_id}: {e}")
+        return jsonify({'success': False, 'message': 'Error approving user'}), 500
+
+
+@admin_panel_bp.route('/users/<int:user_id>/deactivate', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def deactivate_user_comprehensive(user_id):
+    """Quick deactivate user via AJAX from comprehensive management."""
+    try:
+        user = User.query.get_or_404(user_id)
+        old_status = user.is_active
+
+        user.is_active = False
+        db.session.commit()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='deactivate_user_quick',
+            resource_type='user_management',
+            resource_id=str(user_id),
+            old_value=str(old_status),
+            new_value='False',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({'success': True, 'message': f'User {user.username} deactivated successfully'})
+
+    except Exception as e:
+        logger.error(f"Error deactivating user {user_id}: {e}")
+        return jsonify({'success': False, 'message': 'Error deactivating user'}), 500
+
+
+@admin_panel_bp.route('/users/bulk-actions', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def bulk_user_comprehensive_actions():
+    """Handle bulk user actions from comprehensive management page."""
+    try:
+        action = request.form.get('action')
+        user_ids = request.form.getlist('user_ids')
+
+        if not action or not user_ids:
+            return jsonify({'success': False, 'message': 'Action and user IDs are required'})
+
+        users = User.query.filter(User.id.in_(user_ids)).all()
+        if not users:
+            return jsonify({'success': False, 'message': 'No users found'})
+
+        count = 0
+        for user in users:
+            if action == 'approve':
+                user.is_approved = True
+                user.approval_status = 'approved'
+                count += 1
+            elif action == 'deactivate':
+                user.is_active = False
+                count += 1
+            elif action == 'activate':
+                user.is_active = True
+                count += 1
+            elif action == 'deny':
+                user.is_approved = False
+                user.approval_status = 'denied'
+                count += 1
+
+        db.session.commit()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action=f'bulk_{action}_users',
+            resource_type='user_management',
+            resource_id=','.join(user_ids),
+            old_value=None,
+            new_value=f'{count} users',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        action_past = {'approve': 'approved', 'deactivate': 'deactivated', 'activate': 'activated', 'deny': 'denied'}
+        return jsonify({
+            'success': True,
+            'message': f'{count} user(s) {action_past.get(action, action)} successfully'
+        })
+
+    except Exception as e:
+        logger.error(f"Error in bulk user action: {e}")
+        return jsonify({'success': False, 'message': 'Error processing bulk action'}), 500
+
+
 @admin_panel_bp.route('/users/bulk-update', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -1691,3 +2064,378 @@ def bulk_update_users():
     except Exception as e:
         logger.error(f"Error bulk updating users: {e}")
         return jsonify({'success': False, 'message': 'Error updating users'})
+
+
+# -----------------------------------------------------------
+# Duplicate Registration Management
+# -----------------------------------------------------------
+
+@admin_panel_bp.route('/users/duplicates')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def duplicate_registrations():
+    """Display and manage potential duplicate registrations."""
+    try:
+        # Find potential duplicates based on email patterns, names, and Discord IDs
+        duplicate_groups = _find_duplicate_registrations()
+
+        # Get statistics
+        stats = {
+            'total_groups': len(duplicate_groups),
+            'total_potential_duplicates': sum(len(group['users']) for group in duplicate_groups),
+            'by_email': len([g for g in duplicate_groups if g['match_type'] == 'email']),
+            'by_name': len([g for g in duplicate_groups if g['match_type'] == 'name']),
+            'by_discord': len([g for g in duplicate_groups if g['match_type'] == 'discord'])
+        }
+
+        return render_template('admin_panel/users/duplicates.html',
+                             duplicate_groups=duplicate_groups,
+                             stats=stats)
+    except Exception as e:
+        logger.error(f"Error loading duplicate registrations: {e}")
+        flash('Duplicate detection unavailable. Check database connectivity.', 'error')
+        return redirect(url_for('admin_panel.user_management'))
+
+
+@admin_panel_bp.route('/users/duplicates/scan', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def scan_for_duplicates():
+    """Manually trigger a scan for duplicate registrations."""
+    try:
+        duplicate_groups = _find_duplicate_registrations()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='scan_duplicates',
+            resource_type='duplicate_management',
+            resource_id='scan',
+            new_value=f'Found {len(duplicate_groups)} potential duplicate groups',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Scan complete. Found {len(duplicate_groups)} potential duplicate groups.',
+            'groups': len(duplicate_groups),
+            'total_duplicates': sum(len(group['users']) for group in duplicate_groups)
+        })
+    except Exception as e:
+        logger.error(f"Error scanning for duplicates: {e}")
+        return jsonify({'success': False, 'message': 'Scan failed'}), 500
+
+
+@admin_panel_bp.route('/users/duplicates/merge', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def merge_duplicate_users():
+    """Merge duplicate user accounts into a primary account."""
+    try:
+        data = request.get_json()
+        primary_user_id = data.get('primary_user_id')
+        duplicate_user_ids = data.get('duplicate_user_ids', [])
+
+        if not primary_user_id or not duplicate_user_ids:
+            return jsonify({'success': False, 'message': 'Primary user and duplicates must be specified'}), 400
+
+        if primary_user_id in duplicate_user_ids:
+            return jsonify({'success': False, 'message': 'Primary user cannot be in duplicates list'}), 400
+
+        # Get the primary user
+        primary_user = User.query.options(
+            joinedload(User.player),
+            joinedload(User.roles)
+        ).get(primary_user_id)
+
+        if not primary_user:
+            return jsonify({'success': False, 'message': 'Primary user not found'}), 404
+
+        merged_count = 0
+        merge_details = []
+
+        for dup_id in duplicate_user_ids:
+            duplicate_user = User.query.options(
+                joinedload(User.player),
+                joinedload(User.roles)
+            ).get(dup_id)
+
+            if not duplicate_user:
+                merge_details.append({'id': dup_id, 'status': 'not_found'})
+                continue
+
+            try:
+                # Merge roles
+                for role in duplicate_user.roles:
+                    if role not in primary_user.roles:
+                        primary_user.roles.append(role)
+
+                # If duplicate has player but primary doesn't, transfer it
+                if duplicate_user.player and not primary_user.player:
+                    duplicate_user.player.user_id = primary_user.id
+                    duplicate_user.player = None
+                elif duplicate_user.player and primary_user.player:
+                    # Merge player data - prefer primary but fill in gaps
+                    primary_player = primary_user.player
+                    dup_player = duplicate_user.player
+
+                    if not primary_player.discord_id and dup_player.discord_id:
+                        primary_player.discord_id = dup_player.discord_id
+                    if not primary_player.phone and dup_player.phone:
+                        primary_player.phone = dup_player.phone
+
+                    # Mark duplicate player as merged
+                    dup_player.merged_into = primary_player.id
+                    dup_player.is_current_player = False
+
+                # Mark duplicate user as merged
+                duplicate_user.is_active = False
+                duplicate_user.approval_status = 'merged'
+                duplicate_user.approval_notes = f'Merged into user {primary_user_id}'
+
+                merged_count += 1
+                merge_details.append({'id': dup_id, 'status': 'merged', 'username': duplicate_user.username})
+
+            except Exception as e:
+                logger.error(f"Error merging user {dup_id}: {e}")
+                merge_details.append({'id': dup_id, 'status': 'error', 'error': str(e)})
+
+        db.session.commit()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='merge_duplicates',
+            resource_type='duplicate_management',
+            resource_id=str(primary_user_id),
+            new_value=f'Merged {merged_count} users into {primary_user.username}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        # Sync Discord roles for primary user
+        if primary_user.player and primary_user.player.discord_id:
+            assign_roles_to_player_task.delay(player_id=primary_user.player.id, only_add=False)
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully merged {merged_count} accounts into {primary_user.username}',
+            'merged_count': merged_count,
+            'details': merge_details
+        })
+
+    except Exception as e:
+        logger.error(f"Error merging duplicate users: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Merge failed'}), 500
+
+
+@admin_panel_bp.route('/users/duplicates/dismiss', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def dismiss_duplicate():
+    """Dismiss a potential duplicate (mark as not a duplicate)."""
+    try:
+        data = request.get_json()
+        user_ids = data.get('user_ids', [])
+
+        if len(user_ids) < 2:
+            return jsonify({'success': False, 'message': 'At least 2 user IDs required'}), 400
+
+        # Store dismissal in a simple way - we'll use approval_notes for now
+        # In production, you'd want a separate table for this
+        for user_id in user_ids:
+            user = User.query.get(user_id)
+            if user:
+                dismissed_ids = user_ids.copy()
+                dismissed_ids.remove(user_id)
+                existing_notes = user.approval_notes or ''
+                user.approval_notes = f"{existing_notes}\n[NOT_DUP:{','.join(map(str, dismissed_ids))}]"
+
+        db.session.commit()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='dismiss_duplicate',
+            resource_type='duplicate_management',
+            resource_id=','.join(map(str, user_ids)),
+            new_value='Dismissed as not duplicates',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': 'Duplicate group dismissed'
+        })
+
+    except Exception as e:
+        logger.error(f"Error dismissing duplicate: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Dismissal failed'}), 500
+
+
+def _find_duplicate_registrations():
+    """Find potential duplicate registrations based on various criteria."""
+    duplicate_groups = []
+    processed_ids = set()
+
+    try:
+        # 1. Find duplicates by email domain and similar usernames
+        all_users = User.query.options(
+            joinedload(User.player),
+            joinedload(User.roles)
+        ).filter(User.is_active == True).all()
+
+        # Group by email prefix (before @)
+        email_groups = {}
+        for user in all_users:
+            if user.email:
+                email_prefix = user.email.split('@')[0].lower()
+                # Normalize - remove numbers and common patterns
+                normalized = ''.join(c for c in email_prefix if c.isalpha())
+                if len(normalized) >= 3:
+                    if normalized not in email_groups:
+                        email_groups[normalized] = []
+                    email_groups[normalized].append(user)
+
+        # Find groups with multiple users
+        for prefix, users in email_groups.items():
+            if len(users) > 1:
+                user_ids = frozenset(u.id for u in users)
+                if user_ids not in processed_ids:
+                    processed_ids.add(user_ids)
+                    duplicate_groups.append({
+                        'match_type': 'email',
+                        'match_value': prefix,
+                        'users': [_user_to_dict(u) for u in users]
+                    })
+
+        # 2. Find duplicates by player name
+        if Player:
+            name_groups = {}
+            players = Player.query.filter(Player.is_current_player == True).all()
+
+            for player in players:
+                if player.name:
+                    normalized_name = player.name.lower().strip()
+                    if normalized_name not in name_groups:
+                        name_groups[normalized_name] = []
+                    name_groups[normalized_name].append(player)
+
+            for name, players_list in name_groups.items():
+                if len(players_list) > 1:
+                    users = [p.user for p in players_list if p.user]
+                    if len(users) > 1:
+                        user_ids = frozenset(u.id for u in users)
+                        if user_ids not in processed_ids:
+                            processed_ids.add(user_ids)
+                            duplicate_groups.append({
+                                'match_type': 'name',
+                                'match_value': name,
+                                'users': [_user_to_dict(u) for u in users]
+                            })
+
+        # 3. Find duplicates by Discord ID (should be unique)
+        discord_groups = {}
+        for user in all_users:
+            if user.player and user.player.discord_id:
+                discord_id = user.player.discord_id
+                if discord_id not in discord_groups:
+                    discord_groups[discord_id] = []
+                discord_groups[discord_id].append(user)
+
+        for discord_id, users in discord_groups.items():
+            if len(users) > 1:
+                user_ids = frozenset(u.id for u in users)
+                if user_ids not in processed_ids:
+                    processed_ids.add(user_ids)
+                    duplicate_groups.append({
+                        'match_type': 'discord',
+                        'match_value': discord_id,
+                        'users': [_user_to_dict(u) for u in users]
+                    })
+
+        return duplicate_groups
+
+    except Exception as e:
+        logger.error(f"Error finding duplicates: {e}")
+        return []
+
+
+def _user_to_dict(user):
+    """Convert user to dictionary for duplicate display."""
+    return {
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'created_at': user.created_at.isoformat() if user.created_at else None,
+        'approval_status': user.approval_status,
+        'is_active': user.is_active,
+        'roles': [r.name for r in user.roles],
+        'player': {
+            'id': user.player.id,
+            'name': user.player.name,
+            'discord_id': user.player.discord_id,
+            'phone': user.player.phone
+        } if user.player else None
+    }
+
+
+def _get_user_analytics():
+    """Generate comprehensive user analytics data."""
+    try:
+        now = datetime.utcnow()
+        thirty_days_ago = now - timedelta(days=30)
+        seven_days_ago = now - timedelta(days=7)
+
+        # Basic counts
+        total_users = User.query.count()
+        active_users = User.query.filter_by(is_active=True).count()
+
+        # Registration trends
+        registrations_30d = User.query.filter(User.created_at >= thirty_days_ago).count()
+        registrations_7d = User.query.filter(User.created_at >= seven_days_ago).count()
+
+        # Approval trends
+        approvals_30d = User.query.filter(
+            User.approved_at >= thirty_days_ago,
+            User.approval_status == 'approved'
+        ).count()
+
+        # Role distribution
+        roles = Role.query.all()
+        role_distribution = {role.name: len(role.users) for role in roles}
+
+        # Status distribution
+        status_distribution = {
+            'pending': User.query.filter_by(approval_status='pending').count(),
+            'approved': User.query.filter_by(approval_status='approved').count(),
+            'denied': User.query.filter_by(approval_status='denied').count()
+        }
+
+        return {
+            'total_users': total_users,
+            'active_users': active_users,
+            'registrations_30d': registrations_30d,
+            'registrations_7d': registrations_7d,
+            'approvals_30d': approvals_30d,
+            'role_distribution': role_distribution,
+            'status_distribution': status_distribution,
+            'generated_at': now.isoformat()
+        }
+
+    except Exception as e:
+        logger.error(f"Error generating user analytics: {e}")
+        return {}
+
+
+def _generate_user_export_data(export_type, format_type, date_range):
+    """Generate export data for users."""
+    # Placeholder - implement actual export logic as needed
+    return {
+        'url': None,
+        'filename': f'user_export_{export_type}_{datetime.utcnow().strftime("%Y%m%d")}.{format_type}'
+    }

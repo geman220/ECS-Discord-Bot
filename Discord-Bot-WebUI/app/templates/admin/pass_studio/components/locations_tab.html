@@ -1,0 +1,384 @@
+{# Locations Tab Component #}
+{# Manage partner locations for location-based notifications #}
+
+<!-- Location Limit Info -->
+<div class="alert alert-{{ 'warning' if location_count >= 8 else 'info' }} mb-4">
+    <div class="d-flex">
+        <i class="ti ti-map-pin me-2 fs-4"></i>
+        <div>
+            <strong>Location-Based Notifications</strong>
+            <p class="mb-0 mt-1">
+                Apple Wallet allows up to <strong>10 locations</strong> per pass.
+                When a user approaches one of these locations, their phone shows a notification.
+                <br>
+                <strong>Current: {{ location_count }}/{{ max_locations }}</strong>
+                {% if location_count >= 10 %}
+                <span class="text-danger ms-2">(Limit reached)</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Add Location Button -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h6 class="mb-0">Partner Locations</h6>
+    <button type="button" class="btn btn-primary btn-sm" onclick="addLocation()" {{ 'disabled' if location_count >= 10 }}>
+        <i class="ti ti-plus me-1"></i> Add Location
+    </button>
+</div>
+
+<!-- Locations List -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if locations %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Address</th>
+                        <th>Notification Text</th>
+                        <th>Applies To</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for location in locations %}
+                    <tr class="{{ 'opacity-50' if not location.is_active }}">
+                        <td>
+                            <strong>{{ location.name }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                <i class="ti ti-map-pin me-1"></i>
+                                {{ "%.4f"|format(location.latitude) }}, {{ "%.4f"|format(location.longitude) }}
+                            </small>
+                        </td>
+                        <td>
+                            {% if location.address %}
+                            {{ location.address }}<br>
+                            <small class="text-muted">{{ location.city }}, {{ location.state }}</small>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ location.relevant_text }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-label-{{ 'primary' if location.applies_to == 'all' else 'success' if location.applies_to == 'ecs_membership' else 'info' }}">
+                                {{ 'All Passes' if location.applies_to == 'all' else 'ECS Only' if location.applies_to == 'ecs_membership' else 'Pub League' }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if location.is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-primary" onclick="editLocation({{ location.id }})">
+                                    <i class="ti ti-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-{{ 'warning' if location.is_active else 'success' }}"
+                                        onclick="toggleLocation({{ location.id }}, {{ 'false' if location.is_active else 'true' }})">
+                                    <i class="ti ti-{{ 'eye-off' if location.is_active else 'eye' }}"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" onclick="deleteLocation({{ location.id }}, '{{ location.name }}')">
+                                    <i class="ti ti-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="ti ti-map-pin fs-1 text-muted"></i>
+            <p class="mt-3 text-muted">No locations configured yet.</p>
+            <p class="text-muted small">Add partner venues to enable location-based notifications.</p>
+            <button type="button" class="btn btn-primary" onclick="addLocation()">
+                <i class="ti ti-plus me-1"></i> Add First Location
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Location data for JavaScript -->
+<script>
+const locationsData = [
+    {% for location in locations %}
+    {
+        id: {{ location.id }},
+        name: '{{ location.name|e }}',
+        latitude: {{ location.latitude }},
+        longitude: {{ location.longitude }},
+        relevant_text: '{{ location.relevant_text|e }}',
+        address: '{{ location.address|e if location.address else "" }}',
+        city: '{{ location.city|e if location.city else "" }}',
+        state: '{{ location.state|e if location.state else "" }}',
+        applies_to: '{{ location.applies_to }}',
+        location_type: '{{ location.location_type }}',
+        is_active: {{ 'true' if location.is_active else 'false' }}
+    }{{ ',' if not loop.last }}
+    {% endfor %}
+];
+
+function addLocation() {
+    Swal.fire({
+        title: 'Add Location',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Name <span class="text-danger">*</span></label>
+                    <input type="text" id="loc-name" class="form-control" placeholder="e.g., Hellbent Brewing">
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label">Latitude <span class="text-danger">*</span></label>
+                        <input type="number" id="loc-lat" class="form-control" step="0.0001" placeholder="47.7240">
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label">Longitude <span class="text-danger">*</span></label>
+                        <input type="number" id="loc-lng" class="form-control" step="0.0001" placeholder="-122.2958">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Notification Text</label>
+                    <input type="text" id="loc-text" class="form-control" placeholder="Text shown when user is nearby">
+                    <small class="text-muted">Leave blank to use the location name</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Address (optional)</label>
+                    <input type="text" id="loc-address" class="form-control" placeholder="123 Main St">
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label">City</label>
+                        <input type="text" id="loc-city" class="form-control" placeholder="Seattle">
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label">State</label>
+                        <input type="text" id="loc-state" class="form-control" placeholder="WA">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Applies To</label>
+                    <select id="loc-applies" class="form-select">
+                        <option value="{{ pass_type_code }}">This pass type only</option>
+                        <option value="all">All pass types</option>
+                    </select>
+                </div>
+            </div>
+        `,
+        width: '500px',
+        showCancelButton: true,
+        confirmButtonText: 'Add Location',
+        preConfirm: () => {
+            const name = document.getElementById('loc-name').value.trim();
+            const lat = parseFloat(document.getElementById('loc-lat').value);
+            const lng = parseFloat(document.getElementById('loc-lng').value);
+
+            if (!name || isNaN(lat) || isNaN(lng)) {
+                Swal.showValidationMessage('Name, latitude, and longitude are required');
+                return false;
+            }
+
+            return {
+                name,
+                latitude: lat,
+                longitude: lng,
+                relevant_text: document.getElementById('loc-text').value.trim() || name,
+                address: document.getElementById('loc-address').value.trim(),
+                city: document.getElementById('loc-city').value.trim(),
+                state: document.getElementById('loc-state').value.trim(),
+                applies_to: document.getElementById('loc-applies').value
+            };
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`/admin/wallet/studio/{{ pass_type_code }}/locations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+                    },
+                    body: JSON.stringify(result.value)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    PassStudio.showToast('Location added', 'success');
+                    location.reload();
+                } else {
+                    PassStudio.showToast(data.error || 'Error adding location', 'error');
+                }
+            } catch (error) {
+                PassStudio.showToast('Error adding location', 'error');
+            }
+        }
+    });
+}
+
+function editLocation(locationId) {
+    const loc = locationsData.find(l => l.id === locationId);
+    if (!loc) return;
+
+    Swal.fire({
+        title: 'Edit Location',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Name <span class="text-danger">*</span></label>
+                    <input type="text" id="edit-loc-name" class="form-control" value="${loc.name}">
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label">Latitude <span class="text-danger">*</span></label>
+                        <input type="number" id="edit-loc-lat" class="form-control" step="0.0001" value="${loc.latitude}">
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label">Longitude <span class="text-danger">*</span></label>
+                        <input type="number" id="edit-loc-lng" class="form-control" step="0.0001" value="${loc.longitude}">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Notification Text</label>
+                    <input type="text" id="edit-loc-text" class="form-control" value="${loc.relevant_text}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Address</label>
+                    <input type="text" id="edit-loc-address" class="form-control" value="${loc.address}">
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label">City</label>
+                        <input type="text" id="edit-loc-city" class="form-control" value="${loc.city}">
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label">State</label>
+                        <input type="text" id="edit-loc-state" class="form-control" value="${loc.state}">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Applies To</label>
+                    <select id="edit-loc-applies" class="form-select">
+                        <option value="ecs_membership" ${loc.applies_to === 'ecs_membership' ? 'selected' : ''}>ECS Only</option>
+                        <option value="pub_league" ${loc.applies_to === 'pub_league' ? 'selected' : ''}>Pub League Only</option>
+                        <option value="all" ${loc.applies_to === 'all' ? 'selected' : ''}>All pass types</option>
+                    </select>
+                </div>
+            </div>
+        `,
+        width: '500px',
+        showCancelButton: true,
+        confirmButtonText: 'Save Changes',
+        preConfirm: () => {
+            const name = document.getElementById('edit-loc-name').value.trim();
+            const lat = parseFloat(document.getElementById('edit-loc-lat').value);
+            const lng = parseFloat(document.getElementById('edit-loc-lng').value);
+
+            if (!name || isNaN(lat) || isNaN(lng)) {
+                Swal.showValidationMessage('Name, latitude, and longitude are required');
+                return false;
+            }
+
+            return {
+                name,
+                latitude: lat,
+                longitude: lng,
+                relevant_text: document.getElementById('edit-loc-text').value.trim() || name,
+                address: document.getElementById('edit-loc-address').value.trim(),
+                city: document.getElementById('edit-loc-city').value.trim(),
+                state: document.getElementById('edit-loc-state').value.trim(),
+                applies_to: document.getElementById('edit-loc-applies').value
+            };
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`/admin/wallet/studio/{{ pass_type_code }}/locations/${locationId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+                    },
+                    body: JSON.stringify(result.value)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    PassStudio.showToast('Location updated', 'success');
+                    location.reload();
+                } else {
+                    PassStudio.showToast(data.error || 'Error updating location', 'error');
+                }
+            } catch (error) {
+                PassStudio.showToast('Error updating location', 'error');
+            }
+        }
+    });
+}
+
+async function toggleLocation(locationId, active) {
+    try {
+        const response = await fetch(`/admin/wallet/studio/{{ pass_type_code }}/locations/${locationId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+            },
+            body: JSON.stringify({ is_active: active })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            PassStudio.showToast(`Location ${active ? 'activated' : 'deactivated'}`, 'success');
+            location.reload();
+        } else {
+            PassStudio.showToast(data.error || 'Error updating location', 'error');
+        }
+    } catch (error) {
+        PassStudio.showToast('Error updating location', 'error');
+    }
+}
+
+async function deleteLocation(locationId, name) {
+    const result = await Swal.fire({
+        title: 'Delete Location?',
+        text: `Are you sure you want to delete "${name}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(`/admin/wallet/studio/{{ pass_type_code }}/locations/${locationId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+                }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                PassStudio.showToast('Location deleted', 'success');
+                location.reload();
+            } else {
+                PassStudio.showToast(data.error || 'Error deleting location', 'error');
+            }
+        } catch (error) {
+            PassStudio.showToast('Error deleting location', 'error');
+        }
+    }
+}
+</script>

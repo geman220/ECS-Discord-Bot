@@ -1,0 +1,174 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Feedback #{{ feedback.id }} - Admin Panel{% endblock %}
+
+{% block panel_description %}Manage feedback details and responses{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.reports_dashboard') }}">Reports</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.feedback_list') }}">Feedback</a></li>
+<li class="breadcrumb-item active">#{{ feedback.id }}</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Feedback Details -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="ti ti-message-circle me-2"></i>{{ feedback.subject }}
+                </h5>
+                <div>
+                    {% if feedback.status == 'Open' %}
+                    <span class="badge bg-warning">Open</span>
+                    {% elif feedback.status == 'In Progress' %}
+                    <span class="badge bg-info">In Progress</span>
+                    {% elif feedback.status == 'Closed' %}
+                    <span class="badge bg-success">Closed</span>
+                    {% endif %}
+                    {% if feedback.priority == 'High' %}
+                    <span class="badge bg-danger">High Priority</span>
+                    {% elif feedback.priority == 'Medium' %}
+                    <span class="badge bg-warning">Medium Priority</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h6 class="text-muted">Description</h6>
+                    <p class="mb-0">{{ feedback.description or feedback.content or 'No description provided.' }}</p>
+                </div>
+                <hr>
+                <div class="row text-muted small">
+                    <div class="col-md-6">
+                        <strong>Submitted by:</strong> {{ feedback.user.username if feedback.user else 'Anonymous' }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Created:</strong> {{ feedback.created_at.strftime('%b %d, %Y at %I:%M %p') if feedback.created_at else 'N/A' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Replies -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="ti ti-messages me-2"></i>Replies ({{ feedback.replies|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% if feedback.replies %}
+                    {% for reply in feedback.replies %}
+                    <div class="mb-3 pb-3 {{ 'border-bottom' if not loop.last }}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong class="{{ 'text-primary' if reply.is_admin_reply else '' }}">
+                                    {{ reply.user.username if reply.user else 'System' }}
+                                    {% if reply.is_admin_reply %}
+                                    <span class="badge bg-primary ms-1">Admin</span>
+                                    {% endif %}
+                                </strong>
+                                <small class="text-muted d-block">
+                                    {{ reply.created_at.strftime('%b %d, %Y at %I:%M %p') if reply.created_at else '' }}
+                                </small>
+                            </div>
+                        </div>
+                        <p class="mt-2 mb-0">{{ reply.content }}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="text-muted text-center py-3">No replies yet.</p>
+                {% endif %}
+
+                <!-- Reply Form -->
+                {% if feedback.status != 'Closed' %}
+                <hr>
+                <form method="post">
+                    <input type="hidden" name="submit_reply" value="1">
+                    {{ reply_form.hidden_tag() if reply_form }}
+                    <div class="mb-3">
+                        <label class="form-label">Add Reply</label>
+                        <textarea name="content" class="form-control" rows="3" placeholder="Type your reply..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-send me-1"></i>Send Reply
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Status Update -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="ti ti-settings me-2"></i>Update Status</h6>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" name="update_feedback" value="1">
+                    {{ form.hidden_tag() if form }}
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="Open" {{ 'selected' if feedback.status == 'Open' }}>Open</option>
+                            <option value="In Progress" {{ 'selected' if feedback.status == 'In Progress' }}>In Progress</option>
+                            <option value="Closed" {{ 'selected' if feedback.status == 'Closed' }}>Closed</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Priority</label>
+                        <select name="priority" class="form-select">
+                            <option value="Low" {{ 'selected' if feedback.priority == 'Low' }}>Low</option>
+                            <option value="Medium" {{ 'selected' if feedback.priority == 'Medium' }}>Medium</option>
+                            <option value="High" {{ 'selected' if feedback.priority == 'High' }}>High</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="ti ti-check me-1"></i>Update
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="ti ti-bolt me-2"></i>Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                {% if feedback.status != 'Closed' %}
+                <form action="{{ url_for('admin_panel.close_feedback', feedback_id=feedback.id) }}" method="post" class="mb-2">
+                    <button type="submit" class="btn btn-success w-100" onclick="return confirm('Close this feedback?')">
+                        <i class="ti ti-check me-1"></i>Close Feedback
+                    </button>
+                </form>
+                {% endif %}
+                <form action="{{ url_for('admin_panel.delete_feedback', feedback_id=feedback.id) }}" method="post">
+                    <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Delete this feedback? This cannot be undone.')">
+                        <i class="ti ti-trash me-1"></i>Delete Feedback
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- User Info -->
+        {% if feedback.user %}
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="ti ti-user me-2"></i>Submitted By</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-1"><strong>{{ feedback.user.username }}</strong></p>
+                <p class="mb-1 small text-muted">{{ feedback.user.email }}</p>
+                {% if feedback.user.player %}
+                <p class="mb-0 small text-muted">Player: {{ feedback.user.player.name }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

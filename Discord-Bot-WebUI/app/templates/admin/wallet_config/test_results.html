@@ -1,0 +1,316 @@
+{% extends 'admin/layout.html' %}
+{% block title %}Wallet Configuration Test Results{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Test Results - Theme-aware styling */
+    .test-result {
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+    .test-result.passed {
+        background-color: rgba(40, 199, 111, 0.1);
+        border-left: 4px solid #28c76f;
+    }
+    .test-result.failed {
+        background-color: rgba(234, 84, 85, 0.1);
+        border-left: 4px solid #ea5455;
+    }
+    .test-result.skipped {
+        background-color: rgba(255, 159, 67, 0.1);
+        border-left: 4px solid #ff9f43;
+    }
+    .issue-item {
+        padding: 10px 15px;
+        border-left: 3px solid #ea5455;
+        background-color: rgba(234, 84, 85, 0.1);
+        margin-bottom: 10px;
+        border-radius: 4px;
+    }
+    .next-steps {
+        border: 1px solid var(--bs-border-color, #ddd);
+        border-radius: 8px;
+        padding: 15px;
+    }
+    .next-steps ul {
+        margin-bottom: 0;
+    }
+</style>
+{% endblock custom_css %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="fw-bold text-primary mb-1">
+                        <i class="ti ti-test-pipe me-2"></i>Configuration Test Results
+                    </h2>
+                    <p class="text-muted mb-0">Test results for your wallet pass configuration</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-outline-secondary">
+                        <i class="ti ti-arrow-left me-1"></i> Back to Dashboard
+                    </a>
+                    <button onclick="window.print()" class="btn btn-outline-primary ms-2">
+                        <i class="ti ti-printer me-1"></i> Print Results
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Overall Results Card -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Overall Configuration Status</h5>
+            <div>
+                {% if test_results.configuration.configured %}
+                    <span class="badge bg-label-success">Configuration Complete</span>
+                {% else %}
+                    <span class="badge bg-label-warning">Issues Found</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="mb-4">
+                {% if test_results.configuration.configured %}
+                    <div class="alert alert-success d-flex">
+                        <i class="ti ti-circle-check me-3 fs-4"></i>
+                        <div>
+                            <strong>Wallet pass system is properly configured!</strong>
+                            <p class="mb-0">All required components are in place and working correctly. You can now create and issue wallet passes.</p>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning d-flex">
+                        <i class="ti ti-alert-triangle me-3 fs-4"></i>
+                        <div>
+                            <strong>Configuration issues detected</strong>
+                            <p class="mb-0">Please address the issues below to complete setup.</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h6>Test Summary</h6>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Required Files</td>
+                                    <td>
+                                        {% if not test_results.configuration.issues %}
+                                            <span class="badge bg-label-success">All Present</span>
+                                        {% else %}
+                                            <span class="badge bg-label-danger">Missing Files</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% for test in test_results.tests %}
+                                <tr>
+                                    <td>{{ test.name }}</td>
+                                    <td>
+                                        <span class="badge bg-label-{{ test.status == 'passed' and 'success' or test.status == 'skipped' and 'warning' or 'danger' }}">
+                                            {{ test.status|capitalize }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <h6>System Information</h6>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <th>Test Date/Time</th>
+                                    <td>{{ now|default('N/A') }} UTC</td>
+                                </tr>
+                                <tr>
+                                    <th>Pass Types</th>
+                                    <td>
+                                        {% set pass_types_found = false %}
+                                        {% for test in test_results.tests %}
+                                            {% if test.name == 'Asset Configuration' and test.status == 'passed' %}
+                                                {% set pass_types_found = true %}
+                                                <span class="badge bg-label-primary me-1">ECS Membership</span>
+                                                <span class="badge bg-label-primary">Pub League</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if not pass_types_found %}
+                                            <span class="text-muted">Not verified</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Certificate Platform</th>
+                                    <td>
+                                        <span class="badge bg-label-secondary me-1">Apple</span>
+                                        <span class="badge bg-label-secondary">Google (Optional)</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            {% if not test_results.configuration.configured %}
+                <div>
+                    <h6>Issues to Resolve:</h6>
+                    {% for issue in test_results.configuration.issues %}
+                        <div class="issue-item">
+                            <i class="ti ti-alert-circle me-2 text-danger"></i>
+                            {{ issue }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Detailed Test Results -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Detailed Test Results</h5>
+        </div>
+        <div class="card-body">
+            {% for test in test_results.tests %}
+                <div class="test-result {{ test.status }}">
+                    <div class="d-flex justify-content-between mb-2">
+                        <h6 class="mb-0">{{ test.name }}</h6>
+                        <span class="badge bg-label-{{ test.status == 'passed' and 'success' or test.status == 'skipped' and 'warning' or 'danger' }}">
+                            {{ test.status|capitalize }}
+                        </span>
+                    </div>
+                    <p class="mb-0">{{ test.message }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Next Steps -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Next Steps</h5>
+        </div>
+        <div class="card-body">
+            {% if test_results.configuration.configured %}
+                <div class="next-steps bg-body-tertiary">
+                    <h6><i class="ti ti-circle-check text-success me-1"></i> Configuration Complete</h6>
+                    <p>Your wallet pass system is fully configured and ready to use. Here's what you can do now:</p>
+                    <ul>
+                        <li><strong>Create passes</strong> for members using the pass creation tool</li>
+                        <li>Set up <strong>automatic pass generation</strong> for new memberships</li>
+                        <li><strong>Customize templates</strong> further to match your branding</li>
+                        <li><strong>Test the scanner</strong> for validating passes at events</li>
+                    </ul>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <a href="{{ url_for('wallet_admin.passes_list') }}" class="btn btn-primary btn-sm w-100">
+                                <i class="ti ti-ticket me-1"></i> Manage Passes
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="btn btn-success btn-sm w-100">
+                                <i class="ti ti-plus me-1"></i> Create New Pass
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="next-steps bg-body-tertiary">
+                    <h6><i class="ti ti-alert-triangle text-warning me-1"></i> Configuration Incomplete</h6>
+                    <p>Please address the following issues to complete your setup:</p>
+                    <ul>
+                        {% for test in test_results.tests %}
+                            {% if test.status != 'passed' and test.status != 'skipped' %}
+                                <li>
+                                    <strong>{{ test.name }}:</strong> {{ test.message }}
+                                    {% if 'Certificate' in test.name %}
+                                        <a href="{{ url_for('wallet_config.certificates') }}">Fix Certificate Issues</a>
+                                    {% elif 'Asset' in test.name %}
+                                        <a href="{{ url_for('wallet_config.assets') }}">Fix Asset Issues</a>
+                                    {% elif 'Template' in test.name %}
+                                        <a href="{{ url_for('wallet_config.templates') }}">Fix Template Issues</a>
+                                    {% endif %}
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% for issue in test_results.configuration.issues %}
+                            <li>{{ issue }}</li>
+                        {% endfor %}
+                    </ul>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <a href="{{ url_for('wallet_config.setup_wizard') }}" class="btn btn-primary btn-sm w-100">
+                                <i class="ti ti-wand me-1"></i> Continue Setup Wizard
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="{{ url_for('wallet_config.help_page') }}" class="btn btn-info btn-sm w-100">
+                                <i class="ti ti-help me-1"></i> View Help Documentation
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Troubleshooting Tips -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Troubleshooting Tips</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <h6><i class="ti ti-certificate me-1"></i> Certificate Issues</h6>
+                    <ul class="small">
+                        <li>Verify certificate format (.pem for all files)</li>
+                        <li>Check that Team ID and Pass Type ID match Apple Developer account</li>
+                        <li>Make sure private key matches the certificate</li>
+                        <li>Check certificate paths in configuration</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6><i class="ti ti-photo me-1"></i> Asset Issues</h6>
+                    <ul class="small">
+                        <li>Ensure assets are in PNG format</li>
+                        <li>Check image dimensions (exact sizes required)</li>
+                        <li>Verify file paths and permissions</li>
+                        <li>Make sure required assets (icon, logo) are present</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6><i class="ti ti-file-text me-1"></i> Template Issues</h6>
+                    <ul class="small">
+                        <li>Verify template is valid JSON</li>
+                        <li>Check that passTypeIdentifier matches your certificate</li>
+                        <li>Ensure required fields are present</li>
+                        <li>Set a default template for each pass type</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

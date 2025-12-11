@@ -1,0 +1,440 @@
+<h5><i class="ti ti-photo me-2"></i>Step 2: Asset Management</h5>
+
+{% if step_data.pass_types_missing %}
+<!-- Pass Types Not Initialized -->
+<div class="alert alert-warning">
+    <div class="d-flex align-items-center">
+        <div class="me-3">
+            <i class="ti ti-alert-triangle fs-3"></i>
+        </div>
+        <div class="flex-grow-1">
+            <h6 class="alert-heading mb-1">Pass Types Not Initialized</h6>
+            <p class="mb-2">Before uploading assets, you need to initialize the pass types (ECS Membership and Pub League). Click the button below to create them automatically.</p>
+            <form action="{{ url_for('wallet_config.init_pass_types') }}" method="post" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="is_wizard" value="true">
+                <input type="hidden" name="next_step" value="assets">
+                <button type="submit" class="btn btn-warning">
+                    <i class="ti ti-database-plus me-1"></i> Initialize Pass Types
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <div class="d-flex">
+        <div class="me-3">
+            <i class="ti ti-info-circle fs-3"></i>
+        </div>
+        <div>
+            <h6 class="alert-heading">Independent Pass Type Setup</h6>
+            <p class="mb-0">Each pass type (ECS Membership and Pub League) can be configured independently. You don't need to complete both - just configure the one(s) you need. Complete all required assets (icon and logo) for each pass type you want to use.</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if not step_data.pass_types_missing %}
+<div class="alert bg-body-tertiary border-start border-primary border-4 mb-4">
+    <div class="d-flex align-items-center">
+        <i class="ti ti-device-mobile me-3 fs-3 text-primary"></i>
+        <div>
+            <strong>Cross-Platform Assets</strong>
+            <p class="mb-0 small">Assets you upload here are used for <strong>both iOS and Android</strong> wallet passes. Upload once, and both platforms will use the same branding.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Asset Status -->
+<div class="mb-4">
+    <h6>Asset Status</h6>
+    
+    <div class="row">
+        <!-- ECS Membership Assets -->
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">ECS Membership Assets</h6>
+                    <div>
+                        {% set required_assets = ['icon', 'logo'] %}
+                        {% set has_all_required = true %}
+                        {% for asset_type in required_assets %}
+                            {% if asset_type not in step_data.ecs_assets %}
+                                {% set has_all_required = false %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if has_all_required %}
+                            <span class="badge bg-label-success">Complete</span>
+                        {% else %}
+                            <span class="badge bg-label-warning">Incomplete</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <span>Icon (29x29px)</span>
+                                <small class="d-block text-muted">Primary pass icon</small>
+                            </div>
+                            {% if 'icon' in step_data.ecs_assets %}
+                                <span class="badge bg-label-success rounded-pill"><i class="ti ti-check"></i></span>
+                            {% else %}
+                                <span class="badge bg-label-warning rounded-pill"><i class="ti ti-x"></i></span>
+                            {% endif %}
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <span>Logo (160x50px)</span>
+                                <small class="d-block text-muted">Organization logo</small>
+                            </div>
+                            {% if 'logo' in step_data.ecs_assets %}
+                                <span class="badge bg-label-success rounded-pill"><i class="ti ti-check"></i></span>
+                            {% else %}
+                                <span class="badge bg-label-warning rounded-pill"><i class="ti ti-x"></i></span>
+                            {% endif %}
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <span>Background</span>
+                                <small class="d-block text-muted">Optional background image</small>
+                            </div>
+                            {% if 'background' in step_data.ecs_assets %}
+                                <span class="badge bg-label-success rounded-pill"><i class="ti ti-check"></i></span>
+                            {% else %}
+                                <span class="badge bg-label-secondary rounded-pill"><i class="ti ti-x"></i></span>
+                            {% endif %}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pub League Assets -->
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Pub League Assets</h6>
+                    <div>
+                        {% set required_assets = ['icon', 'logo'] %}
+                        {% set has_all_required = true %}
+                        {% for asset_type in required_assets %}
+                            {% if asset_type not in step_data.pub_assets %}
+                                {% set has_all_required = false %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if has_all_required %}
+                            <span class="badge bg-label-success">Complete</span>
+                        {% else %}
+                            <span class="badge bg-label-warning">Incomplete</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <span>Icon (29x29px)</span>
+                                <small class="d-block text-muted">Primary pass icon</small>
+                            </div>
+                            {% if 'icon' in step_data.pub_assets %}
+                                <span class="badge bg-label-success rounded-pill"><i class="ti ti-check"></i></span>
+                            {% else %}
+                                <span class="badge bg-label-warning rounded-pill"><i class="ti ti-x"></i></span>
+                            {% endif %}
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <span>Logo (160x50px)</span>
+                                <small class="d-block text-muted">Organization logo</small>
+                            </div>
+                            {% if 'logo' in step_data.pub_assets %}
+                                <span class="badge bg-label-success rounded-pill"><i class="ti ti-check"></i></span>
+                            {% else %}
+                                <span class="badge bg-label-warning rounded-pill"><i class="ti ti-x"></i></span>
+                            {% endif %}
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <span>Background</span>
+                                <small class="d-block text-muted">Optional background image</small>
+                            </div>
+                            {% if 'background' in step_data.pub_assets %}
+                                <span class="badge bg-label-success rounded-pill"><i class="ti ti-check"></i></span>
+                            {% else %}
+                                <span class="badge bg-label-secondary rounded-pill"><i class="ti ti-x"></i></span>
+                            {% endif %}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Asset Upload Section -->
+<div class="mb-4">
+    <h6>Upload Assets</h6>
+    
+    <!-- Asset Upload Tabs -->
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" id="ecs-tab" data-bs-toggle="tab" data-bs-target="#ecs-assets" type="button" role="tab">
+                ECS Membership
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="publeague-tab" data-bs-toggle="tab" data-bs-target="#publeague-assets" type="button" role="tab">
+                Pub League
+            </button>
+        </li>
+    </ul>
+    
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <!-- ECS Assets Tab -->
+        <div class="tab-pane fade show active" id="ecs-assets" role="tabpanel">
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title">Asset Requirements</h6>
+                            <div class="alert bg-body-tertiary border small">
+                                <p class="mb-2"><strong>Required Assets:</strong></p>
+                                <ul class="mb-2">
+                                    <li><strong>icon.png</strong> - 29×29 pixels (PNG)</li>
+                                    <li><strong>logo.png</strong> - Max 160×50 pixels (PNG)</li>
+                                </ul>
+                                <p class="mb-2"><strong>Optional Assets:</strong></p>
+                                <ul class="mb-0">
+                                    <li><strong>background.png</strong> - 180×220 pixels</li>
+                                    <li><strong>thumbnail.png</strong> - 90×90 pixels</li>
+                                    <li><strong>strip.png</strong> - 320×84 pixels</li>
+                                </ul>
+                            </div>
+                            <p class="text-muted small">All images should use the PNG format with transparency where needed.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title">Upload ECS Assets</h6>
+                            
+                            <form action="{{ url_for('wallet_config.upload_asset') }}" method="post" enctype="multipart/form-data">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="pass_type_id" value="{{ ecs_type.id }}">
+                                <input type="hidden" name="is_wizard" value="true">
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Asset Type</label>
+                                    <select name="asset_type" class="form-select" required>
+                                        <option value="">Select type...</option>
+                                        {% for asset_type, details in step_data.asset_types.items() %}
+                                        <option value="{{ asset_type }}">{{ details.description }} ({{ details.dimensions }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Asset File</label>
+                                    <div class="input-group">
+                                        <input type="file" class="form-control asset-file-input" name="asset_file" data-preview="ecs-asset-preview" required>
+                                        <label class="input-group-text">Choose file</label>
+                                    </div>
+                                    <div class="form-text">
+                                        <small class="text-muted">Upload PNG image with correct dimensions</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="asset-preview" id="ecs-asset-preview">
+                                        <i class="ti ti-photo text-muted" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="ti ti-upload me-1"></i> Upload Asset
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Current ECS Assets -->
+            {% if step_data.ecs_assets %}
+            <div class="row mt-2">
+                <div class="col-12">
+                    <h6>Current ECS Assets</h6>
+                </div>
+                
+                {% for asset_type, asset in step_data.ecs_assets.items() %}
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <div class="mb-2" style="height: 100px; display: flex; align-items: center; justify-content: center;">
+                                <img src="{{ url_for('wallet_config.get_asset', asset_id=asset.id) }}" alt="{{ asset_type }}" 
+                                     class="img-fluid" style="max-height: 100%; max-width: 100%;">
+                            </div>
+                            <h6 class="mb-0">{{ asset_type }}</h6>
+                            <div class="small text-muted">{{ asset.file_name }}</div>
+                            
+                            <form action="{{ url_for('wallet_config.delete_asset', asset_id=asset.id) }}" method="post" class="mt-2 delete-asset-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="asset_name" value="{{ asset_type }}">
+                                <input type="hidden" name="is_wizard" value="true">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="ti ti-trash"></i> Remove
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Pub League Assets Tab -->
+        <div class="tab-pane fade" id="publeague-assets" role="tabpanel">
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title">Asset Requirements</h6>
+                            <div class="alert bg-body-tertiary border small">
+                                <p class="mb-2"><strong>Required Assets:</strong></p>
+                                <ul class="mb-2">
+                                    <li><strong>icon.png</strong> - 29×29 pixels (PNG)</li>
+                                    <li><strong>logo.png</strong> - Max 160×50 pixels (PNG)</li>
+                                </ul>
+                                <p class="mb-2"><strong>Optional Assets:</strong></p>
+                                <ul class="mb-0">
+                                    <li><strong>background.png</strong> - 180×220 pixels</li>
+                                    <li><strong>thumbnail.png</strong> - 90×90 pixels</li>
+                                    <li><strong>strip.png</strong> - 320×84 pixels</li>
+                                </ul>
+                            </div>
+                            <p class="text-muted small">All images should use the PNG format with transparency where needed.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title">Upload Pub League Assets</h6>
+                            
+                            <form action="{{ url_for('wallet_config.upload_asset') }}" method="post" enctype="multipart/form-data">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="pass_type_id" value="{{ pub_type.id }}">
+                                <input type="hidden" name="is_wizard" value="true">
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Asset Type</label>
+                                    <select name="asset_type" class="form-select" required>
+                                        <option value="">Select type...</option>
+                                        {% for asset_type, details in step_data.asset_types.items() %}
+                                        <option value="{{ asset_type }}">{{ details.description }} ({{ details.dimensions }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Asset File</label>
+                                    <div class="input-group">
+                                        <input type="file" class="form-control asset-file-input" name="asset_file" data-preview="pub-asset-preview" required>
+                                        <label class="input-group-text">Choose file</label>
+                                    </div>
+                                    <div class="form-text">
+                                        <small class="text-muted">Upload PNG image with correct dimensions</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="asset-preview" id="pub-asset-preview">
+                                        <i class="ti ti-photo text-muted" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="ti ti-upload me-1"></i> Upload Asset
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Current Pub League Assets -->
+            {% if step_data.pub_assets %}
+            <div class="row mt-2">
+                <div class="col-12">
+                    <h6>Current Pub League Assets</h6>
+                </div>
+                
+                {% for asset_type, asset in step_data.pub_assets.items() %}
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <div class="mb-2" style="height: 100px; display: flex; align-items: center; justify-content: center;">
+                                <img src="{{ url_for('wallet_config.get_asset', asset_id=asset.id) }}" alt="{{ asset_type }}" 
+                                     class="img-fluid" style="max-height: 100%; max-width: 100%;">
+                            </div>
+                            <h6 class="mb-0">{{ asset_type }}</h6>
+                            <div class="small text-muted">{{ asset.file_name }}</div>
+                            
+                            <form action="{{ url_for('wallet_config.delete_asset', asset_id=asset.id) }}" method="post" class="mt-2 delete-asset-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="asset_name" value="{{ asset_type }}">
+                                <input type="hidden" name="is_wizard" value="true">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="ti ti-trash"></i> Remove
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Asset Design Tips -->
+<div class="card">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="ti ti-bulb me-2"></i>Design Tips</h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Best Practices</h6>
+                <ul class="small">
+                    <li><strong>Use transparency</strong> where appropriate in your PNG files</li>
+                    <li><strong>Keep text minimal</strong> on images - use the pass fields for text</li>
+                    <li><strong>Use consistent branding</strong> across all your assets</li>
+                    <li><strong>Test on different devices</strong> to ensure visibility</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6>Image Specifications</h6>
+                <ul class="small">
+                    <li><strong>Format:</strong> PNG with transparency where needed</li>
+                    <li><strong>Resolution:</strong> Use the exact pixel dimensions specified</li>
+                    <li><strong>2x versions:</strong> Optional but recommended for high-resolution displays</li>
+                    <li><strong>File size:</strong> Keep under 1MB for optimal performance</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}

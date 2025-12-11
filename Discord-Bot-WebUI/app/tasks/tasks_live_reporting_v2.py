@@ -320,6 +320,14 @@ def _process_single_session_realtime(session, session_obj: LiveReportingSession,
         current_status = match_data.get('status', 'UNKNOWN')
         is_live = current_status in ['IN_PLAY', 'HALFTIME']
 
+        # Check and send pre-match hype (5 minutes before kickoff)
+        processed_event_keys = set(session_obj.last_event_keys or [])
+        hype_sent = _check_and_send_pre_match_hype(session_obj, match_data, processed_event_keys)
+        if hype_sent:
+            # Add hype key to processed events
+            processed_event_keys.add(f"pre_match_hype_{session_obj.match_id}")
+            session_obj.last_event_keys = list(processed_event_keys)
+
         # Process new events
         events_processed = _process_match_events(session_obj, match_data, thread_id)
 
@@ -338,9 +346,18 @@ def _process_single_session_realtime(session, session_obj: LiveReportingSession,
         # Check if match ended
         match_ended = current_status in ['FINAL', 'COMPLETED', 'CANCELLED', 'POSTPONED']
         if match_ended and session_obj.is_active:
+            from app.models import MLSMatch
+            from app.models.match_status import MatchStatus
+
             session_obj.is_active = False
             session_obj.ended_at = datetime.utcnow()
             logger.info(f"Match {match_id} ended with status {current_status}")
+
+            # Mark match as completed in database
+            match = session.query(MLSMatch).filter(MLSMatch.match_id == match_id).first()
+            if match:
+                match.live_reporting_status = MatchStatus.COMPLETED
+                logger.info(f"Marked match {match_id} as completed")
 
             # Send final message
             _send_final_message(thread_id, match_data)
@@ -461,8 +478,10 @@ def _send_event_to_discord(thread_id: str, event: Dict[str, Any], match_data: Di
 
 def _format_event_message(event: Dict[str, Any], match_data: Dict[str, Any]) -> str:
     """
-    Format match event into Discord message.
+    Format match event into Discord message using AI commentary from /ai-prompts/ config.
     """
+    from app.utils.sync_ai_client import get_sync_ai_client
+
     event_type = event.get('type', '').upper()
     minute = event.get('minute', '0')
     player = event.get('player', 'Unknown')
@@ -474,18 +493,40 @@ def _format_event_message(event: Dict[str, Any], match_data: Dict[str, Any]) -> 
     home_team = match_data.get('home_team', 'Home')
     away_team = match_data.get('away_team', 'Away')
 
+    # Build context for AI commentary
+    event_context = {
+        'event_type': event_type.lower(),
+        'player': player,
+        'team': team,
+        'minute': minute,
+        'home_team': home_team,
+        'away_team': away_team,
+        'home_score': home_score,
+        'away_score': away_score,
+        'scoring_team': team if event_type == 'GOAL' else None,
+        'description': event.get('description', '')
+    }
+
+    # Try to generate AI commentary
+    try:
+        ai_client = get_sync_ai_client()
+        ai_message = ai_client.generate_match_event_commentary(event_context)
+
+        if ai_message:
+            logger.info(f"Generated AI commentary for {event_type}: {ai_message[:80]}...")
+            return ai_message
+    except Exception as e:
+        logger.warning(f"Failed to generate AI commentary for {event_type}, using fallback: {e}")
+
+    # Fallback to basic templates if AI fails
     if event_type == 'GOAL':
         return f"⚽ **GOAL!** {minute}' - {player} ({team})\n\n**{home_team}** {home_score} - {away_score} **{away_team}**"
-
     elif event_type == 'YELLOW_CARD':
         return f"🟨 **Yellow Card** {minute}' - {player} ({team})"
-
     elif event_type == 'RED_CARD':
         return f"🟥 **Red Card** {minute}' - {player} ({team})"
-
     elif event_type == 'SUBSTITUTION':
         return f"🔄 **Substitution** {minute}' - {team}\n{event.get('description', player)}"
-
     else:
         return f"📝 **{minute}'** - {event.get('description', f'{event_type} by {player}')}"
 
@@ -517,22 +558,62 @@ def _send_status_update(thread_id: str, old_status: str, new_status: str, match_
 
 def _format_status_message(status: str, match_data: Dict[str, Any]) -> Optional[str]:
     """
-    Format status change into Discord message.
+    Format status change into Discord message using AI for half-time and full-time.
     """
+    from app.utils.sync_ai_client import get_sync_ai_client
+
     home_team = match_data.get('home_team', 'Home')
     away_team = match_data.get('away_team', 'Away')
+    home_score = match_data.get('home_score', 0)
+    away_score = match_data.get('away_score', 0)
 
     if status == 'IN_PLAY':
         return f"🟢 **KICK-OFF!** {home_team} vs {away_team}"
 
     elif status == 'HALFTIME':
-        home_score = match_data.get('home_score', 0)
-        away_score = match_data.get('away_score', 0)
+        # Use AI for half-time message
+        try:
+            match_context = {
+                'home_team': home_team,
+                'away_team': away_team,
+                'home_score': home_score,
+                'away_score': away_score,
+                'competition': match_data.get('competition', 'MLS')
+            }
+
+            ai_client = get_sync_ai_client()
+            ai_message = ai_client.generate_half_time_message(match_context)
+
+            if ai_message:
+                logger.info(f"Generated AI half-time message: {ai_message[:80]}...")
+                return ai_message
+        except Exception as e:
+            logger.warning(f"Failed to generate AI half-time message, using fallback: {e}")
+
+        # Fallback
         return f"⏸️ **HALF-TIME**\n\n**{home_team}** {home_score} - {away_score} **{away_team}**"
 
     elif status in ['FINAL', 'COMPLETED']:
-        home_score = match_data.get('home_score', 0)
-        away_score = match_data.get('away_score', 0)
+        # Use AI for full-time message
+        try:
+            match_context = {
+                'home_team': home_team,
+                'away_team': away_team,
+                'home_score': home_score,
+                'away_score': away_score,
+                'competition': match_data.get('competition', 'MLS')
+            }
+
+            ai_client = get_sync_ai_client()
+            ai_message = ai_client.generate_full_time_message(match_context)
+
+            if ai_message:
+                logger.info(f"Generated AI full-time message: {ai_message[:80]}...")
+                return ai_message
+        except Exception as e:
+            logger.warning(f"Failed to generate AI full-time message, using fallback: {e}")
+
+        # Fallback
         return f"🏁 **FULL-TIME**\n\n**{home_team}** {home_score} - {away_score} **{away_team}**"
 
     return None

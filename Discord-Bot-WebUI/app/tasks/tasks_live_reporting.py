@@ -37,6 +37,7 @@ from app.core.helpers import get_match
 from app.decorators import celery_task
 from app.utils.task_session_manager import task_session
 from app.models import MLSMatch, Prediction
+from app.models.match_status import MatchStatus
 from app.match_api import process_live_match_updates
 from app.discord_utils import create_match_thread
 # ESPN API now handled by centralized service
@@ -149,7 +150,7 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
     
             match = get_match(session, match_id)
             if match:
-                match.live_reporting_status = 'completed'
+                match.live_reporting_status = MatchStatus.COMPLETED
                 match.live_reporting_started = False
                 match.live_reporting_task_id = None  # ADDED CODE: Clear task ID
                 session.add(match)
@@ -255,7 +256,7 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
             logger.error(f"Match {match_id} has no Discord thread ID. Thread must be created before starting live reporting.")
             return {'success': False, 'message': 'No Discord thread available for match. Please create thread first.'}
 
-        if match.live_reporting_status == 'running':
+        if match.live_reporting_status == MatchStatus.RUNNING:
             logger.warning(f"Live reporting already running for match {match_id}")
             # If a task ID exists but the task is no longer active, we should reset it
             if match.live_reporting_task_id:
@@ -267,7 +268,7 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
             
         # Mark the match as running.
         match.live_reporting_started = True
-        match.live_reporting_status = 'running'
+        match.live_reporting_status = MatchStatus.RUNNING
         match.reporting_start_time = datetime.utcnow()
         # Clear any previous task ID
         match.live_reporting_task_id = None
@@ -297,7 +298,7 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
             logger.info(f"Successfully queued process_match_update with task ID: {task.id}")
         except Exception as e:
             logger.error(f"Failed to queue process_match_update: {str(e)}", exc_info=True)
-            match.live_reporting_status = 'failed'
+            match.live_reporting_status = MatchStatus.FAILED
             match.live_reporting_started = False
             session.add(match)
             return {
@@ -325,7 +326,7 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
                 # Use get_match here as well.
                 match = get_match(error_session, match_id)
                 if match:
-                    match.live_reporting_status = 'failed'
+                    match.live_reporting_status = MatchStatus.FAILED
                     match.live_reporting_started = False
                     match.live_reporting_task_id = None
                 # Commit happens automatically in task_session
@@ -988,7 +989,7 @@ async def end_match_reporting(match_id: str) -> None:
         with managed_session() as session:
             match = get_match(session, match_id)
             if match:
-                match.live_reporting_status = 'completed'
+                match.live_reporting_status = MatchStatus.COMPLETED
                 match.live_reporting_started = False
                 session.add(match)
                 logger.info(f"Live reporting ended for match {match_id}")

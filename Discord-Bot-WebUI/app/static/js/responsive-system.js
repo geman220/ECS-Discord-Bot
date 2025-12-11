@@ -136,11 +136,14 @@
     setupTouchFeedback: function () {
       if (this.device.hasTouch) {
         const touchElements = document.querySelectorAll('button, .btn, a.nav-link, .card-header');
-        
+
         touchElements.forEach(el => {
           // Use opacity change instead of transform for feedback
           el.addEventListener('touchstart', function () {
             this.classList.add('touch-active');
+
+            // Add haptic feedback for buttons (handled by mobile-haptics.js auto-init)
+            // Individual haptic calls are in mobile-haptics.js, so no need to duplicate here
           }, { passive: true });
 
           el.addEventListener('touchend', function () {
@@ -157,8 +160,35 @@
       const modals = document.querySelectorAll('.modal');
 
       modals.forEach(modal => {
+        const modalDialog = modal.querySelector('.modal-dialog');
+
+        // Auto-convert modals to bottom sheets on mobile (unless explicitly disabled)
+        if (this.device.isMobile && !modal.hasAttribute('data-no-bottom-sheet') && modalDialog) {
+          // Don't convert if modal-keep-centered class is present
+          if (!modalDialog.classList.contains('modal-keep-centered')) {
+            // Remove any size classes that would interfere
+            modalDialog.classList.remove('modal-lg', 'modal-xl', 'modal-sm');
+          }
+        }
+
+        // Setup swipe-to-dismiss on mobile bottom sheets
+        if (this.device.isMobile && modal.getAttribute('data-dismiss-on-swipe') === 'true') {
+          this.setupModalSwipeDismiss(modal);
+        }
+
         // Focus management and scrolling improvements
         modal.addEventListener('shown.bs.modal', () => {
+          // Haptic feedback when modal opens
+          if (window.Haptics) {
+            window.Haptics.modalOpen();
+          }
+
+          // Prevent body scroll on iOS
+          if (this.device.isIOS) {
+            document.body.style.position = 'fixed';
+            document.body.style.width = '100%';
+          }
+
           // Focus first interactive element
           const focusable = modal.querySelector('input:not([type="hidden"]), button.btn-close, button:not(.close), [tabindex]:not([tabindex="-1"])');
           if (focusable) {
@@ -169,24 +199,163 @@
           if (this.device.isIOS) {
             const modalBody = modal.querySelector('.modal-body');
             if (modalBody) {
-              modalBody.style.maxHeight = `calc(100vh - 200px)`;
+              modalBody.style.maxHeight = `calc(85vh - 120px)`;
               modalBody.style.overflowY = 'auto';
               modalBody.style.webkitOverflowScrolling = 'touch';
             }
           }
 
-          // Mobile optimization
+          // Mobile optimization for bottom sheets
           if (this.device.isMobile) {
             const modalContent = modal.querySelector('.modal-content');
-            if (modalContent) {
-              modalContent.style.maxHeight = `calc(100vh - 3.5rem)`;
+            if (modalContent && !modalDialog.classList.contains('modal-keep-centered')) {
+              modalContent.style.maxHeight = `85vh`;
+              modalContent.style.borderRadius = '16px 16px 0 0';
             }
           }
+
+          // Handle keyboard open state
+          this.handleModalKeyboard(modal);
         });
 
         // Cleanup when modal is closed
         modal.addEventListener('hidden.bs.modal', () => {
+          // Haptic feedback when modal closes
+          if (window.Haptics) {
+            window.Haptics.modalClose();
+          }
+
+          // Restore body scroll on iOS
+          if (this.device.isIOS) {
+            document.body.style.position = '';
+            document.body.style.width = '';
+          }
+
+          // Remove keyboard open class
+          document.body.classList.remove('keyboard-open');
+
           this.cleanupModalBackdrops();
+        });
+
+        // Add haptic feedback to close buttons
+        const closeButtons = modal.querySelectorAll('.btn-close, [data-bs-dismiss="modal"]');
+        closeButtons.forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (window.Haptics) {
+              window.Haptics.light();
+            }
+          }, { passive: true });
+        });
+      });
+    },
+
+    /**
+     * Setup swipe-to-dismiss functionality for mobile modals
+     */
+    setupModalSwipeDismiss: function (modal) {
+      if (!this.device.isMobile) return;
+
+      const modalDialog = modal.querySelector('.modal-dialog');
+      const modalHeader = modal.querySelector('.modal-header');
+
+      if (!modalDialog || !modalHeader) return;
+
+      let startY = 0;
+      let currentY = 0;
+      let isDragging = false;
+
+      // Touch start
+      modalHeader.addEventListener('touchstart', (e) => {
+        startY = e.touches[0].clientY;
+        isDragging = true;
+        modalDialog.classList.add('swiping');
+      }, { passive: true });
+
+      // Touch move
+      modalHeader.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+
+        currentY = e.touches[0].clientY;
+        const deltaY = currentY - startY;
+
+        // Only allow downward swipe
+        if (deltaY > 0) {
+          e.preventDefault();
+          modalDialog.style.transform = `translateY(${deltaY}px)`;
+          modalDialog.style.transition = 'none';
+        }
+      });
+
+      // Touch end
+      modalHeader.addEventListener('touchend', (e) => {
+        if (!isDragging) return;
+
+        isDragging = false;
+        modalDialog.classList.remove('swiping');
+
+        const deltaY = currentY - startY;
+        const threshold = 100; // Pixels to swipe before dismissing
+
+        if (deltaY > threshold) {
+          // Dismiss modal
+          if (window.Haptics) {
+            window.Haptics.light();
+          }
+
+          // Animate out
+          modalDialog.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+          modalDialog.style.transform = 'translateY(100%)';
+
+          setTimeout(() => {
+            const bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) {
+              bsModal.hide();
+            }
+            // Reset transform
+            modalDialog.style.transform = '';
+            modalDialog.style.transition = '';
+          }, 300);
+        } else {
+          // Snap back
+          modalDialog.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+          modalDialog.style.transform = '';
+        }
+
+        currentY = 0;
+      }, { passive: true });
+    },
+
+    /**
+     * Handle keyboard open/close for modals
+     */
+    handleModalKeyboard: function (modal) {
+      if (!this.device.isMobile) return;
+
+      const inputs = modal.querySelectorAll('input, textarea, select');
+
+      inputs.forEach(input => {
+        input.addEventListener('focus', () => {
+          document.body.classList.add('keyboard-open');
+
+          // Scroll input into view
+          setTimeout(() => {
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 300);
+        });
+
+        input.addEventListener('blur', () => {
+          // Check if another input in the same modal has focus
+          setTimeout(() => {
+            const activeElement = document.activeElement;
+            const isInputFocused = modal.contains(activeElement) &&
+                                   (activeElement.tagName === 'INPUT' ||
+                                    activeElement.tagName === 'TEXTAREA' ||
+                                    activeElement.tagName === 'SELECT');
+
+            if (!isInputFocused) {
+              document.body.classList.remove('keyboard-open');
+            }
+          }, 100);
         });
       });
     },

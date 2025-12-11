@@ -1,0 +1,642 @@
+{% extends 'admin/layout.html' %}
+{% block title %}Wallet Pass Help Documentation{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Help Documentation - Theme-aware styling */
+    .help-card {
+        margin-bottom: 25px;
+        border-radius: 8px;
+        transition: all 0.2s;
+        height: 100%;
+    }
+    .help-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--bs-box-shadow);
+    }
+    .help-icon {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+        color: var(--bs-primary, #696cff);
+    }
+    .topic-section {
+        border-left: 3px solid var(--bs-primary, #696cff);
+        padding-left: 20px;
+        margin-bottom: 30px;
+    }
+    .code-block {
+        background-color: var(--bs-tertiary-bg, #f8f9fa);
+        border-radius: 5px;
+        padding: 15px;
+        margin: 15px 0;
+        font-family: monospace;
+        overflow-x: auto;
+    }
+    .faq-item {
+        margin-bottom: 20px;
+    }
+    .faq-question {
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: var(--bs-primary, #696cff);
+    }
+</style>
+{% endblock custom_css %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="fw-bold text-primary mb-1">
+                        <i class="ti ti-help me-2"></i>Wallet Pass Help Center
+                    </h2>
+                    <p class="text-muted mb-0">Comprehensive documentation and troubleshooting for the wallet pass system</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-outline-secondary">
+                        <i class="ti ti-arrow-left me-1"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Topics -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card help-card">
+                <div class="card-body text-center">
+                    <div class="help-icon">
+                        <i class="ti ti-info-circle"></i>
+                    </div>
+                    <h5>Getting Started</h5>
+                    <p class="text-muted mb-3">Basic introduction to the wallet pass system</p>
+                    <a href="#getting-started" class="btn btn-primary btn-sm scroll-to">Read Guide</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card help-card">
+                <div class="card-body text-center">
+                    <div class="help-icon">
+                        <i class="ti ti-certificate"></i>
+                    </div>
+                    <h5>Certificates</h5>
+                    <p class="text-muted mb-3">Managing wallet pass certificates</p>
+                    <a href="{{ url_for('wallet_config.certificates_help') }}" class="btn btn-primary btn-sm">View Guide</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card help-card">
+                <div class="card-body text-center">
+                    <div class="help-icon">
+                        <i class="ti ti-photo"></i>
+                    </div>
+                    <h5>Asset Management</h5>
+                    <p class="text-muted mb-3">Working with icons, logos and images</p>
+                    <a href="#asset-management" class="btn btn-primary btn-sm scroll-to">Read Guide</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card help-card">
+                <div class="card-body text-center">
+                    <div class="help-icon">
+                        <i class="ti ti-file-text"></i>
+                    </div>
+                    <h5>Templates</h5>
+                    <p class="text-muted mb-3">Customizing pass templates</p>
+                    <a href="#templates" class="btn btn-primary btn-sm scroll-to">Read Guide</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Documentation Content -->
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Getting Started Section -->
+            <div class="card mb-4" id="getting-started">
+                <div class="card-header">
+                    <h5 class="mb-0">Getting Started with Wallet Passes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="topic-section">
+                        <h6>What are Digital Wallet Passes?</h6>
+                        <p>Digital wallet passes are virtual membership cards, event tickets, coupons, or loyalty cards that can be stored in smartphone wallet apps like Apple Wallet and Google Wallet. They allow your members to carry their membership information digitally without needing physical cards.</p>
+                        
+                        <p>Key benefits include:</p>
+                        <ul>
+                            <li>Instant digital delivery to members</li>
+                            <li>Easy updates and push notifications</li>
+                            <li>Simplified validation via QR codes or NFC</li>
+                            <li>Reduced costs compared to physical cards</li>
+                            <li>Environmental benefits by reducing plastic waste</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="topic-section">
+                        <h6>System Components</h6>
+                        <p>The wallet pass system consists of four primary components:</p>
+                        
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                    <span class="text-white">1</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h6>Certificates</h6>
+                                <p class="mb-0">Digital certificates from Apple and Google that allow you to sign passes so they're recognized as legitimate by wallet apps.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                    <span class="text-white">2</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h6>Assets</h6>
+                                <p class="mb-0">Visual elements like icons, logos, and backgrounds that brand your passes and make them visually appealing.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                    <span class="text-white">3</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h6>Templates</h6>
+                                <p class="mb-0">JSON structures that define the appearance, content, and behavior of your passes.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                    <span class="text-white">4</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h6>Pass Management</h6>
+                                <p class="mb-0">Tools for creating, distributing, and validating passes for your members.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="topic-section">
+                        <h6>Configuration Workflow</h6>
+                        <p>The setup wizard will guide you through the configuration process:</p>
+                        
+                        <ol>
+                            <li><strong>Certificate Setup</strong>: Upload necessary certificates from Apple Developer and/or Google Cloud</li>
+                            <li><strong>Asset Upload</strong>: Add your organization's logos, icons, and background images</li>
+                            <li><strong>Template Customization</strong>: Configure how your passes look and what information they display</li>
+                            <li><strong>Testing</strong>: Verify your configuration and generate sample passes</li>
+                        </ol>
+                        
+                        <p>After completing these steps, you'll be ready to create and issue digital passes to your members.</p>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+                            <a href="{{ url_for('wallet_config.setup_wizard') }}" class="btn btn-primary">
+                                <i class="ti ti-wand me-1"></i> Start Setup Wizard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Asset Management Section -->
+            <div class="card mb-4" id="asset-management">
+                <div class="card-header">
+                    <h5 class="mb-0">Asset Management</h5>
+                </div>
+                <div class="card-body">
+                    <div class="topic-section">
+                        <h6>Understanding Asset Requirements</h6>
+                        <p>Wallet passes require specific images to display correctly. Here's what you need to know:</p>
+                        
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Asset Type</th>
+                                        <th>Dimensions</th>
+                                        <th>Format</th>
+                                        <th>Required</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>icon</td>
+                                        <td>29×29px</td>
+                                        <td>PNG</td>
+                                        <td><span class="badge bg-label-success">Required</span></td>
+                                        <td>Small icon displayed in notifications and lists</td>
+                                    </tr>
+                                    <tr>
+                                        <td>logo</td>
+                                        <td>160×50px</td>
+                                        <td>PNG</td>
+                                        <td><span class="badge bg-label-success">Required</span></td>
+                                        <td>Organization logo displayed at the top of the pass</td>
+                                    </tr>
+                                    <tr>
+                                        <td>background</td>
+                                        <td>180×220px</td>
+                                        <td>PNG/JPG</td>
+                                        <td><span class="badge bg-label-secondary">Optional</span></td>
+                                        <td>Background image for the pass</td>
+                                    </tr>
+                                    <tr>
+                                        <td>strip</td>
+                                        <td>320×84px</td>
+                                        <td>PNG</td>
+                                        <td><span class="badge bg-label-secondary">Optional</span></td>
+                                        <td>Image displayed as a strip across the pass</td>
+                                    </tr>
+                                    <tr>
+                                        <td>thumbnail</td>
+                                        <td>90×90px</td>
+                                        <td>PNG</td>
+                                        <td><span class="badge bg-label-secondary">Optional</span></td>
+                                        <td>Thumbnail image for the pass</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="alert alert-info mt-3">
+                            <i class="ti ti-info-circle me-2"></i>
+                            <strong>High-Resolution Versions:</strong> For best results on high-resolution displays, also provide 2x versions of each asset (e.g., icon@2x.png at 58×58px).
+                        </div>
+                    </div>
+                    
+                    <div class="topic-section">
+                        <h6>Asset Preparation Tips</h6>
+                        <ul>
+                            <li><strong>Use transparency</strong> where appropriate in PNG files</li>
+                            <li><strong>Follow exact dimensions</strong> for best results</li>
+                            <li><strong>Optimize file sizes</strong> to keep them under 1MB each</li>
+                            <li><strong>Use consistent branding</strong> across all assets</li>
+                            <li><strong>Test on different devices</strong> to ensure visibility</li>
+                            <li><strong>Avoid text in images</strong> - use the pass fields for text instead</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="topic-section">
+                        <h6>Uploading Assets</h6>
+                        <p>To upload assets:</p>
+                        <ol>
+                            <li>Go to the Assets page in the Wallet Configuration dashboard</li>
+                            <li>Select the pass type (ECS Membership or Pub League)</li>
+                            <li>Choose the asset type you want to upload</li>
+                            <li>Select the image file from your computer</li>
+                            <li>Click "Upload Asset"</li>
+                        </ol>
+                        
+                        <p>If you're replacing an existing asset, the new one will automatically replace the old version.</p>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+                            <a href="{{ url_for('wallet_config.assets') }}" class="btn btn-primary">
+                                <i class="ti ti-upload me-1"></i> Manage Assets
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Templates Section -->
+            <div class="card mb-4" id="templates">
+                <div class="card-header">
+                    <h5 class="mb-0">Pass Templates</h5>
+                </div>
+                <div class="card-body">
+                    <div class="topic-section">
+                        <h6>Understanding Templates</h6>
+                        <p>Pass templates define the structure, appearance, and content of your wallet passes. They are JSON documents that specify fields, colors, barcodes, and other elements.</p>
+                        
+                        <p>Each pass type (ECS Membership and Pub League) needs its own template. You can create multiple templates and set one as the default for each pass type.</p>
+                    </div>
+                    
+                    <div class="topic-section">
+                        <h6>Template Structure</h6>
+                        <p>A basic template structure includes:</p>
+                        
+                        <div class="code-block">
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.com.yourcompany.membership",
+  "serialNumber": "{{serial_number}}",
+  "teamIdentifier": "{{team_identifier}}",
+  "organizationName": "Your Organization Name",
+  "description": "Membership Pass",
+  "logoText": "Your Logo Text",
+  "foregroundColor": "rgb(255, 255, 255)",
+  "backgroundColor": "rgb(33, 62, 150)",
+  "labelColor": "rgb(200, 200, 200)",
+  "generic": {
+    "primaryFields": [
+      {
+        "key": "member",
+        "label": "MEMBER",
+        "value": "{{member_name}}"
+      }
+    ],
+    "secondaryFields": [
+      {
+        "key": "validity",
+        "label": "VALID FOR",
+        "value": "{{validity}}"
+      }
+    ],
+    "auxiliaryFields": [
+      {
+        "key": "team",
+        "label": "TEAM",
+        "value": "{{team_name}}"
+      }
+    ],
+    "backFields": [
+      {
+        "key": "info",
+        "label": "INFORMATION",
+        "value": "Your membership information and details go here."
+      }
+    ]
+  },
+  "barcodes": [
+    {
+      "format": "PKBarcodeFormatQR",
+      "message": "{{barcode_data}}",
+      "messageEncoding": "utf-8",
+      "altText": "{{barcode_data}}"
+    }
+  ]
+}</div>
+                        
+                        <div class="alert alert-info mt-3">
+                            <i class="ti ti-info-circle me-2"></i>
+                            <strong>Template Variables:</strong> Variables like <code>{% raw %}{{member_name}}{% endraw %}</code> and <code>{% raw %}{{validity}}{% endraw %}</code> are automatically replaced with actual data when passes are generated.
+                        </div>
+                    </div>
+                    
+                    <div class="topic-section">
+                        <h6>Template Customization</h6>
+                        <p>You can customize templates in two ways:</p>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <h6><i class="ti ti-brush me-2 text-primary"></i>Visual Editor</h6>
+                                        <p class="small">The visual editor provides an easy way to customize colors, logo text, and preview how passes will look.</p>
+                                        <a href="{{ url_for('wallet_config.visual_editor', pass_type='ecs') }}" class="btn btn-sm btn-outline-primary">Open Visual Editor</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <h6><i class="ti ti-code me-2 text-primary"></i>JSON Editor</h6>
+                                        <p class="small">For advanced customization, you can edit the template JSON directly to add or modify fields.</p>
+                                        <a href="{{ url_for('wallet_config.templates') }}" class="btn btn-sm btn-outline-primary">Manage Templates</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <p>You can also generate default templates with a single click and then customize them to suit your needs.</p>
+                    </div>
+                    
+                    <div class="topic-section">
+                        <h6>Field Types</h6>
+                        <p>Pass templates support different field types:</p>
+                        
+                        <ul>
+                            <li><strong>primaryFields</strong>: Main information (usually member name)</li>
+                            <li><strong>secondaryFields</strong>: Important supporting info (validity period)</li>
+                            <li><strong>auxiliaryFields</strong>: Additional info (team name)</li>
+                            <li><strong>headerFields</strong>: Displayed at the top of the pass</li>
+                            <li><strong>backFields</strong>: Displayed when the pass is flipped over</li>
+                        </ul>
+                        
+                        <p>Each field has properties like "key" (unique identifier), "label" (displayed above value), and "value" (the actual content).</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pass Management Section -->
+            <div class="card mb-4" id="pass-management">
+                <div class="card-header">
+                    <h5 class="mb-0">Pass Management</h5>
+                </div>
+                <div class="card-body">
+                    <div class="topic-section">
+                        <h6>Creating Passes</h6>
+                        <p>Once your configuration is complete, you can create passes in several ways:</p>
+                        
+                        <ol>
+                            <li><strong>Manual Creation</strong>: Create individual passes through the admin interface</li>
+                            <li><strong>Bulk Generation</strong>: Create passes for multiple members at once</li>
+                            <li><strong>WooCommerce Integration</strong>: Automatically generate passes when members purchase memberships online</li>
+                        </ol>
+                        
+                        <p>To manually create a pass:</p>
+                        <ol>
+                            <li>Go to "Create Pass" in the Wallet Management section</li>
+                            <li>Enter the member's name and email</li>
+                            <li>Select the membership year or season</li>
+                            <li>Click "Create Pass"</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="topic-section">
+                        <h6>Distributing Passes</h6>
+                        <p>Passes can be distributed to members in several ways:</p>
+                        
+                        <ul>
+                            <li><strong>Email</strong>: Send passes directly to members' email addresses</li>
+                            <li><strong>Direct Download</strong>: Members can download passes from order confirmation pages</li>
+                            <li><strong>QR Code</strong>: Display a QR code that members can scan to add the pass</li>
+                            <li><strong>Link</strong>: Share a direct link to download the pass</li>
+                        </ul>
+                        
+                        <div class="alert alert-info">
+                            <i class="ti ti-info-circle me-2"></i>
+                            When members receive a pass, they simply tap "Add to Wallet" on their device, and the pass will be stored in their Apple Wallet or Google Wallet app.
+                        </div>
+                    </div>
+                    
+                    <div class="topic-section">
+                        <h6>Validating Passes</h6>
+                        <p>To validate passes at events or check-ins:</p>
+                        
+                        <ol>
+                            <li>Open the Scanner interface in the Wallet Management section</li>
+                            <li>Use the camera to scan the QR code on the member's pass</li>
+                            <li>The system will verify the pass and record the check-in</li>
+                            <li>You'll see immediate confirmation of the pass validity and member details</li>
+                        </ol>
+                        
+                        <p>All check-ins are recorded and can be viewed in the Check-in History section.</p>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+                            <a href="{{ url_for('wallet_admin.scanner') }}" class="btn btn-primary">
+                                <i class="ti ti-qrcode me-1"></i> Open Scanner
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Sidebar -->
+        <div class="col-md-4">
+            <!-- Quick Links -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Links</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="{{ url_for('wallet_admin.wallet_management') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                            <i class="ti ti-layout-dashboard me-2 text-primary"></i>
+                            <div>
+                                <div>Wallet Dashboard</div>
+                                <small class="text-muted">Main control center</small>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('wallet_config.setup_wizard') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                            <i class="ti ti-wand me-2 text-primary"></i>
+                            <div>
+                                <div>Setup Wizard</div>
+                                <small class="text-muted">Step-by-step configuration</small>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('wallet_admin.passes_list') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                            <i class="ti ti-ticket me-2 text-primary"></i>
+                            <div>
+                                <div>Pass Management</div>
+                                <small class="text-muted">Manage issued passes</small>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                            <i class="ti ti-plus me-2 text-primary"></i>
+                            <div>
+                                <div>Create Pass</div>
+                                <small class="text-muted">Issue a new pass</small>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('wallet_admin.scanner') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                            <i class="ti ti-qrcode me-2 text-primary"></i>
+                            <div>
+                                <div>Scanner</div>
+                                <small class="text-muted">Validate passes</small>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('wallet_config.diagnostics') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+                            <i class="ti ti-stethoscope me-2 text-primary"></i>
+                            <div>
+                                <div>Diagnostics</div>
+                                <small class="text-muted">Troubleshoot issues</small>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Frequently Asked Questions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Frequently Asked Questions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="faq-item">
+                        <div class="faq-question">How do members add passes to their wallet?</div>
+                        <p>Members simply tap the "Add to Apple Wallet" or "Add to Google Wallet" button when viewing the pass on their device. This can be from an email, a download page, or after scanning a QR code.</p>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">Can I update passes after they've been issued?</div>
+                        <p>Yes, you can update passes by editing the pass information in the admin interface. If the member has registered their device for updates, they will receive a push notification with the changes.</p>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">What devices support wallet passes?</div>
+                        <p>Apple Wallet is available on iPhone and iPod touch devices with iOS 6 or later. Google Wallet is available on Android devices with Android 4.4 (KitKat) or later.</p>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">Can I void or revoke a pass?</div>
+                        <p>Yes, you can void a pass in the pass management interface. This will mark the pass as invalid and update it on the member's device if push notifications are enabled.</p>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">Do I need separate certificates for each pass type?</div>
+                        <p>No, you can use the same Apple Developer certificate for multiple pass types. However, the passTypeIdentifier in each template must match the Pass Type ID you created in the Apple Developer portal.</p>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">How do I customize the barcode?</div>
+                        <p>The barcode format and data are defined in the template JSON. You can choose from different formats (QR, PDF417, Aztec, or Code128) and customize the data that's encoded.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Support Information -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Need More Help?</h5>
+                </div>
+                <div class="card-body">
+                    <p>If you can't find the information you need in this documentation, here are additional resources:</p>
+                    
+                    <ul>
+                        <li><a href="https://developer.apple.com/documentation/walletpasses" target="_blank">Apple Wallet Developer Guide <i class="ti ti-external-link"></i></a></li>
+                        <li><a href="https://developers.google.com/wallet" target="_blank">Google Wallet Developer Guide <i class="ti ti-external-link"></i></a></li>
+                    </ul>
+                    
+                    <div class="alert bg-body-tertiary border mt-3">
+                        <h6><i class="ti ti-mail me-1"></i> Contact Support</h6>
+                        <p class="mb-0 small">For technical assistance, please contact your system administrator or email support at <a href="mailto:support@example.com">support@example.com</a>.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Smooth scrolling for anchor links
+    document.querySelectorAll('.scroll-to').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            
+            const targetId = this.getAttribute('href').substring(1);
+            const targetElement = document.getElementById(targetId);
+            
+            if (targetElement) {
+                window.scrollTo({
+                    top: targetElement.offsetTop - 80,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

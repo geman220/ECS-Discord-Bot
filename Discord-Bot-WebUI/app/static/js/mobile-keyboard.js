@@ -1,0 +1,542 @@
+/**
+ * Mobile Keyboard - Soft Keyboard Handler
+ *
+ * Handles mobile keyboard interactions, viewport adjustments, and input optimization.
+ * Addresses common issues: iOS keyboard overlap, Android soft keyboard, scroll-into-view.
+ *
+ * Features:
+ * - Keyboard show/hide detection
+ * - Automatic scroll input into view
+ * - Dropdown positioning aware of keyboard
+ * - Input type optimization
+ * - iOS-specific fixes
+ */
+
+(function (window) {
+  'use strict';
+
+  /**
+   * Mobile Keyboard Controller
+   */
+  const MobileKeyboard = {
+    /**
+     * Current keyboard state
+     */
+    state: {
+      isVisible: false,
+      keyboardHeight: 0,
+      activeInput: null,
+      originalViewportHeight: window.innerHeight
+    },
+
+    /**
+     * Check if device is mobile
+     * @returns {boolean}
+     */
+    isMobile: function () {
+      return window.innerWidth < 768;
+    },
+
+    /**
+     * Check if device is iOS
+     * @returns {boolean}
+     */
+    isIOS: function () {
+      return /iPhone|iPad|iPod/.test(navigator.userAgent);
+    },
+
+    /**
+     * Check if device is Android
+     * @returns {boolean}
+     */
+    isAndroid: function () {
+      return /Android/.test(navigator.userAgent);
+    },
+
+    /**
+     * Detect keyboard visibility by viewport height change
+     */
+    detectKeyboard: function () {
+      const currentHeight = window.innerHeight;
+      const heightDiff = this.state.originalViewportHeight - currentHeight;
+
+      // Keyboard is considered visible if viewport shrinks by more than 150px
+      if (heightDiff > 150) {
+        if (!this.state.isVisible) {
+          this.state.isVisible = true;
+          this.state.keyboardHeight = heightDiff;
+          this.onKeyboardShow();
+        }
+      } else {
+        if (this.state.isVisible) {
+          this.state.isVisible = false;
+          this.state.keyboardHeight = 0;
+          this.onKeyboardHide();
+        }
+      }
+    },
+
+    /**
+     * Called when keyboard is shown
+     */
+    onKeyboardShow: function () {
+      document.documentElement.classList.add('keyboard-visible');
+      document.body.classList.add('keyboard-visible');
+
+      // Dispatch custom event
+      const event = new CustomEvent('mobile:keyboardshow', {
+        detail: { height: this.state.keyboardHeight }
+      });
+      window.dispatchEvent(event);
+
+      // Adjust modals
+      this.adjustModalsForKeyboard();
+
+      // Adjust dropdowns
+      this.adjustDropdownsForKeyboard();
+
+      console.log('Keyboard shown, height:', this.state.keyboardHeight);
+    },
+
+    /**
+     * Called when keyboard is hidden
+     */
+    onKeyboardHide: function () {
+      document.documentElement.classList.remove('keyboard-visible');
+      document.body.classList.remove('keyboard-visible');
+
+      // Dispatch custom event
+      const event = new CustomEvent('mobile:keyboardhide');
+      window.dispatchEvent(event);
+
+      // Reset modal adjustments
+      this.resetModalAdjustments();
+
+      console.log('Keyboard hidden');
+    },
+
+    /**
+     * Adjust modal position when keyboard is visible
+     */
+    adjustModalsForKeyboard: function () {
+      document.querySelectorAll('.modal.show').forEach(modal => {
+        const modalDialog = modal.querySelector('.modal-dialog');
+        if (!modalDialog) return;
+
+        // Calculate available space
+        const availableHeight = window.innerHeight - this.state.keyboardHeight;
+        const modalHeight = modalDialog.offsetHeight;
+
+        if (modalHeight > availableHeight) {
+          // Modal is taller than available space, make it scrollable
+          modalDialog.style.maxHeight = `${availableHeight - 40}px`;
+          modalDialog.style.overflowY = 'auto';
+        }
+
+        // Move modal up if keyboard would cover active input
+        if (this.state.activeInput) {
+          const inputRect = this.state.activeInput.getBoundingClientRect();
+          const keyboardTop = window.innerHeight - this.state.keyboardHeight;
+
+          if (inputRect.bottom > keyboardTop) {
+            const offset = inputRect.bottom - keyboardTop + 20;
+            modalDialog.style.transform = `translateY(-${offset}px)`;
+          }
+        }
+      });
+    },
+
+    /**
+     * Reset modal adjustments after keyboard hide
+     */
+    resetModalAdjustments: function () {
+      document.querySelectorAll('.modal.show .modal-dialog').forEach(modalDialog => {
+        modalDialog.style.maxHeight = '';
+        modalDialog.style.overflowY = '';
+        modalDialog.style.transform = '';
+      });
+    },
+
+    /**
+     * Adjust dropdown position to avoid keyboard
+     */
+    adjustDropdownsForKeyboard: function () {
+      document.querySelectorAll('.dropdown-menu.show, .select2-dropdown').forEach(dropdown => {
+        const rect = dropdown.getBoundingClientRect();
+        const keyboardTop = window.innerHeight - this.state.keyboardHeight;
+
+        if (rect.bottom > keyboardTop) {
+          // Dropdown would be covered by keyboard, position it above
+          const trigger = dropdown.previousElementSibling || dropdown.parentElement;
+          if (trigger) {
+            const triggerRect = trigger.getBoundingClientRect();
+            dropdown.style.top = `${triggerRect.top - dropdown.offsetHeight - 5}px`;
+          }
+        }
+      });
+    },
+
+    /**
+     * Scroll input into view when focused
+     * @param {HTMLElement} input
+     */
+    scrollInputIntoView: function (input) {
+      if (!this.isMobile()) return;
+
+      // Wait for keyboard to appear (iOS delay)
+      setTimeout(() => {
+        const rect = input.getBoundingClientRect();
+        const keyboardTop = window.innerHeight - this.state.keyboardHeight;
+        const inputBottom = rect.bottom;
+
+        // Check if input is covered by keyboard
+        if (inputBottom > keyboardTop) {
+          // Calculate scroll amount
+          const scrollAmount = inputBottom - keyboardTop + 20;
+
+          // Scroll the input into view
+          input.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'nearest'
+          });
+
+          // Additional scroll if in modal
+          const modal = input.closest('.modal-body');
+          if (modal) {
+            modal.scrollTop += scrollAmount;
+          }
+        }
+      }, 300); // Delay to let keyboard animation complete
+    },
+
+    /**
+     * Optimize input types for better mobile keyboards
+     * @param {HTMLElement} input
+     */
+    optimizeInputType: function (input) {
+      const type = input.type;
+      const name = input.name || '';
+      const id = input.id || '';
+      const placeholder = input.placeholder || '';
+
+      // Email inputs
+      if (type === 'email' || name.includes('email') || id.includes('email')) {
+        input.type = 'email';
+        input.autocomplete = 'email';
+        input.inputMode = 'email';
+      }
+
+      // Phone inputs
+      if (name.includes('phone') || name.includes('tel') || id.includes('phone')) {
+        input.type = 'tel';
+        input.autocomplete = 'tel';
+        input.inputMode = 'tel';
+      }
+
+      // Number inputs
+      if (type === 'number' || name.includes('number') || placeholder.includes('number')) {
+        input.inputMode = 'numeric';
+        input.pattern = '[0-9]*'; // iOS numeric keyboard
+      }
+
+      // URL inputs
+      if (name.includes('url') || name.includes('website') || id.includes('url')) {
+        input.type = 'url';
+        input.autocomplete = 'url';
+        input.inputMode = 'url';
+      }
+
+      // Search inputs
+      if (type === 'search' || name.includes('search') || id.includes('search')) {
+        input.type = 'search';
+      }
+
+      // Username/password
+      if (name.includes('username') || id.includes('username')) {
+        input.autocomplete = 'username';
+      }
+
+      if (type === 'password') {
+        input.autocomplete = 'current-password';
+      }
+
+      // Prevent iOS zoom on focus (16px minimum)
+      if (this.isIOS()) {
+        const fontSize = window.getComputedStyle(input).fontSize;
+        if (parseInt(fontSize) < 16) {
+          input.style.fontSize = '16px';
+        }
+      }
+    },
+
+    /**
+     * Setup input focus handlers
+     */
+    setupInputHandlers: function () {
+      // Focus event for all inputs
+      document.addEventListener('focusin', (e) => {
+        const input = e.target;
+
+        // Only handle form inputs
+        if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(input.tagName)) return;
+
+        this.state.activeInput = input;
+
+        // Add focused class to body for CSS styling
+        document.body.classList.add('input-focused');
+
+        // Scroll input into view
+        this.scrollInputIntoView(input);
+
+        // Trigger keyboard detection
+        setTimeout(() => this.detectKeyboard(), 100);
+
+      }, true);
+
+      // Blur event
+      document.addEventListener('focusout', (e) => {
+        this.state.activeInput = null;
+        document.body.classList.remove('input-focused');
+
+        // Check if keyboard is hiding
+        setTimeout(() => this.detectKeyboard(), 100);
+      }, true);
+
+      // Optimize all existing inputs
+      document.querySelectorAll('input, textarea').forEach(input => {
+        this.optimizeInputType(input);
+      });
+    },
+
+    /**
+     * iOS-specific fixes
+     */
+    setupIOSFixes: function () {
+      if (!this.isIOS()) return;
+
+      // Fix for iOS viewport height with keyboard
+      const setVH = () => {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+      };
+
+      setVH();
+      window.addEventListener('resize', setVH);
+
+      // Fix for iOS scroll position after keyboard hide
+      window.addEventListener('focusout', () => {
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+        }, 100);
+      });
+
+      // Fix for iOS date inputs
+      document.querySelectorAll('input[type="date"], input[type="datetime-local"], input[type="time"]').forEach(input => {
+        input.style.minHeight = '44px';
+        input.style.paddingRight = '8px';
+      });
+
+      // Prevent rubber band scrolling when keyboard is open
+      document.addEventListener('touchmove', (e) => {
+        if (this.state.isVisible && this.state.activeInput) {
+          const scrollable = e.target.closest('.modal-body, .table-responsive, [data-scrollable]');
+          if (!scrollable) {
+            e.preventDefault();
+          }
+        }
+      }, { passive: false });
+    },
+
+    /**
+     * Android-specific fixes
+     */
+    setupAndroidFixes: function () {
+      if (!this.isAndroid()) return;
+
+      // Android soft keyboard detection via resize
+      let resizeTimeout;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+          this.detectKeyboard();
+        }, 100);
+      });
+
+      // Fix for Android keyboard not pushing content up
+      if (this.state.isVisible && this.state.activeInput) {
+        const metaViewport = document.querySelector('meta[name="viewport"]');
+        if (metaViewport) {
+          // Temporarily adjust viewport to force resize
+          const originalContent = metaViewport.content;
+          metaViewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0';
+          setTimeout(() => {
+            metaViewport.content = originalContent;
+          }, 300);
+        }
+      }
+    },
+
+    /**
+     * Setup form validation with keyboard awareness
+     */
+    setupFormValidation: function () {
+      document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', (e) => {
+          // Find first invalid input
+          const firstInvalid = form.querySelector(':invalid');
+
+          if (firstInvalid) {
+            e.preventDefault();
+
+            // Focus and scroll to first invalid input
+            firstInvalid.focus();
+            this.scrollInputIntoView(firstInvalid);
+
+            // Haptic feedback if available
+            if (window.Haptics) {
+              window.Haptics.validationError();
+            }
+          }
+        });
+
+        // Real-time validation
+        form.querySelectorAll('input, textarea, select').forEach(input => {
+          input.addEventListener('invalid', () => {
+            if (window.Haptics) {
+              window.Haptics.validationError();
+            }
+          });
+
+          input.addEventListener('input', () => {
+            if (input.validity.valid && input.classList.contains('is-invalid')) {
+              input.classList.remove('is-invalid');
+              input.classList.add('is-valid');
+            }
+          });
+        });
+      });
+    },
+
+    /**
+     * Setup mutation observer for dynamically added inputs
+     */
+    setupMutationObserver: function () {
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+          mutation.addedNodes.forEach(node => {
+            if (node.nodeType === 1) { // Element node
+              // Check if added node is an input
+              if (['INPUT', 'TEXTAREA', 'SELECT'].includes(node.tagName)) {
+                this.optimizeInputType(node);
+              }
+
+              // Check for inputs within added node
+              node.querySelectorAll?.('input, textarea, select').forEach(input => {
+                this.optimizeInputType(input);
+              });
+            }
+          });
+        });
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    },
+
+    /**
+     * Add CSS for keyboard-aware styling
+     */
+    addKeyboardStyles: function () {
+      if (document.getElementById('mobile-keyboard-styles')) return;
+
+      const style = document.createElement('style');
+      style.id = 'mobile-keyboard-styles';
+      style.textContent = `
+        /* Keyboard visible state */
+        body.keyboard-visible {
+          /* Optional: adjust fixed elements */
+        }
+
+        /* Input focused state */
+        body.input-focused .navbar-fixed-bottom,
+        body.input-focused .mobile-bottom-nav {
+          transform: translateY(100%);
+          transition: transform 0.3s ease;
+        }
+
+        /* Ensure inputs are visible above keyboard */
+        .form-control:focus,
+        .form-select:focus,
+        textarea:focus {
+          position: relative;
+          z-index: 10;
+        }
+
+        /* iOS-specific: fix 100vh with keyboard */
+        @supports (-webkit-touch-callout: none) {
+          .modal-dialog,
+          .full-height-container {
+            height: calc(var(--vh, 1vh) * 100);
+          }
+        }
+
+        /* Smooth transitions for keyboard adjustments */
+        .modal-dialog {
+          transition: transform 0.3s ease, max-height 0.3s ease;
+        }
+      `;
+      document.head.appendChild(style);
+    },
+
+    /**
+     * Initialize keyboard handler
+     */
+    init: function () {
+      if (!this.isMobile()) {
+        console.log('MobileKeyboard: Not a mobile device, skipping initialization');
+        return;
+      }
+
+      // Setup handlers
+      this.setupInputHandlers();
+      this.setupFormValidation();
+      this.setupMutationObserver();
+
+      // Platform-specific fixes
+      if (this.isIOS()) {
+        this.setupIOSFixes();
+      }
+
+      if (this.isAndroid()) {
+        this.setupAndroidFixes();
+      }
+
+      // Add styles
+      this.addKeyboardStyles();
+
+      // Update viewport height on orientation change
+      window.addEventListener('orientationchange', () => {
+        setTimeout(() => {
+          this.state.originalViewportHeight = window.innerHeight;
+          this.detectKeyboard();
+        }, 200);
+      });
+
+      console.log('MobileKeyboard: Initialized successfully');
+    }
+  };
+
+  // Auto-initialize
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => MobileKeyboard.init());
+  } else {
+    MobileKeyboard.init();
+  }
+
+  // Expose globally
+  window.MobileKeyboard = MobileKeyboard;
+
+})(window);

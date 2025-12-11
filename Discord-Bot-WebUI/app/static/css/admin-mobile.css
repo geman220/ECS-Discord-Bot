@@ -260,8 +260,8 @@
     }
     
     .btn-sm {
-        min-height: 38px;
-        font-size: 0.8rem;
+        min-height: 44px;
+        font-size: 0.85rem;
     }
     
     .btn-lg {
@@ -718,7 +718,7 @@
 }
 
 /* Priority matches (with sub requests) styling */
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
     .match-card.priority-match {
         border-left: 4px solid #dc3545;
         order: -1;
@@ -937,7 +937,7 @@
 }
 
 /* Mobile optimizations */
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
     .matches-grid {
         padding: 0 0.5rem;
     }
@@ -993,7 +993,7 @@
 }
 
 /* Filters mobile optimization */
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
     .filter-buttons-stack .btn {
         width: 100%;
         margin-bottom: 0.5rem;
@@ -1074,7 +1074,7 @@
 }
 
 /* Hide desktop table on mobile, show cards */
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
     .desktop-table {
         display: none;
     }
@@ -1095,7 +1095,7 @@
 }
 
 /* Modal optimizations for mobile */
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
     .modal-dialog {
         margin: 0.5rem;
         max-width: calc(100% - 1rem);
@@ -1118,39 +1118,5 @@
     }
 }
 
-/* SweetAlert z-index fixes - ensure always on top */
-.swal2-container {
-    z-index: 999999 !important;
-}
-
-.swal2-popup {
-    z-index: 999999 !important;
-}
-
-.swal2-backdrop-show {
-    z-index: 999998 !important;
-}
-
-/* Specific fix for when SweetAlert appears over Bootstrap modals */
-.modal-open .swal2-container {
-    z-index: 999999 !important;
-}
-
-/* Ensure SweetAlert is above everything else including popovers, tooltips, etc */
-.swal2-container.swal2-center > .swal2-popup,
-.swal2-container.swal2-top > .swal2-popup,
-.swal2-container.swal2-top-start > .swal2-popup,
-.swal2-container.swal2-top-end > .swal2-popup,
-.swal2-container.swal2-top-left > .swal2-popup,
-.swal2-container.swal2-top-right > .swal2-popup,
-.swal2-container.swal2-center-start > .swal2-popup,
-.swal2-container.swal2-center-end > .swal2-popup,
-.swal2-container.swal2-center-left > .swal2-popup,
-.swal2-container.swal2-center-right > .swal2-popup,
-.swal2-container.swal2-bottom > .swal2-popup,
-.swal2-container.swal2-bottom-start > .swal2-popup,
-.swal2-container.swal2-bottom-end > .swal2-popup,
-.swal2-container.swal2-bottom-left > .swal2-popup,
-.swal2-container.swal2-bottom-right > .swal2-popup {
-    z-index: 999999 !important;
-}
+/* SweetAlert z-index - MOVED TO mobile-modals.css to avoid duplication */
+/* See mobile-modals.css for comprehensive SweetAlert2 z-index rules */

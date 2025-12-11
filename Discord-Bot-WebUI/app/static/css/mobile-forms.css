@@ -1,0 +1,572 @@
+/**
+ * Mobile Forms CSS
+ * Comprehensive form optimization for mobile touch interaction
+ * Ensures all forms are usable on small screens
+ */
+
+/* ========================================
+   Mobile-First Form Base Styles
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Touch-friendly input heights */
+  .form-control,
+  .form-select {
+    min-height: 44px;
+    font-size: 16px; /* Prevent iOS zoom */
+    padding: 10px 12px;
+    border-radius: 8px;
+  }
+
+  /* Textarea optimization */
+  textarea.form-control {
+    min-height: 100px;
+    resize: vertical;
+  }
+
+  /* File input optimization */
+  .form-control[type="file"] {
+    padding: 8px 12px;
+  }
+
+  /* Form labels */
+  .form-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--bs-body-color, #212529);
+  }
+
+  /* Small form text */
+  .form-text {
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  /* Floating labels optimization */
+  .form-floating > label {
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .form-floating > .form-control {
+    padding-top: 1.625rem;
+    padding-bottom: 0.625rem;
+  }
+
+  /* Input group stacking */
+  .input-group {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .input-group > * {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  /* Keep small buttons at natural size */
+  .input-group .btn-close,
+  .input-group button[onclick*="remove"],
+  .input-group .btn-sm {
+    flex: 0 0 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Input group text (prepend/append) */
+  .input-group-text {
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: 16px;
+    flex: 0 1 auto;
+    min-width: 44px;
+  }
+
+  /* Stack prepended/appended text above input on very small screens */
+  @media (max-width: 575.98px) {
+    .input-group > .input-group-text:first-child {
+      flex: 1 1 100%;
+      border-radius: 8px;
+      text-align: center;
+    }
+  }
+
+  /* Form buttons full-width */
+  .btn:not(.btn-sm):not(.btn-close):not(.btn-icon) {
+    width: 100%;
+    min-height: 48px;
+    font-size: 16px;
+    padding: 12px 16px;
+    border-radius: 8px;
+  }
+
+  /* Button groups stack vertically */
+  .btn-group:not(.btn-group-horizontal) {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .btn-group .btn {
+    border-radius: 8px !important;
+    margin: 0 !important;
+  }
+
+  /* Horizontal button groups (explicitly marked) */
+  .btn-group.btn-group-horizontal {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .btn-group.btn-group-horizontal .btn {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* ========================================
+   Form Validation States
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Valid feedback */
+  .valid-feedback,
+  .invalid-feedback {
+    font-size: 14px;
+    margin-top: 6px;
+    display: block;
+  }
+
+  /* Invalid input styling */
+  .form-control.is-invalid,
+  .form-select.is-invalid {
+    border-color: #dc3545;
+    border-width: 2px;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+  }
+
+  /* Valid input styling */
+  .form-control.is-valid,
+  .form-select.is-valid {
+    border-color: #198754;
+    border-width: 2px;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+  }
+
+  /* Shake animation for validation errors */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+    20%, 40%, 60%, 80% { transform: translateX(10px); }
+  }
+
+  .form-control.shake,
+  .form-select.shake {
+    animation: shake 0.5s;
+  }
+}
+
+/* ========================================
+   Checkbox and Radio Buttons
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Regular checkboxes/radios - visually reasonable size */
+  .form-check-input:not([type="checkbox"]):not([type="radio"]),
+  .form-check:not(.form-switch) .form-check-input[type="checkbox"],
+  .form-check:not(.form-switch) .form-check-input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    margin-top: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* Form check label - entire row is tappable */
+  .form-check-label {
+    font-size: 15px;
+    padding-left: 12px;
+    padding: 8px 0 8px 12px;  /* Vertical padding for larger tap area */
+    cursor: pointer;
+    flex: 1;
+  }
+
+  /* Form check container - 44px touch target */
+  .form-check:not(.form-switch) {
+    padding-left: 0;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* Inline form checks */
+  .form-check-inline {
+    margin-right: 16px;
+  }
+
+  /* Stack inline form checks on very small screens */
+  @media (max-width: 575.98px) {
+    .form-check-inline {
+      display: flex;
+      width: 100%;
+      margin-right: 0;
+      margin-bottom: 8px;
+    }
+  }
+}
+
+/* ========================================
+   Range Sliders
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  .form-range {
+    height: 44px;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .form-range::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+    margin-top: -10px;
+  }
+
+  .form-range::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* ========================================
+   Select2 Mobile Optimization
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Select2 container */
+  .select2-container {
+    width: 100% !important;
+  }
+
+  .select2-container .select2-selection {
+    min-height: 44px;
+    font-size: 16px;
+    border-radius: 8px;
+  }
+
+  .select2-container .select2-selection__rendered {
+    line-height: 44px;
+    padding-left: 12px;
+  }
+
+  .select2-container .select2-selection__arrow {
+    height: 42px;
+  }
+
+  /* Select2 dropdown */
+  .select2-dropdown {
+    font-size: 16px;
+    border-radius: 8px;
+  }
+
+  .select2-results__option {
+    min-height: 44px;
+    padding: 12px 16px;
+    line-height: 1.5;
+  }
+
+  /* Select2 search */
+  .select2-search__field {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+}
+
+/* ========================================
+   Date and Time Pickers
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Native date/time inputs */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="week"] {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+
+  /* iOS date picker optimization */
+  @supports (-webkit-touch-callout: none) {
+    input[type="date"],
+    input[type="time"],
+    input[type="datetime-local"] {
+      min-height: 44px;
+      padding-right: 12px;
+    }
+  }
+}
+
+/* ========================================
+   Multi-Step Forms
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Form steps indicator */
+  .form-steps {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .form-step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    min-width: 80px;
+  }
+
+  .form-step::after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    right: -50%;
+    height: 2px;
+    background: #dee2e6;
+    z-index: -1;
+  }
+
+  .form-step:last-child::after {
+    display: none;
+  }
+
+  .form-step.active .step-number {
+    background: var(--bs-primary, #0d6efd);
+    color: white;
+  }
+
+  .form-step.completed .step-number {
+    background: #198754;
+    color: white;
+  }
+
+  .step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 8px;
+    font-weight: 600;
+  }
+
+  .step-label {
+    font-size: 12px;
+    display: block;
+  }
+}
+
+/* ========================================
+   Sticky Form Actions
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Sticky submit button at bottom */
+  .form-actions-sticky {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bs-body-bg, #fff);
+    border-top: 1px solid var(--bs-border-color, #dee2e6);
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 100;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .form-actions-sticky .btn {
+    width: 100%;
+    min-height: 48px;
+  }
+}
+
+/* ========================================
+   Dark Mode Support
+   ======================================== */
+
+[data-style="dark"] .form-control,
+[data-style="dark"] .form-select {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+[data-style="dark"] .form-control:focus,
+[data-style="dark"] .form-select:focus {
+  background: #374151;
+  border-color: var(--bs-primary, #0d6efd);
+  color: #e2e8f0;
+}
+
+[data-style="dark"] .form-control::placeholder {
+  color: #9ca3af;
+}
+
+[data-style="dark"] .form-label {
+  color: #e2e8f0;
+}
+
+[data-style="dark"] .form-text {
+  color: #9ca3af;
+}
+
+[data-style="dark"] .input-group-text {
+  background: #374151;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+[data-style="dark"] .form-check-input {
+  background-color: #2d3748;
+  border-color: #4a5568;
+}
+
+[data-style="dark"] .form-check-input:checked {
+  background-color: var(--bs-primary, #0d6efd);
+  border-color: var(--bs-primary, #0d6efd);
+}
+
+[data-style="dark"] .form-actions-sticky {
+  background: #1a202c;
+  border-top-color: #2d3748;
+}
+
+[data-style="dark"] .select2-container .select2-selection {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+[data-style="dark"] .select2-dropdown {
+  background: #2d3748;
+  border-color: #4a5568;
+}
+
+[data-style="dark"] .select2-results__option {
+  color: #e2e8f0;
+}
+
+[data-style="dark"] .select2-results__option--highlighted {
+  background: #374151;
+}
+
+/* ========================================
+   Accessibility Enhancements
+   ======================================== */
+
+/* Focus indicators */
+.form-control:focus,
+.form-select:focus {
+  outline: 2px solid var(--bs-primary, #0d6efd);
+  outline-offset: 2px;
+}
+
+/* Error announcement for screen readers */
+.invalid-feedback::before {
+  content: "Error: ";
+  font-weight: bold;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .form-control.shake {
+    animation: none;
+  }
+}
+
+/* ========================================
+   Edge Cases and Fixes
+   ======================================== */
+
+/* Fix for iOS zoom on focus */
+@media (max-width: 767.98px) {
+  @supports (-webkit-touch-callout: none) {
+    select,
+    textarea,
+    input[type="text"],
+    input[type="password"],
+    input[type="email"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="url"] {
+      font-size: 16px;
+    }
+  }
+}
+
+/* Fix for Android autofill background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px var(--bs-body-bg, #fff) inset;
+  -webkit-text-fill-color: var(--bs-body-color, #212529);
+}
+
+[data-style="dark"] input:-webkit-autofill,
+[data-style="dark"] input:-webkit-autofill:hover,
+[data-style="dark"] input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #2d3748 inset;
+  -webkit-text-fill-color: #e2e8f0;
+}
+
+/* Fix for very long input values */
+@media (max-width: 767.98px) {
+  .form-control,
+  .form-select {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  textarea.form-control {
+    white-space: normal;
+  }
+}
+
+/* ========================================
+   Performance Optimizations
+   ======================================== */
+
+/* Use transform for better performance */
+.form-control,
+.form-select,
+.btn {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* Optimize will-change for animations */
+.form-control:focus,
+.form-select:focus,
+.btn:active {
+  will-change: transform, box-shadow;
+}

@@ -1,0 +1,81 @@
+{
+  "iss": "{{issuer_id}}",
+  "aud": "google",
+  "typ": "savetoandroidpay",
+  "payload": {
+    "genericObjects": [
+      {
+        "id": "{{issuer_id}}.ecs_membership_{{serial_number}}",
+        "classId": "{{issuer_id}}.ecs_membership",
+        "genericType": "GENERIC_TYPE_UNSPECIFIED",
+        "cardTitle": {
+          "defaultValue": {
+            "language": "en-US",
+            "value": "ECS Membership"
+          }
+        },
+        "subheader": {
+          "defaultValue": {
+            "language": "en-US",
+            "value": "Member"
+          }
+        },
+        "header": {
+          "defaultValue": {
+            "language": "en-US",
+            "value": "{{member_name}}"
+          }
+        },
+        "logo": {
+          "sourceUri": {
+            "uri": "https://ecsfc.org/wp-content/uploads/2023/05/ecs_emblem_blue.png"
+          },
+          "contentDescription": {
+            "defaultValue": {
+              "language": "en-US",
+              "value": "ECS Logo"
+            }
+          }
+        },
+        "textModulesData": [
+          {
+            "id": "membership_year",
+            "header": "Membership Year",
+            "body": "{{membership_year}}"
+          },
+          {
+            "id": "valid_until",
+            "header": "Valid Until",
+            "body": "{{valid_until_display}}"
+          },
+          {
+            "id": "status",
+            "header": "Status",
+            "body": "{{status}}"
+          },
+          {
+            "id": "issued",
+            "header": "Issued",
+            "body": "{{issue_date}}"
+          }
+        ],
+        "barcode": {
+          "type": "QR_CODE",
+          "value": "{{barcode_data}}"
+        },
+        "hexBackgroundColor": "#213E96",
+        "heroImage": {
+          "sourceUri": {
+            "uri": "https://ecsfc.org/wp-content/uploads/2023/05/ecs_crest_banner.jpg"
+          },
+          "contentDescription": {
+            "defaultValue": {
+              "language": "en-US",
+              "value": "ECS Membership"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

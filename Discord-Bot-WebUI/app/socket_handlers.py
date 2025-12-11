@@ -359,143 +359,167 @@ def handle_draft_player_enhanced(data):
             print("🚫 Unauthenticated draft attempt")
             emit('draft_error', {'message': 'Authentication required'})
             return
-        
-        # Database operations
-        from app.models import Player, Team, League, player_teams, Season
+
+        # Phase 5: Broadcast user activity to all clients in room
+        player_name_from_request = data.get('player_name', 'a player')
+        username = current_user.username if hasattr(current_user, 'username') else 'Someone'
+        emit('user_drafting', {
+            'username': username,
+            'player_name': player_name_from_request,
+            'team_name': None  # Will be filled after team is fetched
+        }, room=f'draft_{league_name}')
+
+        # Database operations - Split into 3 optimized transactions
+        from app.models import Player, Team, League, player_teams, Season, PlayerTeamSeason
         from app.db_utils import mark_player_for_discord_update
-        
+        from app.draft_enhanced import DraftService
+
+        # Normalize league name
+        db_league_name = {
+            'classic': 'Classic',
+            'premier': 'Premier',
+            'ecs_fc': 'ECS FC'
+        }.get(league_name.lower(), league_name)
+
+        # Store validated IDs for subsequent transactions
+        league_id = None
+        season_id = None
+        player_name = None
+        team_name = None
+
         try:
+            # ===== TRANSACTION 1: Read-only validation (~100ms) =====
             with managed_session() as session:
-                # Normalize league name
-                db_league_name = {
-                    'classic': 'Classic',
-                    'premier': 'Premier',
-                    'ecs_fc': 'ECS FC'
-                }.get(league_name.lower(), league_name)
-                
                 # Get league (check if its season is current)
                 league = session.query(League).join(Season).filter(
                     League.name == db_league_name,
                     Season.is_current == True
                 ).first()
-                
+
                 if not league:
                     print(f"🚫 League not found: {db_league_name}")
                     emit('draft_error', {'message': f'League "{db_league_name}" not found'})
                     return
-                
-                # Get player and team (with players relationship eagerly loaded)
-                from sqlalchemy.orm import joinedload
+
+                league_id = league.id
+                season_id = league.season_id
+
+                # Get player and team (lightweight query without joinedload)
                 player = session.query(Player).filter(Player.id == player_id).first()
-                team = session.query(Team).options(
-                    joinedload(Team.players)
-                ).filter(
+                team = session.query(Team).filter(
                     Team.id == team_id,
                     Team.league_id == league.id
                 ).first()
-                
+
                 if not player:
                     print(f"🚫 Player not found: {player_id}")
                     emit('draft_error', {'message': f'Player with ID {player_id} not found'})
                     return
-                
+
                 if not team:
                     print(f"🚫 Team not found: {team_id}")
                     emit('draft_error', {'message': f'Team with ID {team_id} not found'})
                     return
-                
+
+                player_name = player.name
+                team_name = team.name
+
                 # Comprehensive check for existing assignment
-                # Check both player_teams table and PlayerTeamSeason table
                 existing_player_team = session.query(player_teams).filter(
                     player_teams.c.player_id == player_id,
                     player_teams.c.team_id.in_(
                         session.query(Team.id).filter(Team.league_id == league.id)
                     )
                 ).first()
-                
+
                 if existing_player_team:
                     existing_team = session.query(Team).filter(Team.id == existing_player_team.team_id).first()
-                    team_name = existing_team.name if existing_team else "unknown team"
-                    print(f"🚫 Player {player.name} already assigned to {team_name} in {league.name}")
-                    emit('draft_error', {'message': f'Player "{player.name}" is already assigned to {team_name} in {league.name}'})
+                    team_name_existing = existing_team.name if existing_team else "unknown team"
+                    print(f"🚫 Player {player.name} already assigned to {team_name_existing} in {league.name}")
+                    emit('draft_error', {'message': f'Player "{player.name}" is already assigned to {team_name_existing} in {league.name}'})
                     return
-                
-                # Also check PlayerTeamSeason for current season
-                from app.models import PlayerTeamSeason
+
+                # Check PlayerTeamSeason for current season
                 existing_pts = session.query(PlayerTeamSeason).filter(
                     PlayerTeamSeason.player_id == player_id,
-                    PlayerTeamSeason.season_id == league.season_id,
+                    PlayerTeamSeason.season_id == season_id,
                     PlayerTeamSeason.team_id.in_(
                         session.query(Team.id).filter(Team.league_id == league.id)
                     )
                 ).first()
-                
+
                 if existing_pts:
                     existing_team = session.query(Team).filter(Team.id == existing_pts.team_id).first()
-                    team_name = existing_team.name if existing_team else "unknown team"
-                    print(f"🚫 Player {player.name} already has PlayerTeamSeason record with {team_name} in season {league.season_id}")
-                    emit('draft_error', {'message': f'Player "{player.name}" is already assigned to {team_name} for this season'})
+                    team_name_existing = existing_team.name if existing_team else "unknown team"
+                    print(f"🚫 Player {player.name} already has PlayerTeamSeason record with {team_name_existing} in season {season_id}")
+                    emit('draft_error', {'message': f'Player "{player.name}" is already assigned to {team_name_existing} for this season'})
                     return
-                
-                # Execute the draft (check if already exists to avoid duplicates)
-                # Check both directions: player.teams and team.players for safety
+            # Transaction 1 committed automatically - connection released
+
+            # ===== TRANSACTION 2: Core write operation (~200ms) =====
+            with managed_session() as session:
+                # Re-fetch player and team for this transaction
+                from sqlalchemy.orm import joinedload
+                player = session.query(Player).filter(Player.id == player_id).first()
+                team = session.query(Team).options(
+                    joinedload(Team.players)
+                ).filter(Team.id == team_id).first()
+
+                # Execute the draft
                 if player not in team.players:
                     team.players.append(player)
                     player.primary_team_id = team_id
-                    print(f"🎯 Added {player.name} to {team.name} and set as primary team (ID: {team_id})")
+                    print(f"🎯 Added {player_name} to {team_name} and set as primary team (ID: {team_id})")
                 else:
-                    # Still set primary team even if relationship exists
                     player.primary_team_id = team_id
-                    print(f"🎯 {player.name} already on {team.name} - updated primary team ID to {team_id}")
-                
+                    print(f"🎯 {player_name} already on {team_name} - updated primary team ID to {team_id}")
+
                 # Create PlayerTeamSeason record for current season
-                # We already checked above that no PTS record exists, so create it
                 player_team_season = PlayerTeamSeason(
                     player_id=player_id,
                     team_id=team_id,
-                    season_id=league.season_id
+                    season_id=season_id
                 )
                 session.add(player_team_season)
-                print(f"📝 Created new PlayerTeamSeason record for {player.name} to {team.name}")
-                
+                print(f"📝 Created new PlayerTeamSeason record for {player_name} to {team_name}")
+            # Transaction 2 committed automatically - connection released
+
+            # ===== TRANSACTION 3: History & Discord marker (~50ms) =====
+            with managed_session() as session:
                 # Record the draft pick in history
                 try:
-                    from app.draft_enhanced import DraftService
                     draft_position = DraftService.record_draft_pick(
                         session=session,
                         player_id=player_id,
                         team_id=team_id,
-                        league_id=league.id,
-                        season_id=league.season_id,
+                        league_id=league_id,
+                        season_id=season_id,
                         drafted_by_user_id=current_user.id,
                         notes=f"Drafted via Socket by {current_user.username}"
                     )
-                    print(f"📊 Draft pick #{draft_position} recorded for {player.name} to {team.name}")
-                    logger.info(f"📊 Draft pick #{draft_position} recorded for {player.name} to {team.name}")
+                    print(f"📊 Draft pick #{draft_position} recorded for {player_name} to {team_name}")
+                    logger.info(f"📊 Draft pick #{draft_position} recorded for {player_name} to {team_name}")
                 except Exception as e:
                     print(f"⚠️ Failed to record draft pick: {str(e)}")
                     logger.error(f"Failed to record draft pick: {str(e)}")
                     # Don't fail the entire operation if draft history fails
-                
-                # Mark for Discord update (but we'll handle role assignment below)
+
+                # Mark for Discord update
                 mark_player_for_discord_update(session, player_id)
-                
-                # Commit the transaction with proper error handling
-                try:
-                    session.commit()
-                except Exception as commit_error:
-                    session.rollback()
-                    logger.error(f"💥 Draft commit failed: {str(commit_error)}")
-                    emit('draft_error', {'message': f'Failed to save draft: {str(commit_error)}'})
-                    return
-                
-                # Queue Discord role assignment task AFTER commit to add new team role (keep existing roles)
-                from app.tasks.tasks_discord import assign_roles_to_player_task
-                assign_roles_to_player_task.delay(player_id=player_id, only_add=True)
-                print(f"🎭 Queued Discord role update for {player.name} (only_add = True to keep existing roles)")
-                logger.info(f"🎭 Queued Discord role update for {player.name} (only_add = True to keep existing roles)")
-                
-                # Success response with full player data for creating the team player card
+            # Transaction 3 committed automatically - connection released
+
+            # ===== Post-transaction: Queue async tasks and emit response =====
+            # Queue Discord role assignment task AFTER all commits
+            from app.tasks.tasks_discord import assign_roles_to_player_task
+            assign_roles_to_player_task.delay(player_id=player_id, only_add=True)
+            print(f"🎭 Queued Discord role update for {player_name} (only_add = True to keep existing roles)")
+            logger.info(f"🎭 Queued Discord role update for {player_name} (only_add = True to keep existing roles)")
+
+            # Fetch player data for response in a final read-only transaction
+            with managed_session() as session:
+                player = session.query(Player).filter(Player.id == player_id).first()
+
+                # Success response with full player data
                 response_data = {
                     'success': True,
                     'player': {
@@ -510,43 +534,27 @@ def handle_draft_player_enhanced(data):
                         'career_assists': player.career_stats[0].assists if player.career_stats else 0,
                         'career_yellow_cards': player.career_stats[0].yellow_cards if player.career_stats else 0,
                         'career_red_cards': player.career_stats[0].red_cards if player.career_stats else 0,
-                        # Calculate average stats per season
                         'avg_goals_per_season': (
-                            round(player.career_stats[0].goals / max(len(player.teams) or 1, 1), 1) 
+                            round(player.career_stats[0].goals / max(len(player.teams) or 1, 1), 1)
                             if player.career_stats else 0
                         ),
                         'avg_assists_per_season': (
-                            round(player.career_stats[0].assists / max(len(player.teams) or 1, 1), 1) 
+                            round(player.career_stats[0].assists / max(len(player.teams) or 1, 1), 1)
                             if player.career_stats else 0
                         ),
-                        'league_experience_seasons': 0,  # Could be calculated if needed
-                        'attendance_estimate': 75,  # Default value
-                        'experience_level': 'New Player'  # Default value
+                        'league_experience_seasons': 0,
+                        'attendance_estimate': 75,
+                        'experience_level': 'New Player'
                     },
-                    'team_id': team.id,
-                    'team_name': team.name,
+                    'team_id': team_id,
+                    'team_name': team_name,
                     'league_name': league_name
                 }
-                
-                emit('player_drafted_enhanced', response_data)
-                print(f"✅ Successfully drafted {player.name} to {team.name}")
-                logger.info(f"✅ Successfully drafted {player.name} to {team.name}")
-            
-            # Trigger Discord role update task (outside the database session)
-            from app.tasks.tasks_discord import update_player_discord_roles
-            try:
-                # Add timeout and expiration to prevent task buildup
-                task = update_player_discord_roles.apply_async(
-                    args=[player_id],
-                    expires=300,  # Task expires after 5 minutes
-                    priority=3    # Medium priority
-                )
-                print(f"🤖 Discord role update task queued: {task.id}")
-                logger.info(f"🤖 Discord role update task queued for player {player_id}: {task.id}")
-            except Exception as e:
-                print(f"⚠️ Failed to queue Discord role update: {str(e)}")
-                logger.warning(f"Failed to queue Discord role update: {str(e)}")
-                
+
+            emit('player_drafted_enhanced', response_data)
+            print(f"✅ Successfully drafted {player_name} to {team_name}")
+            logger.info(f"✅ Successfully drafted {player_name} to {team_name}")
+
         except Exception as e:
             print(f"💥 Draft error: {str(e)}")
             logger.error(f"💥 Draft error: {str(e)}", exc_info=True)

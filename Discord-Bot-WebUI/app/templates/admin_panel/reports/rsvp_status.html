@@ -1,0 +1,283 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}RSVP Status - Admin Panel{% endblock %}
+
+{% block panel_description %}View and manage RSVP responses for matches{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.reports_dashboard') }}">Reports</a></li>
+<li class="breadcrumb-item active">RSVP Status</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Match Info -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="ti ti-calendar-event me-2"></i>
+                    {% if is_ecs_fc_match and ecs_match %}
+                        ECS FC Match: {{ ecs_match.opponent }}
+                    {% elif match %}
+                        {{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}
+                    {% else %}
+                        Match RSVP Status
+                    {% endif %}
+                </h5>
+                {% if is_ecs_fc_match %}
+                <span class="badge bg-primary">ECS FC</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Date:</strong>
+                        {% if is_ecs_fc_match and ecs_match %}
+                            {{ ecs_match.date.strftime('%b %d, %Y') if ecs_match.date else 'TBD' }}
+                        {% elif match %}
+                            {{ match.date.strftime('%b %d, %Y') if match.date else 'TBD' }}
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Time:</strong>
+                        {% if is_ecs_fc_match and ecs_match %}
+                            {{ ecs_match.time or 'TBD' }}
+                        {% elif match %}
+                            {{ match.time.strftime('%I:%M %p') if match.time else 'TBD' }}
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Location:</strong>
+                        {% if is_ecs_fc_match and ecs_match %}
+                            {{ ecs_match.location or 'TBD' }}
+                        {% elif match %}
+                            {{ match.location or match.field or 'TBD' }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RSVP Summary -->
+    <div class="col-md-4 col-sm-6 mb-4">
+        <div class="card h-100 bg-success bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-check fs-1 text-success mb-2"></i>
+                <h3 class="mb-0">{{ rsvps.yes|length if rsvps.yes else 0 }}</h3>
+                <small class="text-muted">Yes / In</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-sm-6 mb-4">
+        <div class="card h-100 bg-danger bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-x fs-1 text-danger mb-2"></i>
+                <h3 class="mb-0">{{ rsvps.no|length if rsvps.no else 0 }}</h3>
+                <small class="text-muted">No / Out</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-sm-6 mb-4">
+        <div class="card h-100 bg-warning bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-question-mark fs-1 text-warning mb-2"></i>
+                <h3 class="mb-0">{{ rsvps.maybe|length if rsvps.maybe else 0 }}</h3>
+                <small class="text-muted">Maybe / Tentative</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- RSVP Details -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="ti ti-list me-2"></i>RSVP Responses</h5>
+            </div>
+            <div class="card-body p-0">
+                <ul class="nav nav-tabs px-3 pt-2" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#yes-tab">
+                            <i class="ti ti-check text-success me-1"></i>Yes ({{ rsvps.yes|length if rsvps.yes else 0 }})
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#no-tab">
+                            <i class="ti ti-x text-danger me-1"></i>No ({{ rsvps.no|length if rsvps.no else 0 }})
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#maybe-tab">
+                            <i class="ti ti-question-mark text-warning me-1"></i>Maybe ({{ rsvps.maybe|length if rsvps.maybe else 0 }})
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#no-response-tab">
+                            <i class="ti ti-minus text-muted me-1"></i>No Response ({{ rsvps.no_response|length if rsvps.no_response else 0 }})
+                        </a>
+                    </li>
+                </ul>
+                <div class="tab-content p-3">
+                    <!-- Yes Tab -->
+                    <div class="tab-pane fade show active" id="yes-tab">
+                        {% if rsvps.yes %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Player</th>
+                                        <th>Responded</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for rsvp in rsvps.yes %}
+                                    <tr>
+                                        <td>{{ rsvp.player.name if rsvp.player else 'Unknown' }}</td>
+                                        <td><small class="text-muted">{{ rsvp.responded_at.strftime('%b %d, %I:%M %p') if rsvp.responded_at else '-' }}</small></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-secondary" onclick="updateRsvp('{{ rsvp.player.id }}', 'no')">Change to No</button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center py-3">No "Yes" responses yet.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- No Tab -->
+                    <div class="tab-pane fade" id="no-tab">
+                        {% if rsvps.no %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Player</th>
+                                        <th>Responded</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for rsvp in rsvps.no %}
+                                    <tr>
+                                        <td>{{ rsvp.player.name if rsvp.player else 'Unknown' }}</td>
+                                        <td><small class="text-muted">{{ rsvp.responded_at.strftime('%b %d, %I:%M %p') if rsvp.responded_at else '-' }}</small></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-secondary" onclick="updateRsvp('{{ rsvp.player.id }}', 'yes')">Change to Yes</button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center py-3">No "No" responses.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Maybe Tab -->
+                    <div class="tab-pane fade" id="maybe-tab">
+                        {% if rsvps.maybe %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Player</th>
+                                        <th>Responded</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for rsvp in rsvps.maybe %}
+                                    <tr>
+                                        <td>{{ rsvp.player.name if rsvp.player else 'Unknown' }}</td>
+                                        <td><small class="text-muted">{{ rsvp.responded_at.strftime('%b %d, %I:%M %p') if rsvp.responded_at else '-' }}</small></td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-success" onclick="updateRsvp('{{ rsvp.player.id }}', 'yes')">Yes</button>
+                                                <button class="btn btn-outline-danger" onclick="updateRsvp('{{ rsvp.player.id }}', 'no')">No</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center py-3">No "Maybe" responses.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- No Response Tab -->
+                    <div class="tab-pane fade" id="no-response-tab">
+                        {% if rsvps.no_response %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Player</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for player in rsvps.no_response %}
+                                    <tr>
+                                        <td>{{ player.name if player else 'Unknown' }}</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-success" onclick="updateRsvp('{{ player.id }}', 'yes')">Yes</button>
+                                                <button class="btn btn-outline-danger" onclick="updateRsvp('{{ player.id }}', 'no')">No</button>
+                                                <button class="btn btn-outline-warning" onclick="updateRsvp('{{ player.id }}', 'maybe')">Maybe</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center py-3">All players have responded!</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+const matchId = '{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% elif match %}{{ match.id }}{% endif %}';
+
+function updateRsvp(playerId, response) {
+    const formData = new FormData();
+    formData.append('player_id', playerId);
+    formData.append('match_id', matchId);
+    formData.append('response', response);
+
+    fetch('{{ url_for("admin_panel.update_rsvp") }}', {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            AdminPanel.showMobileToast(data.message, 'success');
+            location.reload();
+        } else {
+            AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
+        }
+    })
+    .catch(err => {
+        AdminPanel.showMobileToast('Error updating RSVP', 'danger');
+    });
+}
+</script>
+{% endblock %}

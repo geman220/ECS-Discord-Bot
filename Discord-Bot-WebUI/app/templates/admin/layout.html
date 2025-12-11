@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{# This layout serves as a wrapper for admin templates, extending the base.html template #}
+
+{# Pass through all blocks from base.html #}
+{% block title %}{{ super() }}{% endblock %}
+{% block page_css %}{{ super() }}{% block page_head %}{% endblock %}{% endblock %}
+{% block custom_css %}{{ super() }}{% block admin_css %}{% endblock %}{% endblock %}
+{% block main_content %}{% block content %}{% endblock %}{% endblock %}
+{# Map 'scripts' block to 'custom_js' which is defined in base.html #}
+{% block custom_js %}{{ super() }}{% block scripts %}{% endblock %}{% endblock %}

@@ -1,0 +1,566 @@
+/**
+ * Mobile Toggles CSS
+ * Comprehensive toggle switch optimization for mobile touch interaction
+ * Ensures all toggles meet 44px minimum touch target requirement
+ */
+
+/* ========================================
+   Base Toggle Switch Styling (Desktop)
+   ======================================== */
+
+/* Desktop: Use Bootstrap default sizing */
+.form-check-input {
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Desktop: Normal switch sizing (32px x 16px) */
+.form-switch .form-check-input {
+  /* Use Bootstrap defaults from foundation.css */
+}
+
+.form-switch .form-check-input:checked {
+  background-position: right center;
+}
+
+/* ========================================
+   Large Switch Variant for Settings/Admin
+   ======================================== */
+
+.form-switch-lg .form-check-input {
+  width: 72px;
+  height: 40px;
+  border-radius: 20px;
+}
+
+/* Extra large for prominent settings */
+.form-switch-xl .form-check-input {
+  width: 84px;
+  height: 48px;
+  border-radius: 24px;
+}
+
+/* ========================================
+   Mobile-Specific Optimizations
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Ensure minimum touch target on container, not the switch itself */
+  .form-check,
+  .form-switch {
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    cursor: pointer;
+    padding: 6px 0 !important;
+  }
+
+  /* Switch specific mobile sizing - Visually appealing size with large touch target */
+  .form-switch .form-check-input,
+  .form-check.form-switch .form-check-input,
+  .ecs-form-check.form-switch .form-check-input,
+  .form-switch .ecs-form-check-input {
+    width: 51px !important;         /* iOS-like proportions (2:1 ratio) */
+    height: 31px !important;        /* Visually smaller, more elegant */
+    min-height: 31px !important;
+    min-width: 51px !important;
+    max-height: 31px !important;
+    margin-left: 0 !important;      /* CRITICAL: Remove -2.5rem shift */
+    background-size: contain !important;
+    border-radius: 16px !important; /* Half of height for rounded */
+  }
+
+  /* Make entire row tappable (label + switch) for 44px touch target */
+  .form-switch {
+    padding-left: 0 !important;
+    padding: 8px 0 !important;     /* Vertical padding for 44px+ total height */
+  }
+
+  /* Entire label is clickable */
+  .form-check-label {
+    cursor: pointer !important;
+    flex: 1 !important;
+    padding: 8px 12px 8px 0 !important;  /* Add padding to label for larger tap area */
+  }
+
+  /* Label positioning for proper layout */
+  .form-check-label {
+    order: 1 !important;
+    flex: 1 !important;
+    padding-left: 0 !important;
+  }
+
+  .form-check-input {
+    order: 2 !important;
+    margin-left: auto !important;   /* Right align the switch */
+    margin-top: 0 !important;
+  }
+
+  /* Large switch on mobile */
+  .form-switch-lg .form-check-input {
+    width: 72px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    min-width: 72px !important;
+    border-radius: 24px !important;
+  }
+
+  /* Extra large switch on mobile */
+  .form-switch-xl .form-check-input {
+    width: 84px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    min-width: 84px !important;
+    border-radius: 24px !important;
+  }
+
+  /* Form check label spacing */
+  .form-check-label {
+    font-size: 15px;
+    line-height: 1.5;
+    padding-left: 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  /* Form switch label positioning */
+  .form-switch .form-check-label {
+    order: 1;
+    flex: 1;
+  }
+
+  .form-switch .form-check-input {
+    order: 2;
+    margin-left: auto;
+    margin-top: 0;
+  }
+}
+
+/* ========================================
+   Vertical Stacking on Very Small Screens
+   ======================================== */
+
+@media (max-width: 575.98px) {
+  /* Stack label above switch for very small screens */
+  .form-switch-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .form-switch-stack .form-check-label {
+    order: 1;
+    padding-left: 0;
+  }
+
+  .form-switch-stack .form-check-input {
+    order: 2;
+    margin-left: 0;
+  }
+}
+
+/* ========================================
+   Settings Page Toggle Layout
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Settings row with toggle */
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+    min-height: 64px;
+  }
+
+  .settings-row .setting-info {
+    flex: 1;
+    padding-right: 16px;
+  }
+
+  .settings-row .setting-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--bs-body-color, #212529);
+  }
+
+  .settings-row .setting-description {
+    font-size: 13px;
+    color: var(--bs-secondary, #6c757d);
+    margin: 0;
+  }
+
+  .settings-row .form-switch {
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* ========================================
+   Toggle with Status Text
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Toggle status indicator */
+  .form-switch .toggle-status {
+    font-size: 14px;
+    font-weight: 600;
+    margin-left: 8px;
+    color: var(--bs-secondary, #6c757d);
+  }
+
+  .form-switch .form-check-input:checked ~ .toggle-status {
+    color: #198754;
+  }
+
+  .form-switch .form-check-input:checked ~ .toggle-status::before {
+    content: 'Enabled';
+  }
+
+  .form-switch .form-check-input:not(:checked) ~ .toggle-status::before {
+    content: 'Disabled';
+  }
+}
+
+/* ========================================
+   Colored Toggle Variants
+   ======================================== */
+
+/* Success variant */
+.form-switch-success .form-check-input:checked {
+  background-color: #198754;
+  border-color: #198754;
+}
+
+/* Danger variant */
+.form-switch-danger .form-check-input:checked {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+/* Warning variant */
+.form-switch-warning .form-check-input:checked {
+  background-color: #ffc107;
+  border-color: #ffc107;
+}
+
+/* Info variant */
+.form-switch-info .form-check-input:checked {
+  background-color: #0dcaf0;
+  border-color: #0dcaf0;
+}
+
+/* ========================================
+   Disabled State
+   ======================================== */
+
+.form-switch .form-check-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled ~ .form-check-label {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   Focus State
+   ======================================== */
+
+.form-switch .form-check-input:focus {
+  outline: 2px solid var(--bs-primary, #0d6efd);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
+}
+
+/* ========================================
+   Animation
+   ======================================== */
+
+.form-switch .form-check-input {
+  transition: background-position 0.15s ease-in-out,
+              background-color 0.15s ease-in-out,
+              border-color 0.15s ease-in-out;
+}
+
+/* Haptic feedback animation */
+@keyframes togglePulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.form-switch .form-check-input.toggle-animated {
+  animation: togglePulse 0.3s ease;
+}
+
+/* ========================================
+   Dark Mode Support
+   ======================================== */
+
+[data-style="dark"] .form-switch .form-check-input {
+  background-color: #4a5568;
+  border-color: #4a5568;
+}
+
+[data-style="dark"] .form-switch .form-check-input:checked {
+  background-color: var(--bs-primary, #0d6efd);
+  border-color: var(--bs-primary, #0d6efd);
+}
+
+[data-style="dark"] .form-check-label {
+  color: #e2e8f0;
+}
+
+[data-style="dark"] .settings-row {
+  border-bottom-color: #2d3748;
+}
+
+[data-style="dark"] .settings-row .setting-title {
+  color: #e2e8f0;
+}
+
+[data-style="dark"] .settings-row .setting-description {
+  color: #9ca3af;
+}
+
+[data-style="dark"] .form-switch .toggle-status {
+  color: #9ca3af;
+}
+
+[data-style="dark"] .form-switch .form-check-input:checked ~ .toggle-status {
+  color: #34d399;
+}
+
+/* ========================================
+   Admin Panel Toggle Optimizations
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Admin feature toggle cards */
+  .feature-toggle-card {
+    padding: 16px;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 8px;
+    margin-bottom: 12px;
+  }
+
+  .feature-toggle-card .form-switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 44px;
+  }
+
+  .feature-toggle-card .feature-name {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .feature-toggle-card .feature-description {
+    font-size: 13px;
+    color: var(--bs-secondary, #6c757d);
+    margin-bottom: 12px;
+  }
+}
+
+/* ========================================
+   Table Toggle Optimization
+   ======================================== */
+
+@media (max-width: 991.98px) {
+  /* Toggles in table cards */
+  .table-responsive .form-switch {
+    padding: 8px 0;
+  }
+
+  .table-responsive .form-switch .form-check-input {
+    margin: 0;
+  }
+
+  /* Center toggles in table cells */
+  .table-responsive td .form-switch {
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* ========================================
+   Accessibility Enhancements
+   ======================================== */
+
+/* Ensure toggle is keyboard accessible */
+.form-switch .form-check-input:focus-visible {
+  outline: 2px solid var(--bs-primary, #0d6efd);
+  outline-offset: 2px;
+}
+
+/* Screen reader text for toggle state */
+.form-switch .form-check-input::before {
+  content: '';
+  position: absolute;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.form-switch .form-check-input:checked::before {
+  content: 'On';
+}
+
+.form-switch .form-check-input:not(:checked)::before {
+  content: 'Off';
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .form-switch .form-check-input {
+    transition: none;
+  }
+
+  .form-switch .form-check-input.toggle-animated {
+    animation: none;
+  }
+}
+
+/* ========================================
+   Loading State
+   ======================================== */
+
+.form-switch.is-loading .form-check-input {
+  opacity: 0.6;
+  pointer-events: none;
+  position: relative;
+}
+
+.form-switch.is-loading .form-check-input::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-top: -8px;
+  margin-left: -8px;
+  border: 2px solid white;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: toggleSpinner 0.6s linear infinite;
+}
+
+@keyframes toggleSpinner {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========================================
+   Group Toggle (Multiple Switches)
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  .toggle-group {
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .toggle-group .form-switch {
+    padding: 16px;
+    border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+    margin: 0;
+  }
+
+  .toggle-group .form-switch:last-child {
+    border-bottom: none;
+  }
+
+  .toggle-group-title {
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 16px;
+    background: var(--bs-light, #f8f9fa);
+    border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+    margin: 0;
+  }
+}
+
+[data-style="dark"] .toggle-group {
+  border-color: #2d3748;
+}
+
+[data-style="dark"] .toggle-group .form-switch {
+  border-bottom-color: #2d3748;
+}
+
+[data-style="dark"] .toggle-group-title {
+  background: #2d3748;
+  border-bottom-color: #4a5568;
+  color: #e2e8f0;
+}
+
+/* ========================================
+   Performance Optimizations
+   ======================================== */
+
+/* Use transform for better performance */
+.form-switch .form-check-input {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* Optimize will-change for animations */
+.form-switch .form-check-input:active {
+  will-change: transform;
+}
+
+/* ========================================
+   Edge Cases and Fixes
+   ======================================== */
+
+/* Fix for iOS double-tap zoom */
+@media (max-width: 767.98px) {
+  @supports (-webkit-touch-callout: none) {
+    .form-switch .form-check-input {
+      touch-action: manipulation;
+    }
+  }
+}
+
+/* Fix for very small screens */
+@media (max-width: 320px) {
+  .form-switch .form-check-input {
+    width: 52px;
+    height: 28px;
+  }
+
+  .form-switch-lg .form-check-input {
+    width: 64px;
+    height: 36px;
+  }
+}
+
+/* Ensure toggle switch is always visible */
+.form-switch .form-check-input {
+  margin-left: 0 !important;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Fix for nested form-checks */
+.form-check .form-check {
+  padding-left: 0;
+}

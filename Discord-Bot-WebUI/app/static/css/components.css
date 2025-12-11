@@ -3052,7 +3052,7 @@ button.btn-close-white:focus,
 }
 
 /* Responsive adjustments */
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .modal-body.compact-layout {
     max-height: 80vh;
     padding: 0.75rem;
@@ -3326,6 +3326,184 @@ html[data-style="dark"] .table small {
   color: var(--ecs-text-primary);
 }
 
+.card-title,
+.card-header h5,
+.card-header h6 {
+  color: var(--ecs-text-primary);
+}
+
+/* List group items */
+.list-group-item {
+  background-color: var(--ecs-bg-secondary);
+  border-color: var(--ecs-border-primary);
+  color: var(--ecs-text-primary);
+}
+
+.list-group-item-action:hover,
+.list-group-item-action:focus {
+  background-color: var(--ecs-bg-tertiary);
+  color: var(--ecs-text-primary);
+}
+
+/* ===== DARK MODE CARD AND LIST-GROUP OVERRIDES ===== */
+/* Force override Bootstrap defaults in dark mode */
+html[data-style="dark"] .card,
+html[data-style="dark"] .ecs-card {
+  background-color: var(--ecs-bg-secondary) !important;
+  border-color: var(--ecs-border-primary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+html[data-style="dark"] .card-header,
+html[data-style="dark"] .card-header.ecs-card-header,
+html[data-style="dark"] .ecs-card-header {
+  background-color: var(--ecs-bg-tertiary) !important;
+  border-color: var(--ecs-border-primary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+html[data-style="dark"] .card-header h5,
+html[data-style="dark"] .card-header h6,
+html[data-style="dark"] .card-header .card-title,
+html[data-style="dark"] .ecs-card-header h5,
+html[data-style="dark"] .ecs-card-header h6,
+html[data-style="dark"] .card-title {
+  color: var(--ecs-text-primary) !important;
+}
+
+html[data-style="dark"] .card-body,
+html[data-style="dark"] .ecs-card-body {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+html[data-style="dark"] .list-group-item {
+  background-color: var(--ecs-bg-secondary) !important;
+  border-color: var(--ecs-border-primary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+html[data-style="dark"] .list-group-item-action:hover,
+html[data-style="dark"] .list-group-item-action:focus {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Dark mode headings and text */
+html[data-style="dark"] h1,
+html[data-style="dark"] h2,
+html[data-style="dark"] h3,
+html[data-style="dark"] h4,
+html[data-style="dark"] h5,
+html[data-style="dark"] h6 {
+  color: var(--ecs-text-primary) !important;
+}
+
+html[data-style="dark"] p,
+html[data-style="dark"] small,
+html[data-style="dark"] .small,
+html[data-style="dark"] span:not(.badge):not([class*="bg-"]) {
+  color: var(--ecs-text-primary);
+}
+
+html[data-style="dark"] .form-label,
+html[data-style="dark"] label {
+  color: var(--ecs-text-primary) !important;
+}
+
+html[data-style="dark"] .form-text {
+  color: var(--ecs-text-secondary) !important;
+}
+
+/* Dark mode alert styling - preserve alert colors while ensuring readability */
+html[data-style="dark"] .alert {
+  color: var(--ecs-text-primary) !important;
+}
+
+html[data-style="dark"] .alert h1,
+html[data-style="dark"] .alert h2,
+html[data-style="dark"] .alert h3,
+html[data-style="dark"] .alert h4,
+html[data-style="dark"] .alert h5,
+html[data-style="dark"] .alert h6,
+html[data-style="dark"] .alert .alert-heading,
+html[data-style="dark"] .alert strong,
+html[data-style="dark"] .alert p,
+html[data-style="dark"] .alert span,
+html[data-style="dark"] .alert small,
+html[data-style="dark"] .alert .small,
+html[data-style="dark"] .alert div {
+  color: inherit !important;
+}
+
+/* Specific alert variants with proper dark mode contrast */
+html[data-style="dark"] .alert-info {
+  background-color: rgba(0, 207, 232, 0.15) !important;
+  border-color: rgba(0, 207, 232, 0.3) !important;
+  color: #7fd8e8 !important;
+}
+
+html[data-style="dark"] .alert-success {
+  background-color: rgba(40, 199, 111, 0.15) !important;
+  border-color: rgba(40, 199, 111, 0.3) !important;
+  color: #7be0a8 !important;
+}
+
+html[data-style="dark"] .alert-warning {
+  background-color: rgba(255, 159, 67, 0.15) !important;
+  border-color: rgba(255, 159, 67, 0.3) !important;
+  color: #ffbe7d !important;
+}
+
+html[data-style="dark"] .alert-danger {
+  background-color: rgba(234, 84, 85, 0.15) !important;
+  border-color: rgba(234, 84, 85, 0.3) !important;
+  color: #f19b9c !important;
+}
+
+html[data-style="dark"] .alert-primary {
+  background-color: rgba(115, 103, 240, 0.15) !important;
+  border-color: rgba(115, 103, 240, 0.3) !important;
+  color: #a9a1f5 !important;
+}
+
+html[data-style="dark"] .alert-secondary {
+  background-color: rgba(130, 134, 139, 0.15) !important;
+  border-color: rgba(130, 134, 139, 0.3) !important;
+  color: #b3b6ba !important;
+}
+
+/* Ensure alert icons inherit color */
+html[data-style="dark"] .alert i,
+html[data-style="dark"] .alert .ti {
+  color: inherit !important;
+}
+
+/* Form elements */
+.form-label,
+label {
+  color: var(--ecs-text-primary);
+}
+
+.form-text {
+  color: var(--ecs-text-secondary);
+}
+
+/* Alert text */
+.alert {
+  color: var(--ecs-text-primary);
+}
+
+/* Headings in content area */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--ecs-text-primary);
+}
+
+/* Paragraph and small text */
+p, small, .small {
+  color: var(--ecs-text-primary);
+}
+
 /* ===== UTILITY OVERRIDES ===== */
 .text-muted {
   color: var(--ecs-text-muted) !important;
@@ -3434,6 +3612,97 @@ html[data-style="dark"] .select2-selection__choice__remove::before {
 html[data-style="dark"] .select2-selection__choice__remove:hover::before {
   color: #ff6b6b;           /* red hover cue */
 }
+
+/* ===== DARK MODE TAB AND NAV STYLING ===== */
+/* Tab container with tabs on top */
+html[data-style="dark"] .nav-align-top {
+  background-color: transparent !important;
+}
+
+/* Override the white background from foundation.css (.nav-align-top .nav-tabs { background: #fff; }) */
+html[data-style="dark"] .nav-align-top .nav-tabs,
+html[data-style="dark"] .nav-align-right .nav-tabs,
+html[data-style="dark"] .nav-align-bottom .nav-tabs,
+html[data-style="dark"] .nav-align-left .nav-tabs {
+  background: var(--ecs-bg-secondary) !important;
+  background-color: var(--ecs-bg-secondary) !important;
+}
+
+/* Tab content area - the white box that shows tab panels */
+html[data-style="dark"] .tab-content,
+html[data-style="dark"] .nav-align-top .tab-content {
+  background-color: var(--ecs-bg-secondary) !important;
+  border-color: var(--ecs-border-primary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Tab panes inside tab-content */
+html[data-style="dark"] .tab-pane {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Nav tabs styling */
+html[data-style="dark"] .nav-tabs {
+  background-color: var(--ecs-bg-secondary) !important;
+  border-bottom-color: var(--ecs-border-primary) !important;
+}
+
+html[data-style="dark"] .nav-tabs .nav-link {
+  color: var(--ecs-text-secondary) !important;
+  background-color: transparent !important;
+  border-color: transparent transparent var(--ecs-border-primary) !important;
+}
+
+html[data-style="dark"] .nav-tabs .nav-link:hover,
+html[data-style="dark"] .nav-tabs .nav-link:focus {
+  color: var(--ecs-text-primary) !important;
+  border-color: var(--ecs-border-primary) var(--ecs-border-primary) transparent !important;
+  background-color: var(--ecs-bg-tertiary) !important;
+}
+
+html[data-style="dark"] .nav-tabs .nav-link.active {
+  color: var(--ecs-text-primary) !important;
+  background-color: var(--ecs-bg-secondary) !important;
+  border-color: var(--ecs-border-primary) var(--ecs-border-primary) var(--ecs-bg-secondary) !important;
+}
+
+/* Nav tabs hover state from foundation.css override */
+html[data-style="dark"] .nav-align-top .nav-tabs .nav-link:not(.active):hover {
+  color: var(--ecs-primary, #7367f0) !important;
+  border-bottom-color: var(--ecs-primary, #7367f0) !important;
+}
+
+/* Cards inside tab content - ensure they don't show white */
+html[data-style="dark"] .tab-content .card,
+html[data-style="dark"] .tab-pane .card {
+  background-color: var(--ecs-bg-secondary) !important;
+  border-color: var(--ecs-border-primary) !important;
+}
+
+html[data-style="dark"] .tab-content .card.border-0,
+html[data-style="dark"] .tab-pane .card.border-0 {
+  background-color: transparent !important;
+}
+
+/* bg-body-tertiary class used in status cards */
+html[data-style="dark"] .bg-body-tertiary {
+  background-color: var(--ecs-bg-tertiary) !important;
+}
+
+/* Ensure card inside tab has dark background */
+html[data-style="dark"] .tab-content .card .card-body,
+html[data-style="dark"] .tab-pane .card .card-body {
+  background-color: inherit !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Card title inside tabs */
+html[data-style="dark"] .tab-content .card-title,
+html[data-style="dark"] .tab-pane .card-title {
+  color: var(--ecs-text-primary) !important;
+}
+
 /* ===== ECS COMPONENTS ===== */
 /**
  * ECS Components CSS
@@ -3484,9 +3753,18 @@ html[data-style="dark"] .select2-selection__choice__remove:hover::before {
   background-color: var(--ecs-bg);
   appearance: none;
   cursor: pointer;
-  transition: background-color var(--ecs-transition-fast), 
+  transition: background-color var(--ecs-transition-fast),
               border-color var(--ecs-transition-fast),
               box-shadow var(--ecs-transition-fast);
+}
+
+/* Fix for checkboxes in table cells - override absolute positioning */
+td .ecs-form-check-input,
+th .ecs-form-check-input {
+  position: static;
+  margin-left: 0;
+  margin-top: 0;
+  vertical-align: middle;
 }
 
 .ecs-form-check-input:checked {
@@ -3717,6 +3995,13 @@ button.active, .btn.active, .ecs-btn.active, [class*="btn-"].active {
   margin-bottom: 0;
   border-bottom: 1px solid var(--ecs-border-color);
   background-color: transparent;
+  color: var(--ecs-text-primary);
+}
+
+.ecs-card-header h5,
+.ecs-card-header h6,
+.ecs-card-header .card-title {
+  color: var(--ecs-text-primary);
 }
 
 .ecs-card-body {

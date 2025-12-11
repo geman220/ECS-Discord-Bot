@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "passTypeIdentifier": "pass.com.ecsfc.membership.v3",
+  "passTypeIdentifier": "pass.com.ecsfc.membership",
   "teamIdentifier": "{{team_identifier}}",
   "organizationName": "ECS FC",
   "serialNumber": "ecsfc-v2-{{uuid}}",
@@ -10,7 +10,7 @@
     "message": "{{barcode_data}}",
     "messageEncoding": "utf-8"
   },
-  "generic": {
+  "storeCard": {
     "primaryFields": [
       {
         "key": "name",

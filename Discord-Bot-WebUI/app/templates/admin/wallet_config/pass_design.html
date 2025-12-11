@@ -1,0 +1,562 @@
+{% extends 'admin/layout.html' %}
+{% block title %}{{ pass_type.name }} Pass Design{% endblock %}
+
+{% block page_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/classic.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Pass Preview Card */
+    .pass-preview-card {
+        width: 320px;
+        min-height: 400px;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        margin: 0 auto;
+        transition: all 0.3s;
+    }
+    .pass-preview-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 50px rgba(0,0,0,0.25);
+    }
+    .pass-header {
+        padding: 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .pass-logo-area {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .pass-logo-img {
+        width: 50px;
+        height: 50px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    .pass-logo-img img {
+        max-width: 100%;
+        max-height: 100%;
+    }
+    .pass-logo-text {
+        font-size: 1.4rem;
+        font-weight: bold;
+    }
+    .pass-content {
+        padding: 20px;
+    }
+    .pass-field {
+        margin-bottom: 16px;
+    }
+    .pass-field-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        opacity: 0.7;
+    }
+    .pass-field-value {
+        font-size: 18px;
+        font-weight: 600;
+    }
+    .pass-barcode-area {
+        background: #fff;
+        padding: 20px;
+        text-align: center;
+        margin: 15px;
+        border-radius: 8px;
+    }
+    .pass-barcode-area img {
+        max-width: 150px;
+    }
+
+    /* Color Picker Styling */
+    .color-picker-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .color-swatch {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        border: 2px solid var(--bs-border-color);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .color-swatch:hover {
+        transform: scale(1.05);
+    }
+
+    /* Settings Cards */
+    .settings-card {
+        height: 100%;
+    }
+    .settings-section {
+        padding: 20px;
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+    .settings-section:last-child {
+        border-bottom: none;
+    }
+
+    /* Variable Tags */
+    .variable-tag {
+        display: inline-block;
+        padding: 2px 8px;
+        background: var(--bs-primary-bg-subtle);
+        color: var(--bs-primary);
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .variable-tag:hover {
+        background: var(--bs-primary);
+        color: #fff;
+    }
+
+    /* Quick Tips */
+    .quick-tip {
+        background: var(--bs-warning-bg-subtle);
+        border-left: 4px solid var(--bs-warning);
+        padding: 12px 15px;
+        border-radius: 0 8px 8px 0;
+        margin-bottom: 15px;
+    }
+
+    /* Location Pills */
+    .location-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: var(--bs-tertiary-bg);
+        border-radius: 20px;
+        margin: 4px;
+        font-size: 0.85rem;
+    }
+    .location-pill.active {
+        background: var(--bs-success-bg-subtle);
+        color: var(--bs-success);
+    }
+    .location-pill.inactive {
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-primary mb-1">
+                <i class="ti ti-palette me-2"></i>{{ pass_type.name }} Design
+            </h2>
+            <p class="text-muted mb-0">Customize how your {{ pass_type.name }} passes look and what information they display</p>
+        </div>
+        <div>
+            <a href="{{ url_for('wallet_config.templates') }}" class="btn btn-outline-secondary me-2">
+                <i class="ti ti-arrow-left me-1"></i> Back
+            </a>
+            {% if pass_type_code == 'ecs' %}
+            <a href="{{ url_for('wallet_config.pass_design', pass_type='pub') }}" class="btn btn-outline-primary">
+                <i class="ti ti-arrows-exchange me-1"></i> Switch to Pub League
+            </a>
+            {% else %}
+            <a href="{{ url_for('wallet_config.pass_design', pass_type='ecs') }}" class="btn btn-outline-primary">
+                <i class="ti ti-arrows-exchange me-1"></i> Switch to ECS
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Live Preview -->
+        <div class="col-lg-5 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="ti ti-eye me-2"></i>Live Preview</h5>
+                </div>
+                <div class="card-body d-flex justify-content-center py-4">
+                    <div class="pass-preview-card" id="passPreview"
+                         style="background-color: {{ pass_type.background_color }}; color: {{ pass_type.foreground_color }};">
+                        <div class="pass-header">
+                            <div class="pass-logo-area">
+                                <div class="pass-logo-img" id="logoPreview">
+                                    {% if assets and 'icon' in assets %}
+                                    <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['icon'].id) }}" alt="Logo">
+                                    {% else %}
+                                    <i class="ti ti-certificate" style="font-size: 24px;"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="pass-logo-text" id="logoTextPreview">{{ pass_type.logo_text }}</div>
+                            </div>
+                        </div>
+                        <div class="pass-content">
+                            <!-- Primary Field -->
+                            <div class="pass-field">
+                                <div class="pass-field-label" id="label1" style="color: {{ pass_type.label_color }};">MEMBER</div>
+                                <div class="pass-field-value" id="value1">Jane Smith</div>
+                            </div>
+
+                            <!-- Secondary Field -->
+                            <div class="pass-field">
+                                <div class="pass-field-label" id="label2" style="color: {{ pass_type.label_color }};">VALID FOR</div>
+                                <div class="pass-field-value" id="value2">2025 Membership</div>
+                            </div>
+
+                            {% if pass_type_code == 'pub' %}
+                            <!-- Team Field (Pub League only) -->
+                            <div class="pass-field">
+                                <div class="pass-field-label" id="label3" style="color: {{ pass_type.label_color }};">TEAM</div>
+                                <div class="pass-field-value" id="value3">Seattle Sounders FC</div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Barcode -->
+                            <div class="pass-barcode-area">
+                                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAMAAAD04JH5AAAABlBMVEX///8AAABVwtN+AAAAy0lEQVR4nO3QQQ0AIAwAMNj/0twgCOcwmNBkZuAAAAAAAAAAAAAAAAAAAAAAaM/vYhVV1VVVdVVVXVVVV1XVVVV1VVVdVVVXVdVVVXVVVV1VVVdV1VVVdVVVXVVVV1XVdVV1VVVdVVVXVdVVVXVVVV1VVVdV1VVVdVVVXVVVV1XVdVV1VVVdVVVXVdVVVXVVVV1VVVdV1VVVdVVVXVVVV1XVdVV1VVVdVVVXVdVAAAAAAAAAAAAAAAAAAAAAHgDYQABVnV7/MkAAAAASUVORK5CYII=" alt="QR">
+                                <div style="color: #333; font-size: 11px; margin-top: 8px;">ECSFC-ECS-12345678</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="ti ti-bolt me-2"></i>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('wallet_config.assets') }}" class="btn btn-outline-primary">
+                            <i class="ti ti-photo me-2"></i>Manage Pass Images
+                        </a>
+                        <a href="{{ url_for('wallet_config.locations') }}" class="btn btn-outline-primary">
+                            <i class="ti ti-map-pin me-2"></i>Manage Locations ({{ locations|length }}/10)
+                        </a>
+                        {% if pass_type_code == 'ecs' %}
+                        <a href="{{ url_for('wallet_config.subgroups') }}" class="btn btn-outline-primary">
+                            <i class="ti ti-users-group me-2"></i>Manage Subgroups
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Settings -->
+        <div class="col-lg-7 mb-4">
+            <form action="{{ url_for('wallet_config.save_pass_design', pass_type=pass_type_code) }}" method="post" id="designForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- Appearance Settings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="ti ti-paint me-2"></i>Appearance</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Logo Text -->
+                        <div class="mb-4">
+                            <label class="form-label fw-medium">Logo Text</label>
+                            <input type="text" class="form-control" id="logo_text" name="logo_text"
+                                   value="{{ pass_type.logo_text }}" placeholder="e.g., ECS FC">
+                            <div class="form-text">Text displayed next to your logo on the pass</div>
+                        </div>
+
+                        <!-- Colors -->
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-medium">Background</label>
+                                <div class="color-picker-wrapper">
+                                    <div class="color-swatch" id="bgColorSwatch"
+                                         style="background-color: {{ pass_type.background_color }};"></div>
+                                    <input type="text" class="form-control form-control-sm" id="background_color"
+                                           name="background_color" value="{{ pass_type.background_color }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-medium">Text Color</label>
+                                <div class="color-picker-wrapper">
+                                    <div class="color-swatch" id="fgColorSwatch"
+                                         style="background-color: {{ pass_type.foreground_color }};"></div>
+                                    <input type="text" class="form-control form-control-sm" id="foreground_color"
+                                           name="foreground_color" value="{{ pass_type.foreground_color }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-medium">Label Color</label>
+                                <div class="color-picker-wrapper">
+                                    <div class="color-swatch" id="lblColorSwatch"
+                                         style="background-color: {{ pass_type.label_color }};"></div>
+                                    <input type="text" class="form-control form-control-sm" id="label_color"
+                                           name="label_color" value="{{ pass_type.label_color }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="quick-tip">
+                            <i class="ti ti-bulb me-1"></i>
+                            <strong>Tip:</strong> Click the color swatches to open the color picker. Ensure good contrast between background and text colors.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Locations -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="ti ti-map-pin me-2"></i>Location Notifications</h5>
+                        <a href="{{ url_for('wallet_config.locations') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="ti ti-settings me-1"></i> Manage
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        {% if locations %}
+                        <p class="text-muted mb-3">Members will receive notifications when near these {{ locations|length }} location(s):</p>
+                        <div class="mb-0">
+                            {% for loc in locations %}
+                            <span class="location-pill {% if loc.is_active %}active{% else %}inactive{% endif %}">
+                                <i class="ti ti-map-pin"></i>
+                                {{ loc.name }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-3">
+                            <i class="ti ti-map-pin-off text-muted mb-2" style="font-size: 2rem;"></i>
+                            <p class="text-muted mb-2">No locations configured yet</p>
+                            <a href="{{ url_for('wallet_config.locations') }}" class="btn btn-sm btn-primary">
+                                <i class="ti ti-plus me-1"></i> Add Locations
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Available Variables Reference -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="ti ti-variable me-2"></i>Dynamic Content</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">These values are automatically filled when a pass is created:</p>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Variable</th>
+                                        <th>Description</th>
+                                        <th>Example</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>member_name</code></td>
+                                        <td>Member's full name</td>
+                                        <td>Jane Smith</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>validity</code></td>
+                                        <td>Membership year or season</td>
+                                        <td>2025 Membership</td>
+                                    </tr>
+                                    {% if pass_type_code == 'pub' %}
+                                    <tr>
+                                        <td><code>team_name</code></td>
+                                        <td>Player's team name</td>
+                                        <td>Seattle FC</td>
+                                    </tr>
+                                    {% endif %}
+                                    {% if pass_type_code == 'ecs' %}
+                                    <tr>
+                                        <td><code>subgroup</code></td>
+                                        <td>Supporter subgroup (optional)</td>
+                                        <td>Gorilla FC</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>member_since</code></td>
+                                        <td>Year member joined</td>
+                                        <td>2019</td>
+                                    </tr>
+                                    {% endif %}
+                                    <tr>
+                                        <td><code>barcode_data</code></td>
+                                        <td>Unique scannable code</td>
+                                        <td>ECSFC-ECS-ABC123</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                        <i class="ti ti-refresh me-1"></i> Reset Changes
+                    </button>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="ti ti-device-floppy me-1"></i> Save Design
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    'use strict';
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cache elements
+        const passPreview = document.getElementById('passPreview');
+        const logoTextInput = document.getElementById('logo_text');
+        const logoTextPreview = document.getElementById('logoTextPreview');
+        const bgColorInput = document.getElementById('background_color');
+        const fgColorInput = document.getElementById('foreground_color');
+        const lblColorInput = document.getElementById('label_color');
+        const bgSwatch = document.getElementById('bgColorSwatch');
+        const fgSwatch = document.getElementById('fgColorSwatch');
+        const lblSwatch = document.getElementById('lblColorSwatch');
+        const fieldLabels = document.querySelectorAll('.pass-field-label');
+        const fieldValues = document.querySelectorAll('.pass-field-value');
+
+        // Color pickers
+        let bgPickr, fgPickr, lblPickr;
+
+        function createPickr(el, defaultColor, onSave) {
+            return Pickr.create({
+                el: el,
+                theme: 'classic',
+                default: defaultColor,
+                useAsButton: true,
+                swatches: [
+                    '#1a472a', '#213e96', '#000000', '#ffffff',
+                    '#7367f0', '#28c76f', '#ff9f43', '#ea5455',
+                    '#00cfe8', '#82868b', '#4b4b4b', '#c8c8c8'
+                ],
+                components: {
+                    preview: true,
+                    opacity: false,
+                    hue: true,
+                    interaction: { hex: true, input: true, save: true }
+                }
+            }).on('save', onSave);
+        }
+
+        // Background color picker
+        bgPickr = createPickr(bgSwatch, '{{ pass_type.background_color }}', function(color) {
+            const hex = color.toHEXA().toString();
+            bgColorInput.value = hex;
+            bgSwatch.style.backgroundColor = hex;
+            passPreview.style.backgroundColor = hex;
+            bgPickr.hide();
+        });
+
+        // Foreground color picker
+        fgPickr = createPickr(fgSwatch, '{{ pass_type.foreground_color }}', function(color) {
+            const hex = color.toHEXA().toString();
+            fgColorInput.value = hex;
+            fgSwatch.style.backgroundColor = hex;
+            passPreview.style.color = hex;
+            fieldValues.forEach(el => el.style.color = hex);
+            logoTextPreview.style.color = hex;
+            fgPickr.hide();
+        });
+
+        // Label color picker
+        lblPickr = createPickr(lblSwatch, '{{ pass_type.label_color }}', function(color) {
+            const hex = color.toHEXA().toString();
+            lblColorInput.value = hex;
+            lblSwatch.style.backgroundColor = hex;
+            fieldLabels.forEach(el => el.style.color = hex);
+            lblPickr.hide();
+        });
+
+        // Logo text live update
+        logoTextInput.addEventListener('input', function() {
+            logoTextPreview.textContent = this.value || 'Logo';
+        });
+
+        // Text input color sync
+        bgColorInput.addEventListener('input', function() {
+            const color = this.value;
+            if (/^#[0-9A-Fa-f]{6}$/i.test(color)) {
+                bgSwatch.style.backgroundColor = color;
+                passPreview.style.backgroundColor = color;
+                bgPickr.setColor(color, true);
+            }
+        });
+
+        fgColorInput.addEventListener('input', function() {
+            const color = this.value;
+            if (/^#[0-9A-Fa-f]{6}$/i.test(color)) {
+                fgSwatch.style.backgroundColor = color;
+                passPreview.style.color = color;
+                fieldValues.forEach(el => el.style.color = color);
+                logoTextPreview.style.color = color;
+                fgPickr.setColor(color, true);
+            }
+        });
+
+        lblColorInput.addEventListener('input', function() {
+            const color = this.value;
+            if (/^#[0-9A-Fa-f]{6}$/i.test(color)) {
+                lblSwatch.style.backgroundColor = color;
+                fieldLabels.forEach(el => el.style.color = color);
+                lblPickr.setColor(color, true);
+            }
+        });
+
+        // Reset form function
+        window.resetForm = function() {
+            Swal.fire({
+                title: 'Reset Changes?',
+                text: 'This will reset all changes to their saved values.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, reset',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    location.reload();
+                }
+            });
+        };
+
+        // Form submission
+        document.getElementById('designForm').addEventListener('submit', function(e) {
+            // Validate colors
+            const colorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+            const errors = [];
+
+            if (!colorRegex.test(bgColorInput.value)) errors.push('Invalid background color');
+            if (!colorRegex.test(fgColorInput.value)) errors.push('Invalid text color');
+            if (!colorRegex.test(lblColorInput.value)) errors.push('Invalid label color');
+
+            if (errors.length > 0) {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Validation Error',
+                    html: errors.join('<br>'),
+                    icon: 'error'
+                });
+            }
+        });
+    });
+})();
+</script>
+{% endblock %}

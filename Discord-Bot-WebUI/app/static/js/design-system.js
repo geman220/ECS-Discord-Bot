@@ -313,7 +313,8 @@
           });
           
           // Make sure form controls have adequate size on mobile
-          document.querySelectorAll('input, select, textarea').forEach(input => {
+          // Exclude checkboxes and radio buttons (they don't trigger iOS zoom)
+          document.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), select, textarea').forEach(input => {
             if (!input.style.fontSize || input.style.fontSize < '16px') {
               input.style.fontSize = '16px';
             }
@@ -360,122 +361,28 @@
     },
     
     // Apply dark mode to content areas
+    // UPDATED: Minimal intervention - let Bootstrap CSS variables handle dark mode
+    // Templates now use var(--bs-*) variables which automatically adapt
     applyDarkModeToContent: function(isDark) {
-      // Target the main content areas that may not be automatically styled
-      const contentAreas = [
-        '.container-xxl',
-        '.container-fluid',
-        '.content-wrapper',
-        '.card',
-        '.modal-content',
-        '.layout-page', // Add layout page container
-        '.container-p-y', // Add main content container
-        '.container-fluid'
-      ];
-      
-      contentAreas.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
-        elements.forEach(element => {
-          // Add a marker class to track dark mode application
-          if (isDark) {
-            element.classList.add('dark-mode-applied');
-            
-            // Apply dark mode background styles
-            element.style.backgroundColor = element.classList.contains('card') ? 
-              'var(--ecs-neutral-100)' : 
-              (selector === '.content-wrapper' || selector === '.layout-page' || selector === '.container-fluid' || selector === '.container-p-y') ? 
-                'var(--ecs-background)' : '';
-            
-            // FIXED: Use white text instead of grey in dark mode - force override
-            element.style.color = '#ffffff !important';
-            
-            // Add border color adjustments for dark mode
-            if (element.style.borderColor) {
-              element.style.borderColor = 'var(--ecs-neutral-70)';
-            }
-          } else {
-            element.classList.remove('dark-mode-applied');
-            
-            // Reset styles when switching back to light mode
-            element.style.backgroundColor = '';
-            element.style.color = '';
-            element.style.borderColor = '';
-          }
-        });
-      });
-      
-      // Apply dark mode to the body element to ensure full coverage
+      // Only add/remove marker class for CSS targeting - no inline styles
+      // This allows CSS-based dark mode to work without JavaScript conflicts
       if (isDark) {
         document.body.classList.add('dark-mode-body');
-        document.body.style.backgroundColor = 'var(--ecs-background)';
-        document.body.style.color = 'var(--ecs-neutral-30)';
-        
-        // Fix card backgrounds
-        document.querySelectorAll('.card:not(.bg-primary):not(.bg-secondary):not(.bg-success):not(.bg-info):not(.bg-warning):not(.bg-danger)').forEach(card => {
-          card.style.backgroundColor = 'var(--ecs-neutral-100)';
-          card.style.color = 'var(--ecs-neutral-10)';
-        });
-        
-        // Target the specific content container
-        const mainContent = document.querySelector('.container-fluid.flex-grow-1.container-p-y');
-        if (mainContent) {
-          mainContent.style.backgroundColor = 'var(--ecs-background)';
-          mainContent.style.color = 'var(--ecs-neutral-30)';
-        }
-        
-        // Fix text colors for better contrast
-        document.querySelectorAll('.text-body, p, h1, h2, h3, h4, h5, h6, .navbar-text, .nav-link, tbody, td, th, tr').forEach(element => {
-          if (!element.classList.contains('text-white') && 
-              !element.classList.contains('text-primary') && 
-              !element.classList.contains('text-success') && 
-              !element.classList.contains('text-info') && 
-              !element.classList.contains('text-warning') && 
-              !element.classList.contains('text-danger')) {
-            element.style.color = 'var(--ecs-neutral-30)';
-          }
-        });
-        
-        // Fix table styling in dark mode
-        document.querySelectorAll('table.table').forEach(table => {
-          table.style.color = 'var(--ecs-neutral-30)';
-          table.querySelectorAll('th, td').forEach(cell => {
-            cell.style.borderColor = 'var(--ecs-neutral-70)';
-          });
-        });
-        
       } else {
         document.body.classList.remove('dark-mode-body');
-        document.body.style.backgroundColor = '';
-        document.body.style.color = '';
-        
-        // Reset card backgrounds
-        document.querySelectorAll('.card').forEach(card => {
-          if (card.style.backgroundColor === 'var(--ecs-neutral-100)') {
-            card.style.backgroundColor = '';
-          }
-          if (card.style.color === 'var(--ecs-neutral-10)') {
-            card.style.color = '';
-          }
-        });
-        
-        // Reset the main content container
-        const mainContent = document.querySelector('.container-fluid.flex-grow-1.container-p-y');
-        if (mainContent) {
-          mainContent.style.backgroundColor = '';
-          mainContent.style.color = '';
-        }
-        
-        // Reset text colors
-        document.querySelectorAll('[style*="color: var(--ecs-neutral-30)"]').forEach(element => {
+
+        // Clean up any legacy inline styles that may have been set previously
+        document.querySelectorAll('[style*="--ecs-neutral"]').forEach(element => {
+          element.style.backgroundColor = '';
           element.style.color = '';
+          element.style.borderColor = '';
         });
-        
-        // Reset table styling
-        document.querySelectorAll('table.table').forEach(table => {
-          table.style.color = '';
-          table.querySelectorAll('th, td').forEach(cell => {
-            cell.style.borderColor = '';
-          });
+
+        document.querySelectorAll('.dark-mode-applied').forEach(element => {
+          element.classList.remove('dark-mode-applied');
+          element.style.backgroundColor = '';
+          element.style.color = '';
+          element.style.borderColor = '';
         });
       }
     },

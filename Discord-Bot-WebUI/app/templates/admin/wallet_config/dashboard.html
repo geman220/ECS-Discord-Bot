@@ -1,0 +1,532 @@
+{% extends 'admin/layout.html' %}
+{% block title %}Wallet Configuration Dashboard{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Wallet Configuration Dashboard - Theme-aware styling */
+    .progress {
+        height: 10px;
+        margin-bottom: 10px;
+    }
+    .progress-bar {
+        transition: width 0.5s;
+    }
+    .status-card {
+        border-radius: 8px;
+        transition: all 0.2s;
+        height: 100%;
+    }
+    .status-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--bs-box-shadow);
+    }
+    .wizard-btn {
+        padding: 20px;
+        border-radius: 8px;
+        transition: all 0.2s;
+        height: 100%;
+        text-align: center;
+    }
+    .wizard-btn:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--bs-box-shadow);
+    }
+    .wizard-btn i {
+        font-size: 2rem;
+        margin-bottom: 15px;
+    }
+    .config-step {
+        position: relative;
+        padding: 12px 12px 12px 40px;
+        border-radius: 0.375rem;
+        margin-bottom: 15px;
+        background-color: var(--bs-tertiary-bg);
+    }
+    .config-step::before {
+        content: "";
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+    }
+    .config-step.completed::before {
+        background-color: #28c76f;
+    }
+    .config-step.pending::before {
+        background-color: #ff9f43;
+    }
+    .config-step.error::before {
+        background-color: #ea5455;
+    }
+    .quick-action-card {
+        border-radius: 8px;
+        transition: all 0.2s;
+        height: 100%;
+    }
+    .quick-action-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--bs-box-shadow-sm);
+    }
+</style>
+{% endblock custom_css %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="fw-bold text-primary mb-1">
+                        <i class="ti ti-wallet me-2"></i>Wallet Configuration
+                    </h2>
+                    <p class="text-muted mb-0">Configure and manage digital wallet passes for ECS Membership and Pub League</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-outline-secondary">
+                        <i class="ti ti-arrow-left me-1"></i> Back to Wallet Management
+                    </a>
+                    <a href="{{ url_for('wallet_config.setup_wizard') }}" class="btn btn-primary ms-2">
+                        <i class="ti ti-wand me-1"></i> Setup Wizard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Status -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="ti ti-settings me-2"></i>Configuration Status</h5>
+                    <div>
+                        <span class="badge {% if progress.percent == 100 %}bg-label-success{% elif progress.percent > 0 %}bg-label-warning{% else %}bg-label-danger{% endif %}">
+                            {{ progress.percent }}% Complete
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="progress mb-4">
+                        <div class="progress-bar {% if progress.percent == 100 %}bg-success{% elif progress.percent > 0 %}bg-warning{% else %}bg-danger{% endif %}" 
+                             role="progressbar" 
+                             style="width: {{ progress.percent }}%;" 
+                             aria-valuenow="{{ progress.percent }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                        </div>
+                    </div>
+
+                    <!-- Shared Configuration (Certificates) -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="config-step {% if progress.certificates %}completed{% else %}pending{% endif %}">
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="mb-1"><i class="ti ti-certificate me-1"></i> Signing Certificates (Shared)</h6>
+                                    <span class="badge {% if progress.certificates %}bg-label-success{% else %}bg-label-warning{% endif %}">
+                                        {% if progress.certificates %}<i class="ti ti-check me-1"></i>Complete{% else %}<i class="ti ti-alert-triangle me-1"></i>Incomplete{% endif %}
+                                    </span>
+                                </div>
+                                <p class="text-muted mb-0 small">
+                                    {% if progress.certificates %}
+                                    Certificates are configured - used by both ECS and Pub League passes
+                                    {% else %}
+                                    Upload Apple signing certificates (required for both pass types)
+                                    {% endif %}
+                                </p>
+                                <a href="{{ url_for('wallet_config.certificates') }}" class="stretched-link"></a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Per-Pass-Type Status -->
+                    <div class="row">
+                        <!-- ECS Membership Status -->
+                        <div class="col-md-6 mb-3">
+                            <div class="card shadow-sm h-100 {% if progress.ecs.ready %}border-success{% elif progress.ecs.exists %}border-warning{% else %}border-secondary{% endif %}">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0"><i class="ti ti-id me-1"></i> ECS Membership</h6>
+                                    {% if progress.ecs.ready %}
+                                    <span class="badge bg-label-success"><i class="ti ti-check me-1"></i>Ready</span>
+                                    {% elif not progress.ecs.exists %}
+                                    <span class="badge bg-label-secondary">Not Initialized</span>
+                                    {% else %}
+                                    <span class="badge bg-label-warning"><i class="ti ti-alert-triangle me-1"></i>Incomplete</span>
+                                    {% endif %}
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-unstyled mb-0">
+                                        <li class="d-flex align-items-center mb-2">
+                                            {% if progress.certificates %}
+                                            <i class="ti ti-circle-check text-success me-2"></i>
+                                            {% else %}
+                                            <i class="ti ti-circle-x text-warning me-2"></i>
+                                            {% endif %}
+                                            <span class="small">Certificates</span>
+                                        </li>
+                                        <li class="d-flex align-items-center mb-2">
+                                            {% if progress.ecs.assets_complete %}
+                                            <i class="ti ti-circle-check text-success me-2"></i>
+                                            {% else %}
+                                            <i class="ti ti-circle-x text-warning me-2"></i>
+                                            {% endif %}
+                                            <span class="small">Assets (icon, logo)</span>
+                                        </li>
+                                        <li class="d-flex align-items-center">
+                                            {% if progress.ecs.template_complete %}
+                                            <i class="ti ti-circle-check text-success me-2"></i>
+                                            {% else %}
+                                            <i class="ti ti-circle-x text-warning me-2"></i>
+                                            {% endif %}
+                                            <span class="small">Template</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    {% if progress.ecs.ready %}
+                                    <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="btn btn-sm btn-success w-100">
+                                        <i class="ti ti-plus me-1"></i> Create ECS Pass
+                                    </a>
+                                    {% else %}
+                                    <a href="{{ url_for('wallet_config.setup_wizard', step='assets') }}" class="btn btn-sm btn-warning w-100">
+                                        <i class="ti ti-settings me-1"></i> Complete Setup
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pub League Status -->
+                        <div class="col-md-6 mb-3">
+                            <div class="card shadow-sm h-100 {% if progress.pub.ready %}border-success{% elif progress.pub.exists %}border-warning{% else %}border-secondary{% endif %}">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0"><i class="ti ti-trophy me-1"></i> Pub League</h6>
+                                    {% if progress.pub.ready %}
+                                    <span class="badge bg-label-success"><i class="ti ti-check me-1"></i>Ready</span>
+                                    {% elif not progress.pub.exists %}
+                                    <span class="badge bg-label-secondary">Not Initialized</span>
+                                    {% else %}
+                                    <span class="badge bg-label-warning"><i class="ti ti-alert-triangle me-1"></i>Incomplete</span>
+                                    {% endif %}
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-unstyled mb-0">
+                                        <li class="d-flex align-items-center mb-2">
+                                            {% if progress.certificates %}
+                                            <i class="ti ti-circle-check text-success me-2"></i>
+                                            {% else %}
+                                            <i class="ti ti-circle-x text-warning me-2"></i>
+                                            {% endif %}
+                                            <span class="small">Certificates</span>
+                                        </li>
+                                        <li class="d-flex align-items-center mb-2">
+                                            {% if progress.pub.assets_complete %}
+                                            <i class="ti ti-circle-check text-success me-2"></i>
+                                            {% else %}
+                                            <i class="ti ti-circle-x text-warning me-2"></i>
+                                            {% endif %}
+                                            <span class="small">Assets (icon, logo)</span>
+                                        </li>
+                                        <li class="d-flex align-items-center">
+                                            {% if progress.pub.template_complete %}
+                                            <i class="ti ti-circle-check text-success me-2"></i>
+                                            {% else %}
+                                            <i class="ti ti-circle-x text-warning me-2"></i>
+                                            {% endif %}
+                                            <span class="small">Template</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    {% if progress.pub.ready %}
+                                    <a href="{{ url_for('wallet_admin.create_pub_league_pass') }}" class="btn btn-sm btn-success w-100">
+                                        <i class="ti ti-plus me-1"></i> Create Pub League Pass
+                                    </a>
+                                    {% else %}
+                                    <a href="{{ url_for('wallet_config.setup_wizard', step='assets') }}" class="btn btn-sm btn-warning w-100">
+                                        <i class="ti ti-settings me-1"></i> Complete Setup
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        {% if progress.ecs.ready and progress.pub.ready %}
+                        <div class="alert alert-success d-flex align-items-center">
+                            <i class="ti ti-circle-check me-2 fs-3"></i>
+                            <div>
+                                <strong>Both pass types are fully configured!</strong>
+                                <p class="mb-0">You can create and manage wallet passes for ECS Membership and Pub League.</p>
+                            </div>
+                        </div>
+                        {% elif progress.ecs.ready or progress.pub.ready %}
+                        <div class="alert alert-info d-flex align-items-center">
+                            <i class="ti ti-info-circle me-2 fs-3"></i>
+                            <div>
+                                <strong>
+                                    {% if progress.ecs.ready %}ECS Membership{% endif %}
+                                    {% if progress.ecs.ready and progress.pub.ready %} and {% endif %}
+                                    {% if progress.pub.ready %}Pub League{% endif %}
+                                    is ready!
+                                </strong>
+                                <p class="mb-0">
+                                    You can start creating
+                                    {% if progress.ecs.ready %}ECS Membership{% endif %}
+                                    {% if progress.pub.ready %}Pub League{% endif %} passes.
+                                    {% if not progress.ecs.ready or not progress.pub.ready %}
+                                    Complete the setup for the other pass type when ready.
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning d-flex align-items-center">
+                            <i class="ti ti-alert-triangle me-2 fs-3"></i>
+                            <div>
+                                <strong>Configuration needed</strong>
+                                <p class="mb-0">Complete the setup for at least one pass type to start creating passes. You can configure ECS Membership and Pub League independently.</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Setup Wizard -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h5 class="mb-3">Guided Setup</h5>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <a href="{{ url_for('wallet_config.setup_wizard', step='certificates') }}" class="text-decoration-none">
+                <div class="wizard-btn bg-primary bg-opacity-10 d-flex flex-column align-items-center">
+                    <i class="ti ti-certificate text-primary"></i>
+                    <h6>1. Certificates</h6>
+                    <p class="text-muted small mb-0">Upload signing certificates</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <a href="{{ url_for('wallet_config.setup_wizard', step='assets') }}" class="text-decoration-none">
+                <div class="wizard-btn bg-info bg-opacity-10 d-flex flex-column align-items-center">
+                    <i class="ti ti-photo text-info"></i>
+                    <h6>2. Pass Assets</h6>
+                    <p class="text-muted small mb-0">Upload logos and icons</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <a href="{{ url_for('wallet_config.setup_wizard', step='templates') }}" class="text-decoration-none">
+                <div class="wizard-btn bg-success bg-opacity-10 d-flex flex-column align-items-center">
+                    <i class="ti ti-file-text text-success"></i>
+                    <h6>3. Templates</h6>
+                    <p class="text-muted small mb-0">Customize pass appearance</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <a href="{{ url_for('wallet_config.setup_wizard', step='testing') }}" class="text-decoration-none">
+                <div class="wizard-btn bg-warning bg-opacity-10 d-flex flex-column align-items-center">
+                    <i class="ti ti-test-pipe text-warning"></i>
+                    <h6>4. Test Passes</h6>
+                    <p class="text-muted small mb-0">Verify configuration</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Pass Management and Tools -->
+    <div class="row">
+        <!-- Quick Actions -->
+        <div class="col-md-8 mb-4">
+            <h5 class="mb-3">Quick Actions</h5>
+            
+            <div class="row">
+                <div class="col-sm-6 col-lg-4 mb-3">
+                    <div class="card quick-action-card h-100">
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="badge bg-primary bg-opacity-10 p-2 rounded me-3">
+                                    <i class="ti ti-settings text-primary fs-4"></i>
+                                </div>
+                                <h6 class="mb-0">Configuration</h6>
+                            </div>
+                            <p class="text-muted small mb-3">Manage certificates, assets, and templates</p>
+                            <div class="mt-auto">
+                                <div class="btn-group w-100">
+                                    <a href="{{ url_for('wallet_config.certificates') }}" class="btn btn-sm btn-outline-primary">Certificates</a>
+                                    <a href="{{ url_for('wallet_config.assets') }}" class="btn btn-sm btn-outline-primary">Assets</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-sm-6 col-lg-4 mb-3">
+                    <div class="card quick-action-card h-100">
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="badge bg-success bg-opacity-10 p-2 rounded me-3">
+                                    <i class="ti ti-brush text-success fs-4"></i>
+                                </div>
+                                <h6 class="mb-0">Appearance</h6>
+                            </div>
+                            <p class="text-muted small mb-3">Customize how passes look</p>
+                            <div class="mt-auto">
+                                <div class="btn-group w-100">
+                                    <a href="{{ url_for('wallet_config.visual_editor', pass_type='ecs') }}" class="btn btn-sm btn-outline-success">ECS Passes</a>
+                                    <a href="{{ url_for('wallet_config.visual_editor', pass_type='pub') }}" class="btn btn-sm btn-outline-success">Pub League</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-sm-6 col-lg-4 mb-3">
+                    <div class="card quick-action-card h-100">
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="badge bg-info bg-opacity-10 p-2 rounded me-3">
+                                    <i class="ti ti-tools text-info fs-4"></i>
+                                </div>
+                                <h6 class="mb-0">Tools</h6>
+                            </div>
+                            <p class="text-muted small mb-3">Test and diagnose your configuration</p>
+                            <div class="mt-auto">
+                                <div class="btn-group w-100">
+                                    <a href="{{ url_for('wallet_config.test_config') }}" class="btn btn-sm btn-outline-info">Test</a>
+                                    <a href="{{ url_for('wallet_config.diagnostics') }}" class="btn btn-sm btn-outline-info">Diagnostics</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-sm-6 col-lg-4 mb-3">
+                    <div class="card quick-action-card h-100">
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="badge bg-warning bg-opacity-10 p-2 rounded me-3">
+                                    <i class="ti ti-help text-warning fs-4"></i>
+                                </div>
+                                <h6 class="mb-0">Help & Support</h6>
+                            </div>
+                            <p class="text-muted small mb-3">Get assistance with wallet configuration</p>
+                            <div class="mt-auto">
+                                <a href="{{ url_for('wallet_config.help_page') }}" class="btn btn-sm btn-outline-warning w-100">View Documentation</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-sm-6 col-lg-4 mb-3">
+                    <div class="card quick-action-card h-100">
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="badge bg-danger bg-opacity-10 p-2 rounded me-3">
+                                    <i class="ti ti-id text-danger fs-4"></i>
+                                </div>
+                                <h6 class="mb-0">Pass Management</h6>
+                            </div>
+                            <p class="text-muted small mb-3">Manage issued passes</p>
+                            <div class="mt-auto">
+                                <a href="{{ url_for('wallet_admin.passes_list') }}" class="btn btn-sm btn-outline-danger w-100">View All Passes</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-sm-6 col-lg-4 mb-3">
+                    <div class="card quick-action-card h-100">
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="badge bg-secondary bg-opacity-10 p-2 rounded me-3">
+                                    <i class="ti ti-qrcode text-secondary fs-4"></i>
+                                </div>
+                                <h6 class="mb-0">Validation</h6>
+                            </div>
+                            <p class="text-muted small mb-3">Scan and validate member passes</p>
+                            <div class="mt-auto">
+                                <a href="{{ url_for('wallet_admin.scanner') }}" class="btn btn-sm btn-outline-secondary w-100">Open Scanner</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="col-md-4 mb-4">
+            <h5 class="mb-3">Pass Statistics</h5>
+
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <h6 class="mb-3"><i class="ti ti-chart-bar me-1"></i>Pass Overview</h6>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Total Passes</span>
+                        <span class="badge bg-label-primary rounded-pill">{{ stats.total_passes }}</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Active Passes</span>
+                        <span class="badge bg-label-success rounded-pill">{{ stats.active_passes }}</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Voided Passes</span>
+                        <span class="badge bg-label-danger rounded-pill">{{ stats.voided_passes }}</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Total Check-ins</span>
+                        <span class="badge bg-label-info rounded-pill">{{ stats.total_checkins }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="mb-3"><i class="ti ti-wallet me-1"></i>Pass Types</h6>
+
+                    {% if stats.by_type %}
+                    {% for type_name, type_count in stats.by_type.items() %}
+                    <div class="d-flex justify-content-between align-items-center {% if not loop.last %}mb-3{% endif %}">
+                        <span>{{ type_name }}</span>
+                        <span class="badge bg-label-primary rounded-pill">{{ type_count }}</span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted small mb-0">No passes issued yet</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Progress bar animation
+    const progressBar = document.querySelector('.progress-bar');
+    progressBar.style.width = '0%';
+    setTimeout(() => {
+        progressBar.style.width = '{{ progress.percent }}%';
+    }, 300);
+});
+</script>
+{% endblock %}

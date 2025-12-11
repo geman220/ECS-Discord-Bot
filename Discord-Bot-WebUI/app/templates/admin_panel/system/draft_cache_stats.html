@@ -1,0 +1,282 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Draft Cache Statistics - Admin Panel{% endblock %}
+
+{% block panel_description %}Draft cache performance and warmth monitoring{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.system_monitoring') }}">System</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.redis_management') }}">Redis</a></li>
+<li class="breadcrumb-item active">Draft Cache</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Header -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="ti ti-chart-bar me-2"></i>Draft Cache Statistics</h5>
+                <button id="refresh-btn" class="btn btn-primary btn-sm">
+                    <i class="ti ti-refresh me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cache Overview Stats -->
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card h-100 bg-primary bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-database fs-1 text-primary mb-2"></i>
+                <h3 class="mb-0" id="total-keys">{{ cache_stats.total_keys|default(0) }}</h3>
+                <small class="text-muted">Total Cache Keys</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card h-100 bg-success bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-check fs-1 text-success mb-2"></i>
+                <h3 class="mb-0" id="hit-rate">{{ cache_stats.hit_rate|default(0) }}%</h3>
+                <small class="text-muted">Cache Hit Rate</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card h-100 bg-info bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-users fs-1 text-info mb-2"></i>
+                <h3 class="mb-0" id="player-keys">{{ cache_stats.player_keys|default(0) }}</h3>
+                <small class="text-muted">Player Data Keys</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card h-100 bg-warning bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-shield fs-1 text-warning mb-2"></i>
+                <h3 class="mb-0" id="team-keys">{{ cache_stats.team_keys|default(0) }}</h3>
+                <small class="text-muted">Team Data Keys</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- League Cache Status -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="ti ti-trophy me-2"></i>League Cache Status</h5>
+            </div>
+            <div class="card-body">
+                {% if leagues %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>League</th>
+                                <th>Cache Status</th>
+                                <th>Last Warmed</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for league in leagues %}
+                            <tr>
+                                <td>
+                                    <i class="ti ti-trophy me-2 text-muted"></i>
+                                    <strong>{{ league }}</strong>
+                                </td>
+                                <td>
+                                    {% if league_cache_status.get(league, {}).get('warmed', false) %}
+                                    <span class="badge bg-success">
+                                        <i class="ti ti-check me-1"></i>Warmed
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-warning">
+                                        <i class="ti ti-alert-triangle me-1"></i>Cold
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ league_cache_status.get(league, {}).get('last_warmed', 'Never') }}
+                                </td>
+                                <td>
+                                    <button class="btn btn-outline-primary btn-sm"
+                                            onclick="warmCache('{{ league }}')"
+                                            id="warm-btn-{{ loop.index }}">
+                                        <i class="ti ti-flame me-1"></i>Warm Cache
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="ti ti-trophy-off fs-1 text-muted mb-3"></i>
+                    <p class="text-muted">No active leagues found.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- TTL Settings -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="ti ti-clock me-2"></i>TTL Settings</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <td>Player Data TTL</td>
+                            <td id="player-ttl">Loading...</td>
+                        </tr>
+                        <tr>
+                            <td>Analytics TTL</td>
+                            <td id="analytics-ttl">Loading...</td>
+                        </tr>
+                        <tr>
+                            <td>Team Data TTL</td>
+                            <td id="team-ttl">Loading...</td>
+                        </tr>
+                        <tr>
+                            <td>Availability TTL</td>
+                            <td id="availability-ttl">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cache Performance -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="ti ti-chart-line me-2"></i>Cache Performance</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="small text-muted">Hit Rate</label>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-success" id="hit-rate-bar"
+                             style="width: {{ cache_stats.hit_rate|default(0) }}%">
+                            {{ cache_stats.hit_rate|default(0) }}%
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="small text-muted">Memory Usage</label>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-info" id="memory-bar"
+                             style="width: {{ cache_stats.memory_usage_percent|default(0) }}%">
+                            {{ cache_stats.memory_usage_percent|default(0) }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="ti ti-link me-2"></i>Related Tools</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.redis_management') }}" class="btn btn-outline-primary w-100">
+                            <i class="ti ti-database me-2"></i>Redis Management
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.cache_management') }}" class="btn btn-outline-primary w-100">
+                            <i class="ti ti-database me-2"></i>Cache Management
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="btn btn-outline-primary w-100">
+                            <i class="ti ti-activity me-2"></i>System Monitoring
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadCacheStats();
+});
+
+function loadCacheStats() {
+    fetch('{{ url_for("admin_panel.redis_draft_cache_api") }}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error loading cache stats:', data.error);
+                return;
+            }
+
+            // Update TTL settings
+            if (data.ttl_settings) {
+                document.getElementById('player-ttl').textContent = formatTTL(data.ttl_settings.player_data);
+                document.getElementById('analytics-ttl').textContent = formatTTL(data.ttl_settings.analytics);
+                document.getElementById('team-ttl').textContent = formatTTL(data.ttl_settings.team_data);
+                document.getElementById('availability-ttl').textContent = formatTTL(data.ttl_settings.availability);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading cache stats:', error);
+        });
+}
+
+function formatTTL(seconds) {
+    if (!seconds) return 'Not set';
+    if (seconds < 60) return seconds + ' seconds';
+    if (seconds < 3600) return Math.round(seconds / 60) + ' minutes';
+    if (seconds < 86400) return Math.round(seconds / 3600) + ' hours';
+    return Math.round(seconds / 86400) + ' days';
+}
+
+function warmCache(leagueName) {
+    const buttons = document.querySelectorAll('[id^="warm-btn-"]');
+    buttons.forEach(btn => btn.disabled = true);
+
+    fetch(`{{ url_for('admin_panel.redis_warm_draft_cache', league_name='LEAGUE_NAME') }}`.replace('LEAGUE_NAME', leagueName), {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            AdminPanel.showMobileToast(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error warming cache:', error);
+        AdminPanel.showMobileToast('Error warming cache', 'danger');
+    })
+    .finally(() => {
+        buttons.forEach(btn => btn.disabled = false);
+    });
+}
+
+document.getElementById('refresh-btn').addEventListener('click', function() {
+    location.reload();
+});
+</script>
+{% endblock %}

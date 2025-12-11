@@ -4,11 +4,12 @@
     .menu-inner-shadow {
         background: linear-gradient(to bottom, #fff, rgba(255, 255, 255, 0)) !important;
     }
-    
+
     /* Dark mode variant */
     [data-style="dark"] .menu-inner-shadow {
         background: linear-gradient(to bottom, #2f3349, rgba(47, 51, 73, 0)) !important;
     }
+
 </style>
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
     <div class="app-brand demo">
@@ -363,29 +364,74 @@
         </li>
         {% endif %}
         
-        <!-- Apple Wallet Pass Management - Pub League Admin / Global Admin Only -->
+        <!-- Digital Wallet Pass Management - Pub League Admin / Global Admin Only -->
         {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
         <li class="menu-item {{ 'open' if 'wallet' in request.path and 'admin' in request.path }}">
             <a class="menu-link menu-toggle" href="javascript:void(0);">
                 <i class="ti ti-device-mobile menu-icon"></i>
-                <div>Apple Wallet</div>
+                <div>Digital Wallets</div>
             </a>
             <ul class="menu-sub">
+                <!-- Setup Wizard - Primary entry point for configuration -->
+                <li class="menu-item {{ 'active' if request.endpoint and 'wizard' in request.endpoint }}">
+                    <a class="menu-link" href="{{ url_for('wallet_config.setup_wizard') }}">
+                        <div><i class="ti ti-wand me-1"></i>Setup Wizard</div>
+                    </a>
+                </li>
+
+                <!-- Dashboard - Operations hub -->
                 <li class="menu-item {{ 'active' if request.endpoint == 'wallet_admin.wallet_management' }}">
                     <a class="menu-link" href="{{ url_for('wallet_admin.wallet_management') }}">
-                        <div>Pass Management</div>
+                        <div>Dashboard</div>
                     </a>
                 </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'wallet_players' }}">
-                    <a class="menu-link" href="{{ url_for('wallet_admin.wallet_players') }}">
-                        <div>Player Eligibility</div>
+
+                <!-- Pass Studio - Design passes -->
+                <li class="menu-item {{ 'active' if request.endpoint and request.endpoint.startswith('pass_studio.') }}">
+                    <a class="menu-link" href="{{ url_for('pass_studio.index') }}">
+                        <div><i class="ti ti-brush me-1"></i>Pass Studio</div>
                     </a>
                 </li>
+
+                <!-- Manage Passes - List, void, download -->
+                <li class="menu-item {{ 'active' if request.endpoint == 'wallet_admin.passes_list' }}">
+                    <a class="menu-link" href="{{ url_for('wallet_admin.passes_list') }}">
+                        <div>Manage Passes</div>
+                    </a>
+                </li>
+
+                <!-- Scanner - QR validation -->
+                <li class="menu-item {{ 'active' if request.endpoint == 'wallet_admin.scanner' }}">
+                    <a class="menu-link" href="{{ url_for('wallet_admin.scanner') }}">
+                        <div>Scanner</div>
+                    </a>
+                </li>
+
+                <!-- Check-ins - History -->
+                <li class="menu-item {{ 'active' if request.endpoint == 'wallet_admin.checkins_list' }}">
+                    <a class="menu-link" href="{{ url_for('wallet_admin.checkins_list') }}">
+                        <div>Check-ins</div>
+                    </a>
+                </li>
+
+                <!-- Settings Submenu - Global Admin Only -->
                 {% if 'Global Admin' in user_roles %}
-                <li class="menu-item {{ 'active' if request.endpoint == 'wallet_admin.wallet_config' }}">
-                    <a class="menu-link" href="{{ url_for('wallet_admin.wallet_config') }}">
-                        <div>Configuration</div>
+                <li class="menu-item {{ 'open' if request.endpoint and request.endpoint in ['wallet_config.diagnostics', 'wallet_config.help_page'] }}">
+                    <a class="menu-link menu-toggle" href="javascript:void(0);">
+                        <div><i class="ti ti-settings me-1"></i>Settings</div>
                     </a>
+                    <ul class="menu-sub">
+                        <li class="menu-item {{ 'active' if request.endpoint == 'wallet_config.diagnostics' }}">
+                            <a class="menu-link" href="{{ url_for('wallet_config.diagnostics') }}">
+                                <div>Diagnostics</div>
+                            </a>
+                        </li>
+                        <li class="menu-item {{ 'active' if request.endpoint == 'wallet_config.help_page' }}">
+                            <a class="menu-link" href="{{ url_for('wallet_config.help_page') }}">
+                                <div>Help & Docs</div>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
                 {% endif %}
             </ul>

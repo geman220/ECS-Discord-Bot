@@ -20,16 +20,16 @@ Module Organization:
 def register_all_routes(admin_panel_bp):
     """
     Register all admin panel routes with the blueprint.
-    
+
     This function imports and registers all route modules to ensure
     they are available when the admin panel blueprint is used.
-    
+
     Args:
         admin_panel_bp: The admin panel Flask blueprint
     """
     # Import all route modules to register their routes
     from . import dashboard
-    from . import communication  
+    from . import communication
     from . import user_management
     from . import roles  # New role management
     from . import monitoring
@@ -39,7 +39,20 @@ def register_all_routes(admin_panel_bp):
     from . import store_management
     from . import api_management
     from . import helpers
-    
+
+    # Phase 1: System Infrastructure (Health, Redis, Docker)
+    from . import system_infrastructure
+
+    # Phase 2: Discord & MLS Management
+    from . import discord_management
+    from . import mls_management
+
+    # Phase 3: Reports & Feedback
+    from . import reports_feedback
+
+    # Phase 4: Draft Management
+    from . import draft_management
+
     # All routes are automatically registered when modules are imported
     # due to the @admin_panel_bp.route decorators
     pass

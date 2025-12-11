@@ -196,11 +196,11 @@ def draft_cache_stats():
         # Get draft cache statistics
         cache_stats = DraftCacheService.get_cache_stats()
         
-        # Get cache warmth for each league
-        from app.models import League
+        # Get cache warmth for leagues in current season
+        from app.models import League, Season
         from flask import g
         session = g.db_session
-        leagues = session.query(League).filter(League.is_active == True).all()
+        leagues = session.query(League).join(Season).filter(Season.is_current == True).all()
         
         league_cache_status = {}
         for league in leagues:

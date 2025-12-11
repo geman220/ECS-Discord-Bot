@@ -93,17 +93,17 @@
   
   /* Fix 4: Make buttons smaller and more manageable */
   .btn {
-    font-size: 12px;
-    padding: 6px 10px;
-    min-height: 32px;
-    margin: 2px;
+    font-size: 14px;
+    padding: 10px 16px;
+    min-height: 44px;
+    margin: 4px;
   }
-  
+
   .btn-sm {
-    font-size: 10px;
-    padding: 4px 6px;
-    min-height: 24px;
-    margin: 1px;
+    font-size: 13px;
+    padding: 8px 12px;
+    min-height: 44px;
+    margin: 2px;
   }
   
   /* Fix button groups to wrap properly */
@@ -135,10 +135,10 @@
   }
   
   .table-responsive .btn-group-vertical .btn {
-    font-size: 10px;
-    padding: 3px 5px;
-    min-height: 24px;
-    margin: 1px;
+    font-size: 12px;
+    padding: 8px 12px;
+    min-height: 44px;
+    margin: 2px;
   }
   
   /* Fix 5: Sidebar z-index */

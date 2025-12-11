@@ -1,0 +1,792 @@
+{% extends 'admin/layout.html' %}
+{% block title %}Wallet Pass Visual Editor{% endblock %}
+
+{% block page_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/classic.min.css"/>
+<!-- Load Pickr library in head to ensure it's available before scripts run -->
+<script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Visual Editor - Theme-aware styling */
+    .pass-preview {
+        width: 320px;
+        margin: 0 auto;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: var(--bs-box-shadow);
+        transition: all 0.3s;
+        background-color: {{ pass_type.background_color }};
+        color: {{ pass_type.foreground_color }};
+    }
+    .pass-preview:hover {
+        box-shadow: var(--bs-box-shadow-lg);
+        transform: translateY(-5px);
+    }
+    .pass-header {
+        padding: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+    }
+    .pass-logo {
+        width: 40px;
+        height: 40px;
+        margin-right: 10px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    .pass-logo img {
+        max-width: 100%;
+        max-height: 100%;
+    }
+    .pass-logo-text {
+        font-weight: bold;
+        font-size: 18px;
+    }
+    .pass-content {
+        padding: 15px;
+    }
+    .pass-field {
+        margin-bottom: 15px;
+    }
+    .pass-field-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        opacity: 0.7;
+        color: {{ pass_type.label_color }};
+    }
+    .pass-field-value {
+        font-size: 16px;
+        font-weight: bold;
+    }
+    .pass-barcode {
+        background-color: #fff;
+        padding: 15px;
+        border-radius: 4px;
+        text-align: center;
+        margin-top: 10px;
+    }
+    .pass-barcode img {
+        max-width: 100%;
+        height: auto;
+    }
+    .color-picker-container {
+        display: flex;
+        align-items: center;
+    }
+    .color-preview {
+        width: 36px;
+        height: 36px;
+        border-radius: 4px;
+        margin-right: 10px;
+        border: 1px solid var(--bs-border-color, #ddd);
+    }
+    .template-editor {
+        height: 300px;
+        font-family: monospace;
+        font-size: 14px;
+    }
+    /* Ensure form text is visible in dark mode */
+    .form-text {
+        color: var(--bs-secondary-color) !important;
+    }
+    /* Card body text visibility */
+    .card-body ul li {
+        color: var(--bs-body-color);
+    }
+</style>
+{% endblock custom_css %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="fw-bold text-primary mb-1">
+                        <i class="ti ti-brush me-2"></i>{{ pass_type.name }} Visual Editor
+                    </h2>
+                    <p class="text-muted mb-0">Customize the appearance and layout of your wallet passes</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('wallet_config.templates') }}" class="btn btn-outline-secondary">
+                        <i class="ti ti-arrow-left me-1"></i> Back to Templates
+                    </a>
+                    <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-outline-secondary ms-2">
+                        <i class="ti ti-layout-dashboard me-1"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editor Layout -->
+    <div class="row">
+        <!-- Left Column: Editor Tools -->
+        <div class="col-md-6 mb-4">
+            <form action="{{ url_for('wallet_config.save_visual_editor') }}" method="post" id="visualEditorForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="pass_type_id" value="{{ pass_type.id }}">
+                
+                <!-- Appearance Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Appearance Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Background Color -->
+                        <div class="mb-3">
+                            <label class="form-label">Background Color</label>
+                            <div class="input-group">
+                                <div class="color-preview" id="bgColorPreview" style="background-color: {{ pass_type.background_color }};"></div>
+                                <input type="text" class="form-control" id="background_color" name="background_color" value="{{ pass_type.background_color }}">
+                                <button class="btn btn-outline-secondary" type="button" id="bgColorPicker">
+                                    <i class="ti ti-color-picker"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Main background color of the pass</div>
+                        </div>
+                        
+                        <!-- Foreground Color -->
+                        <div class="mb-3">
+                            <label class="form-label">Foreground Color</label>
+                            <div class="input-group">
+                                <div class="color-preview" id="fgColorPreview" style="background-color: {{ pass_type.foreground_color }};"></div>
+                                <input type="text" class="form-control" id="foreground_color" name="foreground_color" value="{{ pass_type.foreground_color }}">
+                                <button class="btn btn-outline-secondary" type="button" id="fgColorPicker">
+                                    <i class="ti ti-color-picker"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Primary text color for the pass</div>
+                        </div>
+                        
+                        <!-- Label Color -->
+                        <div class="mb-3">
+                            <label class="form-label">Label Color</label>
+                            <div class="input-group">
+                                <div class="color-preview" id="lblColorPreview" style="background-color: {{ pass_type.label_color }};"></div>
+                                <input type="text" class="form-control" id="label_color" name="label_color" value="{{ pass_type.label_color }}">
+                                <button class="btn btn-outline-secondary" type="button" id="lblColorPicker">
+                                    <i class="ti ti-color-picker"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Color for field labels on the pass</div>
+                        </div>
+                        
+                        <!-- Logo Text -->
+                        <div class="mb-3">
+                            <label class="form-label">Logo Text</label>
+                            <input type="text" class="form-control" id="logo_text" name="logo_text" value="{{ pass_type.logo_text }}">
+                            <div class="form-text">Text displayed next to the logo</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Template Content Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Template Content</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Template JSON</label>
+                            <textarea class="form-control template-editor" id="template_content" name="template_content">{% if template_content %}{{ template_content|tojson(indent=2) }}{% endif %}</textarea>
+                            <div class="form-text">Edit the raw template JSON (advanced)</div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="ti ti-info-circle me-1"></i>
+                            <strong>Template Variables:</strong> Use variables like <code>{% raw %}{{member_name}}{% endraw %}</code>, <code>{% raw %}{{validity}}{% endraw %}</code>, and <code>{% raw %}{{team_name}}{% endraw %}</code> for dynamic content.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Submit Button -->
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                        <i class="ti ti-refresh me-1"></i> Reset Changes
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-device-floppy me-1"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Right Column: Live Preview -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Live Preview</h5>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <div class="alert alert-info mb-3">
+                        <i class="ti ti-eye me-1"></i>
+                        This preview shows how your pass will appear in the wallet app. Changes update in real-time.
+                    </div>
+                    
+                    <!-- Pass Preview -->
+                    <div class="pass-preview" id="passPreview">
+                        <div class="pass-header">
+                            <div class="pass-logo" id="logoPreview">
+                                {% if assets and 'icon' in assets %}
+                                    <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['icon'].id) }}" alt="Logo">
+                                {% else %}
+                                    <i class="ti ti-certificate"></i>
+                                {% endif %}
+                            </div>
+                            <div class="pass-logo-text" id="logoTextPreview">{{ pass_type.logo_text }}</div>
+                        </div>
+                        <div class="pass-content">
+                            <!-- Primary Field -->
+                            <div class="pass-field">
+                                <div class="pass-field-label">MEMBER</div>
+                                <div class="pass-field-value">Jane Smith</div>
+                            </div>
+                            
+                            <!-- Secondary Field -->
+                            <div class="pass-field">
+                                <div class="pass-field-label">VALID FOR</div>
+                                <div class="pass-field-value">2025 Membership</div>
+                            </div>
+                            
+                            <!-- Auxiliary Field -->
+                            <div class="pass-field">
+                                <div class="pass-field-label">TEAM</div>
+                                <div class="pass-field-value">Seattle Sounders</div>
+                            </div>
+                            
+                            <!-- Barcode -->
+                            <div class="pass-barcode">
+                                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAMAAABrrFhUAAAABlBMVEX///8AAABVwtN+AAACG0lEQVR4nO3VwXHEMAxEQcv3P3RcrsCFLQCzT+BtUdUaVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVXV+4+9OeZ6O5KJJGNIJpKMIZlIMoZkIskYkokk40jG2NvJRJJxJBNJxpFMJBlHMpFkHMlEkjEkE0nGkEwkGUMykWQMyUSSMSQT7S0dSTKGZCLJGJKJJGNIJpKMIZlIMoZkIsl4JGPsLc1EkvFIxthbmokk45GMsbc0E0nGIxlnb2m2lzEe23v7a03vN5Jl6f1Gsiy930iWpfcbybL0fiNZlt5vJMvS+41kWXq/kSxL7zeSZen9RrIsvd9IlqX3G8my9H4jWZbeb+zlXnq/sZd76f3GXu6l9xt7uZfeb+zlXnq/sZd76f3GXu6l9xt7uZfeb+zlXnq/sZd76f3GXu6l9xt7uZfeb+zlXnq/sZd76f1Gkokk40gmkowjmUgyjmQiyTiSiSTjSCaSjCOZSDKOZCLJOJKJJONIJpKMI5lIMo5kIsk4kokk40gmkowjmUgyjmQiyTiSiSTjSCaSjCOZSDKOZCLJOJKJJONIJpKMI5lIMo5kIsk4kokk4/4B9d4InVtocZ0AAAAASUVORK5CYII=" alt="QR Code">
+                                <div style="font-size: 12px; margin-top: 5px;">ECSFC-ECS-12345678ABCD</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Preview Controls -->
+                    <div class="mt-auto">
+                        <div class="card mt-3">
+                            <div class="card-body">
+                                <h6>Preview Options</h6>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="toggleBackground">
+                                    <label class="form-check-label" for="toggleBackground">Toggle Background Image</label>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="toggleBarcode">
+                                    <label class="form-check-label" for="toggleBarcode">Toggle Barcode Display</label>
+                                </div>
+                                
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="toggleFields">
+                                    <label class="form-check-label" for="toggleFields">Toggle Field Layout</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Asset Management -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Pass Assets</h5>
+                    <a href="{{ url_for('wallet_config.assets') }}" class="btn btn-sm btn-primary">
+                        <i class="ti ti-photo me-1"></i> Manage Assets
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if assets %}
+                            {% for asset_type, asset in assets.items() %}
+                                <div class="col-md-2 col-sm-4 col-6 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body text-center p-2">
+                                            <div style="height: 80px; display: flex; align-items: center; justify-content: center;">
+                                                <img src="{{ url_for('wallet_config.get_asset', asset_id=asset.id) }}" alt="{{ asset_type }}"
+                                                     class="img-fluid" style="max-height: 100%; max-width: 100%;">
+                                            </div>
+                                            <div class="mt-2">
+                                                <h6 class="mb-0" style="font-size: 0.9rem;">{{ asset_type }}</h6>
+                                                <small class="text-muted">{{ asset.file_name|truncate(15) }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="col-12">
+                                <div class="alert alert-warning">
+                                    <i class="ti ti-alert-triangle me-2"></i>
+                                    No assets uploaded for this pass type yet. 
+                                    <a href="{{ url_for('wallet_config.assets') }}">Upload assets</a> to enhance your pass appearance.
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Help & Tips -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="ti ti-bulb me-2"></i>Design Tips</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <h6>Colors</h6>
+                    <ul class="small mb-0">
+                        <li>Use brand colors to maintain identity</li>
+                        <li>Ensure sufficient contrast between text and background</li>
+                        <li>Label color should be visible but subdued</li>
+                        <li>Test colors on both light and dark device themes</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6>Content</h6>
+                    <ul class="small mb-0">
+                        <li>Keep most important information at the top</li>
+                        <li>Use variable placeholders consistently</li>
+                        <li>Include member name, validity, and team when relevant</li>
+                        <li>Keep text concise and scannable</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6>Layout</h6>
+                    <ul class="small mb-0">
+                        <li>Group related information together</li>
+                        <li>Use back fields for additional details and terms</li>
+                        <li>Ensure barcode is prominently displayed</li>
+                        <li>Include contact information on the back</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    'use strict';
+
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initVisualEditor);
+    } else {
+        initVisualEditor();
+    }
+
+    function initVisualEditor() {
+        // Cache DOM elements
+        const elements = {
+            passPreview: document.getElementById('passPreview'),
+            bgColorInput: document.getElementById('background_color'),
+            fgColorInput: document.getElementById('foreground_color'),
+            lblColorInput: document.getElementById('label_color'),
+            logoTextInput: document.getElementById('logo_text'),
+            bgColorPreview: document.getElementById('bgColorPreview'),
+            fgColorPreview: document.getElementById('fgColorPreview'),
+            lblColorPreview: document.getElementById('lblColorPreview'),
+            logoTextPreview: document.getElementById('logoTextPreview'),
+            templateContent: document.getElementById('template_content'),
+            toggleBackground: document.getElementById('toggleBackground'),
+            toggleBarcode: document.getElementById('toggleBarcode'),
+            toggleFields: document.getElementById('toggleFields'),
+            barcodeSection: document.querySelector('.pass-barcode'),
+            fieldLabels: document.querySelectorAll('.pass-field-label'),
+            fieldValues: document.querySelectorAll('.pass-field-value'),
+            fields: document.querySelectorAll('.pass-field')
+        };
+
+        // Verify critical elements exist
+        if (!elements.passPreview) {
+            return;
+        }
+
+        // ==========================================
+        // Color Picker Setup
+        // ==========================================
+        let bgPickr, fgPickr, lblPickr;
+
+        try {
+            bgPickr = Pickr.create({
+                el: '#bgColorPicker',
+                theme: 'classic',
+                default: '{{ pass_type.background_color }}',
+                useAsButton: true,
+                swatches: ['#213e96', '#1a472a', '#000000', '#ffffff', '#7367f0', '#28c76f', '#ff9f43', '#ea5455'],
+                components: {
+                    preview: true,
+                    opacity: false,
+                    hue: true,
+                    interaction: { hex: true, input: true, save: true }
+                }
+            });
+
+            fgPickr = Pickr.create({
+                el: '#fgColorPicker',
+                theme: 'classic',
+                default: '{{ pass_type.foreground_color }}',
+                useAsButton: true,
+                swatches: ['#ffffff', '#000000', '#333333', '#666666', '#999999'],
+                components: {
+                    preview: true,
+                    opacity: false,
+                    hue: true,
+                    interaction: { hex: true, input: true, save: true }
+                }
+            });
+
+            lblPickr = Pickr.create({
+                el: '#lblColorPicker',
+                theme: 'classic',
+                default: '{{ pass_type.label_color }}',
+                useAsButton: true,
+                swatches: ['#c8c8c8', '#b8d4b8', '#999999', '#666666', '#ffffff'],
+                components: {
+                    preview: true,
+                    opacity: false,
+                    hue: true,
+                    interaction: { hex: true, input: true, save: true }
+                }
+            });
+
+        } catch (e) {
+            // Color picker initialization failed - continue without them
+        }
+
+        // ==========================================
+        // Live Preview Update Functions
+        // ==========================================
+        function updateBackgroundColor(color) {
+            if (!color) return;
+            elements.bgColorInput.value = color;
+            elements.bgColorPreview.style.backgroundColor = color;
+            elements.passPreview.style.backgroundColor = color;
+        }
+
+        function updateForegroundColor(color) {
+            if (!color) return;
+            elements.fgColorInput.value = color;
+            elements.fgColorPreview.style.backgroundColor = color;
+            elements.passPreview.style.color = color;
+            elements.fieldValues.forEach(el => el.style.color = color);
+            if (elements.logoTextPreview) elements.logoTextPreview.style.color = color;
+        }
+
+        function updateLabelColor(color) {
+            if (!color) return;
+            elements.lblColorInput.value = color;
+            elements.lblColorPreview.style.backgroundColor = color;
+            elements.fieldLabels.forEach(el => el.style.color = color);
+        }
+
+        function updateLogoText(text) {
+            if (elements.logoTextPreview) {
+                elements.logoTextPreview.textContent = text;
+            }
+        }
+
+        // ==========================================
+        // Color Picker Event Handlers
+        // ==========================================
+        if (bgPickr) {
+            bgPickr.on('change', (color) => {
+                if (color) updateBackgroundColor(color.toHEXA().toString());
+            });
+            bgPickr.on('save', (color) => {
+                if (color) updateBackgroundColor(color.toHEXA().toString());
+                bgPickr.hide();
+            });
+        }
+
+        if (fgPickr) {
+            fgPickr.on('change', (color) => {
+                if (color) updateForegroundColor(color.toHEXA().toString());
+            });
+            fgPickr.on('save', (color) => {
+                if (color) updateForegroundColor(color.toHEXA().toString());
+                fgPickr.hide();
+            });
+        }
+
+        if (lblPickr) {
+            lblPickr.on('change', (color) => {
+                if (color) updateLabelColor(color.toHEXA().toString());
+            });
+            lblPickr.on('save', (color) => {
+                if (color) updateLabelColor(color.toHEXA().toString());
+                lblPickr.hide();
+            });
+        }
+
+        // ==========================================
+        // Text Input Event Handlers (Real-time)
+        // ==========================================
+
+        // Background color text input
+        elements.bgColorInput.addEventListener('input', function() {
+            const color = this.value;
+            elements.bgColorPreview.style.backgroundColor = color;
+            elements.passPreview.style.backgroundColor = color;
+            if (bgPickr && color.match(/^#[0-9A-Fa-f]{6}$/i)) {
+                bgPickr.setColor(color, true); // silent update
+            }
+        });
+
+        // Foreground color text input
+        elements.fgColorInput.addEventListener('input', function() {
+            const color = this.value;
+            elements.fgColorPreview.style.backgroundColor = color;
+            elements.passPreview.style.color = color;
+            elements.fieldValues.forEach(el => el.style.color = color);
+            if (elements.logoTextPreview) elements.logoTextPreview.style.color = color;
+            if (fgPickr && color.match(/^#[0-9A-Fa-f]{6}$/i)) {
+                fgPickr.setColor(color, true);
+            }
+        });
+
+        // Label color text input
+        elements.lblColorInput.addEventListener('input', function() {
+            const color = this.value;
+            elements.lblColorPreview.style.backgroundColor = color;
+            elements.fieldLabels.forEach(el => el.style.color = color);
+            if (lblPickr && color.match(/^#[0-9A-Fa-f]{6}$/i)) {
+                lblPickr.setColor(color, true);
+            }
+        });
+
+        // Logo text input - REAL TIME
+        elements.logoTextInput.addEventListener('input', function() {
+            updateLogoText(this.value);
+        });
+
+        // Also listen for keyup and change events for better coverage
+        elements.logoTextInput.addEventListener('keyup', function() {
+            updateLogoText(this.value);
+        });
+
+
+        // ==========================================
+        // Toggle Switches
+        // ==========================================
+
+        // Toggle background image
+        if (elements.toggleBackground) {
+            elements.toggleBackground.addEventListener('change', function() {
+                if (this.checked) {
+                    {% if assets and 'background' in assets %}
+                    const bgUrl = "{{ url_for('wallet_config.get_asset', asset_id=assets['background'].id) }}";
+                    elements.passPreview.style.backgroundImage = "url('" + bgUrl + "')";
+                    elements.passPreview.style.backgroundSize = 'cover';
+                    elements.passPreview.style.backgroundPosition = 'center';
+                    {% else %}
+                    Swal.fire({
+                        title: 'No Background Image',
+                        text: 'Please upload a background image in the asset manager first.',
+                        icon: 'info'
+                    });
+                    this.checked = false;
+                    {% endif %}
+                } else {
+                    elements.passPreview.style.backgroundImage = 'none';
+                }
+            });
+        }
+
+        // Toggle barcode display
+        if (elements.toggleBarcode) {
+            elements.toggleBarcode.addEventListener('change', function() {
+                if (elements.barcodeSection) {
+                    elements.barcodeSection.style.display = this.checked ? 'none' : 'block';
+                }
+            });
+        }
+
+        // Toggle field layout
+        if (elements.toggleFields) {
+            elements.toggleFields.addEventListener('change', function() {
+                elements.fields.forEach((field, index) => {
+                    if (this.checked) {
+                        if (index === 0) {
+                            field.style.fontSize = '1.2em';
+                            field.style.textAlign = 'center';
+                            field.style.padding = '10px 0';
+                        } else {
+                            field.style.display = 'inline-block';
+                            field.style.width = '50%';
+                        }
+                    } else {
+                        field.style.fontSize = '';
+                        field.style.textAlign = '';
+                        field.style.padding = '';
+                        field.style.display = '';
+                        field.style.width = '';
+                    }
+                });
+            });
+        }
+
+
+        // ==========================================
+        // Template JSON Live Preview
+        // ==========================================
+        if (elements.templateContent) {
+            let debounceTimer;
+            elements.templateContent.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    try {
+                        const data = JSON.parse(this.value);
+                        this.classList.remove('is-invalid');
+
+                        // Sync colors from JSON to form and preview
+                        if (data.backgroundColor) {
+                            updateBackgroundColor(data.backgroundColor);
+                            if (bgPickr) bgPickr.setColor(data.backgroundColor, true);
+                        }
+                        if (data.foregroundColor) {
+                            updateForegroundColor(data.foregroundColor);
+                            if (fgPickr) fgPickr.setColor(data.foregroundColor, true);
+                        }
+                        if (data.labelColor) {
+                            updateLabelColor(data.labelColor);
+                            if (lblPickr) lblPickr.setColor(data.labelColor, true);
+                        }
+                        if (data.logoText) {
+                            elements.logoTextInput.value = data.logoText;
+                            updateLogoText(data.logoText);
+                        }
+
+                    } catch (e) {
+                        this.classList.add('is-invalid');
+                    }
+                }, 300);
+            });
+        }
+
+        // ==========================================
+        // Reset Form Function
+        // ==========================================
+        window.resetForm = function() {
+            Swal.fire({
+                title: 'Reset Changes?',
+                text: 'This will reset all changes to their original values.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, reset',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Reset form values
+                    const origBg = '{{ pass_type.background_color }}';
+                    const origFg = '{{ pass_type.foreground_color }}';
+                    const origLbl = '{{ pass_type.label_color }}';
+                    const origLogo = '{{ pass_type.logo_text }}';
+
+                    updateBackgroundColor(origBg);
+                    updateForegroundColor(origFg);
+                    updateLabelColor(origLbl);
+                    elements.logoTextInput.value = origLogo;
+                    updateLogoText(origLogo);
+
+                    // Reset color pickers
+                    if (bgPickr) bgPickr.setColor(origBg, true);
+                    if (fgPickr) fgPickr.setColor(origFg, true);
+                    if (lblPickr) lblPickr.setColor(origLbl, true);
+
+                    // Reset template
+                    {% if template_content %}
+                    elements.templateContent.value = JSON.stringify({{ template_content|tojson }}, null, 2);
+                    {% endif %}
+
+                    // Reset toggles
+                    if (elements.toggleBackground) {
+                        elements.toggleBackground.checked = false;
+                        elements.passPreview.style.backgroundImage = 'none';
+                    }
+                    if (elements.toggleBarcode) {
+                        elements.toggleBarcode.checked = false;
+                        if (elements.barcodeSection) elements.barcodeSection.style.display = 'block';
+                    }
+                    if (elements.toggleFields) {
+                        elements.toggleFields.checked = false;
+                        elements.fields.forEach(field => {
+                            field.style.fontSize = '';
+                            field.style.textAlign = '';
+                            field.style.padding = '';
+                            field.style.display = '';
+                            field.style.width = '';
+                        });
+                    }
+
+                    Swal.fire({
+                        title: 'Reset Complete',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
+            });
+        };
+
+        // ==========================================
+        // Form Validation
+        // ==========================================
+        const form = document.getElementById('visualEditorForm');
+        if (form) {
+            form.addEventListener('submit', function(event) {
+                const colorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+                let errors = [];
+
+                if (!colorRegex.test(elements.bgColorInput.value)) {
+                    errors.push('Invalid background color format');
+                }
+                if (!colorRegex.test(elements.fgColorInput.value)) {
+                    errors.push('Invalid foreground color format');
+                }
+                if (!colorRegex.test(elements.lblColorInput.value)) {
+                    errors.push('Invalid label color format');
+                }
+
+                if (elements.templateContent && elements.templateContent.value) {
+                    try {
+                        JSON.parse(elements.templateContent.value);
+                    } catch (e) {
+                        errors.push('Invalid JSON in template content');
+                    }
+                }
+
+                if (errors.length > 0) {
+                    event.preventDefault();
+                    Swal.fire({
+                        title: 'Validation Error',
+                        html: errors.join('<br>'),
+                        icon: 'error'
+                    });
+                }
+            });
+        }
+
+    }
+})();
+</script>
+{% endblock %}

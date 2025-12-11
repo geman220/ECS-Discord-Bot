@@ -8,6 +8,7 @@ configure database settings for the Flask application using engine options.
 """
 
 import logging
+import logging.handlers
 from app.database.pool import ENGINE_OPTIONS
 
 logger = logging.getLogger(__name__)
@@ -17,16 +18,18 @@ def setup_db_logging(testing=False):
     Configure detailed logging for SQLAlchemy engine and connection pool.
 
     Sets the log level for the SQLAlchemy engine and pool loggers, attaches a
-    FileHandler with a specific formatter, and disables propagation to prevent
+    RotatingFileHandler with a specific formatter, and disables propagation to prevent
     duplicate logging.
-    
+
     :param testing: If True, skip file logging to avoid permission issues
     """
     db_logger = logging.getLogger('sqlalchemy.engine')
-    db_logger.setLevel(logging.INFO)
+    # Only log warnings and errors to drastically reduce log volume
+    db_logger.setLevel(logging.WARNING)
 
     pool_logger = logging.getLogger('sqlalchemy.pool')
-    pool_logger.setLevel(logging.INFO)
+    # Only log warnings and errors for pool operations
+    pool_logger.setLevel(logging.WARNING)
 
     formatter = logging.Formatter(
         '%(asctime)s [%(levelname)s] %(name)s:%(lineno)d - %(message)s'
@@ -36,14 +39,20 @@ def setup_db_logging(testing=False):
     for logger_instance in (db_logger, pool_logger):
         # Clear existing handlers.
         logger_instance.handlers = []
-        
+
         if testing:
             # Use console handler for testing to avoid file permission issues
             handler = logging.StreamHandler()
         else:
-            # Use file handler for production with logs directory
-            handler = logging.FileHandler('logs/sql_detailed.log')
-            
+            # Use RotatingFileHandler to prevent unlimited log growth
+            # Max 50MB per file, keep 3 backup files (200MB total max)
+            handler = logging.handlers.RotatingFileHandler(
+                'logs/sql_detailed.log',
+                maxBytes=52428800,  # 50MB
+                backupCount=3,
+                encoding='utf-8'
+            )
+
         handler.setFormatter(formatter)
         logger_instance.addHandler(handler)
         # Disable propagation to avoid duplicate logs.

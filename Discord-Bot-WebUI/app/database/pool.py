@@ -195,11 +195,11 @@ class RateLimitedPool(QueuePool):
     def _on_checkin(self, dbapi_conn, con_record):
         """
         Event handler called when a connection is returned to the pool.
-        
+
         Removes the connection from the active connections tracker and attempts a rollback.
         """
         conn_id = id(dbapi_conn)
-        logger.warning(f"POOL EVENT: _on_checkin fired for connection {conn_id}")
+        logger.debug(f"POOL EVENT: _on_checkin fired for connection {conn_id}")
         
         conn_info = self._active_connections.pop(conn_id, None)
         
@@ -290,8 +290,8 @@ def _get_connect_args():
 
 ENGINE_OPTIONS = {
     'pool_pre_ping': True,
-    'pool_size': int(os.getenv('SQLALCHEMY_POOL_SIZE', 3)),  # Small pool since PgBouncer handles multiplexing
-    'max_overflow': int(os.getenv('SQLALCHEMY_MAX_OVERFLOW', 2)),  # Allow some overflow for burst traffic
+    'pool_size': int(os.getenv('SQLALCHEMY_POOL_SIZE', 10)),  # Increased from 3 to support concurrent draft operations
+    'max_overflow': int(os.getenv('SQLALCHEMY_MAX_OVERFLOW', 5)),  # Increased from 2 to support 10+ concurrent users
     'pool_recycle': int(os.getenv('SQLALCHEMY_POOL_RECYCLE', 1800)),
     'pool_timeout': int(os.getenv('SQLALCHEMY_POOL_TIMEOUT', 30)),  # Match env default
     'poolclass': RateLimitedPool,

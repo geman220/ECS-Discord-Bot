@@ -13,6 +13,7 @@ from typing import Dict, Any
 from app.decorators import celery_task
 from app.services.match_scheduler_service import MatchSchedulerService
 from app.utils.task_session_manager import task_session
+from app.models import ScheduledTask, TaskType, TaskState
 
 logger = logging.getLogger(__name__)
 
@@ -61,34 +62,82 @@ def schedule_upcoming_matches(self, session):
                     thread_time = match_dt - timedelta(hours=48)
 
                     if not match.thread_created:
-                        if thread_time > now:
-                            # Future: schedule for 48 hours before
-                            create_mls_match_thread_task.apply_async(
-                                args=[match.id],
-                                eta=thread_time,
-                                expires=thread_time + timedelta(hours=2)
-                            )
-                            scheduled_threads += 1
-                        else:
-                            # Past: create immediately (thread creation time has passed)
-                            create_mls_match_thread_task.apply_async(
-                                args=[match.id]
-                            )
-                            scheduled_threads += 1
-                            logger.info(f"Immediately creating thread for match {match.id} (overdue by {now - thread_time})")
+                        # Check if task already exists in database
+                        existing_thread_task = ScheduledTask.find_existing_task(
+                            session, match.id, TaskType.THREAD_CREATION
+                        )
+
+                        if not existing_thread_task:
+                            if thread_time > now:
+                                # Future: schedule for 48 hours before
+                                celery_task = create_mls_match_thread_task.apply_async(
+                                    args=[match.id],
+                                    eta=thread_time,
+                                    expires=thread_time + timedelta(hours=2)
+                                )
+
+                                # Create database tracking record
+                                db_task = ScheduledTask(
+                                    task_type=TaskType.THREAD_CREATION,
+                                    match_id=match.id,
+                                    celery_task_id=celery_task.id,
+                                    scheduled_time=thread_time,
+                                    state=TaskState.SCHEDULED
+                                )
+                                session.add(db_task)
+                                scheduled_threads += 1
+                                logger.info(f"Scheduled thread creation for match {match.id} at {thread_time}, task_id={celery_task.id}, db_task_id={db_task.id}")
+                            else:
+                                # Past: create immediately (thread creation time has passed)
+                                celery_task = create_mls_match_thread_task.apply_async(
+                                    args=[match.id]
+                                )
+
+                                # Create database tracking record as RUNNING
+                                db_task = ScheduledTask(
+                                    task_type=TaskType.THREAD_CREATION,
+                                    match_id=match.id,
+                                    celery_task_id=celery_task.id,
+                                    scheduled_time=thread_time,
+                                    state=TaskState.RUNNING,
+                                    execution_time=now
+                                )
+                                session.add(db_task)
+                                scheduled_threads += 1
+                                logger.info(f"Immediately creating thread for match {match.id} (overdue by {now - thread_time}), task_id={celery_task.id}")
 
                     # Schedule live reporting start (5 minutes before)
                     live_start_time = match_dt - timedelta(minutes=5)
-                    if live_start_time > now:
-                        start_mls_live_reporting_task.apply_async(
+
+                    # Check if task already exists in database
+                    existing_reporting_task = ScheduledTask.find_existing_task(
+                        session, match.id, TaskType.LIVE_REPORTING_START
+                    )
+
+                    if not existing_reporting_task and live_start_time > now:
+                        celery_task = start_mls_live_reporting_task.apply_async(
                             args=[match.id],
                             eta=live_start_time,
                             expires=live_start_time + timedelta(minutes=30)
                         )
+
+                        # Create database tracking record
+                        db_task = ScheduledTask(
+                            task_type=TaskType.LIVE_REPORTING_START,
+                            match_id=match.id,
+                            celery_task_id=celery_task.id,
+                            scheduled_time=live_start_time,
+                            state=TaskState.SCHEDULED
+                        )
+                        session.add(db_task)
                         scheduled_live += 1
+                        logger.info(f"Scheduled live reporting for match {match.id} at {live_start_time}, task_id={celery_task.id}, db_task_id={db_task.id}")
 
                 except Exception as e:
                     logger.error(f"Error scheduling MLS match {match.id}: {e}")
+
+            # Commit all database task records
+            session.commit()
 
             result = {
                 'success': True,

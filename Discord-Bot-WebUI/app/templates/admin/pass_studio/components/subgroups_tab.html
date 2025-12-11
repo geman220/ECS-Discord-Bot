@@ -1,0 +1,286 @@
+{# Subgroups Tab Component #}
+{# Manage ECS supporter subgroups #}
+
+<!-- Subgroups Info -->
+<div class="alert alert-info mb-4">
+    <div class="d-flex">
+        <i class="ti ti-users-group me-2 fs-4"></i>
+        <div>
+            <strong>Supporter Subgroups</strong>
+            <p class="mb-0 mt-1">
+                Subgroups like Gorilla FC, North End Faithful, and others can be displayed on ECS membership passes.
+                Members can select their subgroup affiliation when claiming their pass.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Add Subgroup Button -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h6 class="mb-0">Subgroups</h6>
+    <button type="button" class="btn btn-primary btn-sm" onclick="addSubgroup()">
+        <i class="ti ti-plus me-1"></i> Add Subgroup
+    </button>
+</div>
+
+<!-- Stats -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card bg-label-primary">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-md bg-primary me-3">
+                        <span class="avatar-initial"><i class="ti ti-users-group"></i></span>
+                    </div>
+                    <div>
+                        <h4 class="mb-0">{{ subgroups|length }}</h4>
+                        <small>Total Subgroups</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card bg-label-success">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-md bg-success me-3">
+                        <span class="avatar-initial"><i class="ti ti-check"></i></span>
+                    </div>
+                    <div>
+                        <h4 class="mb-0">{{ subgroups|selectattr('is_active')|list|length }}</h4>
+                        <small>Active Subgroups</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Subgroups Grid -->
+{% if subgroups %}
+<div class="row">
+    {% for subgroup in subgroups %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 {{ 'opacity-50' if not subgroup.is_active }}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h5 class="mb-1">{{ subgroup.name }}</h5>
+                        <code class="small text-muted">{{ subgroup.code }}</code>
+                    </div>
+                    {% if subgroup.is_active %}
+                    <span class="badge bg-success">Active</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                </div>
+                {% if subgroup.description %}
+                <p class="text-muted small mb-3">{{ subgroup.description }}</p>
+                {% endif %}
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="editSubgroup({{ subgroup.id }}, '{{ subgroup.name }}', '{{ subgroup.code }}', '{{ subgroup.description|e if subgroup.description else "" }}')">
+                        <i class="ti ti-edit me-1"></i> Edit
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteSubgroup({{ subgroup.id }}, '{{ subgroup.name }}')">
+                        <i class="ti ti-trash me-1"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="ti ti-users-group fs-1 text-muted"></i>
+        <p class="mt-3 text-muted">No subgroups configured yet.</p>
+        <p class="text-muted small">Add supporter subgroups that members can select.</p>
+        <button type="button" class="btn btn-primary" onclick="addSubgroup()">
+            <i class="ti ti-plus me-1"></i> Add First Subgroup
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- Subgroup Usage Hint -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="ti ti-bulb me-2"></i>How Subgroups Work</h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <div class="d-flex">
+                    <div class="avatar avatar-sm bg-label-primary me-2">
+                        <span class="avatar-initial">1</span>
+                    </div>
+                    <div>
+                        <h6 class="mb-1">Define Subgroups</h6>
+                        <small class="text-muted">Add the supporter groups that exist in your community</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="d-flex">
+                    <div class="avatar avatar-sm bg-label-primary me-2">
+                        <span class="avatar-initial">2</span>
+                    </div>
+                    <div>
+                        <h6 class="mb-1">Members Select</h6>
+                        <small class="text-muted">When claiming a pass, members can choose their subgroup</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="d-flex">
+                    <div class="avatar avatar-sm bg-label-primary me-2">
+                        <span class="avatar-initial">3</span>
+                    </div>
+                    <div>
+                        <h6 class="mb-1">Display on Pass</h6>
+                        <small class="text-muted">Use <code>{% raw %}{{subgroup}}{% endraw %}</code> variable in fields</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function addSubgroup() {
+    Swal.fire({
+        title: 'Add Subgroup',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Name <span class="text-danger">*</span></label>
+                    <input type="text" id="sg-name" class="form-control" placeholder="e.g., Gorilla FC">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Code</label>
+                    <input type="text" id="sg-code" class="form-control" placeholder="e.g., gorilla_fc (auto-generated if blank)">
+                    <small class="text-muted">Lowercase identifier, no spaces</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea id="sg-desc" class="form-control" rows="2" placeholder="Optional description"></textarea>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Add Subgroup',
+        preConfirm: () => {
+            const name = document.getElementById('sg-name').value.trim();
+            if (!name) {
+                Swal.showValidationMessage('Name is required');
+                return false;
+            }
+
+            return {
+                name,
+                code: document.getElementById('sg-code').value.trim() || name.toLowerCase().replace(/\s+/g, '_'),
+                description: document.getElementById('sg-desc').value.trim()
+            };
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch('/admin/wallet/studio/ecs_membership/subgroups', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+                    },
+                    body: JSON.stringify(result.value)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    PassStudio.showToast('Subgroup added', 'success');
+                    location.reload();
+                } else {
+                    PassStudio.showToast(data.error || 'Error adding subgroup', 'error');
+                }
+            } catch (error) {
+                PassStudio.showToast('Error adding subgroup', 'error');
+            }
+        }
+    });
+}
+
+function editSubgroup(id, name, code, description) {
+    Swal.fire({
+        title: 'Edit Subgroup',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Name <span class="text-danger">*</span></label>
+                    <input type="text" id="edit-sg-name" class="form-control" value="${name}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Code</label>
+                    <input type="text" id="edit-sg-code" class="form-control" value="${code}" disabled>
+                    <small class="text-muted">Code cannot be changed after creation</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea id="edit-sg-desc" class="form-control" rows="2">${description}</textarea>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Save Changes',
+        preConfirm: () => {
+            const name = document.getElementById('edit-sg-name').value.trim();
+            if (!name) {
+                Swal.showValidationMessage('Name is required');
+                return false;
+            }
+
+            return {
+                name,
+                description: document.getElementById('edit-sg-desc').value.trim()
+            };
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            // Note: Edit endpoint would need to be added to studio_routes.py
+            PassStudio.showToast('Edit functionality coming soon', 'info');
+        }
+    });
+}
+
+async function deleteSubgroup(id, name) {
+    const result = await Swal.fire({
+        title: 'Delete Subgroup?',
+        text: `Are you sure you want to delete "${name}"? This won't affect existing passes.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(`/admin/wallet/studio/ecs_membership/subgroups/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+                }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                PassStudio.showToast('Subgroup deleted', 'success');
+                location.reload();
+            } else {
+                PassStudio.showToast(data.error || 'Error deleting subgroup', 'error');
+            }
+        } catch (error) {
+            PassStudio.showToast('Error deleting subgroup', 'error');
+        }
+    }
+}
+</script>

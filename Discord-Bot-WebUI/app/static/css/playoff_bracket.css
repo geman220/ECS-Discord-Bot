@@ -328,7 +328,7 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 991px) {
+@media (max-width: 991.98px) {
     .bracket-match-card {
         padding: 0.75rem;
     }
@@ -350,7 +350,7 @@
     }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
     .bracket-match-card .match-info {
         flex-direction: column;
         align-items: flex-start;

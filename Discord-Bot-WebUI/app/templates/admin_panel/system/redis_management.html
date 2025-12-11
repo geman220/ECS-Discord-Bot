@@ -1,0 +1,397 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Redis Management - Admin Panel{% endblock %}
+
+{% block panel_description %}Redis connection pool monitoring and management{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.system_monitoring') }}">System</a></li>
+<li class="breadcrumb-item active">Redis Management</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Header Actions -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0"><i class="ti ti-database me-2"></i>Redis Connection Statistics</h5>
+                <div class="d-flex flex-wrap gap-2">
+                    <button id="refresh-btn" class="btn btn-primary btn-sm">
+                        <i class="ti ti-refresh me-1"></i>Refresh
+                    </button>
+                    <button id="cleanup-btn" class="btn btn-warning btn-sm">
+                        <i class="ti ti-trash me-1"></i>Cleanup
+                    </button>
+                    <button id="test-btn" class="btn btn-info btn-sm">
+                        <i class="ti ti-plug me-1"></i>Test Connection
+                    </button>
+                    <a href="{{ url_for('admin_panel.redis_draft_cache_stats') }}" class="btn btn-success btn-sm">
+                        <i class="ti ti-chart-bar me-1"></i>Draft Cache
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="auto-refresh" checked>
+                    <label class="form-check-label" for="auto-refresh">Auto-refresh every 5 seconds</label>
+                    <span id="last-updated" class="ms-3 text-muted small"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Health Status -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="ti ti-heart me-2"></i>Connection Health</h5>
+            </div>
+            <div class="card-body">
+                <div id="health-status" class="text-center py-3">
+                    {% if connection_health.overall %}
+                    <span class="status-indicator active me-2"></span>
+                    <span class="text-success">All connections healthy</span>
+                    {% else %}
+                    <span class="status-indicator inactive me-2"></span>
+                    <span class="text-danger">Connection issues detected</span>
+                    {% endif %}
+                </div>
+                <hr>
+                <div class="d-flex justify-content-around">
+                    <div class="text-center">
+                        <small class="text-muted d-block">Decoded Client</small>
+                        <span id="decoded-status" class="fs-4 {% if connection_health.decoded_client %}text-success{% else %}text-danger{% endif %}">
+                            {{ "&#10003;" if connection_health.decoded_client else "&#10007;" }}
+                        </span>
+                    </div>
+                    <div class="text-center">
+                        <small class="text-muted d-block">Raw Client</small>
+                        <span id="raw-status" class="fs-4 {% if connection_health.raw_client %}text-success{% else %}text-danger{% endif %}">
+                            {{ "&#10003;" if connection_health.raw_client else "&#10007;" }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pool Statistics -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="ti ti-chart-dots me-2"></i>Max Connections</h5>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <div class="text-center">
+                    <h2 class="mb-0" id="max-connections">{{ stats.pool_stats.max_connections|default(0) }}</h2>
+                    <small class="text-muted">Maximum pool size</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Utilization -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="ti ti-percentage me-2"></i>Pool Utilization</h5>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <div class="text-center">
+                    <h2 class="mb-0" id="utilization">{{ stats.pool_stats.utilization_percent|default(0) }}%</h2>
+                    <div class="progress mt-2" style="width: 150px; height: 8px;">
+                        <div class="progress-bar
+                            {% if stats.pool_stats.utilization_percent|default(0) > 90 %}bg-danger
+                            {% elif stats.pool_stats.utilization_percent|default(0) > 75 %}bg-warning
+                            {% else %}bg-success{% endif %}"
+                            id="utilization-bar"
+                            style="width: {{ stats.pool_stats.utilization_percent|default(0) }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Pool Details -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="ti ti-pool me-2"></i>Connection Pool Statistics</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <td>Pool Initialized</td>
+                            <td><span id="pool-initialized" class="badge {% if stats.connection_pool_initialized %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ "Yes" if stats.connection_pool_initialized else "No" }}
+                            </span></td>
+                        </tr>
+                        <tr>
+                            <td>Created Connections</td>
+                            <td><span id="created-connections">{{ stats.pool_stats.created_connections|default(0) }}</span></td>
+                        </tr>
+                        <tr>
+                            <td>Available Connections</td>
+                            <td><span id="available-connections" class="text-success">{{ stats.pool_stats.available_connections|default(0) }}</span></td>
+                        </tr>
+                        <tr>
+                            <td>In-Use Connections</td>
+                            <td><span id="in-use-connections" class="text-warning">{{ stats.pool_stats.in_use_connections|default(0) }}</span></td>
+                        </tr>
+                        <tr>
+                            <td>Last Health Check</td>
+                            <td><span id="last-health-check">{{ stats.last_health_check|default("Never") }}</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Redis Server Metrics -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="ti ti-server me-2"></i>Redis Server Metrics</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <td>Connected Clients</td>
+                            <td><span id="connected-clients">{{ server_info.connected_clients|default("N/A") }}</span></td>
+                        </tr>
+                        <tr>
+                            <td>Memory Usage</td>
+                            <td><span id="memory-usage">{{ server_info.used_memory_human|default("N/A") }}</span></td>
+                        </tr>
+                        <tr>
+                            <td>Commands Processed</td>
+                            <td><span id="commands-processed">{{ server_info.total_commands_processed|default("N/A") }}</span></td>
+                        </tr>
+                        <tr>
+                            <td>Operations/sec</td>
+                            <td><span id="ops-per-sec">{{ server_info.instantaneous_ops_per_sec|default("N/A") }}</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Test Results -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="ti ti-test-pipe me-2"></i>Connection Test Results</h5>
+            </div>
+            <div class="card-body">
+                <div id="test-results">
+                    <p class="text-muted mb-0"><i class="ti ti-info-circle me-2"></i>Click "Test Connection" to run connection tests</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="ti ti-link me-2"></i>Related Tools</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.health_dashboard') }}" class="btn btn-outline-primary w-100">
+                            <i class="ti ti-heartbeat me-2"></i>Health Dashboard
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.cache_management') }}" class="btn btn-outline-primary w-100">
+                            <i class="ti ti-database me-2"></i>Cache Management
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="btn btn-outline-primary w-100">
+                            <i class="ti ti-activity me-2"></i>System Monitoring
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <a href="{{ url_for('admin_panel.redis_draft_cache_stats') }}" class="btn btn-outline-success w-100">
+                            <i class="ti ti-chart-bar me-2"></i>Draft Cache Stats
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+let autoRefreshInterval;
+
+function updateStats() {
+    fetch('{{ url_for("admin_panel.redis_stats_api") }}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error fetching stats:', data.error);
+                return;
+            }
+
+            // Update health status
+            const healthIndicator = data.health?.overall ? 'active' : 'inactive';
+            const healthText = data.health?.overall ? 'All connections healthy' : 'Connection issues detected';
+            const healthClass = data.health?.overall ? 'text-success' : 'text-danger';
+            document.getElementById('health-status').innerHTML =
+                `<span class="status-indicator ${healthIndicator} me-2"></span><span class="${healthClass}">${healthText}</span>`;
+
+            // Update client status
+            document.getElementById('decoded-status').innerHTML = data.health?.decoded_client ? "&#10003;" : "&#10007;";
+            document.getElementById('decoded-status').className = data.health?.decoded_client ? "fs-4 text-success" : "fs-4 text-danger";
+            document.getElementById('raw-status').innerHTML = data.health?.raw_client ? "&#10003;" : "&#10007;";
+            document.getElementById('raw-status').className = data.health?.raw_client ? "fs-4 text-success" : "fs-4 text-danger";
+
+            // Update pool stats
+            if (data.pool_stats) {
+                document.getElementById('max-connections').textContent = data.pool_stats.max_connections || 0;
+                const utilization = data.pool_stats.utilization_percent || 0;
+                document.getElementById('utilization').textContent = utilization + '%';
+
+                const utilizationBar = document.getElementById('utilization-bar');
+                utilizationBar.style.width = utilization + '%';
+                utilizationBar.className = 'progress-bar ' +
+                    (utilization > 90 ? 'bg-danger' : utilization > 75 ? 'bg-warning' : 'bg-success');
+
+                document.getElementById('created-connections').textContent = data.pool_stats.created_connections || 0;
+                document.getElementById('available-connections').textContent = data.pool_stats.available_connections || 0;
+                document.getElementById('in-use-connections').textContent = data.pool_stats.in_use_connections || 0;
+            }
+
+            // Update server metrics
+            if (data.server_metrics) {
+                document.getElementById('connected-clients').textContent = data.server_metrics.connected_clients || 'N/A';
+                document.getElementById('memory-usage').textContent = data.server_metrics.used_memory_human || 'N/A';
+                document.getElementById('commands-processed').textContent = data.server_metrics.total_commands_processed || 'N/A';
+                document.getElementById('ops-per-sec').textContent = data.server_metrics.instantaneous_ops_per_sec || 'N/A';
+            }
+
+            // Update last updated time
+            document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+        })
+        .catch(error => {
+            console.error('Error updating stats:', error);
+        });
+}
+
+function testConnection() {
+    const testButton = document.getElementById('test-btn');
+    const originalText = testButton.innerHTML;
+    testButton.innerHTML = '<i class="ti ti-loader spin me-1"></i>Testing...';
+    testButton.disabled = true;
+
+    fetch('{{ url_for("admin_panel.redis_test_connection") }}')
+        .then(response => response.json())
+        .then(data => {
+            const resultsDiv = document.getElementById('test-results');
+            if (data.error) {
+                resultsDiv.innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
+            } else {
+                let html = '<div class="row">';
+                for (const [testName, result] of Object.entries(data.tests)) {
+                    const badgeClass = result.status === 'success' ? 'bg-success' : 'bg-danger';
+                    const iconClass = result.status === 'success' ? 'ti-check' : 'ti-x';
+                    html += `
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="ti ${iconClass} me-2 ${result.status === 'success' ? 'text-success' : 'text-danger'}"></i>
+                                        <h6 class="mb-0 text-capitalize">${testName.replace(/_/g, ' ')}</h6>
+                                    </div>
+                                    <span class="badge ${badgeClass}">${result.status}</span>
+                                    <p class="mt-2 mb-0 small text-muted">${result.message}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+                resultsDiv.innerHTML = html;
+            }
+        })
+        .catch(error => {
+            document.getElementById('test-results').innerHTML =
+                `<div class="alert alert-danger mb-0">Error running tests: ${error}</div>`;
+        })
+        .finally(() => {
+            testButton.innerHTML = originalText;
+            testButton.disabled = false;
+        });
+}
+
+function cleanupConnections() {
+    const cleanupButton = document.getElementById('cleanup-btn');
+    const originalText = cleanupButton.innerHTML;
+    cleanupButton.innerHTML = '<i class="ti ti-loader spin me-1"></i>Cleaning...';
+    cleanupButton.disabled = true;
+
+    fetch('{{ url_for("admin_panel.redis_cleanup_connections") }}', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                AdminPanel.showMobileToast('Error during cleanup: ' + data.error, 'danger');
+            } else {
+                AdminPanel.showMobileToast('Connection cleanup completed successfully', 'success');
+                updateStats();
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error during cleanup: ' + error, 'danger');
+        })
+        .finally(() => {
+            cleanupButton.innerHTML = originalText;
+            cleanupButton.disabled = false;
+        });
+}
+
+// Event listeners
+document.getElementById('refresh-btn').addEventListener('click', updateStats);
+document.getElementById('test-btn').addEventListener('click', testConnection);
+document.getElementById('cleanup-btn').addEventListener('click', cleanupConnections);
+
+document.getElementById('auto-refresh').addEventListener('change', function() {
+    if (this.checked) {
+        autoRefreshInterval = setInterval(updateStats, 5000);
+    } else {
+        clearInterval(autoRefreshInterval);
+    }
+});
+
+// Initialize auto-refresh
+if (document.getElementById('auto-refresh').checked) {
+    autoRefreshInterval = setInterval(updateStats, 5000);
+}
+
+// Initial load
+updateStats();
+
+// Add spin animation
+const style = document.createElement('style');
+style.textContent = `
+    .spin {
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

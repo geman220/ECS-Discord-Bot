@@ -169,32 +169,47 @@
 
                                 <!-- Position Zones -->
                                 <!-- Goalkeeper -->
-                                <div class="position-zone goalkeeper-zone" 
-                                     data-position="gk" data-max-players="1"
-                                     ondrop="handlePositionDrop(event, 'gk', {{ team.id }})" 
+                                <div class="position-zone goalkeeper-zone"
+                                     data-position="gk" data-max-players="1" data-team-id="{{ team.id }}"
+                                     ondrop="handlePositionDrop(event, 'gk', {{ team.id }})"
                                      ondragover="handlePositionDragOver(event)"
                                      ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">GK</div>
+                                    <div class="position-label">
+                                        GK
+                                        <span class="capacity-indicator">
+                                            <span class="current">0</span>/<span class="recommended">1</span>
+                                        </span>
+                                    </div>
                                     <div class="position-players" id="position-gk-{{ team.id }}"></div>
                                 </div>
 
                                 <!-- Left Back -->
-                                <div class="position-zone leftback-zone" 
-                                     data-position="lb" data-max-players="2"
-                                     ondrop="handlePositionDrop(event, 'lb', {{ team.id }})" 
+                                <div class="position-zone leftback-zone"
+                                     data-position="lb" data-max-players="2" data-team-id="{{ team.id }}"
+                                     ondrop="handlePositionDrop(event, 'lb', {{ team.id }})"
                                      ondragover="handlePositionDragOver(event)"
                                      ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">LB</div>
+                                    <div class="position-label">
+                                        LB
+                                        <span class="capacity-indicator">
+                                            <span class="current">0</span>/<span class="recommended">1</span>
+                                        </span>
+                                    </div>
                                     <div class="position-players" id="position-lb-{{ team.id }}"></div>
                                 </div>
 
                                 <!-- Center Back -->
-                                <div class="position-zone centerback-zone" 
-                                     data-position="cb" data-max-players="3"
-                                     ondrop="handlePositionDrop(event, 'cb', {{ team.id }})" 
+                                <div class="position-zone centerback-zone"
+                                     data-position="cb" data-max-players="3" data-team-id="{{ team.id }}"
+                                     ondrop="handlePositionDrop(event, 'cb', {{ team.id }})"
                                      ondragover="handlePositionDragOver(event)"
                                      ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">CB</div>
+                                    <div class="position-label">
+                                        CB
+                                        <span class="capacity-indicator">
+                                            <span class="current">0</span>/<span class="recommended">2</span>
+                                        </span>
+                                    </div>
                                     <div class="position-players" id="position-cb-{{ team.id }}"></div>
                                 </div>
 
@@ -372,4 +387,7 @@ window.teamsData = {{ teams_json|tojson }};
 window.draftedPlayersByTeam = {{ drafted_players_by_team|tojson }};
 window.leagueName = '{{ league_name }}';
 </script>
+
+<!-- Mobile Draft Enhancements -->
+<script src="{{ url_for('static', filename='js/mobile-draft.js') }}"></script>
 {% endblock %}

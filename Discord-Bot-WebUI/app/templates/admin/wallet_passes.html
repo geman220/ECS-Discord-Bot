@@ -1,0 +1,707 @@
+{% extends 'admin/layout.html' %}
+{% block title %}Manage Wallet Passes{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Passes list - Theme-aware styling */
+    .pass-stat-card {
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    .pass-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--bs-box-shadow-sm);
+    }
+    .filter-row {
+        background-color: var(--bs-tertiary-bg);
+        border-radius: 8px;
+        padding: 16px;
+    }
+</style>
+{% endblock custom_css %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h2 class="fw-bold text-primary mb-1">
+                        <i class="ti ti-id me-2"></i>Manage Passes
+                    </h2>
+                    <p class="text-muted mb-0">View and manage all ECS Membership and Pub League wallet passes</p>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('wallet_admin.scanner') }}" class="btn btn-outline-primary">
+                        <i class="ti ti-qrcode me-1"></i>Scanner
+                    </a>
+                    <a href="{{ url_for('wallet_admin.checkins_list') }}" class="btn btn-outline-secondary">
+                        <i class="ti ti-list-check me-1"></i>Check-ins
+                    </a>
+                    {% if 'Global Admin' in user_roles %}
+                    <div class="dropdown">
+                        <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="ti ti-plus me-1"></i>Create Pass
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('wallet_admin.create_ecs_pass') }}">
+                                <i class="ti ti-id-badge-2 me-2"></i>ECS Membership
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('wallet_admin.create_pub_league_pass') }}">
+                                <i class="ti ti-ball-football me-2"></i>Pub League
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkGenerateModal">
+                                <i class="ti ti-users me-2"></i>Bulk Generate for Players
+                            </a></li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+            <div class="card pass-stat-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">Total Passes</p>
+                            <h3 class="mb-0">{{ stats.total_passes or 0 }}</h3>
+                        </div>
+                        <div class="avatar">
+                            <span class="avatar-initial rounded bg-primary bg-opacity-10">
+                                <i class="ti ti-wallet text-primary"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+            <div class="card pass-stat-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">Active</p>
+                            <h3 class="mb-0 text-success">{{ stats.active_passes or 0 }}</h3>
+                        </div>
+                        <div class="avatar">
+                            <span class="avatar-initial rounded bg-success bg-opacity-10">
+                                <i class="ti ti-check text-success"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+            <div class="card pass-stat-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">ECS Members</p>
+                            <h3 class="mb-0">{{ stats.by_type.ecs_membership.total if stats.by_type and stats.by_type.ecs_membership else 0 }}</h3>
+                        </div>
+                        <div class="avatar">
+                            <span class="avatar-initial rounded bg-info bg-opacity-10">
+                                <i class="ti ti-id-badge-2 text-info"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+            <div class="card pass-stat-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">Pub League</p>
+                            <h3 class="mb-0">{{ stats.by_type.pub_league.total if stats.by_type and stats.by_type.pub_league else 0 }}</h3>
+                        </div>
+                        <div class="avatar">
+                            <span class="avatar-initial rounded bg-warning bg-opacity-10">
+                                <i class="ti ti-ball-football text-warning"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card with Tabs -->
+    <div class="card">
+        <div class="card-header pb-0">
+            <!-- Tabs -->
+            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if active_tab == 'ecs' or not active_tab else '' }}"
+                       href="{{ url_for('wallet_admin.passes_list', tab='ecs') }}">
+                        <i class="ti ti-id-badge-2 me-1"></i>ECS Memberships
+                        {% if stats.by_type and stats.by_type.ecs_membership %}
+                        <span class="badge bg-primary ms-1">{{ stats.by_type.ecs_membership.active }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if active_tab == 'pub_league' else '' }}"
+                       href="{{ url_for('wallet_admin.passes_list', tab='pub_league') }}">
+                        <i class="ti ti-ball-football me-1"></i>Pub League
+                        {% if stats.by_type and stats.by_type.pub_league %}
+                        <span class="badge bg-warning ms-1">{{ stats.by_type.pub_league.active }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body">
+            <!-- Filters -->
+            <div class="filter-row mb-4">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label small text-muted">Search</label>
+                        <form method="get" class="d-flex gap-2">
+                            <input type="hidden" name="tab" value="{{ active_tab or 'ecs' }}">
+                            <input type="text" name="search" class="form-control"
+                                   placeholder="Search by name or email..."
+                                   value="{{ search or '' }}">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-search"></i>
+                            </button>
+                        </form>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">Status Filter</label>
+                        <select class="form-select" onchange="filterByStatus(this.value)">
+                            <option value="all" {{ 'selected' if status_filter == 'all' or not status_filter else '' }}>All Statuses</option>
+                            <option value="active" {{ 'selected' if status_filter == 'active' else '' }}>Active Only</option>
+                            <option value="voided" {{ 'selected' if status_filter == 'voided' else '' }}>Voided</option>
+                            <option value="expired" {{ 'selected' if status_filter == 'expired' else '' }}>Expired</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        {% if search or status_filter and status_filter != 'all' %}
+                        <a href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs') }}" class="btn btn-outline-secondary">
+                            <i class="ti ti-x me-1"></i>Clear Filters
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Actions Bar (hidden by default, shown when items selected) -->
+            {% if 'Global Admin' in user_roles %}
+            <div id="bulkActionsBar" class="alert alert-secondary d-none mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span id="selectedCount">0</span> passes selected
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-danger" onclick="bulkVoid()">
+                            <i class="ti ti-ban me-1"></i>Void Selected
+                        </button>
+                        <button type="button" class="btn btn-sm btn-success" onclick="bulkReactivate()">
+                            <i class="ti ti-refresh me-1"></i>Reactivate Selected
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">
+                            <i class="ti ti-x me-1"></i>Clear Selection
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Passes Table -->
+            {% if passes and passes.items %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            {% if 'Global Admin' in user_roles %}
+                            <th style="width: 40px;">
+                                <input type="checkbox" class="form-check-input" id="selectAll" onclick="toggleSelectAll(this)">
+                            </th>
+                            {% endif %}
+                            <th>Member</th>
+                            {% if active_tab == 'pub_league' %}
+                            <th>Team</th>
+                            {% endif %}
+                            <th>Validity Period</th>
+                            <th>Status</th>
+                            <th>Downloads</th>
+                            <th>Created</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for wallet_pass in passes.items %}
+                        <tr>
+                            {% if 'Global Admin' in user_roles %}
+                            <td>
+                                <input type="checkbox" class="form-check-input pass-checkbox"
+                                       value="{{ wallet_pass.id }}"
+                                       data-status="{{ wallet_pass.status }}"
+                                       onchange="updateBulkActions()">
+                            </td>
+                            {% endif %}
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-sm me-2">
+                                        <span class="avatar-initial rounded-circle bg-label-{{ 'info' if active_tab == 'ecs' or not active_tab else 'warning' }}">
+                                            {{ wallet_pass.member_name[0].upper() if wallet_pass.member_name else '?' }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span class="fw-semibold">{{ wallet_pass.member_name }}</span>
+                                        {% if wallet_pass.member_email %}
+                                        <br><small class="text-muted">{{ wallet_pass.member_email }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            {% if active_tab == 'pub_league' %}
+                            <td>
+                                {% if wallet_pass.team_name %}
+                                <span class="badge bg-label-warning">{{ wallet_pass.team_name }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                            <td>
+                                <span class="badge bg-label-{{ 'primary' if active_tab == 'ecs' or not active_tab else 'warning' }}">
+                                    {{ wallet_pass.display_validity if wallet_pass.display_validity else 'N/A' }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if wallet_pass.status == 'active' and wallet_pass.is_valid %}
+                                <span class="badge bg-label-success">
+                                    <i class="ti ti-check me-1"></i>Active
+                                </span>
+                                {% elif wallet_pass.status == 'voided' %}
+                                <span class="badge bg-label-danger">
+                                    <i class="ti ti-ban me-1"></i>Voided
+                                </span>
+                                {% elif wallet_pass.is_expired %}
+                                <span class="badge bg-label-secondary">
+                                    <i class="ti ti-clock me-1"></i>Expired
+                                </span>
+                                {% else %}
+                                <span class="badge bg-label-warning">{{ wallet_pass.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-label-info">
+                                    <i class="ti ti-download me-1"></i>{{ wallet_pass.download_count }}
+                                </span>
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ wallet_pass.created_at.strftime('%b %d, %Y') }}
+                                </small>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('wallet_admin.pass_detail', pass_id=wallet_pass.id) }}"
+                                       class="btn btn-outline-primary" title="View Details">
+                                        <i class="ti ti-eye"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split"
+                                            data-bs-toggle="dropdown">
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <a class="dropdown-item" href="{{ url_for('wallet_admin.download_pass', pass_id=wallet_pass.id, platform='apple') }}">
+                                                <i class="ti ti-brand-apple me-2"></i>Download Apple Pass
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        {% if wallet_pass.status == 'active' %}
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="voidPass({{ wallet_pass.id }})">
+                                                <i class="ti ti-ban me-2"></i>Void Pass
+                                            </a>
+                                        </li>
+                                        {% else %}
+                                        <li>
+                                            <a class="dropdown-item text-success" href="javascript:void(0);" onclick="reactivatePass({{ wallet_pass.id }})">
+                                                <i class="ti ti-refresh me-2"></i>Reactivate Pass
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if passes.pages > 1 %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if passes.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs', page=passes.prev_num, status=status_filter, search=search) }}">
+                            <i class="ti ti-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in passes.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                        <li class="page-item {{ 'active' if page_num == passes.page else '' }}">
+                            <a class="page-link" href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs', page=page_num, status=status_filter, search=search) }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if passes.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs', page=passes.next_num, status=status_filter, search=search) }}">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <!-- Empty State -->
+            <div class="text-center py-5">
+                <i class="ti ti-wallet-off text-muted mb-3" style="font-size: 4rem;"></i>
+                <h5 class="text-muted mb-2">No Passes Found</h5>
+                <p class="text-muted mb-4">
+                    {% if search or (status_filter and status_filter != 'all') %}
+                    No passes match your current filters. Try adjusting your search criteria.
+                    {% elif active_tab == 'pub_league' %}
+                    No Pub League passes have been created yet. Passes are automatically created when players register.
+                    {% else %}
+                    No ECS membership passes have been created yet.
+                    {% endif %}
+                </p>
+                {% if search or (status_filter and status_filter != 'all') %}
+                <a href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs') }}" class="btn btn-outline-primary">
+                    <i class="ti ti-x me-1"></i>Clear Filters
+                </a>
+                {% elif active_tab != 'pub_league' and 'Global Admin' in user_roles %}
+                <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="btn btn-success">
+                    <i class="ti ti-plus me-1"></i>Create First Pass
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Bulk Generate Modal -->
+{% if 'Global Admin' in user_roles %}
+<div class="modal fade" id="bulkGenerateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="ti ti-users me-2"></i>Bulk Generate Passes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Generate wallet passes for all eligible players who don't already have one.</p>
+
+                <div class="mb-3">
+                    <label class="form-label">Pass Type</label>
+                    <select class="form-select" id="bulkPassType">
+                        <option value="ecs_membership">ECS Membership</option>
+                        <option value="pub_league">Pub League</option>
+                    </select>
+                </div>
+
+                <div class="mb-3" id="yearField">
+                    <label class="form-label">Year</label>
+                    <select class="form-select" id="bulkYear">
+                        {% for y in range(2024, 2027) %}
+                        <option value="{{ y }}" {{ 'selected' if y == 2025 else '' }}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3 d-none" id="seasonField">
+                    <label class="form-label">Season Name</label>
+                    <input type="text" class="form-control" id="bulkSeasonName" placeholder="e.g., Spring 2025">
+                </div>
+
+                <div class="alert alert-info small">
+                    <i class="ti ti-info-circle me-1"></i>
+                    <strong>Note:</strong> Only players who are active, have a team assignment, and have a user account will receive passes.
+                    Players who already have a non-voided pass of this type will be skipped.
+                </div>
+
+                <div id="bulkGenerateResults" class="d-none">
+                    <hr>
+                    <h6>Results:</h6>
+                    <div id="bulkResultsContent"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="bulkGenerateBtn" onclick="bulkGenerate()">
+                    <i class="ti ti-bolt me-1"></i>Generate Passes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Void Reason Modal -->
+<div class="modal fade" id="bulkVoidModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="ti ti-ban me-2 text-danger"></i>Bulk Void Passes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>You are about to void <strong id="voidCount">0</strong> passes.</p>
+
+                <div class="mb-3">
+                    <label class="form-label">Reason for Voiding</label>
+                    <input type="text" class="form-control" id="voidReason" value="Bulk voided by admin"
+                           placeholder="Enter reason...">
+                </div>
+
+                <div class="alert alert-warning small">
+                    <i class="ti ti-alert-triangle me-1"></i>
+                    <strong>Warning:</strong> Voided passes will be marked as invalid. Push notifications will be sent
+                    to affected users' devices.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmBulkVoid()">
+                    <i class="ti ti-ban me-1"></i>Void Passes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+function filterByStatus(status) {
+    const url = new URL(window.location);
+    url.searchParams.set('status', status);
+    window.location = url;
+}
+
+function voidPass(passId) {
+    if (!confirm('Are you sure you want to void this pass?\n\nThe pass will be marked as invalid and the member will no longer be able to use it.')) return;
+
+    fetch(`/admin/wallet/api/passes/${passId}/void`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason: 'Voided by admin' })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to void pass'));
+        }
+    })
+    .catch(err => alert('Error voiding pass. Please try again.'));
+}
+
+function reactivatePass(passId) {
+    if (!confirm('Are you sure you want to reactivate this pass?\n\nThe pass will be restored and the member will be able to use it again.')) return;
+
+    fetch(`/admin/wallet/api/passes/${passId}/reactivate`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to reactivate pass'));
+        }
+    })
+    .catch(err => alert('Error reactivating pass. Please try again.'));
+}
+
+// Bulk selection functions
+function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.pass-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+    updateBulkActions();
+}
+
+function updateBulkActions() {
+    const checkboxes = document.querySelectorAll('.pass-checkbox:checked');
+    const count = checkboxes.length;
+    const bar = document.getElementById('bulkActionsBar');
+    const countSpan = document.getElementById('selectedCount');
+
+    if (count > 0) {
+        bar.classList.remove('d-none');
+        countSpan.textContent = count;
+    } else {
+        bar.classList.add('d-none');
+    }
+}
+
+function clearSelection() {
+    const checkboxes = document.querySelectorAll('.pass-checkbox');
+    checkboxes.forEach(cb => cb.checked = false);
+    document.getElementById('selectAll').checked = false;
+    updateBulkActions();
+}
+
+function getSelectedIds() {
+    const checkboxes = document.querySelectorAll('.pass-checkbox:checked');
+    return Array.from(checkboxes).map(cb => parseInt(cb.value));
+}
+
+function bulkVoid() {
+    const ids = getSelectedIds();
+    if (ids.length === 0) return;
+
+    document.getElementById('voidCount').textContent = ids.length;
+    new bootstrap.Modal(document.getElementById('bulkVoidModal')).show();
+}
+
+function confirmBulkVoid() {
+    const ids = getSelectedIds();
+    const reason = document.getElementById('voidReason').value || 'Bulk voided by admin';
+
+    fetch('/admin/wallet/api/passes/bulk-void', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pass_ids: ids, reason: reason })
+    })
+    .then(response => response.json())
+    .then(data => {
+        bootstrap.Modal.getInstance(document.getElementById('bulkVoidModal')).hide();
+        alert(`Voided ${data.success.length} passes.\n${data.failed.length} failed.`);
+        location.reload();
+    })
+    .catch(err => alert('Error voiding passes. Please try again.'));
+}
+
+function bulkReactivate() {
+    const ids = getSelectedIds();
+    if (ids.length === 0) return;
+
+    if (!confirm(`Are you sure you want to reactivate ${ids.length} passes?`)) return;
+
+    fetch('/admin/wallet/api/passes/bulk-reactivate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pass_ids: ids })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(`Reactivated ${data.success.length} passes.\n${data.failed.length} failed.`);
+        location.reload();
+    })
+    .catch(err => alert('Error reactivating passes. Please try again.'));
+}
+
+// Bulk generate functions
+document.addEventListener('DOMContentLoaded', function() {
+    const passTypeSelect = document.getElementById('bulkPassType');
+    if (passTypeSelect) {
+        passTypeSelect.addEventListener('change', function() {
+            const yearField = document.getElementById('yearField');
+            const seasonField = document.getElementById('seasonField');
+
+            if (this.value === 'pub_league') {
+                yearField.classList.add('d-none');
+                seasonField.classList.remove('d-none');
+            } else {
+                yearField.classList.remove('d-none');
+                seasonField.classList.add('d-none');
+            }
+        });
+    }
+});
+
+function bulkGenerate() {
+    const passType = document.getElementById('bulkPassType').value;
+    const year = document.getElementById('bulkYear').value;
+    const seasonName = document.getElementById('bulkSeasonName').value;
+    const btn = document.getElementById('bulkGenerateBtn');
+    const resultsDiv = document.getElementById('bulkGenerateResults');
+    const resultsContent = document.getElementById('bulkResultsContent');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating...';
+
+    fetch('/admin/wallet/api/passes/bulk-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            pass_type: passType,
+            year: parseInt(year),
+            season_name: seasonName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-bolt me-1"></i>Generate Passes';
+
+        resultsDiv.classList.remove('d-none');
+
+        if (data.error) {
+            resultsContent.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            return;
+        }
+
+        let html = `
+            <div class="mb-2"><strong>Total eligible:</strong> ${data.total_eligible}</div>
+            <div class="mb-2 text-success"><i class="ti ti-check me-1"></i><strong>Created:</strong> ${data.success.length}</div>
+            <div class="mb-2 text-info"><i class="ti ti-minus me-1"></i><strong>Skipped (already have pass):</strong> ${data.skipped.length}</div>
+            <div class="mb-2 text-danger"><i class="ti ti-x me-1"></i><strong>Failed:</strong> ${data.failed.length}</div>
+        `;
+
+        if (data.failed.length > 0) {
+            html += '<details class="mt-2"><summary class="text-danger">View failures</summary><ul class="small mt-2">';
+            data.failed.forEach(f => {
+                html += `<li>${f.player_name || f.player_id}: ${f.error}</li>`;
+            });
+            html += '</ul></details>';
+        }
+
+        resultsContent.innerHTML = html;
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-bolt me-1"></i>Generate Passes';
+        resultsContent.innerHTML = `<div class="alert alert-danger">Error generating passes. Please try again.</div>`;
+        resultsDiv.classList.remove('d-none');
+    });
+}
+</script>
+{% endblock %}

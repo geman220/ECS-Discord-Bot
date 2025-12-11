@@ -363,7 +363,98 @@ def remove_role_from_user_comprehensive(role_id, user_id):
         
         flash(f'Role "{role.name}" removed from user "{user.username}" successfully!', 'success')
         return jsonify({'success': True, 'message': 'Role removed successfully'})
-        
+
     except Exception as e:
         logger.error(f"Error removing role: {e}")
         return jsonify({'success': False, 'message': 'Error removing role'})
+
+
+@admin_panel_bp.route('/roles-management/<int:role_id>/available-users')
+@login_required
+@role_required(['Global Admin'])
+def get_available_users_for_role(role_id):
+    """Get users who don't have the specified role yet."""
+    try:
+        role = Role.query.get_or_404(role_id)
+        search = request.args.get('search', '').strip()
+
+        # Get users who don't have this role
+        users_with_role_ids = db.session.query(user_roles.c.user_id).filter(
+            user_roles.c.role_id == role_id
+        ).subquery()
+
+        query = User.query.filter(
+            ~User.id.in_(users_with_role_ids)
+        )
+
+        # Apply search filter
+        if search:
+            search_term = f'%{search}%'
+            query = query.filter(
+                db.or_(
+                    User.username.ilike(search_term),
+                    User.email.ilike(search_term)
+                )
+            )
+
+        # Limit results
+        users = query.order_by(User.username).limit(100).all()
+
+        return jsonify({
+            'success': True,
+            'users': [
+                {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'is_active': user.is_active
+                }
+                for user in users
+            ]
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting available users for role: {e}")
+        return jsonify({'success': False, 'message': 'Error loading users'})
+
+
+@admin_panel_bp.route('/roles-management/all-users')
+@login_required
+@role_required(['Global Admin'])
+def get_all_users_for_roles():
+    """Get all users for role management."""
+    try:
+        search = request.args.get('search', '').strip()
+
+        query = User.query.options(joinedload(User.roles))
+
+        # Apply search filter
+        if search:
+            search_term = f'%{search}%'
+            query = query.filter(
+                db.or_(
+                    User.username.ilike(search_term),
+                    User.email.ilike(search_term)
+                )
+            )
+
+        # Limit results
+        users = query.order_by(User.username).limit(100).all()
+
+        return jsonify({
+            'success': True,
+            'users': [
+                {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'is_active': user.is_active,
+                    'roles': [r.name for r in user.roles]
+                }
+                for user in users
+            ]
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting all users: {e}")
+        return jsonify({'success': False, 'message': 'Error loading users'})

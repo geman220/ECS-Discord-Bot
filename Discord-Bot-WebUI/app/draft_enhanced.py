@@ -1261,10 +1261,10 @@ def api_draft_player():
         
         session = g.db_session
         
-        # Get the league and validate
-        league = session.query(League).filter(
+        # Get the league and validate (from current season)
+        league = session.query(League).join(Season).filter(
             League.name == league_name,
-            League.is_active == True
+            Season.is_current == True
         ).first()
         
         if not league:
@@ -1340,6 +1340,87 @@ def api_draft_player():
     except Exception as e:
         logger.error(f"Error in API draft player: {str(e)}", exc_info=True)
         session.rollback()
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@draft_enhanced.route('/api/<league_name>/position-analysis/<int:team_id>')
+@login_required
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
+def api_position_analysis(league_name: str, team_id: int):
+    """
+    Get real-time position analysis for a specific team.
+    Returns position needs and fit scores for available players.
+    """
+    try:
+        from app.draft_position_analyzer import PositionAnalyzer
+
+        session = g.db_session
+
+        # Normalize league name
+        db_league_name = {
+            'classic': 'Classic',
+            'premier': 'Premier',
+            'ecs_fc': 'ECS FC'
+        }.get(league_name.lower(), league_name)
+
+        # Get current league
+        league = session.query(League).join(Season).filter(
+            League.name == db_league_name,
+            Season.is_current == True
+        ).first()
+
+        if not league:
+            return jsonify({'error': f'League "{db_league_name}" not found'}), 404
+
+        # Get team
+        team = session.query(Team).filter(
+            Team.id == team_id,
+            Team.league_id == league.id
+        ).first()
+
+        if not team:
+            return jsonify({'error': f'Team with ID {team_id} not found in {db_league_name}'}), 404
+
+        # Get current players on team
+        team_players = [p for p in team.players if p.is_current_player]
+
+        # Calculate team needs
+        team_needs = PositionAnalyzer.calculate_team_needs(team_players)
+
+        # Get all available players (not yet drafted in this league)
+        all_players = session.query(Player).filter(
+            Player.is_current_player == True
+        ).all()
+
+        # Filter out players already on teams in this league
+        drafted_player_ids = set()
+        for league_team in session.query(Team).filter(Team.league_id == league.id).all():
+            drafted_player_ids.update([p.id for p in league_team.players])
+
+        available_players = [p for p in all_players if p.id not in drafted_player_ids]
+
+        # Calculate fit scores for available players
+        player_fit_scores = {}
+        for player in available_players:
+            fit_score = PositionAnalyzer.calculate_fit_score(player, team_needs)
+            if fit_score > 0:  # Only include players with some fit
+                player_fit_scores[player.id] = {
+                    'player_id': player.id,
+                    'player_name': player.name,
+                    'favorite_position': player.favorite_position,
+                    'fit_score': fit_score,
+                    'fit_category': PositionAnalyzer.get_fit_category(fit_score)
+                }
+
+        return jsonify({
+            'team_id': team_id,
+            'team_name': team.name,
+            'position_needs': team_needs,
+            'player_fit_scores': player_fit_scores
+        })
+
+    except Exception as e:
+        logger.error(f"Error in position analysis API: {str(e)}", exc_info=True)
         return jsonify({'error': 'Internal server error'}), 500
 
 

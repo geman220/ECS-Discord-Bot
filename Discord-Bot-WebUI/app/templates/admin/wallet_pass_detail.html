@@ -1,0 +1,441 @@
+{% extends 'admin/layout.html' %}
+{% block title %}Pass Details - {{ wallet_pass.member_name }}{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Pass detail - Theme-aware styling */
+    .detail-table td {
+        padding: 0.5rem 0;
+        border: none;
+    }
+    .detail-table td:first-child {
+        width: 40%;
+        color: var(--bs-secondary-color);
+    }
+    .qr-container {
+        background: var(--bs-tertiary-bg);
+        border-radius: 12px;
+        padding: 20px;
+    }
+    .qr-container svg {
+        max-width: 150px;
+    }
+    .status-banner {
+        border-radius: 8px;
+        padding: 12px 16px;
+    }
+    .status-banner.active { background: var(--bs-success-bg-subtle); border-left: 4px solid var(--bs-success); }
+    .status-banner.voided { background: var(--bs-danger-bg-subtle); border-left: 4px solid var(--bs-danger); }
+    .status-banner.expired { background: var(--bs-secondary-bg); border-left: 4px solid var(--bs-secondary); }
+</style>
+{% endblock custom_css %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h2 class="fw-bold text-primary mb-1">
+                        <i class="ti ti-id me-2"></i>Pass Details
+                    </h2>
+                    <p class="text-muted mb-0">Detailed information for {{ wallet_pass.member_name }}'s pass</p>
+                </div>
+                <div>
+                    {% if wallet_pass.pass_type and wallet_pass.pass_type.code == 'ecs_membership' %}
+                    <a href="{{ url_for('wallet_admin.passes_list', tab='ecs') }}" class="btn btn-outline-secondary">
+                        <i class="ti ti-arrow-left me-1"></i>Back to ECS Passes
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('wallet_admin.passes_list', tab='pub_league') }}" class="btn btn-outline-secondary">
+                        <i class="ti ti-arrow-left me-1"></i>Back to Pub League Passes
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Banner -->
+    <div class="row mb-4">
+        <div class="col-12">
+            {% if wallet_pass.status == 'active' and wallet_pass.is_valid %}
+            <div class="status-banner active d-flex align-items-center">
+                <i class="ti ti-circle-check text-success me-2 fs-4"></i>
+                <div>
+                    <strong class="text-success">Active Pass</strong>
+                    <span class="text-muted ms-2">This pass is valid and can be used for check-ins.</span>
+                </div>
+            </div>
+            {% elif wallet_pass.status == 'voided' %}
+            <div class="status-banner voided d-flex align-items-center">
+                <i class="ti ti-ban text-danger me-2 fs-4"></i>
+                <div>
+                    <strong class="text-danger">Voided Pass</strong>
+                    <span class="text-muted ms-2">
+                        {% if wallet_pass.void_reason %}{{ wallet_pass.void_reason }}{% else %}This pass has been voided and is no longer valid.{% endif %}
+                    </span>
+                </div>
+            </div>
+            {% elif wallet_pass.is_expired %}
+            <div class="status-banner expired d-flex align-items-center">
+                <i class="ti ti-clock text-secondary me-2 fs-4"></i>
+                <div>
+                    <strong class="text-secondary">Expired Pass</strong>
+                    <span class="text-muted ms-2">This pass has expired and is no longer valid.</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Pass Details -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="ti ti-user me-2"></i>{{ wallet_pass.member_name }}
+                    </h5>
+                    <span class="badge bg-label-{{ 'primary' if wallet_pass.pass_type and wallet_pass.pass_type.code == 'ecs_membership' else 'warning' }}">
+                        {{ wallet_pass.pass_type.name if wallet_pass.pass_type else 'Unknown Type' }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">
+                                <i class="ti ti-user me-1"></i>Member Information
+                            </h6>
+                            <table class="table detail-table table-sm">
+                                <tr>
+                                    <td>Name</td>
+                                    <td class="fw-semibold">{{ wallet_pass.member_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Email</td>
+                                    <td>{{ wallet_pass.member_email or '-' }}</td>
+                                </tr>
+                                {% if wallet_pass.team_name %}
+                                <tr>
+                                    <td>Team</td>
+                                    <td><span class="badge bg-label-info">{{ wallet_pass.team_name }}</span></td>
+                                </tr>
+                                {% endif %}
+                                {% if wallet_pass.player_id %}
+                                <tr>
+                                    <td>Player ID</td>
+                                    <td>{{ wallet_pass.player_id }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">
+                                <i class="ti ti-calendar me-1"></i>Pass Validity
+                            </h6>
+                            <table class="table detail-table table-sm">
+                                <tr>
+                                    <td>Validity Period</td>
+                                    <td class="fw-semibold">{{ wallet_pass.display_validity }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Valid From</td>
+                                    <td>{{ wallet_pass.valid_from.strftime('%b %d, %Y') if wallet_pass.valid_from else '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Valid Until</td>
+                                    <td>{{ wallet_pass.valid_until.strftime('%b %d, %Y') if wallet_pass.valid_until else '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Downloads</td>
+                                    <td><span class="badge bg-label-info">{{ wallet_pass.download_count }}</span></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">
+                                <i class="ti ti-database me-1"></i>System Information
+                            </h6>
+                            <table class="table detail-table table-sm">
+                                <tr>
+                                    <td>Pass ID</td>
+                                    <td><code class="small">{{ wallet_pass.id }}</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Barcode</td>
+                                    <td><code class="small">{{ wallet_pass.barcode_data }}</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Serial Number</td>
+                                    <td><code class="small">{{ wallet_pass.serial_number }}</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Created</td>
+                                    <td>{{ wallet_pass.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Last Updated</td>
+                                    <td>{{ wallet_pass.updated_at.strftime('%b %d, %Y %H:%M') if wallet_pass.updated_at else '-' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">
+                                <i class="ti ti-shopping-cart me-1"></i>WooCommerce
+                            </h6>
+                            <table class="table detail-table table-sm">
+                                <tr>
+                                    <td>Order ID</td>
+                                    <td>{{ wallet_pass.woo_order_id or '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Download Token</td>
+                                    <td>
+                                        {% if wallet_pass.download_token %}
+                                        <code class="small">{{ wallet_pass.download_token[:16] }}...</code>
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+
+                            {% if wallet_pass.status == 'voided' and wallet_pass.voided_at %}
+                            <h6 class="text-muted mb-3 mt-4">
+                                <i class="ti ti-ban me-1"></i>Void Information
+                            </h6>
+                            <table class="table detail-table table-sm">
+                                <tr>
+                                    <td>Voided At</td>
+                                    <td>{{ wallet_pass.voided_at.strftime('%b %d, %Y %H:%M') }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Reason</td>
+                                    <td>{{ wallet_pass.void_reason or '-' }}</td>
+                                </tr>
+                            </table>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Check-in History -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="ti ti-history me-2"></i>Check-in History
+                    </h5>
+                    {% if checkins %}
+                    <span class="badge bg-label-primary">{{ checkins|length }} check-ins</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if checkins %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date/Time</th>
+                                    <th>Event</th>
+                                    <th>Location</th>
+                                    <th>Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for checkin in checkins %}
+                                <tr>
+                                    <td>
+                                        <small>{{ checkin.checked_in_at.strftime('%b %d, %Y %H:%M') }}</small>
+                                    </td>
+                                    <td>{{ checkin.event_name or '-' }}</td>
+                                    <td>{{ checkin.location or '-' }}</td>
+                                    <td>
+                                        <span class="badge bg-label-info">
+                                            {{ checkin.check_in_type.value.replace('_', ' ').title() if checkin.check_in_type else 'Unknown' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="ti ti-calendar-off mb-2" style="font-size: 2rem;"></i>
+                        <p class="mb-0">No check-ins recorded for this pass</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Actions Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="ti ti-settings me-1"></i>Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('wallet_admin.download_pass', pass_id=wallet_pass.id, platform='apple') }}"
+                           class="btn btn-dark">
+                            <i class="ti ti-brand-apple me-1"></i>Download Apple Pass
+                        </a>
+
+                        {% if wallet_pass.status == 'active' %}
+                        <button type="button" class="btn btn-outline-danger" onclick="voidPass()">
+                            <i class="ti ti-ban me-1"></i>Void Pass
+                        </button>
+                        {% else %}
+                        <button type="button" class="btn btn-outline-success" onclick="reactivatePass()">
+                            <i class="ti ti-refresh me-1"></i>Reactivate Pass
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR Code Preview -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="ti ti-qrcode me-1"></i>Pass QR Code
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="qr-container text-center">
+                        <div id="qrcode" class="mb-3"></div>
+                        <code class="small text-break">{{ wallet_pass.barcode_data }}</code>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download Link -->
+            {% if wallet_pass.download_token %}
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="ti ti-link me-1"></i>Public Download Link
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-2">Share this link with the member to download their pass:</p>
+                    <div class="input-group">
+                        <input type="text" class="form-control form-control-sm" id="download-link"
+                               value="{{ url_for('public_wallet.pass_info', token=wallet_pass.download_token, _external=True) }}"
+                               readonly>
+                        <button class="btn btn-outline-primary btn-sm" onclick="copyLink()">
+                            <i class="ti ti-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- QR Code Library -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Generate QR code
+    if (typeof qrcode !== 'undefined') {
+        var qr = qrcode(0, 'M');
+        qr.addData('{{ wallet_pass.barcode_data }}');
+        qr.make();
+        document.getElementById('qrcode').innerHTML = qr.createSvgTag(4, 0);
+    }
+});
+
+function voidPass() {
+    Swal.fire({
+        title: 'Void This Pass?',
+        html: '<p class="mb-3">The member will no longer be able to use this pass for check-ins.</p><input id="void-reason" class="form-control" placeholder="Reason for voiding (optional)">',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: '<i class="ti ti-ban me-1"></i>Void Pass',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const reason = document.getElementById('void-reason')?.value || 'Voided by admin';
+            fetch('/admin/wallet/api/passes/{{ wallet_pass.id }}/void', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason: reason })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Pass Voided', 'The pass has been marked as invalid.', 'success')
+                        .then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.error || 'Failed to void pass', 'error');
+                }
+            })
+            .catch(err => Swal.fire('Error', 'Failed to void pass. Please try again.', 'error'));
+        }
+    });
+}
+
+function reactivatePass() {
+    Swal.fire({
+        title: 'Reactivate This Pass?',
+        text: 'The pass will become valid again and can be used for check-ins.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        confirmButtonText: '<i class="ti ti-refresh me-1"></i>Reactivate',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/admin/wallet/api/passes/{{ wallet_pass.id }}/reactivate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Pass Reactivated', 'The pass is now active and valid.', 'success')
+                        .then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.error || 'Failed to reactivate pass', 'error');
+                }
+            })
+            .catch(err => Swal.fire('Error', 'Failed to reactivate pass. Please try again.', 'error'));
+        }
+    });
+}
+
+function copyLink() {
+    const linkInput = document.getElementById('download-link');
+    linkInput.select();
+    document.execCommand('copy');
+
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Link copied to clipboard!',
+        showConfirmButton: false,
+        timer: 2000
+    });
+}
+</script>
+{% endblock %}

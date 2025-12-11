@@ -24,7 +24,8 @@ class DraftSystemV2 {
         this.setupEventListeners();
         this.initializeSocket();
         this.setupSearch();
-        
+        this.setupTeamTabHighlighting();
+
         // console.log('🎯 Draft System v2 initialized');
     }
     
@@ -183,26 +184,37 @@ class DraftSystemV2 {
             
             this.socket.on('player_drafted_enhanced', (data) => {
                 // console.log('🎯 Received player_drafted_enhanced event:', data);
+                this.hideDraftingIndicator(); // Phase 5: Hide status indicator
                 this.handlePlayerDrafted(data);
             });
-            
+
             this.socket.on('player_removed_enhanced', (data) => {
                 // console.log('🔥 Received player_removed_enhanced event:', data);
                 this.handlePlayerRemoved(data);
             });
-            
+
+            // Phase 5: Multi-user awareness
+            this.socket.on('user_drafting', (data) => {
+                // Only show if it's not us drafting
+                if (data.username && data.player_name) {
+                    this.showUserActivity(data.username, data.player_name, data.team_name);
+                }
+            });
+
             this.socket.on('error', (data) => {
                 // console.error('❌ Received error event:', data);
+                this.hideDraftingIndicator(); // Phase 5: Hide on error
                 this.hideLoading(); // Hide loading overlay on error
                 this.showToast('Error: ' + data.message, 'error');
             });
-            
+
             this.socket.on('draft_error', (data) => {
                 // console.error('❌ Received draft_error event:', data);
+                this.hideDraftingIndicator(); // Phase 5: Hide on error
                 this.hideLoading(); // Hide loading overlay on error
                 this.showToast('Draft Error: ' + data.message, 'error');
             });
-            
+
             this.socket.on('player_details', (data) => {
                 this.handlePlayerDetails(data);
             });
@@ -253,13 +265,21 @@ class DraftSystemV2 {
     
     setupSocketEventListeners() {
         if (!this.socket) return;
-        
+
         this.socket.on('player_drafted_enhanced', (data) => {
+            this.hideDraftingIndicator(); // Phase 5: Hide status indicator
             this.handlePlayerDrafted(data);
         });
-        
+
         this.socket.on('player_removed_enhanced', (data) => {
             this.handlePlayerRemoved(data);
+        });
+
+        // Phase 5: Multi-user awareness
+        this.socket.on('user_drafting', (data) => {
+            if (data.username && data.player_name) {
+                this.showUserActivity(data.username, data.player_name, data.team_name);
+            }
         });
         
         this.socket.on('remove_error', (data) => {
@@ -462,33 +482,95 @@ class DraftSystemV2 {
             this.showToast('No player selected', 'error');
             return;
         }
-        
+
         if (!this.socket || !this.isConnected) {
             this.showToast('Not connected to server - cannot draft', 'error');
             return;
         }
-        
-        // console.log(`🎯 Drafting player ${this.currentPlayerId} to team ${teamId} (${teamName}) in league ${this.leagueName}`);
-        
-        this.showLoading();
+
+        // Get player name for the status indicator
+        const playerCard = document.querySelector(`[data-player-id="${this.currentPlayerId}"]`);
+        const playerName = playerCard ? (playerCard.querySelector('.fw-semibold')?.textContent || 'Player') : 'Player';
+
+        // Phase 5: Show detailed drafting indicator
+        this.showDraftingIndicator(playerName, teamName);
+
         this.socket.emit('draft_player_enhanced', {
             player_id: this.currentPlayerId,
             team_id: teamId,
-            league_name: this.leagueName
+            league_name: this.leagueName,
+            player_name: playerName  // Include for multi-user awareness
         });
-        
-        // console.log(`🎯 Draft event emitted, waiting for response...`);
-        
-        // Set a timeout to hide loading if no response is received
+
+        // Set a timeout to hide indicator if no response is received
         setTimeout(() => {
-            if (document.getElementById('loadingOverlay').style.display === 'flex') {
-                // console.log('⏰ Draft timeout - hiding loading overlay');
-                this.hideLoading();
-                this.showToast('Draft is taking longer than expected...', 'warning');
+            if (document.getElementById('currentDraftIndicator')) {
+                this.hideDraftingIndicator();
+                this.showToast('Draft timed out. Please refresh.', 'warning');
             }
         }, 10000); // 10 second timeout
-        
+
         this.currentPlayerId = null;
+    }
+
+    // Phase 5: Draft Operation Status Indicators
+
+    showDraftingIndicator(playerName, teamName) {
+        // Remove any existing indicator
+        this.hideDraftingIndicator();
+
+        const indicator = document.createElement('div');
+        indicator.id = 'currentDraftIndicator';
+        indicator.className = 'drafting-indicator';
+        indicator.innerHTML = `
+            <div class="d-flex align-items-center gap-3">
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Drafting...</span>
+                </div>
+                <div>
+                    <strong>Drafting ${playerName}</strong>
+                    <div class="small text-muted">to ${teamName}</div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(indicator);
+    }
+
+    hideDraftingIndicator() {
+        const indicator = document.getElementById('currentDraftIndicator');
+        if (indicator) {
+            indicator.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => indicator.remove(), 300);
+        }
+    }
+
+    showUserActivity(username, playerName, teamName) {
+        const activityContainer = document.getElementById('draftActivity');
+        if (!activityContainer) {
+            // Create container if it doesn't exist
+            const container = document.createElement('div');
+            container.id = 'draftActivity';
+            container.className = 'draft-activity-container';
+            document.body.appendChild(container);
+        }
+
+        const activity = document.createElement('div');
+        activity.className = 'user-activity-toast';
+        activity.innerHTML = `
+            <i class="ti ti-user-check text-primary me-2"></i>
+            <div>
+                <strong>${username}</strong> is drafting <strong>${playerName}</strong>
+                ${teamName ? `<div class="small text-muted">to ${teamName}</div>` : ''}
+            </div>
+        `;
+
+        document.getElementById('draftActivity').appendChild(activity);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            activity.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => activity.remove(), 300);
+        }, 5000);
     }
     
     async fallbackDraftPlayer(playerId, teamId, teamName) {
@@ -1308,6 +1390,107 @@ class DraftSystemV2 {
         
         // Remove player from team (send to backend)
         this.removePlayer(playerId, teamId);
+    }
+
+    // ===== Position Highlighting System =====
+
+    async fetchPositionAnalysis(teamId) {
+        /**
+         * Fetch position analysis from backend API
+         */
+        try {
+            const response = await fetch(`/draft/api/${this.leagueName}/position-analysis/${teamId}`);
+            if (response.ok) {
+                return await response.json();
+            } else {
+                console.error('Failed to fetch position analysis:', response.status);
+                return null;
+            }
+        } catch (error) {
+            console.error('Error fetching position analysis:', error);
+            return null;
+        }
+    }
+
+    async updatePositionHighlighting(activeTeamId) {
+        /**
+         * Update player highlighting based on position fit for active team
+         */
+        if (!activeTeamId) {
+            // Clear all highlighting if no team selected
+            document.querySelectorAll('.player-card').forEach(card => {
+                card.classList.remove('highlight-strong', 'highlight-moderate');
+                const badge = card.querySelector('.position-fit-badge');
+                if (badge) badge.remove();
+            });
+            return;
+        }
+
+        // Fetch position analysis for this team
+        const analysis = await this.fetchPositionAnalysis(activeTeamId);
+        if (!analysis || !analysis.player_fit_scores) {
+            return;
+        }
+
+        // Apply highlighting to player cards
+        document.querySelectorAll('.player-card').forEach(card => {
+            const playerId = parseInt(card.dataset.playerId);
+            if (!playerId) return;
+
+            // Remove existing highlighting
+            card.classList.remove('highlight-strong', 'highlight-moderate');
+            const existingBadge = card.querySelector('.position-fit-badge');
+            if (existingBadge) existingBadge.remove();
+
+            // Get fit score for this player
+            const fitData = analysis.player_fit_scores[playerId];
+            if (!fitData) return;
+
+            // Apply highlighting based on fit category
+            if (fitData.fit_category === 'strong') {
+                card.classList.add('highlight-strong');
+                // Add badge
+                const badge = document.createElement('span');
+                badge.className = 'position-fit-badge badge-strong';
+                badge.innerHTML = '<i class="ti ti-star-filled me-1"></i>Position Fit';
+                badge.title = `${fitData.favorite_position} - Perfect match for team needs`;
+                card.appendChild(badge);
+            } else if (fitData.fit_category === 'moderate') {
+                card.classList.add('highlight-moderate');
+                // Add badge
+                const badge = document.createElement('span');
+                badge.className = 'position-fit-badge badge-moderate';
+                badge.innerHTML = '<i class="ti ti-check me-1"></i>Can Play';
+                badge.title = 'Can play needed position';
+                card.appendChild(badge);
+            }
+        });
+    }
+
+    setupTeamTabHighlighting() {
+        /**
+         * Set up event listeners for team tabs to trigger position highlighting
+         */
+        // Find all team tabs/sections
+        const teamTabs = document.querySelectorAll('[data-bs-toggle="collapse"][data-team-id]');
+        teamTabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const teamId = parseInt(e.currentTarget.dataset.teamId);
+                if (teamId) {
+                    // Delay slightly to allow accordion to open
+                    setTimeout(() => this.updatePositionHighlighting(teamId), 100);
+                }
+            });
+        });
+
+        // Also check if a team accordion is already open on page load
+        const openAccordion = document.querySelector('.accordion-collapse.show[data-team-id]');
+        if (openAccordion) {
+            const teamId = parseInt(openAccordion.dataset.teamId);
+            if (teamId) {
+                this.updatePositionHighlighting(teamId);
+            }
+        }
     }
 }
 

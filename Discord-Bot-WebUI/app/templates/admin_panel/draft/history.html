@@ -1,0 +1,250 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Draft History - Admin Panel{% endblock %}
+
+{% block panel_description %}View and manage draft pick history{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.draft_overview') }}">Draft Management</a></li>
+<li class="breadcrumb-item active">History</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Filters -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <form method="get" class="row align-items-end">
+                    <div class="col-md-4 mb-2 mb-md-0">
+                        <label class="form-label">Season</label>
+                        <select name="season" class="form-select" onchange="this.form.submit()">
+                            <option value="">All Seasons</option>
+                            {% for season in seasons %}
+                            <option value="{{ season.id }}" {{ 'selected' if current_season_filter == season.id }}>
+                                {{ season.name }} {% if season.is_current %}(Current){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-2 mb-md-0">
+                        <label class="form-label">League</label>
+                        <select name="league" class="form-select" onchange="this.form.submit()">
+                            <option value="">All Leagues</option>
+                            {% for league in leagues %}
+                            <option value="{{ league.id }}" {{ 'selected' if current_league_filter|string == league.id|string }}>
+                                {{ league.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <span class="badge bg-primary fs-6">{{ total_picks }} picks total</span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Draft History -->
+    {% if draft_history %}
+        {% for season_name, leagues_data in draft_history.items() %}
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary bg-opacity-10">
+                    <h5 class="mb-0"><i class="ti ti-calendar me-2"></i>{{ season_name }}</h5>
+                </div>
+                <div class="card-body">
+                    {% for league_name, picks in leagues_data.items() %}
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0"><i class="ti ti-trophy me-2"></i>{{ league_name }}</h6>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-secondary" onclick="normalizePositions({{ picks[0].season_id }}, {{ picks[0].league_id }})">
+                                    <i class="ti ti-sort-ascending-numbers me-1"></i>Normalize
+                                </button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px;">Pick #</th>
+                                        <th>Player</th>
+                                        <th>Team</th>
+                                        <th>Drafted By</th>
+                                        <th>Notes</th>
+                                        <th style="width: 120px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for pick in picks %}
+                                    <tr id="pick-row-{{ pick.id }}">
+                                        <td>
+                                            <span class="badge bg-primary">{{ pick.draft_position }}</span>
+                                        </td>
+                                        <td>
+                                            <strong>{{ pick.player.name if pick.player else 'Unknown' }}</strong>
+                                        </td>
+                                        <td>{{ pick.team.name if pick.team else 'Unknown' }}</td>
+                                        <td>
+                                            <small class="text-muted">{{ pick.drafter.username if pick.drafter else 'System' }}</small>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">{{ pick.notes|truncate(30) if pick.notes else '-' }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" onclick="editPick({{ pick.id }}, {{ pick.draft_position }})" title="Edit Position">
+                                                    <i class="ti ti-edit"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger" onclick="deletePick({{ pick.id }})" title="Delete">
+                                                    <i class="ti ti-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="ti ti-list-search fs-1 text-muted mb-3"></i>
+                <p class="text-muted">No draft history found. Select a season or league to view draft picks.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Edit Pick Modal -->
+<div class="modal fade" id="editPickModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Draft Pick</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-pick-id">
+                <div class="mb-3">
+                    <label class="form-label">New Position</label>
+                    <input type="number" class="form-control" id="edit-position" min="1">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Position Mode</label>
+                    <select class="form-select" id="edit-mode">
+                        <option value="cascading">Cascading (shift others down)</option>
+                        <option value="smart">Smart (automatic)</option>
+                        <option value="absolute">Absolute (no shift)</option>
+                        <option value="insert">Insert (shift at position)</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Notes</label>
+                    <textarea class="form-control" id="edit-notes" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="savePick()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+let editModal;
+
+document.addEventListener('DOMContentLoaded', function() {
+    editModal = new bootstrap.Modal(document.getElementById('editPickModal'));
+});
+
+function editPick(pickId, currentPosition) {
+    document.getElementById('edit-pick-id').value = pickId;
+    document.getElementById('edit-position').value = currentPosition;
+    document.getElementById('edit-notes').value = '';
+    editModal.show();
+}
+
+function savePick() {
+    const pickId = document.getElementById('edit-pick-id').value;
+    const position = document.getElementById('edit-position').value;
+    const mode = document.getElementById('edit-mode').value;
+    const notes = document.getElementById('edit-notes').value;
+
+    fetch(`{{ url_for('admin_panel.edit_draft_pick', pick_id=0) }}`.replace('0', pickId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ position: position, mode: mode, notes: notes })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            AdminPanel.showMobileToast(data.message, 'success');
+            editModal.hide();
+            location.reload();
+        } else {
+            AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        AdminPanel.showMobileToast('Error saving pick', 'danger');
+    });
+}
+
+function deletePick(pickId) {
+    if (!confirm('Delete this draft pick? This will shift all subsequent picks.')) return;
+
+    fetch(`{{ url_for('admin_panel.delete_draft_pick', pick_id=0) }}`.replace('0', pickId), {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            AdminPanel.showMobileToast(data.message, 'success');
+            document.getElementById(`pick-row-${pickId}`).remove();
+        } else {
+            AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        AdminPanel.showMobileToast('Error deleting pick', 'danger');
+    });
+}
+
+function normalizePositions(seasonId, leagueId) {
+    if (!confirm('Normalize draft positions for this league? This will fix any gaps in position numbers.')) return;
+
+    fetch('{{ url_for("admin_panel.normalize_draft_positions") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ season_id: seasonId, league_id: leagueId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            AdminPanel.showMobileToast(data.message, 'success');
+            location.reload();
+        } else {
+            AdminPanel.showMobileToast('Error: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        AdminPanel.showMobileToast('Error normalizing positions', 'danger');
+    });
+}
+</script>
+{% endblock %}

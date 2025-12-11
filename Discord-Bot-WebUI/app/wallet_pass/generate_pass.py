@@ -14,7 +14,7 @@ import requests
 from datetime import datetime, timedelta
 from io import BytesIO
 from flask import current_app
-from wallet.models import Pass, Barcode, Generic
+from wallet.models import Pass, Barcode, StoreCard
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class WalletPassConfig:
     def __init__(self):
         # These should be set via environment variables or config
         # Force new pass type to bypass env variable issue
-        self.pass_type_identifier = 'pass.com.ecsfc.membership.v3'
+        self.pass_type_identifier = 'pass.com.weareecs.membership'
         # Use the Apple Developer Team ID from environment (required)
         self.team_identifier = os.getenv('WALLET_TEAM_ID')
         if not self.team_identifier:
@@ -250,23 +250,24 @@ class ECSFCPassGenerator:
     def _create_pass_object(self, pass_data, player):
         """Create the wallet pass object"""
         try:
-            # Create generic pass card
-            card_info = Generic()
-            
-            # Add primary fields
-            for field in pass_data.get('generic', {}).get('primaryFields', []):
+            # Create store card (best for membership/loyalty cards - supports strip image)
+            card_info = StoreCard()
+
+            # Add primary fields - try storeCard first, fall back to generic for compatibility
+            card_data = pass_data.get('storeCard', pass_data.get('generic', {}))
+            for field in card_data.get('primaryFields', []):
                 card_info.addPrimaryField(field['key'], field['value'], field['label'])
             
             # Add secondary fields
-            for field in pass_data.get('generic', {}).get('secondaryFields', []):
+            for field in card_data.get('secondaryFields', []):
                 card_info.addSecondaryField(field['key'], field['value'], field['label'])
-            
-            # Add auxiliary fields  
-            for field in pass_data.get('generic', {}).get('auxiliaryFields', []):
+
+            # Add auxiliary fields
+            for field in card_data.get('auxiliaryFields', []):
                 card_info.addAuxiliaryField(field['key'], field['value'], field['label'])
-            
+
             # Add back fields
-            for field in pass_data.get('generic', {}).get('backFields', []):
+            for field in card_data.get('backFields', []):
                 card_info.addBackField(field['key'], field['value'], field['label'])
             
             # Create the pass
@@ -490,48 +491,91 @@ def create_pass_for_player(player_id):
     return generator.generate_pass_for_player(player)
 
 
-def validate_pass_configuration():
+def validate_pass_configuration(pass_type_code=None):
     """
-    Validate that the wallet pass system is properly configured
-    
+    Validate that the wallet pass system is properly configured.
+
+    Args:
+        pass_type_code: Optional. If provided ('ecs' or 'pub'), validates
+            that specific pass type using database assets. If None, validates
+            that at least one pass type is fully configured.
+
     Returns:
         dict: Configuration status and any issues
     """
-    config = WalletPassConfig()
+    from app.models.wallet import WalletPassType
+    from app.models.wallet_asset import WalletAsset, WalletCertificate
+
     issues = []
-    
-    # Check certificate files
-    cert_files = {
-        'Certificate': config.certificate_path,
-        'Private Key': config.key_path,
-        'WWDR Certificate': config.wwdr_path
-    }
-    
-    for name, path in cert_files.items():
-        if not os.path.exists(path):
-            issues.append(f"{name} not found at {path}")
-    
-    # Check required directories
-    required_dirs = [
-        'app/wallet_pass/templates',
-        'app/wallet_pass/assets'
-    ]
-    
-    for dir_path in required_dirs:
-        if not os.path.exists(dir_path):
-            issues.append(f"Directory not found: {dir_path}")
-    
-    # Check for required assets
-    asset_path = 'app/wallet_pass/assets'
-    required_assets = ['icon.png', 'logo.png']
-    
-    for asset in required_assets:
-        if not os.path.exists(os.path.join(asset_path, asset)):
-            issues.append(f"Required asset not found: {asset}")
-    
+    ecs_ready = False
+    pub_ready = False
+
+    # Check certificates from database (shared between both pass types)
+    apple_cert_complete = WalletCertificate.has_complete_apple_config()
+    google_cert_complete = WalletCertificate.has_complete_google_config()
+    cert_complete = apple_cert_complete or google_cert_complete
+
+    if not cert_complete:
+        issues.append("No wallet certificates configured (Apple or Google)")
+
+    required_assets = ['icon', 'logo']
+
+    if pass_type_code:
+        # Validate specific pass type
+        if pass_type_code == 'ecs':
+            pass_type = WalletPassType.get_ecs_membership()
+        elif pass_type_code == 'pub':
+            pass_type = WalletPassType.get_pub_league()
+        else:
+            issues.append(f"Unknown pass type: {pass_type_code}")
+            pass_type = None
+
+        if pass_type:
+            assets = WalletAsset.get_assets_by_pass_type(pass_type.id)
+            asset_types = [a.asset_type for a in assets]
+
+            for req in required_assets:
+                if req not in asset_types:
+                    issues.append(f"Required asset not found for {pass_type.name}: {req}")
+    else:
+        # Check if at least one pass type is fully configured
+        ecs_type = WalletPassType.get_ecs_membership()
+        pub_type = WalletPassType.get_pub_league()
+
+        if ecs_type:
+            ecs_assets = WalletAsset.get_assets_by_pass_type(ecs_type.id)
+            ecs_asset_types = [a.asset_type for a in ecs_assets]
+            ecs_ready = cert_complete and all(req in ecs_asset_types for req in required_assets)
+
+        if pub_type:
+            pub_assets = WalletAsset.get_assets_by_pass_type(pub_type.id)
+            pub_asset_types = [a.asset_type for a in pub_assets]
+            pub_ready = cert_complete and all(req in pub_asset_types for req in required_assets)
+
+        # Only report asset issues if NEITHER pass type is ready
+        if not ecs_ready and not pub_ready:
+            if ecs_type:
+                for req in required_assets:
+                    if req not in ecs_asset_types:
+                        issues.append(f"ECS Membership missing: {req}")
+            else:
+                issues.append("ECS Membership pass type not configured")
+
+            if pub_type:
+                for req in required_assets:
+                    if req not in pub_asset_types:
+                        issues.append(f"Pub League missing: {req}")
+            else:
+                issues.append("Pub League pass type not configured")
+
+    # Legacy config for backwards compatibility
+    config = WalletPassConfig()
+
     return {
-        'configured': len(issues) == 0,
+        'configured': len(issues) == 0 or ecs_ready or pub_ready,
         'issues': issues,
+        'ecs_ready': ecs_ready,
+        'pub_ready': pub_ready,
         'config': {
             'pass_type_identifier': config.pass_type_identifier,
             'team_identifier': config.team_identifier,

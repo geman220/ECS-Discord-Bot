@@ -1,0 +1,98 @@
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.com.ecsfc.membership",
+  "teamIdentifier": "{{team_identifier}}",
+  "organizationName": "ECS Pub League",
+  "serialNumber": "ecs-pub-{{serial_number}}",
+  "description": "ECS Pub League Player - {{season_name}}",
+  "barcode": {
+    "format": "PKBarcodeFormatQR",
+    "message": "{{barcode_data}}",
+    "messageEncoding": "utf-8"
+  },
+  "storeCard": {
+    "primaryFields": [
+      {
+        "key": "name",
+        "label": "Player",
+        "value": "{{member_name}}"
+      }
+    ],
+    "secondaryFields": [
+      {
+        "key": "team",
+        "label": "Team",
+        "value": "{{team_name}}"
+      },
+      {
+        "key": "season",
+        "label": "Season",
+        "value": "{{season_name}}"
+      }
+    ],
+    "auxiliaryFields": [
+      {
+        "key": "position",
+        "label": "Position",
+        "value": "{{position}}"
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "value": "{{status}}"
+      }
+    ],
+    "backFields": [
+      {
+        "key": "league",
+        "label": "League",
+        "value": "ECS Pub League"
+      },
+      {
+        "key": "valid_dates",
+        "label": "Valid Dates",
+        "value": "{{valid_from}} to {{valid_until}}"
+      },
+      {
+        "key": "issued",
+        "label": "Issued",
+        "value": "{{issue_date}}"
+      },
+      {
+        "key": "email",
+        "label": "Email",
+        "value": "{{member_email}}"
+      },
+      {
+        "key": "discord",
+        "label": "Discord",
+        "value": "{{discord_url}}"
+      },
+      {
+        "key": "qr_purpose",
+        "label": "QR Code",
+        "value": "Present this pass for match check-in, team verification, and player identification at pub league events."
+      },
+      {
+        "key": "website",
+        "label": "Website",
+        "value": "https://portal.ecsfc.com"
+      }
+    ]
+  },
+  "locations": [
+    {
+      "latitude": 47.5993,
+      "longitude": -122.3358,
+      "relevantText": "Temple Billiards - Match Day!"
+    }
+  ],
+  "backgroundColor": "#1a472a",
+  "foregroundColor": "#ffffff",
+  "labelColor": "#b8d4b8",
+  "logoText": "ECS Pub League",
+  "webServiceURL": "{{web_service_url}}",
+  "authenticationToken": "{{authentication_token}}",
+  "expirationDate": "{{expiration_date}}",
+  "voided": false
+}

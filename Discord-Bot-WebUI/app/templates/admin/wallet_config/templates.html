@@ -1,0 +1,572 @@
+{% extends 'admin/layout.html' %}
+{% block title %}Wallet Pass Templates{% endblock %}
+
+{% block page_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Pass Templates - Theme-aware styling */
+    .CodeMirror {
+        height: 400px;
+        border: 1px solid var(--bs-border-color, #ddd);
+        border-radius: 4px;
+    }
+</style>
+{% endblock custom_css %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="ti ti-file-code me-2"></i>Pass Templates
+                    </h5>
+                    <div>
+                        <a href="{{ url_for('wallet_admin.wallet_management') }}" class="btn btn-outline-secondary">
+                            <i class="ti ti-arrow-left me-1"></i> Back to Dashboard
+                        </a>
+                        <a href="{{ url_for('wallet_config.visual_editor', pass_type='ecs') }}" class="btn btn-primary">
+                            <i class="ti ti-brush me-1"></i> Visual Editor
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p>Manage templates used for generating wallet passes. Templates define the structure and appearance of passes.</p>
+
+                    {% if pass_types_missing %}
+                    <div class="alert alert-warning">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="ti ti-alert-triangle fs-3"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="alert-heading mb-1">Pass Types Not Initialized</h6>
+                                <p class="mb-2">Before configuring templates, you need to initialize the pass types (ECS Membership and Pub League).</p>
+                                <form action="{{ url_for('wallet_config.init_pass_types') }}" method="post" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-warning">
+                                        <i class="ti ti-database-plus me-1"></i> Initialize Pass Types
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <i class="ti ti-info-circle fs-3"></i>
+                            </div>
+                            <div>
+                                <h6 class="alert-heading">Template Information</h6>
+                                <p class="mb-0">
+                                    Templates use JSON format with placeholders like <code>{% raw %}{{member_name}}{% endraw %}</code> for dynamic content.<br>
+                                    For easier editing, use the Visual Editor for common customizations.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if not pass_types_missing %}
+    <!-- Tabs -->
+    <div class="row">
+        <div class="col-12">
+            <div class="nav-align-top mb-4">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="nav-item">
+                        <button
+                            type="button"
+                            class="nav-link active"
+                            role="tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#ecs-tab"
+                            aria-controls="ecs-tab"
+                            aria-selected="true"
+                        >
+                            <i class="ti ti-user-check me-1"></i> ECS Membership
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button
+                            type="button"
+                            class="nav-link"
+                            role="tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#pub-tab"
+                            aria-controls="pub-tab"
+                            aria-selected="false"
+                        >
+                            <i class="ti ti-ball-football me-1"></i> Pub League
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content">
+                    <!-- ECS Membership Tab -->
+                    <div class="tab-pane fade show active" id="ecs-tab" role="tabpanel">
+                        <div class="card border-0">
+                            <div class="card-body">
+                                <h5 class="mb-4">ECS Membership Templates</h5>
+                                
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <div class="card bg-body-tertiary">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Template Status</h6>
+                                                <p class="card-text">
+                                                    {% if ecs_default_apple %}
+                                                    <span class="badge bg-label-success"><i class="ti ti-check me-1"></i> Complete</span>
+                                                    {% else %}
+                                                    <span class="badge bg-label-warning"><i class="ti ti-alert-triangle me-1"></i> Incomplete</span>
+                                                    {% endif %}
+                                                </p>
+                                                <div class="progress mb-3" style="height: 8px;">
+                                                    {% set templates_exist = ecs_templates|length > 0 %}
+                                                    {% set percentage = 100 if ecs_default_apple else (50 if templates_exist else 0) %}
+                                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                </div>
+                                                <p class="mb-0 small">
+                                                    {% if ecs_default_apple %}
+                                                    Default template is set.
+                                                    {% elif templates_exist %}
+                                                    Template exists but no default set.
+                                                    {% else %}
+                                                    No template created yet.
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card bg-body-tertiary">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Quick Actions</h6>
+                                                <form action="{{ url_for('wallet_config.generate_default_template') }}" method="post" class="mb-3">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <input type="hidden" name="pass_type_id" value="{{ ecs_type.id }}">
+                                                    <input type="hidden" name="platform" value="apple">
+                                                    <button type="submit" class="btn btn-primary">
+                                                        <i class="ti ti-wand me-1"></i> Generate Default Template
+                                                    </button>
+                                                </form>
+                                                <a href="{{ url_for('wallet_config.visual_editor', pass_type='ecs') }}" class="btn btn-outline-primary">
+                                                    <i class="ti ti-brush me-1"></i> Visual Editor
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <h6 class="mb-3">ECS Templates</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Platform</th>
+                                                <th>Default</th>
+                                                <th>Created</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for template in ecs_templates %}
+                                            <tr>
+                                                <td>{{ template.name }}</td>
+                                                <td>
+                                                    {% if template.platform == 'apple' %}
+                                                    <span class="badge bg-label-primary">Apple</span>
+                                                    {% elif template.platform == 'google' %}
+                                                    <span class="badge bg-label-danger">Google</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if template.is_default %}
+                                                    <span class="badge bg-label-success">Default</span>
+                                                    {% else %}
+                                                    <form action="{{ url_for('wallet_config.set_default_template', template_id=template.id) }}" method="post" class="d-inline">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Set Default</button>
+                                                    </form>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ template.created_at.strftime('%Y-%m-%d') }}</td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editTemplateModal"
+                                                                data-template-id="{{ template.id }}"
+                                                                data-template-name="{{ template.name }}"
+                                                                data-template-content="{{ template.content }}"
+                                                                data-pass-type-id="{{ template.pass_type_id }}"
+                                                                data-platform="{{ template.platform }}">
+                                                            Edit
+                                                        </button>
+                                                        <form action="{{ url_for('wallet_config.delete_template', template_id=template.id) }}" method="post" class="d-inline ms-1 delete-template-form">
+                                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                            <input type="hidden" name="template_name" value="{{ template.name }}">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% else %}
+                                            <tr>
+                                                <td colspan="5" class="text-center">
+                                                    <p class="my-3 text-muted">No templates created yet.</p>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="mt-4">
+                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTemplateModal" data-pass-type-id="{{ ecs_type.id }}">
+                                        <i class="ti ti-plus me-1"></i> Create New Template
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pub League Tab -->
+                    <div class="tab-pane fade" id="pub-tab" role="tabpanel">
+                        <div class="card border-0">
+                            <div class="card-body">
+                                <h5 class="mb-4">Pub League Templates</h5>
+                                
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <div class="card bg-body-tertiary">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Template Status</h6>
+                                                <p class="card-text">
+                                                    {% if pub_default_apple %}
+                                                    <span class="badge bg-label-success"><i class="ti ti-check me-1"></i> Complete</span>
+                                                    {% else %}
+                                                    <span class="badge bg-label-warning"><i class="ti ti-alert-triangle me-1"></i> Incomplete</span>
+                                                    {% endif %}
+                                                </p>
+                                                <div class="progress mb-3" style="height: 8px;">
+                                                    {% set templates_exist = pub_templates|length > 0 %}
+                                                    {% set percentage = 100 if pub_default_apple else (50 if templates_exist else 0) %}
+                                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                                </div>
+                                                <p class="mb-0 small">
+                                                    {% if pub_default_apple %}
+                                                    Default template is set.
+                                                    {% elif templates_exist %}
+                                                    Template exists but no default set.
+                                                    {% else %}
+                                                    No template created yet.
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card bg-body-tertiary">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Quick Actions</h6>
+                                                <form action="{{ url_for('wallet_config.generate_default_template') }}" method="post" class="mb-3">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <input type="hidden" name="pass_type_id" value="{{ pub_type.id }}">
+                                                    <input type="hidden" name="platform" value="apple">
+                                                    <button type="submit" class="btn btn-primary">
+                                                        <i class="ti ti-wand me-1"></i> Generate Default Template
+                                                    </button>
+                                                </form>
+                                                <a href="{{ url_for('wallet_config.visual_editor', pass_type='pub') }}" class="btn btn-outline-primary">
+                                                    <i class="ti ti-brush me-1"></i> Visual Editor
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <h6 class="mb-3">Pub League Templates</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Platform</th>
+                                                <th>Default</th>
+                                                <th>Created</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for template in pub_templates %}
+                                            <tr>
+                                                <td>{{ template.name }}</td>
+                                                <td>
+                                                    {% if template.platform == 'apple' %}
+                                                    <span class="badge bg-label-primary">Apple</span>
+                                                    {% elif template.platform == 'google' %}
+                                                    <span class="badge bg-label-danger">Google</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if template.is_default %}
+                                                    <span class="badge bg-label-success">Default</span>
+                                                    {% else %}
+                                                    <form action="{{ url_for('wallet_config.set_default_template', template_id=template.id) }}" method="post" class="d-inline">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Set Default</button>
+                                                    </form>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ template.created_at.strftime('%Y-%m-%d') }}</td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editTemplateModal"
+                                                                data-template-id="{{ template.id }}"
+                                                                data-template-name="{{ template.name }}"
+                                                                data-template-content="{{ template.content }}"
+                                                                data-pass-type-id="{{ template.pass_type_id }}"
+                                                                data-platform="{{ template.platform }}">
+                                                            Edit
+                                                        </button>
+                                                        <form action="{{ url_for('wallet_config.delete_template', template_id=template.id) }}" method="post" class="d-inline ms-1 delete-template-form">
+                                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                            <input type="hidden" name="template_name" value="{{ template.name }}">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% else %}
+                                            <tr>
+                                                <td colspan="5" class="text-center">
+                                                    <p class="my-3 text-muted">No templates created yet.</p>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="mt-4">
+                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTemplateModal" data-pass-type-id="{{ pub_type.id }}">
+                                        <i class="ti ti-plus me-1"></i> Create New Template
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Template Modal -->
+    <div class="modal fade" id="createTemplateModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createTemplateModalLabel">Create Template</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('wallet_config.create_template') }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="templateName" class="form-label">Template Name</label>
+                            <input type="text" class="form-control" id="templateName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="templatePlatform" class="form-label">Platform</label>
+                            <select class="form-select" id="templatePlatform" name="platform" required>
+                                <option value="apple" selected>Apple Wallet</option>
+                                <option value="google" disabled>Google Wallet (Coming Soon)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="templateContent" class="form-label">Template Content (JSON)</label>
+                            <textarea class="form-control" id="templateContent" name="content" rows="15" required></textarea>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="isDefault" name="is_default" value="true">
+                            <label class="form-check-label" for="isDefault">
+                                Set as Default Template
+                            </label>
+                        </div>
+                        <input type="hidden" id="passTypeId" name="pass_type_id">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Template</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Template Modal -->
+    <div class="modal fade" id="editTemplateModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTemplateModalLabel">Edit Template</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('wallet_config.create_template') }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="editTemplateName" class="form-label">Template Name</label>
+                            <input type="text" class="form-control" id="editTemplateName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editTemplatePlatform" class="form-label">Platform</label>
+                            <select class="form-select" id="editTemplatePlatform" name="platform" required disabled>
+                                <option value="apple">Apple Wallet</option>
+                                <option value="google">Google Wallet</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editTemplateContent" class="form-label">Template Content (JSON)</label>
+                            <textarea class="form-control" id="editTemplateContent" name="content" rows="15" required></textarea>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editIsDefault" name="is_default" value="true">
+                            <label class="form-check-label" for="editIsDefault">
+                                Set as Default Template
+                            </label>
+                        </div>
+                        <input type="hidden" id="editPassTypeId" name="pass_type_id">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block page_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle delete template forms with SweetAlert2
+        document.querySelectorAll('.delete-template-form').forEach(function(form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const templateName = form.querySelector('input[name="template_name"]').value;
+
+                Swal.fire({
+                    title: 'Delete Template?',
+                    text: `Are you sure you want to delete "${templateName}"? This action cannot be undone.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, delete it',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+
+        // Initialize CodeMirror for template content
+        const createEditor = CodeMirror.fromTextArea(document.getElementById('templateContent'), {
+            mode: { name: "javascript", json: true },
+            theme: "monokai",
+            lineNumbers: true,
+            indentUnit: 4
+        });
+        
+        const editEditor = CodeMirror.fromTextArea(document.getElementById('editTemplateContent'), {
+            mode: { name: "javascript", json: true },
+            theme: "monokai",
+            lineNumbers: true,
+            indentUnit: 4
+        });
+        
+        // Handle create template modal
+        const createTemplateModal = document.getElementById('createTemplateModal');
+        if (createTemplateModal) {
+            createTemplateModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const passTypeId = button.getAttribute('data-pass-type-id');
+                document.getElementById('passTypeId').value = passTypeId;
+                
+                // Create a basic template if none exists
+                createEditor.setValue(JSON.stringify({
+                    formatVersion: 1,
+                    passTypeIdentifier: "{{pass_type_identifier}}",
+                    teamIdentifier: "{{team_identifier}}",
+                    serialNumber: "{{serial_number}}",
+                    description: "{{description}}",
+                    organizationName: "Emerald City Supporters",
+                    logoText: "{{logo_text}}",
+                    foregroundColor: "{{foreground_color}}",
+                    backgroundColor: "{{background_color}}",
+                    labelColor: "{{label_color}}",
+                    generic: {
+                        primaryFields: [
+                            {
+                                key: "member",
+                                label: "MEMBER",
+                                value: "{{member_name}}"
+                            }
+                        ],
+                        secondaryFields: [
+                            {
+                                key: "year",
+                                label: "YEAR",
+                                value: "{{membership_year}}"
+                            }
+                        ]
+                    }
+                }, null, 2));
+            });
+        }
+        
+        // Handle edit template modal
+        const editTemplateModal = document.getElementById('editTemplateModal');
+        if (editTemplateModal) {
+            editTemplateModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const templateId = button.getAttribute('data-template-id');
+                const templateName = button.getAttribute('data-template-name');
+                const templateContent = button.getAttribute('data-template-content');
+                const passTypeId = button.getAttribute('data-pass-type-id');
+                const platform = button.getAttribute('data-platform');
+                
+                document.getElementById('editTemplateName').value = templateName;
+                document.getElementById('editPassTypeId').value = passTypeId;
+                document.getElementById('editTemplatePlatform').value = platform;
+                
+                // Format JSON for display
+                try {
+                    const formattedContent = JSON.stringify(JSON.parse(templateContent), null, 2);
+                    editEditor.setValue(formattedContent);
+                } catch (e) {
+                    editEditor.setValue(templateContent);
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
+{% endif %}
+{% endblock %}

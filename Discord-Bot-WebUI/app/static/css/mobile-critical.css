@@ -1,0 +1,172 @@
+/**
+ * Mobile Critical CSS - Above-the-Fold Styles
+ *
+ * This file contains minimal CSS for fastest first paint on mobile devices.
+ * Should be inlined in <head> for optimal performance.
+ *
+ * Contains:
+ * - Critical CSS variables
+ * - Essential typography
+ * - Container/layout basics
+ * - Critical z-index
+ * - Touch target sizing for first-paint elements
+ */
+
+:root {
+  /* Mobile Typography - Critical */
+  --mobile-text-xs: 12px;
+  --mobile-text-sm: 14px;
+  --mobile-text-base: 16px;
+  --mobile-text-lg: 18px;
+  --mobile-text-xl: 20px;
+
+  /* Mobile Spacing - Critical */
+  --mobile-space-xs: 4px;
+  --mobile-space-sm: 8px;
+  --mobile-space-base: 12px;
+  --mobile-space-lg: 16px;
+  --mobile-space-xl: 24px;
+
+  /* Touch Targets - Critical */
+  --mobile-touch-sm: 40px;
+  --mobile-touch-base: 48px;  /* Standardized to 48px for better accessibility */
+  --mobile-touch-lg: 52px;
+
+  /* Container - Critical */
+  --mobile-container-padding: 12px;
+}
+
+/* Critical Z-Index */
+.modal {
+  z-index: 9999 !important;
+  position: fixed !important;  /* Force fixed positioning */
+}
+.modal-backdrop {
+  z-index: 9998 !important;
+  position: fixed !important;
+}
+.layout-navbar {
+  z-index: 1055 !important;
+  position: fixed !important;
+}
+.layout-menu { z-index: 1050 !important; }
+
+@media (max-width: 991.98px) {
+  .layout-menu { z-index: 1056 !important; }
+  .layout-overlay { z-index: 1054 !important; }
+}
+
+/* Critical Container Padding */
+.container-xxl:not(.auth-page .container-xxl),
+.container-fluid:not(.auth-page .container-fluid) {
+  padding-left: var(--mobile-container-padding);
+  padding-right: var(--mobile-container-padding);
+}
+
+/* Critical Typography */
+body:not(.auth-page) {
+  font-size: var(--mobile-text-base);
+  line-height: 1.4;
+}
+
+body:not(.auth-page) h1 { font-size: var(--mobile-text-xl); }
+body:not(.auth-page) h2 { font-size: var(--mobile-text-lg); }
+body:not(.auth-page) h3 { font-size: var(--mobile-text-base); }
+
+/* Critical Button Sizing */
+body:not(.auth-page) .btn {
+  min-height: var(--mobile-touch-base);
+  font-size: var(--mobile-text-base);
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+}
+
+/* Critical Form Sizing */
+body:not(.auth-page) .form-control,
+body:not(.auth-page) .form-select {
+  min-height: var(--mobile-touch-base);
+  font-size: var(--mobile-text-base);
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+}
+
+.form-control,
+.form-select {
+  font-size: 16px; /* Prevents iOS zoom */
+}
+
+/* Critical Navigation Touch Targets */
+.navbar-nav .nav-link {
+  min-height: var(--mobile-touch-base);
+  padding: var(--mobile-space-base);
+}
+
+/* Critical Modal Sizing */
+@media (max-width: 767.98px) {
+  .modal-dialog:not(.auth-page .modal-dialog) {
+    margin: 8px;
+    max-width: calc(100% - 16px);
+  }
+}
+
+/* iOS Smooth Scrolling */
+body,
+.modal-body,
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Viewport Height Fix for iOS */
+html {
+  height: -webkit-fill-available;
+}
+
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Critical Image Responsiveness */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Prevent Zoom on Focus (iOS) */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+/* Critical Touch Action */
+.btn,
+.nav-link,
+.form-control,
+.form-select {
+  touch-action: manipulation;
+}
+
+/* Tablet Adjustments */
+@media (min-width: 768px) {
+  :root {
+    --mobile-container-padding: 20px;
+    --mobile-space-base: 16px;
+  }
+}
+
+/* Desktop Adjustments */
+@media (min-width: 992px) {
+  :root {
+    --mobile-container-padding: 24px;
+    --mobile-space-base: 20px;
+  }
+}
+
+/* Reduced Motion - Critical Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

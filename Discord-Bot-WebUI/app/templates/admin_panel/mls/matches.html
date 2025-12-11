@@ -1,0 +1,391 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}MLS Matches - Admin Panel{% endblock %}
+
+{% block panel_description %}Full MLS match management and scheduling{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.mls_overview') }}">MLS Management</a></li>
+<li class="breadcrumb-item active">All Matches</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Action Bar -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6 mb-2 mb-md-0">
+                        <h5 class="mb-0">Match Management</h5>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <div class="btn-group">
+                            <button id="fetch-espn-btn" class="btn btn-success">
+                                <i class="ti ti-download me-2"></i>Fetch ESPN
+                            </button>
+                            <button id="schedule-all-btn" class="btn btn-info">
+                                <i class="ti ti-calendar-event me-2"></i>Schedule All
+                            </button>
+                            <button id="refresh-statuses-btn" class="btn btn-outline-secondary">
+                                <i class="ti ti-refresh me-2"></i>Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current/Upcoming Matches -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="ti ti-calendar me-2"></i>Current & Upcoming Matches</h5>
+                <span class="badge bg-primary">{{ matches|length }} matches</span>
+            </div>
+            <div class="card-body p-0">
+                {% if matches %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 30%;">Match</th>
+                                <th>Date/Time</th>
+                                <th>Competition</th>
+                                <th>Thread</th>
+                                <th>Status</th>
+                                <th style="width: 150px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for match in matches %}
+                            <tr id="match-row-{{ match.id }}">
+                                <td>
+                                    {% if match.is_home_game %}
+                                    <strong>Seattle Sounders FC</strong> vs {{ match.opponent }}
+                                    {% else %}
+                                    {{ match.opponent }} vs <strong>Seattle Sounders FC</strong>
+                                    {% endif %}
+                                    {% if match.venue %}
+                                    <br><small class="text-muted">{{ match.venue }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ match.date_time.strftime('%b %d, %Y') }}<br>
+                                    <small class="text-muted">{{ match.date_time.strftime('%I:%M %p') }} UTC</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ match.competition or 'MLS' }}</span>
+                                </td>
+                                <td>
+                                    {% if match.thread_created %}
+                                    <span class="badge bg-success"><i class="ti ti-check"></i> Created</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Not Created</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ match.status_color }}" id="status-{{ match.id }}">
+                                        <i class="ti {{ match.status_icon }} me-1"></i>{{ match.status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm mb-1">
+                                        <button class="btn btn-outline-primary" onclick="scheduleMatch({{ match.id }})" title="Schedule Tasks">
+                                            <i class="ti ti-calendar-event"></i>
+                                        </button>
+                                        {% if not match.thread_created %}
+                                        <button class="btn btn-outline-info" onclick="createThread({{ match.id }})" title="Create Thread">
+                                            <i class="ti ti-message-plus"></i>
+                                        </button>
+                                        {% endif %}
+                                        {% if match.live_reporting_status != 'running' %}
+                                        <button class="btn btn-outline-success" onclick="startReporting({{ match.id }})" title="Start Reporting">
+                                            <i class="ti ti-player-play"></i>
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-outline-warning" onclick="stopReporting({{ match.id }})" title="Stop Reporting">
+                                            <i class="ti ti-player-stop"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary" onclick="resyncMatch({{ match.id }})" title="Resync Match (Fix Issues)">
+                                            <i class="ti ti-refresh"></i>
+                                        </button>
+                                        <a href="{{ url_for('admin_panel.match_debug', match_id=match.id) }}" class="btn btn-outline-info" title="Debug Match" target="_blank">
+                                            <i class="ti ti-bug"></i>
+                                        </a>
+                                        <button class="btn btn-outline-danger" onclick="removeMatch({{ match.id }})" title="Remove Match">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-calendar-off fs-1 text-muted mb-3"></i>
+                    <p class="text-muted">No upcoming matches found.</p>
+                    <button id="fetch-espn-empty-btn" class="btn btn-success">
+                        <i class="ti ti-download me-2"></i>Fetch Matches from ESPN
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if historical_matches %}
+    <!-- Historical Matches (Collapsed) -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <a class="d-flex justify-content-between align-items-center text-decoration-none text-body" data-bs-toggle="collapse" href="#historicalMatches" role="button" aria-expanded="false">
+                    <h5 class="mb-0"><i class="ti ti-history me-2"></i>Historical Matches</h5>
+                    <span class="badge bg-secondary">{{ historical_count }} matches</span>
+                </a>
+            </div>
+            <div class="collapse" id="historicalMatches">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Match</th>
+                                    <th>Date</th>
+                                    <th>Competition</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for match in historical_matches %}
+                                <tr>
+                                    <td>
+                                        {% if match.is_home_game %}
+                                        Seattle Sounders FC vs {{ match.opponent }}
+                                        {% else %}
+                                        {{ match.opponent }} vs Seattle Sounders FC
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ match.date_time.strftime('%b %d, %Y') }}</td>
+                                    <td><span class="badge bg-secondary">{{ match.competition or 'MLS' }}</span></td>
+                                    <td>
+                                        <span class="badge bg-{{ match.status_color }}">{{ match.status_display }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+function fetchFromESPN(btn) {
+    if (!btn) btn = document.getElementById('fetch-espn-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-loader spin me-2"></i>Fetching...';
+    btn.disabled = true;
+
+    fetch('{{ url_for("admin_panel.mls_fetch_espn") }}', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error fetching matches', 'danger');
+        })
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+}
+
+function scheduleAll() {
+    if (!confirm('Schedule tasks for all upcoming matches?')) return;
+
+    const btn = document.getElementById('schedule-all-btn');
+    btn.innerHTML = '<i class="ti ti-loader spin me-2"></i>Scheduling...';
+    btn.disabled = true;
+
+    fetch('{{ url_for("admin_panel.mls_schedule_all") }}', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error scheduling matches', 'danger');
+        })
+        .finally(() => {
+            btn.innerHTML = '<i class="ti ti-calendar-event me-2"></i>Schedule All';
+            btn.disabled = false;
+        });
+}
+
+function scheduleMatch(matchId) {
+    fetch(`{{ url_for('admin_panel.mls_schedule_match', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error scheduling match', 'danger');
+        });
+}
+
+function createThread(matchId) {
+    fetch(`{{ url_for('admin_panel.mls_create_thread', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error creating thread', 'danger');
+        });
+}
+
+function startReporting(matchId) {
+    fetch(`{{ url_for('admin_panel.mls_start_reporting', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error starting reporting', 'danger');
+        });
+}
+
+function stopReporting(matchId) {
+    if (!confirm('Stop live reporting for this match?')) return;
+
+    fetch(`{{ url_for('admin_panel.mls_stop_reporting', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error stopping reporting', 'danger');
+        });
+}
+
+function removeMatch(matchId) {
+    if (!confirm('Are you sure you want to remove this match? This will also revoke any scheduled tasks.')) return;
+
+    fetch(`{{ url_for('admin_panel.mls_remove_match', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                AdminPanel.showMobileToast(data.message, 'success');
+                document.getElementById(`match-row-${matchId}`).remove();
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error removing match', 'danger');
+        });
+}
+
+function resyncMatch(matchId) {
+    if (!confirm('Resync this match? This will check and fix any missing threads or tasks.')) return;
+
+    fetch(`{{ url_for('admin_panel.match_resync', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                let message = data.message;
+                if (data.actions && data.actions.length > 0) {
+                    message += '\n\nActions:\n' + data.actions.join('\n');
+                }
+                AdminPanel.showMobileToast(message, 'success');
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error resyncing match', 'danger');
+        });
+}
+
+function refreshStatuses() {
+    const btn = document.getElementById('refresh-statuses-btn');
+    btn.innerHTML = '<i class="ti ti-loader spin me-2"></i>';
+    btn.disabled = true;
+
+    fetch('{{ url_for("admin_panel.mls_match_statuses_api") }}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.statuses) {
+                data.statuses.forEach(status => {
+                    const el = document.getElementById(`status-${status.id}`);
+                    if (el) {
+                        el.className = `badge bg-${status.status_color}`;
+                        el.innerHTML = `<i class="ti ${status.status_icon} me-1"></i>${status.status_display}`;
+                    }
+                });
+                AdminPanel.showMobileToast('Statuses refreshed', 'success');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Error refreshing statuses', 'danger');
+        })
+        .finally(() => {
+            btn.innerHTML = '<i class="ti ti-refresh me-2"></i>Refresh';
+            btn.disabled = false;
+        });
+}
+
+document.getElementById('fetch-espn-btn').addEventListener('click', function() { fetchFromESPN(this); });
+document.getElementById('schedule-all-btn').addEventListener('click', scheduleAll);
+document.getElementById('refresh-statuses-btn').addEventListener('click', refreshStatuses);
+
+const emptyBtn = document.getElementById('fetch-espn-empty-btn');
+if (emptyBtn) emptyBtn.addEventListener('click', function() { fetchFromESPN(this); });
+
+// Spin animation
+const style = document.createElement('style');
+style.textContent = `.spin { animation: spin 1s linear infinite; } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

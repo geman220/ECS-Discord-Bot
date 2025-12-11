@@ -1,0 +1,81 @@
+{
+  "iss": "{{issuer_id}}",
+  "aud": "google",
+  "typ": "savetoandroidpay",
+  "payload": {
+    "genericObjects": [
+      {
+        "id": "{{issuer_id}}.pub_league_{{serial_number}}",
+        "classId": "{{issuer_id}}.pub_league",
+        "genericType": "GENERIC_TYPE_UNSPECIFIED",
+        "cardTitle": {
+          "defaultValue": {
+            "language": "en-US",
+            "value": "Pub League Membership"
+          }
+        },
+        "subheader": {
+          "defaultValue": {
+            "language": "en-US",
+            "value": "Player"
+          }
+        },
+        "header": {
+          "defaultValue": {
+            "language": "en-US",
+            "value": "{{member_name}}"
+          }
+        },
+        "logo": {
+          "sourceUri": {
+            "uri": "https://ecsfc.org/wp-content/uploads/2023/05/ecs_emblem_blue.png"
+          },
+          "contentDescription": {
+            "defaultValue": {
+              "language": "en-US",
+              "value": "ECS Logo"
+            }
+          }
+        },
+        "textModulesData": [
+          {
+            "id": "team",
+            "header": "Team",
+            "body": "{{team_name}}"
+          },
+          {
+            "id": "season",
+            "header": "Season",
+            "body": "{{season_name}}"
+          },
+          {
+            "id": "status",
+            "header": "Status",
+            "body": "{{status}}"
+          },
+          {
+            "id": "issued",
+            "header": "Issued",
+            "body": "{{issue_date}}"
+          }
+        ],
+        "barcode": {
+          "type": "QR_CODE",
+          "value": "{{barcode_data}}"
+        },
+        "hexBackgroundColor": "#213E96",
+        "heroImage": {
+          "sourceUri": {
+            "uri": "https://ecsfc.org/wp-content/uploads/2023/05/ecs_crest_banner.jpg"
+          },
+          "contentDescription": {
+            "defaultValue": {
+              "language": "en-US",
+              "value": "ECS Pub League"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

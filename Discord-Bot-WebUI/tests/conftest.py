@@ -322,3 +322,120 @@ def auth_headers(user):
 def api_key_headers():
     """Create API key headers."""
     return {'X-API-Key': 'test-api-key-123'}
+
+
+# ============================================================================
+# PLAYWRIGHT FIXTURES - Mobile Browser Automation
+# ============================================================================
+
+from playwright.sync_api import sync_playwright
+import threading
+from werkzeug.serving import make_server
+
+# MOBILE DEVICE CONFIGURATIONS
+MOBILE_DEVICES = {
+    'iphone_13': {
+        'viewport': {'width': 390, 'height': 844},
+        'user_agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
+        'device_scale_factor': 3,
+        'is_mobile': True,
+        'has_touch': True,
+    },
+    'iphone_13_pro_max': {
+        'viewport': {'width': 428, 'height': 926},
+        'user_agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
+        'device_scale_factor': 3,
+        'is_mobile': True,
+        'has_touch': True,
+    },
+    'ipad_air': {
+        'viewport': {'width': 820, 'height': 1180},
+        'user_agent': 'Mozilla/5.0 (iPad; CPU OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
+        'device_scale_factor': 2,
+        'is_mobile': True,
+        'has_touch': True,
+    },
+    'samsung_s21': {
+        'viewport': {'width': 360, 'height': 800},
+        'user_agent': 'Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36',
+        'device_scale_factor': 3,
+        'is_mobile': True,
+        'has_touch': True,
+    },
+}
+
+
+@pytest.fixture(scope='session')
+def live_server(app):
+    """Start Flask test server in background thread."""
+    server = make_server('127.0.0.1', 5555, app)
+    thread = threading.Thread(target=server.serve_forever)
+    thread.daemon = True
+    thread.start()
+
+    # Return server URL
+    class LiveServer:
+        @staticmethod
+        def url():
+            return 'http://127.0.0.1:5555'
+
+    yield LiveServer()
+    server.shutdown()
+
+
+@pytest.fixture(scope='session')
+def browser():
+    """Launch browser instance for entire test session."""
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=True,
+            args=['--disable-dev-shm-usage']  # Prevent crashes in CI
+        )
+        yield browser
+        browser.close()
+
+
+@pytest.fixture
+def mobile_context(browser, request):
+    """Create mobile browser context with device emulation."""
+    device_name = getattr(request, 'param', 'iphone_13')
+    device = MOBILE_DEVICES.get(device_name, MOBILE_DEVICES['iphone_13'])
+
+    context = browser.new_context(**device)
+    yield context
+    context.close()
+
+
+@pytest.fixture
+def mobile_page(mobile_context, live_server):
+    """Create mobile page connected to Flask test server."""
+    page = mobile_context.new_page()
+    page.goto(live_server.url())
+    yield page
+    page.close()
+
+
+@pytest.fixture
+def authenticated_mobile_page(mobile_page, app, user):
+    """Mobile page with authenticated session."""
+    # Use Flask test client to create session
+    with app.test_client() as client:
+        # Login via test endpoint
+        response = client.post('/login', data={
+            'username': user.username,
+            'password': 'testpassword'
+        }, follow_redirects=True)
+
+        # Copy session cookies to Playwright
+        if hasattr(client, 'cookie_jar'):
+            for cookie in client.cookie_jar:
+                mobile_page.context.add_cookies([{
+                    'name': cookie.name,
+                    'value': cookie.value,
+                    'domain': 'localhost',
+                    'path': cookie.path or '/',
+                    'expires': -1  # Session cookie
+                }])
+
+    mobile_page.reload()
+    yield mobile_page

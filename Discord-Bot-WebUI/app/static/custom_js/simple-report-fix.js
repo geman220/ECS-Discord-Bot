@@ -9,7 +9,7 @@ function cleanupModalBackdrop() {
     const backdrops = document.querySelectorAll('.modal-backdrop');
     backdrops.forEach(backdrop => {
         // Fix z-index before removal to prevent flash of incorrect stacking
-        backdrop.style.zIndex = '1040'; 
+        backdrop.style.zIndex = '9998';  // Updated to match mobile-modals.css 
         backdrop.classList.remove('show');
         backdrop.classList.add('hide');
         // Remove after transition
@@ -125,16 +125,16 @@ function loadModalsIfNotFound() {
 // Fix for modal z-index issues
 document.addEventListener('show.bs.modal', function(event) {
     // Apply z-index fix to ALL modals, not just report match modals
-    // Fix z-index on the modal
-    event.target.style.zIndex = '1050';
-    
+    // Fix z-index on the modal - CRITICAL: Must match mobile-modals.css (9999)
+    event.target.style.zIndex = '9999';  // Updated from 1050 to fix navbar overlap
+
     // Fix backdrop z-index
     setTimeout(function() {
         const backdrops = document.querySelectorAll('.modal-backdrop');
         if (backdrops) {
             backdrops.forEach(backdrop => {
                 // Ensure backdrop is behind the modal
-                backdrop.style.zIndex = '1040';
+                backdrop.style.zIndex = '9998';  // Updated from 1040 to match CSS
             });
         }
     }, 10);

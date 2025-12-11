@@ -1,0 +1,353 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Task Monitoring - MLS Management{% endblock %}
+
+{% block panel_description %}Monitor and manage scheduled match tasks{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.mls_overview') }}">MLS Management</a></li>
+<li class="breadcrumb-item active">Task Monitoring</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Stats Cards -->
+    <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+        <div class="card h-100 bg-info bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-clock fs-1 text-info mb-2"></i>
+                <h3 class="mb-0">{{ stats.total_scheduled }}</h3>
+                <small class="text-muted">Scheduled</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+        <div class="card h-100 bg-primary bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-player-play fs-1 text-primary mb-2"></i>
+                <h3 class="mb-0">{{ stats.total_running }}</h3>
+                <small class="text-muted">Running</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+        <div class="card h-100 bg-danger bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-alert-circle fs-1 text-danger mb-2"></i>
+                <h3 class="mb-0">{{ stats.total_failed }}</h3>
+                <small class="text-muted">Failed (24h)</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+        <div class="card h-100 bg-warning bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-clock-exclamation fs-1 text-warning mb-2"></i>
+                <h3 class="mb-0">{{ stats.overdue_tasks }}</h3>
+                <small class="text-muted">Overdue</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="ti ti-filter me-2"></i>Filters</h5>
+                <a href="{{ url_for('admin_panel.mls_task_monitoring') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="ti ti-reload me-1"></i>Reset
+                </a>
+            </div>
+            <div class="card-body">
+                <form method="get" action="{{ url_for('admin_panel.mls_task_monitoring') }}" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="task_type" class="form-label">Task Type</label>
+                        <select name="task_type" id="task_type" class="form-select">
+                            <option value="all" {% if current_filters.task_type == 'all' %}selected{% endif %}>All Types</option>
+                            {% for task_type in task_types %}
+                            <option value="{{ task_type }}" {% if current_filters.task_type == task_type %}selected{% endif %}>
+                                {% if task_type == 'thread_creation' %}Thread Creation
+                                {% elif task_type == 'live_reporting_start' %}Live Reporting Start
+                                {% else %}{{ task_type }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="state" class="form-label">State</label>
+                        <select name="state" id="state" class="form-select">
+                            <option value="all" {% if current_filters.state == 'all' %}selected{% endif %}>All States</option>
+                            {% for state in task_states %}
+                            <option value="{{ state }}" {% if current_filters.state == state %}selected{% endif %}>
+                                {{ state.title() }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="days" class="form-label">Time Range</label>
+                        <select name="days" id="days" class="form-select">
+                            <option value="1" {% if current_filters.days == 1 %}selected{% endif %}>Last 24 Hours</option>
+                            <option value="3" {% if current_filters.days == 3 %}selected{% endif %}>Last 3 Days</option>
+                            <option value="7" {% if current_filters.days == 7 %}selected{% endif %}>Last 7 Days</option>
+                            <option value="14" {% if current_filters.days == 14 %}selected{% endif %}>Last 14 Days</option>
+                            <option value="30" {% if current_filters.days == 30 %}selected{% endif %}>Last 30 Days</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="ti ti-search me-1"></i>Apply Filters
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tasks Table -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="ti ti-list-check me-2"></i>Scheduled Tasks ({{ tasks|length }})</h5>
+                <div>
+                    <span class="badge bg-secondary me-2" id="auto-refresh-status">Auto-refresh: ON</span>
+                    <button id="manual-refresh-btn" class="btn btn-sm btn-outline-primary">
+                        <i class="ti ti-reload"></i> Refresh
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if tasks %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Type</th>
+                                <th>Match</th>
+                                <th>Scheduled Time</th>
+                                <th>State</th>
+                                <th>Retry Count</th>
+                                <th>Last Error</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tasks-table-body">
+                            {% for task in tasks %}
+                            <tr class="task-row {% if task.is_overdue %}table-warning{% endif %}" data-task-id="{{ task.id }}">
+                                <td><span class="badge bg-secondary">#{{ task.id }}</span></td>
+                                <td>
+                                    {% if task.task_type == 'thread_creation' %}
+                                    <i class="ti ti-message-circle text-info me-1"></i>Thread
+                                    {% elif task.task_type == 'live_reporting_start' %}
+                                    <i class="ti ti-broadcast text-warning me-1"></i>Live
+                                    {% else %}
+                                    {{ task.task_type }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if task.match %}
+                                    <div>
+                                        <strong>{{ task.match.opponent }}</strong>
+                                        {% if task.match.date_time %}
+                                        <br><small class="text-muted">{{ task.match.date_time | replace('T', ' ') | replace('Z', '') | truncate(16, True, '') }}</small>
+                                        {% endif %}
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted">Unknown</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="text-nowrap">{{ task.scheduled_time | replace('T', ' ') | replace('Z', '') | truncate(16, True, '') }}</span>
+                                    {% if task.is_overdue %}
+                                    <br><span class="badge bg-warning text-dark"><i class="ti ti-clock-exclamation"></i> Overdue</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if task.state == 'scheduled' %}
+                                    <span class="badge bg-info"><i class="ti ti-clock"></i> Scheduled</span>
+                                    {% elif task.state == 'running' %}
+                                    <span class="badge bg-primary"><i class="ti ti-player-play"></i> Running</span>
+                                    {% elif task.state == 'completed' %}
+                                    <span class="badge bg-success"><i class="ti ti-check"></i> Completed</span>
+                                    {% elif task.state == 'failed' %}
+                                    <span class="badge bg-danger"><i class="ti ti-x"></i> Failed</span>
+                                    {% elif task.state == 'expired' %}
+                                    <span class="badge bg-secondary"><i class="ti ti-clock-off"></i> Expired</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ task.state }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if task.retry_count > 0 %}
+                                    <span class="badge bg-warning text-dark">{{ task.retry_count }}</span>
+                                    {% else %}
+                                    <span class="text-muted">0</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if task.last_error %}
+                                    <small class="text-danger" title="{{ task.last_error }}">
+                                        {{ task.last_error | truncate(40, True, '...') }}
+                                    </small>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        {% if task.state in ['failed', 'expired'] %}
+                                        <button type="button" class="btn btn-outline-primary retry-task-btn" data-task-id="{{ task.id }}" title="Retry Task">
+                                            <i class="ti ti-reload"></i>
+                                        </button>
+                                        {% endif %}
+                                        {% if task.state in ['scheduled', 'failed'] %}
+                                        <button type="button" class="btn btn-outline-secondary expire-task-btn" data-task-id="{{ task.id }}" title="Expire Task">
+                                            <i class="ti ti-clock-off"></i>
+                                        </button>
+                                        {% endif %}
+                                        <a href="{{ url_for('admin_panel.match_debug', match_id=task.match_id) }}" class="btn btn-outline-info" title="Debug Match" target="_blank">
+                                            <i class="ti ti-bug"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="ti ti-list-check fs-1 mb-3"></i>
+                    <p>No tasks found matching the current filters.</p>
+                    <a href="{{ url_for('admin_panel.mls_task_monitoring') }}" class="btn btn-outline-primary">Reset Filters</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container for Notifications -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11000;">
+    <div id="actionToast" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="toastMessage"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-refresh functionality
+let autoRefreshEnabled = true;
+let autoRefreshInterval = null;
+
+function startAutoRefresh() {
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+    autoRefreshInterval = setInterval(() => {
+        if (autoRefreshEnabled) {
+            location.reload();
+        }
+    }, 30000); // Refresh every 30 seconds
+}
+
+// Manual refresh
+document.getElementById('manual-refresh-btn').addEventListener('click', () => {
+    location.reload();
+});
+
+// Toggle auto-refresh
+document.getElementById('auto-refresh-status').addEventListener('click', function() {
+    autoRefreshEnabled = !autoRefreshEnabled;
+    this.textContent = `Auto-refresh: ${autoRefreshEnabled ? 'ON' : 'OFF'}`;
+    this.classList.toggle('bg-secondary', !autoRefreshEnabled);
+    this.classList.toggle('bg-success', autoRefreshEnabled);
+});
+
+// Show toast notification
+function showToast(message, isSuccess = true) {
+    const toast = document.getElementById('actionToast');
+    const toastBody = document.getElementById('toastMessage');
+    toastBody.textContent = message;
+    toast.classList.remove('bg-success', 'bg-danger', 'text-white');
+    toast.classList.add(isSuccess ? 'bg-success' : 'bg-danger', 'text-white');
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+}
+
+// Retry task
+document.querySelectorAll('.retry-task-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const taskId = this.getAttribute('data-task-id');
+        if (!confirm('Retry this task?')) return;
+
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        fetch(`/admin-panel/mls/task/${taskId}/retry`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, true);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showToast(data.error || 'Failed to retry task', false);
+                this.disabled = false;
+                this.innerHTML = '<i class="ti ti-reload"></i>';
+            }
+        })
+        .catch(error => {
+            showToast('Error: ' + error.message, false);
+            this.disabled = false;
+            this.innerHTML = '<i class="ti ti-reload"></i>';
+        });
+    });
+});
+
+// Expire task
+document.querySelectorAll('.expire-task-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const taskId = this.getAttribute('data-task-id');
+        if (!confirm('Mark this task as expired?')) return;
+
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        fetch(`/admin-panel/mls/task/${taskId}/expire`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, true);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showToast(data.error || 'Failed to expire task', false);
+                this.disabled = false;
+                this.innerHTML = '<i class="ti ti-clock-off"></i>';
+            }
+        })
+        .catch(error => {
+            showToast('Error: ' + error.message, false);
+            this.disabled = false;
+            this.innerHTML = '<i class="ti ti-clock-off"></i>';
+        });
+    });
+});
+
+// Start auto-refresh
+startAutoRefresh();
+</script>
+{% endblock %}

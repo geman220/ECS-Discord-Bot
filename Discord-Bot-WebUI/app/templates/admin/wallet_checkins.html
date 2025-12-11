@@ -1,0 +1,215 @@
+{% extends 'admin/layout.html' %}
+{% block title %}Check-in History{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Check-ins - Theme-aware styling */
+    .checkin-row {
+        transition: background-color 0.2s;
+    }
+    .filter-card {
+        background-color: var(--bs-tertiary-bg);
+        border: 1px solid var(--bs-border-color);
+    }
+</style>
+{% endblock custom_css %}
+
+{% block content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h2 class="fw-bold text-primary mb-1">
+                        <i class="ti ti-list-check me-2"></i>Check-in History
+                    </h2>
+                    <p class="text-muted mb-0">View all pass validations and event check-ins</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('wallet_admin.scanner') }}" class="btn btn-primary">
+                        <i class="ti ti-qrcode me-1"></i>Open Scanner
+                    </a>
+                    <a href="{{ url_for('wallet_admin.export_checkins', type=pass_type_filter or 'all', date_from=request.args.get('date_from', ''), date_to=request.args.get('date_to', '')) }}" class="btn btn-success">
+                        <i class="ti ti-download me-1"></i>Export CSV
+                    </a>
+                    <a href="{{ url_for('wallet_admin.passes_list') }}" class="btn btn-outline-secondary">
+                        <i class="ti ti-arrow-left me-1"></i>Back to Passes
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card filter-card mb-4">
+        <div class="card-body py-3">
+            <form method="get" class="row g-3 align-items-end" id="filterForm">
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Pass Type</label>
+                    <select name="type" class="form-select" onchange="this.form.submit()">
+                        <option value="all" {{ 'selected' if pass_type_filter == 'all' or not pass_type_filter else '' }}>All Pass Types</option>
+                        <option value="ecs_membership" {{ 'selected' if pass_type_filter == 'ecs_membership' else '' }}>ECS Membership</option>
+                        <option value="pub_league" {{ 'selected' if pass_type_filter == 'pub_league' else '' }}>Pub League</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Date From</label>
+                    <input type="date" name="date_from" class="form-control"
+                           value="{{ request.args.get('date_from', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Date To</label>
+                    <input type="date" name="date_to" class="form-control"
+                           value="{{ request.args.get('date_to', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="ti ti-filter me-1"></i>Filter
+                    </button>
+                    {% if pass_type_filter and pass_type_filter != 'all' or request.args.get('date_from') or request.args.get('date_to') %}
+                    <a href="{{ url_for('wallet_admin.checkins_list') }}" class="btn btn-outline-secondary">
+                        <i class="ti ti-x me-1"></i>Clear
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Check-ins Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="ti ti-history me-2"></i>Recent Check-ins
+                {% if checkins.total %}
+                <span class="badge bg-label-primary ms-2">{{ checkins.total }} total</span>
+                {% endif %}
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if checkins.items %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Member</th>
+                            <th>Pass Type</th>
+                            <th>Event</th>
+                            <th>Location</th>
+                            <th>Check-in Type</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for checkin in checkins.items %}
+                        <tr class="checkin-row">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-sm me-2">
+                                        <span class="avatar-initial rounded-circle bg-label-primary">
+                                            {{ checkin.wallet_pass.member_name[0].upper() if checkin.wallet_pass and checkin.wallet_pass.member_name else '?' }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span class="fw-semibold">{{ checkin.wallet_pass.member_name if checkin.wallet_pass else 'Unknown' }}</span>
+                                        {% if checkin.wallet_pass and checkin.wallet_pass.member_email %}
+                                        <br><small class="text-muted">{{ checkin.wallet_pass.member_email }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if checkin.wallet_pass and checkin.wallet_pass.pass_type %}
+                                <span class="badge bg-label-{{ 'primary' if checkin.wallet_pass.pass_type.code == 'ecs_membership' else 'warning' }}">
+                                    {{ checkin.wallet_pass.pass_type.name }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if checkin.event_name %}
+                                <span>{{ checkin.event_name }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if checkin.location %}
+                                <small>{{ checkin.location }}</small>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-label-info">
+                                    <i class="ti ti-{{ 'qrcode' if checkin.check_in_type and checkin.check_in_type.value == 'qr_scan' else 'nfc' if checkin.check_in_type and checkin.check_in_type.value == 'nfc_tap' else 'hand-finger' }} me-1"></i>
+                                    {{ checkin.check_in_type.value.replace('_', ' ').title() if checkin.check_in_type else 'Unknown' }}
+                                </span>
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ checkin.checked_in_at.strftime('%b %d, %Y') }}<br>
+                                    {{ checkin.checked_in_at.strftime('%H:%M') }}
+                                </small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if checkins.pages > 1 %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if checkins.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('wallet_admin.checkins_list', type=pass_type_filter, page=checkins.prev_num) }}">
+                            <i class="ti ti-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in checkins.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                        <li class="page-item {{ 'active' if page_num == checkins.page else '' }}">
+                            <a class="page-link" href="{{ url_for('wallet_admin.checkins_list', type=pass_type_filter, page=page_num) }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if checkins.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('wallet_admin.checkins_list', type=pass_type_filter, page=checkins.next_num) }}">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <!-- Empty State -->
+            <div class="text-center py-5">
+                <i class="ti ti-list-check text-muted mb-3" style="font-size: 4rem;"></i>
+                <h5 class="text-muted mb-2">No Check-ins Yet</h5>
+                <p class="text-muted mb-4">
+                    Check-ins will appear here when members scan their passes at events.
+                    Use the scanner to validate passes and record check-ins.
+                </p>
+                <a href="{{ url_for('wallet_admin.scanner') }}" class="btn btn-primary">
+                    <i class="ti ti-qrcode me-1"></i>Open Scanner
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
