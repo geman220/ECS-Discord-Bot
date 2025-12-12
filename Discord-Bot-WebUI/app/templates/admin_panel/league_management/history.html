@@ -1,0 +1,315 @@
+{% extends "admin_panel/base.html" %}
+
+{% block panel_description %}View historical seasons and player team history{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.league_management_dashboard') }}">League Management</a></li>
+<li class="breadcrumb-item active">History</li>
+{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<style>
+    /* Player search autocomplete styling */
+    .player-search-container {
+        position: relative;
+    }
+    .player-search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        max-height: 300px;
+        overflow-y: auto;
+        background: var(--bs-body-bg);
+        border: 1px solid var(--bs-border-color);
+        border-radius: 0 0 0.375rem 0.375rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        display: none;
+    }
+    .player-search-results.show {
+        display: block;
+    }
+    .player-search-item {
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+    .player-search-item:last-child {
+        border-bottom: none;
+    }
+    .player-search-item:hover {
+        background-color: var(--bs-tertiary-bg);
+    }
+    .player-search-item.selected {
+        background-color: var(--bs-primary);
+        color: #fff;
+    }
+    .player-search-item .player-name {
+        font-weight: 500;
+    }
+    .player-search-item .player-id {
+        font-size: 0.85em;
+        opacity: 0.7;
+    }
+</style>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="ti ti-history me-2"></i>Season History
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if history %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Season</th>
+                                <th>League Type</th>
+                                <th>Leagues</th>
+                                <th>Teams</th>
+                                <th>Created</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for season in history %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('admin_panel.league_management_season_detail', season_id=season.id) }}">
+                                        {{ season.name }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge bg-label-primary">{{ season.league_type }}</span>
+                                </td>
+                                <td>{{ season.league_count }}</td>
+                                <td>{{ season.team_count }}</td>
+                                <td>
+                                    {% if season.created_at %}
+                                    <small>{{ season.created_at[:10] }}</small>
+                                    {% else %}
+                                    <small class="text-muted">-</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if season.is_current %}
+                                    <span class="badge bg-success">Current</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Archived</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="ti ti-history text-muted" style="font-size: 2rem;"></i>
+                    <p class="text-muted mt-2">No season history available</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Player History Lookup -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="ti ti-user-search me-2"></i>Player Team History Lookup
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="player-search-container">
+                            <label class="form-label">Search by Player Name</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="playerSearchInput"
+                                       placeholder="Start typing player name..." autocomplete="off">
+                                <button class="btn btn-primary" id="lookupBtn" disabled>
+                                    <i class="ti ti-search me-1"></i>Lookup
+                                </button>
+                            </div>
+                            <div class="player-search-results" id="playerSearchResults"></div>
+                            <input type="hidden" id="selectedPlayerId">
+                            <small class="text-muted d-block mt-1" id="selectedPlayerInfo"></small>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="playerHistoryResult" class="mt-4" style="display: none;">
+                    <h6 id="playerHistoryTitle">Team History</h6>
+                    <div id="playerHistoryContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+let searchTimeout = null;
+let selectedIndex = -1;
+let searchResults = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('playerSearchInput');
+    const resultsDiv = document.getElementById('playerSearchResults');
+    const lookupBtn = document.getElementById('lookupBtn');
+
+    // Search input handler with debounce
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+
+        // Clear selection when typing
+        document.getElementById('selectedPlayerId').value = '';
+        document.getElementById('selectedPlayerInfo').textContent = '';
+        lookupBtn.disabled = true;
+
+        if (query.length < 2) {
+            resultsDiv.classList.remove('show');
+            searchResults = [];
+            return;
+        }
+
+        searchTimeout = setTimeout(() => searchPlayers(query), 300);
+    });
+
+    // Keyboard navigation
+    searchInput.addEventListener('keydown', function(e) {
+        const items = resultsDiv.querySelectorAll('.player-search-item');
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+            updateSelection(items);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedIndex = Math.max(selectedIndex - 1, 0);
+            updateSelection(items);
+        } else if (e.key === 'Enter' && selectedIndex >= 0) {
+            e.preventDefault();
+            selectPlayer(searchResults[selectedIndex]);
+        } else if (e.key === 'Escape') {
+            resultsDiv.classList.remove('show');
+        }
+    });
+
+    // Click outside to close
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.player-search-container')) {
+            resultsDiv.classList.remove('show');
+        }
+    });
+
+    // Lookup button
+    lookupBtn.addEventListener('click', lookupPlayerHistory);
+});
+
+function updateSelection(items) {
+    items.forEach((item, idx) => {
+        item.classList.toggle('selected', idx === selectedIndex);
+    });
+    if (items[selectedIndex]) {
+        items[selectedIndex].scrollIntoView({ block: 'nearest' });
+    }
+}
+
+function searchPlayers(query) {
+    fetch(`/admin-panel/league-management/history/api/search-players?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(result => {
+            const resultsDiv = document.getElementById('playerSearchResults');
+            searchResults = result.players || [];
+            selectedIndex = -1;
+
+            if (searchResults.length === 0) {
+                resultsDiv.innerHTML = '<div class="player-search-item text-muted">No players found</div>';
+            } else {
+                resultsDiv.innerHTML = searchResults.map((player, idx) => `
+                    <div class="player-search-item" onclick="selectPlayer(searchResults[${idx}])">
+                        <span class="player-name">${escapeHtml(player.name)}</span>
+                        <span class="player-id ms-2">(ID: ${player.id})</span>
+                    </div>
+                `).join('');
+            }
+
+            resultsDiv.classList.add('show');
+        })
+        .catch(error => {
+            console.error('Search error:', error);
+        });
+}
+
+function selectPlayer(player) {
+    document.getElementById('playerSearchInput').value = player.name;
+    document.getElementById('selectedPlayerId').value = player.id;
+    document.getElementById('selectedPlayerInfo').textContent = `Selected: ${player.name} (ID: ${player.id})`;
+    document.getElementById('playerSearchResults').classList.remove('show');
+    document.getElementById('lookupBtn').disabled = false;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function lookupPlayerHistory() {
+    const playerId = document.getElementById('selectedPlayerId').value;
+    const playerName = document.getElementById('playerSearchInput').value;
+
+    if (!playerId) {
+        AdminPanel.showMobileToast('Please select a player from the search results', 'warning');
+        return;
+    }
+
+    const resultDiv = document.getElementById('playerHistoryResult');
+    const contentDiv = document.getElementById('playerHistoryContent');
+    const titleDiv = document.getElementById('playerHistoryTitle');
+
+    resultDiv.style.display = 'block';
+    contentDiv.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Loading...';
+    titleDiv.textContent = `Team History for ${playerName}`;
+
+    fetch(`/admin-panel/league-management/history/api/player/${playerId}`)
+        .then(response => response.json())
+        .then(result => {
+            if (result.success && result.history.length > 0) {
+                let html = '<table class="table table-sm"><thead><tr><th>Season</th><th>Team</th></tr></thead><tbody>';
+                result.history.forEach(h => {
+                    html += `<tr><td>${escapeHtml(h.season_name)}</td><td>${escapeHtml(h.team_name)}</td></tr>`;
+                });
+                html += '</tbody></table>';
+                contentDiv.innerHTML = html;
+            } else if (result.success) {
+                contentDiv.innerHTML = '<p class="text-muted">No team history found for this player</p>';
+            } else {
+                contentDiv.innerHTML = '<p class="text-danger">Error loading history</p>';
+            }
+        })
+        .catch(error => {
+            contentDiv.innerHTML = '<p class="text-danger">Error loading history</p>';
+        });
+}
+</script>
+{% endblock %}

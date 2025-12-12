@@ -1417,3 +1417,115 @@ def direct_discord_update_task(self, session, match_id: str, discord_id: str, ne
     except Exception as e:
         logger.error(f"Unexpected error in direct Discord update: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=5)
+
+
+@celery_task(name='app.tasks.tasks_rsvp.update_discord_embed', max_retries=3, retry_backoff=True, queue='discord')
+def update_discord_embed_task(self, session, match_id: int, player_id: int, availability: str, player_name: str) -> Dict[str, Any]:
+    """
+    Update Discord embeds when RSVP changes from non-Discord sources (web, mobile).
+
+    This task is designed to be called from SocketIO handlers to avoid blocking
+    the event loop with HTTP requests. The actual HTTP call to the Discord bot
+    happens here in a Celery worker, keeping the SocketIO handlers responsive.
+
+    Args:
+        session: Database session.
+        match_id: ID of the match.
+        player_id: ID of the player who RSVP'd.
+        availability: The RSVP response ('yes', 'no', 'maybe', 'no_response').
+        player_name: Name of the player for logging.
+
+    Returns:
+        A dictionary with the update result.
+
+    Raises:
+        Retries the task on connection errors.
+    """
+    import os
+    import requests
+
+    try:
+        # Find the Discord messages to update (both home and away teams)
+        match = session.query(Match).get(match_id)
+        if not match:
+            logger.debug(f"Match {match_id} not found - skipping embed update")
+            return {'success': True, 'message': 'Match not found', 'skipped': True}
+
+        # Check if we have Discord message info for this match
+        updates_to_make = []
+
+        if match.home_team_message_id and match.home_team_channel_id:
+            updates_to_make.append({
+                'message_id': match.home_team_message_id,
+                'channel_id': match.home_team_channel_id,
+                'team_type': 'home'
+            })
+
+        if match.away_team_message_id and match.away_team_channel_id:
+            updates_to_make.append({
+                'message_id': match.away_team_message_id,
+                'channel_id': match.away_team_channel_id,
+                'team_type': 'away'
+            })
+
+        if not updates_to_make:
+            logger.debug(f"No Discord message/channel info for match {match_id} - skipping embed update")
+            return {'success': True, 'message': 'No Discord messages to update', 'skipped': True}
+
+        # Call Discord bot's embed update endpoint for each team
+        bot_base_url = os.getenv('DISCORD_BOT_BASE_URL', 'http://localhost:5001')
+        update_url = f"{bot_base_url}/api/update_embed"
+
+        success_count = 0
+        errors = []
+        for update_info in updates_to_make:
+            try:
+                payload = {
+                    'match_id': match_id,
+                    'channel_id': int(update_info['channel_id']),
+                    'message_id': int(update_info['message_id']),
+                    'trigger_source': 'celery_task',
+                    'player_change': {
+                        'player_id': player_id,
+                        'player_name': player_name,
+                        'new_availability': availability,
+                        'timestamp': datetime.utcnow().isoformat()
+                    }
+                }
+
+                # Make call to Discord bot with reasonable timeout
+                response = requests.post(update_url, json=payload, timeout=10)
+
+                if response.status_code == 200:
+                    success_count += 1
+                    logger.debug(f"Discord embed updated for {update_info['team_type']} team (match {match_id})")
+                else:
+                    errors.append(f"{update_info['team_type']}: HTTP {response.status_code}")
+                    logger.warning(f"Discord embed update failed for {update_info['team_type']} team: {response.status_code}")
+
+            except requests.exceptions.Timeout:
+                errors.append(f"{update_info['team_type']}: timeout")
+                logger.warning(f"Timeout updating Discord embed for {update_info['team_type']} team")
+            except requests.exceptions.ConnectionError as e:
+                errors.append(f"{update_info['team_type']}: connection error")
+                logger.warning(f"Connection error updating Discord embed: {e}")
+                # Retry on connection errors
+                raise self.retry(exc=e, countdown=5)
+            except Exception as embed_error:
+                errors.append(f"{update_info['team_type']}: {str(embed_error)}")
+                logger.warning(f"Error updating Discord embed for {update_info['team_type']} team: {embed_error}")
+
+        if success_count > 0:
+            logger.info(f"Updated {success_count}/{len(updates_to_make)} Discord embeds for match {match_id} (player: {player_name} -> {availability})")
+
+        return {
+            'success': success_count > 0,
+            'message': f'Updated {success_count}/{len(updates_to_make)} embeds',
+            'updated_count': success_count,
+            'total_embeds': len(updates_to_make),
+            'errors': errors if errors else None
+        }
+
+    except Exception as e:
+        logger.error(f"Error in update_discord_embed_task: {str(e)}", exc_info=True)
+        raise self.retry(exc=e, countdown=10)

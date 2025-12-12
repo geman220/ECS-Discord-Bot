@@ -58,7 +58,7 @@
                         
                         <!-- System Management -->
                         <li class="nav-item dropdown mb-2 mb-lg-0">
-                            <a class="nav-link dropdown-toggle {% if 'feature_toggles' in request.endpoint or 'monitoring' in request.endpoint or 'cache' in request.endpoint or 'health' in request.endpoint or 'redis' in request.endpoint or 'docker' in request.endpoint %}active{% endif %}"
+                            <a class="nav-link dropdown-toggle {% if 'feature_toggles' in request.endpoint or 'monitoring' in request.endpoint or 'cache' in request.endpoint or 'health' in request.endpoint or 'redis' in request.endpoint or 'docker' in request.endpoint or 'security' in request.endpoint %}active{% endif %}"
                                href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="ti ti-settings me-1"></i><span class="d-lg-inline d-md-none">System</span>
                             </a>
@@ -86,6 +86,9 @@
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.performance_monitoring') }}">
                                     <i class="ti ti-chart-line me-2"></i>Performance Monitor</a></li>
                                 {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.security_dashboard') }}">
+                                    <i class="ti ti-shield-check me-2"></i>Security Dashboard</a></li>
                             </ul>
                         </li>
                         
@@ -104,39 +107,85 @@
                                     <i class="ti ti-template me-2"></i>Message Templates</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.push_notifications') }}">
                                     <i class="ti ti-bell me-2"></i>Push Notifications</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.direct_messaging') }}">
+                                    <i class="ti ti-send me-2"></i>Direct Messaging (SMS/DM)</a></li>
                             </ul>
                         </li>
-                        
-                        <!-- League Operations -->
+
+                        <!-- League Management Hub -->
                         <li class="nav-item dropdown mb-2 mb-lg-0">
-                            <a class="nav-link dropdown-toggle {% if 'match' in request.endpoint or 'substitute' in request.endpoint or 'playoff' in request.endpoint or 'mls' in request.endpoint or 'admin_live' in request.endpoint %}active{% endif %}"
+                            <a class="nav-link dropdown-toggle {% if 'league_management' in request.endpoint %}active{% endif %}"
                                href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="ti ti-trophy me-1"></i><span class="d-lg-inline d-md-none">League Ops</span>
+                                <i class="ti ti-tournament me-1"></i><span class="d-lg-inline d-md-none">League Hub</span>
                             </a>
                             <ul class="dropdown-menu">
+                                <li class="dropdown-header">League Management Hub</li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.league_management_dashboard') }}">
+                                    <i class="ti ti-dashboard me-2"></i>Dashboard</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.season_wizard') }}">
+                                    <i class="ti ti-wand me-2"></i>Season Wizard</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="dropdown-header">Management</li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.league_management_teams') }}">
+                                    <i class="ti ti-users-group me-2"></i>Teams</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.league_management_seasons') }}">
+                                    <i class="ti ti-calendar me-2"></i>Seasons</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.league_management_history') }}">
+                                    <i class="ti ti-history me-2"></i>History</a></li>
+                            </ul>
+                        </li>
+
+                        <!-- Pub League Operations (Premier, Classic, ECS FC) -->
+                        <li class="nav-item dropdown mb-2 mb-lg-0">
+                            <a class="nav-link dropdown-toggle {% if ('match' in request.endpoint and 'mls' not in request.endpoint) or 'substitute' in request.endpoint or 'playoff' in request.endpoint %}active{% endif %}"
+                               href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="ti ti-trophy me-1"></i><span class="d-lg-inline d-md-none">Pub League</span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li class="dropdown-header">Pub League Operations</li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.match_operations') }}">
                                     <i class="ti ti-trophy me-2"></i>Match Operations</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('admin_live.dashboard') }}">
-                                    <i class="ti ti-broadcast me-2"></i>Live Reporting</a></li>
-                                <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.match_verification') }}">
                                     <i class="ti ti-shield-check me-2"></i>Match Verification</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.substitute_management') }}">
-                                    <i class="ti ti-users me-2"></i>Substitute Management</a></li>
+                                    <i class="ti ti-user-plus me-2"></i>Substitute Management</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.substitute_pools') }}">
+                                    <i class="ti ti-users-group me-2"></i>Substitute Pools</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.playoff_management') }}">
                                     <i class="ti ti-tournament me-2"></i>Playoff Management</a></li>
-                                <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.quick_actions') }}">
                                     <i class="ti ti-bolt me-2"></i>Quick Actions</a></li>
                             </ul>
                         </li>
-                        
+
+                        <!-- MLS Management (ESPN Data, Live Reporting) -->
+                        <li class="nav-item dropdown mb-2 mb-lg-0">
+                            <a class="nav-link dropdown-toggle {% if 'mls' in request.endpoint or 'admin_live' in request.endpoint %}active{% endif %}"
+                               href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="ti ti-soccer-field me-1"></i><span class="d-lg-inline d-md-none">MLS</span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li class="dropdown-header">MLS / Sounders Management</li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.mls_overview') }}">
+                                    <i class="ti ti-calendar me-2"></i>MLS Overview</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.mls_matches') }}">
+                                    <i class="ti ti-list me-2"></i>All MLS Matches</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="dropdown-header">Live Reporting (ESPN)</li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.live_reporting_dashboard') }}">
+                                    <i class="ti ti-broadcast me-2"></i>Live Reporting Dashboard</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.mls_task_monitoring') }}">
+                                    <i class="ti ti-activity me-2"></i>Task Monitoring</a></li>
+                            </ul>
+                        </li>
+
                         <!-- Discord & Bot -->
                         <li class="nav-item dropdown mb-2 mb-lg-0">
-                            <a class="nav-link dropdown-toggle {% if 'discord' in request.endpoint or 'mls' in request.endpoint %}active{% endif %}"
+                            <a class="nav-link dropdown-toggle {% if 'discord' in request.endpoint %}active{% endif %}"
                                href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="ti ti-brand-discord me-1"></i><span class="d-lg-inline d-md-none">Discord & Bot</span>
+                                <i class="ti ti-brand-discord me-1"></i><span class="d-lg-inline d-md-none">Discord</span>
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.discord_overview') }}">
@@ -147,12 +196,6 @@
                                     <i class="ti ti-shield me-2"></i>Role Sync</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.discord_onboarding') }}">
                                     <i class="ti ti-user-plus me-2"></i>Onboarding</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li class="dropdown-header">MLS Management</li>
-                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.mls_overview') }}">
-                                    <i class="ti ti-calendar me-2"></i>MLS Overview</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.mls_matches') }}">
-                                    <i class="ti ti-list me-2"></i>All Matches</a></li>
                             </ul>
                         </li>
 
@@ -163,22 +206,20 @@
                                 <i class="ti ti-report-analytics me-1"></i><span class="d-lg-inline d-md-none">Reports</span>
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.reports_dashboard') }}">
-                                    <i class="ti ti-report-analytics me-2"></i>Reports Dashboard</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.feedback_list') }}">
                                     <i class="ti ti-message-report me-2"></i>Feedback Management</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li class="dropdown-header">Draft Management</li>
-                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.draft_overview') }}">
-                                    <i class="ti ti-list-numbers me-2"></i>Draft Overview</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.draft_history') }}">
-                                    <i class="ti ti-history me-2"></i>Draft History</a></li>
+                                    <i class="ti ti-list-numbers me-2"></i>Draft History &amp; Stats</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('draft_predictions.admin_dashboard') }}">
+                                    <i class="ti ti-chart-bar me-2"></i>Draft Predictions</a></li>
                             </ul>
                         </li>
 
                         <!-- External Services -->
                         <li class="nav-item dropdown mb-2 mb-lg-0">
-                            <a class="nav-link dropdown-toggle {% if 'mobile_features' in request.endpoint or 'store' in request.endpoint %}active{% endif %}"
+                            <a class="nav-link dropdown-toggle {% if 'mobile_features' in request.endpoint or 'store' in request.endpoint or request.blueprint == 'ai_prompts' %}active{% endif %}"
                                href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="ti ti-world me-1"></i><span class="d-lg-inline d-md-none">Services</span>
                             </a>
@@ -187,6 +228,8 @@
                                     <i class="ti ti-device-mobile me-2"></i>Mobile Features</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.store_management') }}">
                                     <i class="ti ti-shopping-cart me-2"></i>Store Management</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('ai_prompts.list_prompts') }}">
+                                    <i class="ti ti-brain me-2"></i>AI Prompts</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li class="dropdown-header">External Links</li>
                                 <li><a class="dropdown-item" href="{{ url_for('wallet_admin.wallet_management') }}">

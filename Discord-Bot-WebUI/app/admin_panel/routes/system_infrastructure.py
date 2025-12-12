@@ -11,8 +11,9 @@ This module contains routes for system infrastructure management:
 """
 
 import os
+import time
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import render_template, request, jsonify, flash, redirect, url_for, current_app, g
 from flask_login import login_required, current_user
 from celery.result import AsyncResult
@@ -723,3 +724,334 @@ def _check_system_health():
         }
 
     return health_status
+
+
+# -----------------------------------------------------------
+# Security Dashboard Integration
+# -----------------------------------------------------------
+
+@admin_panel_bp.route('/system/security')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def security_dashboard():
+    """
+    Integrated security dashboard within Admin Panel.
+
+    Shows security status, threat monitoring, IP bans, and security configuration.
+    """
+    # Log the access
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='access_security_dashboard',
+        resource_type='system',
+        resource_id='security',
+        new_value='Accessed security dashboard via Admin Panel',
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+
+    try:
+        # Get current security status
+        security_middleware = None
+        if hasattr(current_app, 'security_middleware'):
+            security_middleware = current_app.security_middleware
+
+        # Get comprehensive security stats
+        stats = {
+            'security_features': {
+                'rate_limiting': True,
+                'csrf_protection': current_app.config.get('WTF_CSRF_ENABLED', False),
+                'session_security': current_app.config.get('SESSION_COOKIE_SECURE', False),
+                'security_headers': True,
+                'attack_detection': security_middleware is not None,
+                'auto_ban': current_app.config.get('SECURITY_AUTO_BAN_ENABLED', True)
+            },
+            'auto_ban_config': {
+                'enabled': current_app.config.get('SECURITY_AUTO_BAN_ENABLED', True),
+                'attack_threshold': current_app.config.get('SECURITY_AUTO_BAN_ATTACK_THRESHOLD', 3),
+                'rate_threshold': current_app.config.get('SECURITY_AUTO_BAN_RATE_THRESHOLD', 500),
+                'duration_hours': current_app.config.get('SECURITY_AUTO_BAN_DURATION_HOURS', 1),
+                'escalation_enabled': current_app.config.get('SECURITY_AUTO_BAN_ESCALATION_ENABLED', True),
+                'max_duration_hours': current_app.config.get('SECURITY_AUTO_BAN_MAX_DURATION_HOURS', 168)
+            },
+            'redis_status': 'unknown',
+            'total_monitored_ips': 0,
+            'total_blacklisted_ips': 0,
+            'total_attack_attempts': 0,
+            'unique_attackers': 0,
+            'monitored_ips': []
+        }
+
+        # Check Redis connectivity
+        try:
+            if hasattr(current_app, 'redis') and current_app.redis:
+                current_app.redis.ping()
+                stats['redis_status'] = 'connected'
+        except Exception:
+            stats['redis_status'] = 'disconnected'
+
+        # Helper function to check if IP is private
+        def is_private_ip(ip):
+            try:
+                import ipaddress
+                ip_obj = ipaddress.ip_address(ip)
+                return ip_obj.is_private
+            except:
+                return False
+
+        # Get security middleware stats and database bans
+        blacklisted_ips = []
+        try:
+            # Get database bans
+            from app.models import IPBan
+            db_bans = IPBan.get_active_bans()
+
+            for ban in db_bans:
+                if not is_private_ip(ban.ip_address):
+                    blacklisted_ips.append({
+                        'ip': ban.ip_address,
+                        'expires_at': ban.expires_at or datetime.utcnow() + timedelta(days=365),
+                        'time_remaining': ban.time_remaining or 999999999,
+                        'reason': ban.reason,
+                        'banned_by': ban.banned_by,
+                        'banned_at': ban.banned_at,
+                        'is_permanent': ban.expires_at is None
+                    })
+
+            stats['total_blacklisted_ips'] = len(blacklisted_ips)
+
+            if security_middleware and hasattr(security_middleware, 'rate_limiter'):
+                try:
+                    security_stats = security_middleware.get_stats()
+                    monitored_details = security_middleware.get_monitored_ips()
+
+                    stats.update({
+                        'total_monitored_ips': security_stats['total_monitored_ips'],
+                        'total_attack_attempts': security_stats['total_attack_attempts'],
+                        'unique_attackers': security_stats['unique_attackers'],
+                        'monitored_ips': monitored_details[:10]
+                    })
+                except Exception as e:
+                    logger.warning(f"Error getting security middleware stats: {e}")
+                    try:
+                        rate_limiter = security_middleware.rate_limiter
+                        stats['total_monitored_ips'] = len(rate_limiter.requests)
+                        stats['total_attack_attempts'] = sum(rate_limiter.attack_counts.values()) if hasattr(rate_limiter, 'attack_counts') else 0
+                        stats['unique_attackers'] = len(rate_limiter.attack_counts) if hasattr(rate_limiter, 'attack_counts') else 0
+                    except:
+                        pass
+
+                # Add in-memory bans
+                current_time = time.time()
+                for ip, expiry in security_middleware.rate_limiter.blacklist.items():
+                    if current_time < expiry and not is_private_ip(ip):
+                        if not any(ban['ip'] == ip for ban in blacklisted_ips):
+                            blacklisted_ips.append({
+                                'ip': ip,
+                                'expires_at': datetime.fromtimestamp(expiry),
+                                'time_remaining': int(expiry - current_time),
+                                'reason': 'Automatic detection',
+                                'banned_by': 'Security System',
+                                'banned_at': datetime.fromtimestamp(expiry - 1800),
+                                'is_permanent': False
+                            })
+        except ImportError:
+            logger.warning("IPBan model not available")
+        except Exception as e:
+            logger.error(f"Error getting security stats: {e}")
+
+        current_time = datetime.now().strftime('%H:%M:%S')
+
+        return render_template('admin_panel/system/security_dashboard.html',
+                             stats=stats,
+                             blacklisted_ips=blacklisted_ips,
+                             current_time=current_time)
+
+    except Exception as e:
+        logger.error(f"Error loading security dashboard: {e}")
+        flash('Error loading security dashboard', 'error')
+        return redirect(url_for('admin_panel.dashboard'))
+
+
+@admin_panel_bp.route('/system/security/ban-ip', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def security_ban_ip():
+    """Manually ban an IP address."""
+    try:
+        from app.models import IPBan
+
+        data = request.get_json()
+        ip_address = data.get('ip_address')
+        reason = data.get('reason', 'Manual ban from admin panel')
+        duration_hours = data.get('duration_hours', 24)
+        permanent = data.get('permanent', False)
+
+        if not ip_address:
+            return jsonify({'success': False, 'message': 'IP address is required'}), 400
+
+        # Create ban
+        expires_at = None if permanent else datetime.utcnow() + timedelta(hours=duration_hours)
+
+        ban = IPBan(
+            ip_address=ip_address,
+            reason=reason,
+            banned_by=current_user.username,
+            banned_at=datetime.utcnow(),
+            expires_at=expires_at
+        )
+
+        from app.core import db
+        db.session.add(ban)
+        db.session.commit()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='ban_ip',
+            resource_type='security',
+            resource_id=ip_address,
+            new_value=f'Banned for: {reason}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'IP {ip_address} has been banned'
+        })
+
+    except Exception as e:
+        logger.error(f"Error banning IP: {e}")
+        return jsonify({'success': False, 'message': 'Error banning IP'}), 500
+
+
+@admin_panel_bp.route('/system/security/unban-ip', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def security_unban_ip():
+    """Unban an IP address."""
+    try:
+        from app.models import IPBan
+
+        data = request.get_json()
+        ip_address = data.get('ip_address')
+
+        if not ip_address:
+            return jsonify({'success': False, 'message': 'IP address is required'}), 400
+
+        # Remove from database
+        from app.core import db
+        IPBan.query.filter_by(ip_address=ip_address).delete()
+        db.session.commit()
+
+        # Also remove from in-memory blacklist if security middleware exists
+        if hasattr(current_app, 'security_middleware') and current_app.security_middleware:
+            if hasattr(current_app.security_middleware, 'rate_limiter'):
+                if ip_address in current_app.security_middleware.rate_limiter.blacklist:
+                    del current_app.security_middleware.rate_limiter.blacklist[ip_address]
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='unban_ip',
+            resource_type='security',
+            resource_id=ip_address,
+            new_value='IP unbanned',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'IP {ip_address} has been unbanned'
+        })
+
+    except Exception as e:
+        logger.error(f"Error unbanning IP: {e}")
+        return jsonify({'success': False, 'message': 'Error unbanning IP'}), 500
+
+
+@admin_panel_bp.route('/system/security/clear-all-bans', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def security_clear_all_bans():
+    """Clear all IP bans."""
+    try:
+        from app.models import IPBan
+        from app.core import db
+
+        # Clear database bans
+        count = IPBan.query.delete()
+        db.session.commit()
+
+        # Clear in-memory blacklist
+        if hasattr(current_app, 'security_middleware') and current_app.security_middleware:
+            if hasattr(current_app.security_middleware, 'rate_limiter'):
+                current_app.security_middleware.rate_limiter.blacklist.clear()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='clear_all_bans',
+            resource_type='security',
+            resource_id='all',
+            new_value=f'Cleared {count} bans',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Cleared {count} IP bans'
+        })
+
+    except Exception as e:
+        logger.error(f"Error clearing bans: {e}")
+        return jsonify({'success': False, 'message': 'Error clearing bans'}), 500
+
+
+@admin_panel_bp.route('/api/security/status')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def api_security_status():
+    """API endpoint for security status (for AJAX refresh)."""
+    try:
+        security_middleware = None
+        if hasattr(current_app, 'security_middleware'):
+            security_middleware = current_app.security_middleware
+
+        stats = {
+            'total_monitored_ips': 0,
+            'total_blacklisted_ips': 0,
+            'total_attack_attempts': 0,
+            'unique_attackers': 0
+        }
+
+        # Get stats
+        try:
+            from app.models import IPBan
+            stats['total_blacklisted_ips'] = IPBan.query.filter(
+                (IPBan.expires_at.is_(None)) | (IPBan.expires_at > datetime.utcnow())
+            ).count()
+        except:
+            pass
+
+        if security_middleware and hasattr(security_middleware, 'rate_limiter'):
+            try:
+                security_stats = security_middleware.get_stats()
+                stats.update({
+                    'total_monitored_ips': security_stats['total_monitored_ips'],
+                    'total_attack_attempts': security_stats['total_attack_attempts'],
+                    'unique_attackers': security_stats['unique_attackers']
+                })
+            except:
+                pass
+
+        stats['current_time'] = datetime.now().strftime('%H:%M:%S')
+
+        return jsonify({'success': True, 'stats': stats})
+
+    except Exception as e:
+        logger.error(f"Error getting security status: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500

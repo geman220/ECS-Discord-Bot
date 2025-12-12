@@ -226,11 +226,11 @@ class ECSFCPassGenerator:
         try:
             from app.models import PlayerTeamSeason, Season, Team
             
-            # Get player's season assignments
+            # Get player's season assignments (ordered by id since Season has no start_date)
             assignments = PlayerTeamSeason.query\
                 .join(Season).join(Team)\
                 .filter(PlayerTeamSeason.player_id == player.id)\
-                .order_by(Season.start_date.desc())\
+                .order_by(Season.id.desc())\
                 .limit(5).all()
             
             if not assignments:

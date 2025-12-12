@@ -1,0 +1,311 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Substitute Pools - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.match_operations') }}">Match Operations</a></li>
+<li class="breadcrumb-item active">Substitute Pools</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Substitute Pools Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-users-group me-2"></i>
+                <div>
+                    <strong>Substitute Pool Management</strong><br>
+                    Manage substitute pools for ECS FC, Classic, and Premier divisions. Add players to pools, track availability, and manage substitute requests.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- League Pool Cards -->
+<div class="row">
+    {% for league_type, data in pools_data.items() %}
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header" style="background: {{ data.config.color }}15; border-bottom: 3px solid {{ data.config.color }};">
+                <div class="d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0" style="color: {{ data.config.color }};">
+                        <i class="{{ data.config.icon }} me-2"></i>{{ data.config.name }}
+                    </h5>
+                    <span class="badge" style="background: {{ data.config.color }};">
+                        {{ data.total_active }} Active
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Statistics -->
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="text-center p-2 rounded bg-light">
+                            <div class="h4 mb-0">{{ data.total_active }}</div>
+                            <small class="text-muted">Active Subs</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center p-2 rounded bg-light">
+                            <div class="h4 mb-0">{{ data.active_pools|sum(attribute='matches_played') if data.active_pools else 0 }}</div>
+                            <small class="text-muted">Matches Played</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Substitutes Preview -->
+                {% if data.active_pools %}
+                <h6 class="text-muted mb-2">Top Substitutes</h6>
+                <div class="list-group list-group-flush mb-3" style="max-height: 150px; overflow-y: auto;">
+                    {% for pool in data.active_pools[:5] %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                        <div>
+                            <span class="fw-medium">{{ pool.player.name if pool.player else 'Unknown' }}</span>
+                            <br>
+                            <small class="text-muted">{{ pool.matches_played }} matches</small>
+                        </div>
+                        <span class="badge bg-success">{{ pool.acceptance_rate|round(1) }}%</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="ti ti-users-group" style="font-size: 2rem;"></i>
+                    <p class="mt-2 mb-0">No active substitutes</p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('admin_panel.substitute_pool_detail', league_type=league_type) }}"
+                   class="btn w-100" style="background: {{ data.config.color }}; color: white;">
+                    <i class="ti ti-settings me-1"></i>Manage Pool
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Quick Stats Summary -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-chart-bar me-2"></i>Overall Statistics
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="border rounded p-3">
+                            <div class="h3 mb-0 text-primary">
+                                {% set total = namespace(count=0) %}
+                                {% for lt, data in pools_data.items() %}
+                                    {% set total.count = total.count + data.total_active %}
+                                {% endfor %}
+                                {{ total.count }}
+                            </div>
+                            <small class="text-muted">Total Substitutes</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="border rounded p-3">
+                            <div class="h3 mb-0 text-success">
+                                {% set matches = namespace(count=0) %}
+                                {% for lt, data in pools_data.items() %}
+                                    {% for pool in data.active_pools %}
+                                        {% set matches.count = matches.count + pool.matches_played %}
+                                    {% endfor %}
+                                {% endfor %}
+                                {{ matches.count }}
+                            </div>
+                            <small class="text-muted">Total Matches Played</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="border rounded p-3">
+                            <div class="h3 mb-0 text-info">
+                                {% set requests = namespace(count=0) %}
+                                {% for lt, data in pools_data.items() %}
+                                    {% for pool in data.active_pools %}
+                                        {% set requests.count = requests.count + pool.requests_received %}
+                                    {% endfor %}
+                                {% endfor %}
+                                {{ requests.count }}
+                            </div>
+                            <small class="text-muted">Requests Received</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="border rounded p-3">
+                            <div class="h3 mb-0 text-warning">{{ pools_data|length }}</div>
+                            <small class="text-muted">Active Leagues</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <a href="{{ url_for('admin_panel.substitute_management') }}" class="btn btn-outline-primary w-100">
+                            <i class="ti ti-clipboard-list me-1"></i>View Sub Requests
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <button class="btn btn-outline-success w-100" onclick="searchPlayer()">
+                            <i class="ti ti-user-plus me-1"></i>Add Player to Pool
+                        </button>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <a href="{{ url_for('admin_panel.match_operations') }}" class="btn btn-outline-info w-100">
+                            <i class="ti ti-soccer-field me-1"></i>Match Operations
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Player Search Modal -->
+<div class="modal fade" id="playerSearchModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-user-search me-2"></i>Search Player to Add
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="playerSearchInput"
+                           placeholder="Type player name or email...">
+                </div>
+                <div id="playerSearchResults"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function searchPlayer() {
+    const modal = new bootstrap.Modal(document.getElementById('playerSearchModal'));
+    modal.show();
+    document.getElementById('playerSearchInput').focus();
+}
+
+// Player search
+let searchTimeout;
+document.getElementById('playerSearchInput').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    const query = this.value.trim();
+
+    if (query.length < 2) {
+        document.getElementById('playerSearchResults').innerHTML = '';
+        return;
+    }
+
+    searchTimeout = setTimeout(async () => {
+        try {
+            const response = await fetch(`{{ url_for('admin_panel.substitute_pool_player_search') }}?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+
+            if (data.success && data.players.length > 0) {
+                let html = '<div class="list-group">';
+                data.players.forEach(player => {
+                    html += `
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${player.name}</strong>
+                                    <br>
+                                    <small class="text-muted">${player.email || 'No email'}</small>
+                                </div>
+                                <div class="btn-group">
+                                    ${player.can_add_to.map(lt => `
+                                        <button class="btn btn-sm btn-outline-primary"
+                                                onclick="addToPool(${player.id}, '${lt}')">
+                                            Add to ${lt}
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <small>
+                                    Current pools: ${player.current_pools.length > 0 ? player.current_pools.join(', ') : 'None'}
+                                </small>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                document.getElementById('playerSearchResults').innerHTML = html;
+            } else {
+                document.getElementById('playerSearchResults').innerHTML =
+                    '<p class="text-center text-muted py-3">No players found</p>';
+            }
+        } catch (error) {
+            console.error('Search error:', error);
+        }
+    }, 300);
+});
+
+async function addToPool(playerId, leagueType) {
+    try {
+        const response = await fetch(`/admin-panel/substitute-pools/${encodeURIComponent(leagueType)}/add-player`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ player_id: playerId })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Player Added',
+                text: data.message,
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.message
+            });
+        }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to add player to pool'
+        });
+    }
+}
+</script>
+{% endblock %}

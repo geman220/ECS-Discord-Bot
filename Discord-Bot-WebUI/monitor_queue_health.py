@@ -12,6 +12,8 @@ Usage:
 import argparse
 import time
 import json
+import logging
+from logging.handlers import RotatingFileHandler
 from datetime import datetime
 from pathlib import Path
 from app import create_app
@@ -20,10 +22,36 @@ import redis
 
 
 class QueueHealthMonitor:
-    def __init__(self, log_file='queue_health_monitor.log'):
+    # Log rotation settings
+    MAX_LOG_BYTES = 10 * 1024 * 1024  # 10MB
+    BACKUP_COUNT = 3  # Keep 3 old log files
+
+    def __init__(self, log_file='logs/queue_health_monitor.log'):
         self.log_file = Path(log_file)
+        # Ensure logs directory exists
+        self.log_file.parent.mkdir(parents=True, exist_ok=True)
         self.app = create_app()
         self.redis_client = redis.Redis(host='redis', port=6379, db=0)
+
+        # Set up rotating file handler for JSON metrics
+        self._setup_rotating_logger()
+
+    def _setup_rotating_logger(self):
+        """Set up a rotating file handler for metrics logging."""
+        self.metrics_logger = logging.getLogger('queue_health_metrics')
+        self.metrics_logger.setLevel(logging.INFO)
+        # Prevent duplicate handlers if called multiple times
+        if not self.metrics_logger.handlers:
+            handler = RotatingFileHandler(
+                self.log_file,
+                maxBytes=self.MAX_LOG_BYTES,
+                backupCount=self.BACKUP_COUNT,
+                encoding='utf-8'
+            )
+            # Just the raw JSON, no formatting
+            handler.setFormatter(logging.Formatter('%(message)s'))
+            self.metrics_logger.addHandler(handler)
+            self.metrics_logger.propagate = False
 
     def get_queue_metrics(self):
         """Get current queue metrics."""
@@ -128,9 +156,8 @@ class QueueHealthMonitor:
         return alerts
 
     def log_metrics(self, metrics):
-        """Log metrics to file."""
-        with open(self.log_file, 'a') as f:
-            f.write(json.dumps(metrics) + '\n')
+        """Log metrics to file with automatic rotation."""
+        self.metrics_logger.info(json.dumps(metrics))
 
     def print_summary(self, metrics):
         """Print a human-readable summary."""
@@ -312,8 +339,8 @@ def main():
     parser.add_argument(
         '--log-file',
         type=str,
-        default='queue_health_monitor.log',
-        help='Log file path (default: queue_health_monitor.log)'
+        default='logs/queue_health_monitor.log',
+        help='Log file path (default: logs/queue_health_monitor.log)'
     )
 
     args = parser.parse_args()

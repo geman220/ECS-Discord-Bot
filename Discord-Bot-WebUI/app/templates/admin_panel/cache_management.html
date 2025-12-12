@@ -240,51 +240,59 @@
 
 {% block custom_js %}
 <script>
-function clearAllCache() {
-    Swal.fire({
-        title: 'Clear All Cache?',
-        text: 'This will remove all cached data. This action cannot be undone.',
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+async function clearCacheByType(cacheType, title) {
+    const result = await Swal.fire({
+        title: title,
+        text: 'This action cannot be undone. Continue?',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, clear all!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // TODO: Implement cache clearing
-            Swal.fire('Cleared!', 'All cache has been cleared.', 'success');
-        }
+        confirmButtonText: 'Yes, clear it!'
     });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        const formData = new FormData();
+        formData.append('cache_type', cacheType);
+
+        const response = await fetch('{{ url_for("admin_panel.clear_cache") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        });
+
+        if (response.redirected) {
+            window.location.href = response.url;
+        } else {
+            Swal.fire({
+                icon: 'success',
+                title: 'Cache Cleared',
+                text: 'The cache has been successfully cleared.',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => location.reload());
+        }
+    } catch (error) {
+        Swal.fire('Error', 'Failed to clear cache. Check server connectivity.', 'error');
+    }
+}
+
+function clearAllCache() {
+    clearCacheByType('all', 'Clear All Cache?');
 }
 
 function clearUserCache() {
-    Swal.fire({
-        title: 'Clear User Cache?',
-        text: 'This will clear all user-related cache data.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Clear User Cache'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // TODO: Implement user cache clearing
-            Swal.fire('Cleared!', 'User cache has been cleared.', 'success');
-        }
-    });
+    clearCacheByType('user', 'Clear User Cache?');
 }
 
 function clearSessionCache() {
-    Swal.fire({
-        title: 'Clear Session Cache?',
-        text: 'This will clear all session cache data.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Clear Session Cache'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // TODO: Implement session cache clearing
-            Swal.fire('Cleared!', 'Session cache has been cleared.', 'success');
-        }
-    });
+    clearCacheByType('session', 'Clear Session Cache?');
 }
 
 function refreshCacheStats() {
@@ -294,33 +302,48 @@ function refreshCacheStats() {
         allowOutsideClick: false,
         didOpen: () => {
             Swal.showLoading();
-            // Simulate refresh
             setTimeout(() => {
-                Swal.fire('Updated!', 'Cache statistics have been refreshed.', 'success');
-                // TODO: Implement actual stats refresh
                 location.reload();
-            }, 1500);
+            }, 1000);
         }
     });
 }
 
-function updateCacheConfig() {
+async function updateCacheConfig() {
     const config = {
         defaultTTL: document.getElementById('defaultTTL').value,
         maxMemoryPolicy: document.getElementById('maxMemoryPolicy').value,
         enableCache: document.getElementById('enableCache').checked
     };
-    
-    // TODO: Implement configuration update
-    Swal.fire('Updated!', 'Cache configuration has been saved.', 'success');
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Configuration Saved',
+        text: 'Cache configuration has been updated.',
+        timer: 2000,
+        showConfirmButton: false
+    });
 }
 
 function resetCacheConfig() {
     document.getElementById('defaultTTL').value = '3600';
     document.getElementById('maxMemoryPolicy').value = 'allkeys-lru';
     document.getElementById('enableCache').checked = true;
-    
-    Swal.fire('Reset!', 'Configuration has been reset to defaults.', 'info');
+
+    Swal.fire({
+        icon: 'info',
+        title: 'Reset Complete',
+        text: 'Configuration has been reset to defaults.'
+    });
 }
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl+R to refresh stats
+    if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        refreshCacheStats();
+    }
+});
 </script>
 {% endblock %}

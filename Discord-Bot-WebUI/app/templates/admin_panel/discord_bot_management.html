@@ -570,10 +570,26 @@ function syncCommands() {
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
-                    // TODO: Implement command sync
-                    setTimeout(() => {
-                        Swal.fire('Synced!', '25 commands have been synchronized with Discord.', 'success');
-                    }, 2500);
+
+                    // Call bot sync commands API
+                    fetch('http://localhost:5001/api/bot/sync-commands', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Synced!', `${data.commands_synced || 'All'} commands have been synchronized with Discord.`, 'success');
+                        } else {
+                            Swal.fire('Error!', `Failed to sync commands: ${data.message || 'Unknown error'}`, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error syncing commands:', error);
+                        Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
+                    });
                 }
             });
         }
@@ -643,11 +659,96 @@ function viewCommands() {
 }
 
 function commandPermissions() {
-    // TODO: Implement permission management
+    const commands = {{ commands | tojson | safe }};
+
+    // Build permission management HTML
+    let permissionsHtml = `
+        <div class="text-start" style="max-height: 500px; overflow-y: auto;">
+            <table class="table table-sm table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Command</th>
+                        <th>Current Permission</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    commands.forEach(cmd => {
+        const permissionColor = cmd.permission_level === 'Public' ? 'success' :
+                               cmd.permission_level.includes('Admin') ? 'danger' : 'warning';
+        permissionsHtml += `
+            <tr>
+                <td><code>/${cmd.name}</code></td>
+                <td><span class="badge bg-${permissionColor}">${cmd.permission_level}</span></td>
+                <td>
+                    <select class="form-select form-select-sm permission-select" data-command="${cmd.name}" style="width: 150px;">
+                        <option value="Public" ${cmd.permission_level === 'Public' ? 'selected' : ''}>Public</option>
+                        <option value="Member" ${cmd.permission_level === 'Member' ? 'selected' : ''}>Member</option>
+                        <option value="Captain" ${cmd.permission_level === 'Captain' ? 'selected' : ''}>Captain</option>
+                        <option value="Coach" ${cmd.permission_level === 'Coach' ? 'selected' : ''}>Coach</option>
+                        <option value="Admin" ${cmd.permission_level === 'Admin' ? 'selected' : ''}>Admin</option>
+                        <option value="Global Admin" ${cmd.permission_level === 'Global Admin' ? 'selected' : ''}>Global Admin</option>
+                    </select>
+                </td>
+            </tr>
+        `;
+    });
+
+    permissionsHtml += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
     Swal.fire({
         title: 'Command Permissions',
-        text: 'Permission management functionality coming soon!',
-        icon: 'info'
+        html: permissionsHtml,
+        width: '700px',
+        showCancelButton: true,
+        confirmButtonText: 'Save Changes',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const permissions = {};
+            document.querySelectorAll('.permission-select').forEach(select => {
+                permissions[select.dataset.command] = select.value;
+            });
+            return permissions;
+        }
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            // Save permission changes to bot API
+            Swal.fire({
+                title: 'Saving Permissions...',
+                text: 'Please wait',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+
+                    fetch('http://localhost:5001/api/bot/command-permissions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ permissions: result.value })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Saved!', 'Command permissions have been updated.', 'success')
+                            .then(() => location.reload());
+                        } else {
+                            Swal.fire('Error!', `Failed to save permissions: ${data.message || 'Unknown error'}`, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error saving permissions:', error);
+                        Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
+                    });
+                }
+            });
+        }
     });
 }
 
@@ -712,20 +813,256 @@ function commandUsage() {
 }
 
 function customCommands() {
-    // TODO: Implement custom commands
+    // Fetch existing custom commands
+    fetch('http://localhost:5001/api/bot/custom-commands')
+    .then(response => response.json())
+    .then(data => {
+        const customCmds = data.commands || [];
+
+        let customHtml = `
+            <div class="text-start">
+                <div class="mb-3">
+                    <button class="btn btn-sm btn-success" onclick="addCustomCommand()">
+                        <i class="ti ti-plus me-1"></i>Add New Command
+                    </button>
+                </div>
+        `;
+
+        if (customCmds.length > 0) {
+            customHtml += `
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Trigger</th>
+                            <th>Response</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            customCmds.forEach((cmd, index) => {
+                customHtml += `
+                    <tr>
+                        <td><code>${cmd.trigger}</code></td>
+                        <td>${cmd.response.substring(0, 50)}${cmd.response.length > 50 ? '...' : ''}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="editCustomCommand(${index})">
+                                <i class="ti ti-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCustomCommand('${cmd.trigger}')">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            customHtml += `
+                    </tbody>
+                </table>
+            `;
+        } else {
+            customHtml += `<p class="text-muted text-center py-3">No custom commands configured</p>`;
+        }
+
+        customHtml += `</div>`;
+
+        Swal.fire({
+            title: 'Custom Commands',
+            html: customHtml,
+            width: '700px',
+            showConfirmButton: false,
+            showCloseButton: true
+        });
+    })
+    .catch(error => {
+        console.error('Error loading custom commands:', error);
+        Swal.fire('Error!', 'Failed to load custom commands from bot API.', 'error');
+    });
+}
+
+function addCustomCommand() {
     Swal.fire({
-        title: 'Custom Commands',
-        text: 'Custom command functionality coming soon!',
-        icon: 'info'
+        title: 'Add Custom Command',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Trigger</label>
+                    <input type="text" class="form-control" id="customTrigger" placeholder="!hello">
+                    <small class="text-muted">The text that triggers this command</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Response</label>
+                    <textarea class="form-control" id="customResponse" rows="3" placeholder="Hello! Welcome to ECS FC"></textarea>
+                    <small class="text-muted">The bot's response when triggered</small>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Add Command',
+        preConfirm: () => {
+            const trigger = document.getElementById('customTrigger').value.trim();
+            const response = document.getElementById('customResponse').value.trim();
+
+            if (!trigger || !response) {
+                Swal.showValidationMessage('Both trigger and response are required');
+                return false;
+            }
+
+            return { trigger, response };
+        }
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            fetch('http://localhost:5001/api/bot/custom-commands', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(result.value)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Added!', 'Custom command has been created.', 'success')
+                    .then(() => customCommands()); // Refresh list
+                } else {
+                    Swal.fire('Error!', `Failed to add command: ${data.message || 'Unknown error'}`, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error adding custom command:', error);
+                Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
+            });
+        }
+    });
+}
+
+function deleteCustomCommand(trigger) {
+    Swal.fire({
+        title: 'Delete Command?',
+        text: `Are you sure you want to delete the command "${trigger}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'Delete'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`http://localhost:5001/api/bot/custom-commands/${encodeURIComponent(trigger)}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Deleted!', 'Custom command has been removed.', 'success')
+                    .then(() => customCommands()); // Refresh list
+                } else {
+                    Swal.fire('Error!', `Failed to delete command: ${data.message || 'Unknown error'}`, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting custom command:', error);
+                Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
+            });
+        }
     });
 }
 
 function manageGuild(guildId) {
-    // TODO: Implement guild management
+    const guildInfo = {{ guild_info | tojson | safe }};
+
     Swal.fire({
-        title: 'Guild Management',
-        text: 'Guild management functionality coming soon!',
-        icon: 'info'
+        title: `Manage ${guildInfo.name || 'Guild'}`,
+        html: `
+            <div class="text-start">
+                <h6 class="mb-3">Guild Settings</h6>
+
+                <div class="mb-3">
+                    <label class="form-label">Welcome Channel</label>
+                    <select class="form-select" id="welcomeChannel">
+                        <option value="">Select a channel</option>
+                        <option value="general">general</option>
+                        <option value="welcome">welcome</option>
+                        <option value="new-members">new-members</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Log Channel</label>
+                    <select class="form-select" id="logChannel">
+                        <option value="">Select a channel</option>
+                        <option value="bot-logs">bot-logs</option>
+                        <option value="admin-logs">admin-logs</option>
+                        <option value="audit-log">audit-log</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Match Results Channel</label>
+                    <select class="form-select" id="resultsChannel">
+                        <option value="">Select a channel</option>
+                        <option value="match-results">match-results</option>
+                        <option value="scores">scores</option>
+                        <option value="results">results</option>
+                    </select>
+                </div>
+
+                <h6 class="mb-3 mt-4">Guild Features</h6>
+
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="guildWelcome" checked>
+                    <label class="form-check-label" for="guildWelcome">Send Welcome Messages</label>
+                </div>
+
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="guildAutoRole" checked>
+                    <label class="form-check-label" for="guildAutoRole">Auto-assign Roles</label>
+                </div>
+
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="guildMatchAlerts">
+                    <label class="form-check-label" for="guildMatchAlerts">Match Alert Notifications</label>
+                </div>
+            </div>
+        `,
+        width: '500px',
+        showCancelButton: true,
+        confirmButtonText: 'Save Settings',
+        preConfirm: () => {
+            return {
+                welcome_channel: document.getElementById('welcomeChannel').value,
+                log_channel: document.getElementById('logChannel').value,
+                results_channel: document.getElementById('resultsChannel').value,
+                welcome_enabled: document.getElementById('guildWelcome').checked,
+                auto_role_enabled: document.getElementById('guildAutoRole').checked,
+                match_alerts_enabled: document.getElementById('guildMatchAlerts').checked
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            fetch(`http://localhost:5001/api/bot/guild/${guildId}/settings`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(result.value)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Saved!', 'Guild settings have been updated.', 'success');
+                } else {
+                    Swal.fire('Error!', `Failed to save settings: ${data.message || 'Unknown error'}`, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving guild settings:', error);
+                Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
+            });
+        }
     });
 }
 
@@ -811,11 +1148,48 @@ function guildStats(guildId) {
 }
 
 function addGuild() {
-    // TODO: Implement guild addition
+    // Generate bot invite URL
+    const botClientId = '{{ config.DISCORD_BOT_CLIENT_ID | default("YOUR_BOT_CLIENT_ID", true) }}';
+    const permissions = '8'; // Administrator permission
+    const inviteUrl = `https://discord.com/api/oauth2/authorize?client_id=${botClientId}&permissions=${permissions}&scope=bot%20applications.commands`;
+
     Swal.fire({
-        title: 'Add Guild',
-        text: 'Guild addition functionality coming soon!',
-        icon: 'info'
+        title: 'Add Bot to Server',
+        html: `
+            <div class="text-start">
+                <p>To add the ECS FC Discord bot to another server, you need administrator permissions on that server.</p>
+
+                <div class="alert alert-info">
+                    <i class="ti ti-info-circle me-2"></i>
+                    Click the button below to authorize the bot for a new server.
+                </div>
+
+                <div class="text-center mt-4">
+                    <a href="${inviteUrl}" target="_blank" class="btn btn-primary btn-lg">
+                        <i class="ti ti-brand-discord me-2"></i>Invite Bot to Server
+                    </a>
+                </div>
+
+                <div class="mt-4">
+                    <h6>Required Permissions:</h6>
+                    <ul class="small">
+                        <li>Manage Roles</li>
+                        <li>Send Messages</li>
+                        <li>Read Message History</li>
+                        <li>Manage Channels</li>
+                        <li>Use Application Commands</li>
+                    </ul>
+                </div>
+
+                <div class="alert alert-warning mt-3">
+                    <i class="ti ti-alert-triangle me-2"></i>
+                    After adding the bot, you'll need to configure it in the new server's settings.
+                </div>
+            </div>
+        `,
+        width: '550px',
+        showConfirmButton: false,
+        showCloseButton: true
     });
 }
 

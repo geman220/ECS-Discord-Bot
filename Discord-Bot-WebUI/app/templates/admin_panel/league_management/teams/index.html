@@ -1,0 +1,381 @@
+{% extends "admin_panel/base.html" %}
+
+{% block panel_description %}Manage teams across all seasons and divisions{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.league_management_dashboard') }}">League Management</a></li>
+<li class="breadcrumb-item active">Teams</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Stats Cards -->
+    <div class="col-12 mb-4">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                            <i class="ti ti-users-group text-primary" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-0">{{ stats.total_teams }}</h4>
+                            <small class="text-muted">Total Teams</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3">
+                            <i class="ti ti-brand-discord text-success" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-0">{{ stats.teams_with_discord }}</h4>
+                            <small class="text-muted">With Discord</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
+                            <i class="ti ti-trophy text-warning" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-0">{{ stats.teams_by_league_type|length }}</h4>
+                            <small class="text-muted">League Types</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0">
+                    <i class="ti ti-users-group me-2"></i>Teams
+                </h5>
+                <div class="d-flex gap-2 flex-wrap">
+                    <!-- Filters -->
+                    <select class="form-select form-select-sm" id="seasonFilter" style="width: auto;">
+                        <option value="">All Seasons</option>
+                        {% for season in seasons %}
+                        <option value="{{ season.id }}" {% if current_season_id == season.id %}selected{% endif %}>
+                            {{ season.name }} {% if season.is_current %}(Current){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <select class="form-select form-select-sm" id="leagueTypeFilter" style="width: auto;">
+                        <option value="">All League Types</option>
+                        <option value="Pub League" {% if current_league_type == 'Pub League' %}selected{% endif %}>Pub League</option>
+                        <option value="ECS FC" {% if current_league_type == 'ECS FC' %}selected{% endif %}>ECS FC</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createTeamModal">
+                        <i class="ti ti-plus me-1"></i>Add Team
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if teams %}
+                <div class="table-responsive">
+                    <table class="table table-hover" id="teamsTable">
+                        <thead>
+                            <tr>
+                                <th>Team Name</th>
+                                <th>League</th>
+                                <th>Season</th>
+                                <th>Discord</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for team in teams %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('admin_panel.league_management_team_detail', team_id=team.id) }}"
+                                       class="text-primary fw-medium">
+                                        {{ team.name }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if team.league %}
+                                    <span class="badge bg-label-primary">{{ team.league.name }}</span>
+                                    {% else %}
+                                    <span class="badge bg-label-secondary">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if team.league and team.league.season %}
+                                    {{ team.league.season.name }}
+                                    {% if team.league.season.is_current %}
+                                    <span class="badge bg-success ms-1">Current</span>
+                                    {% endif %}
+                                    {% else %}
+                                    <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if team.discord_channel_id %}
+                                    <span class="badge bg-success">
+                                        <i class="ti ti-check me-1"></i>Connected
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="ti ti-x me-1"></i>Not Set
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-icon" type="button" data-bs-toggle="dropdown">
+                                            <i class="ti ti-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <a class="dropdown-item" href="{{ url_for('admin_panel.league_management_team_detail', team_id=team.id) }}">
+                                                    <i class="ti ti-eye me-2"></i>View Details
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="#" onclick="editTeam({{ team.id }}, '{{ team.name }}')">
+                                                    <i class="ti ti-edit me-2"></i>Rename
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="#" onclick="syncTeamDiscord({{ team.id }})">
+                                                    <i class="ti ti-refresh me-2"></i>Sync Discord
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item text-danger" href="#" onclick="deleteTeam({{ team.id }}, '{{ team.name }}')">
+                                                    <i class="ti ti-trash me-2"></i>Delete
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-users-group text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-2">No teams found</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTeamModal">
+                        <i class="ti ti-plus me-1"></i>Create First Team
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Team Modal -->
+<div class="modal fade" id="createTeamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="ti ti-plus me-2"></i>Create Team</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createTeamForm">
+                    <div class="mb-3">
+                        <label class="form-label">Team Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="newTeamName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">League <span class="text-danger">*</span></label>
+                        <select class="form-select" id="newTeamLeague" required>
+                            <option value="">Select a league...</option>
+                            {% for season in seasons %}
+                            {% if season.is_current %}
+                            <optgroup label="{{ season.name }} ({{ season.league_type }})">
+                                {% for league in season.leagues %}
+                                <option value="{{ league.id }}">{{ league.name }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Only current season leagues are shown</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createTeam()">
+                    <i class="ti ti-plus me-1"></i>Create Team
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Team Modal -->
+<div class="modal fade" id="editTeamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="ti ti-edit me-2"></i>Rename Team</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editTeamForm">
+                    <input type="hidden" id="editTeamId">
+                    <div class="mb-3">
+                        <label class="form-label">Team Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editTeamName" required>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="ti ti-info-circle me-2"></i>
+                        Renaming will also update the Discord channel and role names.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveTeamEdit()">
+                    <i class="ti ti-check me-1"></i>Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter handlers
+    document.getElementById('seasonFilter').addEventListener('change', applyFilters);
+    document.getElementById('leagueTypeFilter').addEventListener('change', applyFilters);
+});
+
+function applyFilters() {
+    const seasonId = document.getElementById('seasonFilter').value;
+    const leagueType = document.getElementById('leagueTypeFilter').value;
+
+    let url = '{{ url_for("admin_panel.league_management_teams") }}';
+    const params = new URLSearchParams();
+
+    if (seasonId) params.set('season_id', seasonId);
+    if (leagueType) params.set('league_type', leagueType);
+
+    if (params.toString()) {
+        url += '?' + params.toString();
+    }
+
+    window.location.href = url;
+}
+
+function createTeam() {
+    const name = document.getElementById('newTeamName').value.trim();
+    const leagueId = document.getElementById('newTeamLeague').value;
+
+    if (!name || !leagueId) {
+        AdminPanel.showMobileToast('Please fill in all required fields', 'warning');
+        return;
+    }
+
+    fetch('{{ url_for("admin_panel.league_management_create_team") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, league_id: parseInt(leagueId) })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            AdminPanel.showMobileToast(result.message, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            AdminPanel.showMobileToast(result.message, 'danger');
+        }
+    })
+    .catch(error => {
+        AdminPanel.showMobileToast('Failed to create team', 'danger');
+    });
+}
+
+function editTeam(teamId, teamName) {
+    document.getElementById('editTeamId').value = teamId;
+    document.getElementById('editTeamName').value = teamName;
+    new bootstrap.Modal(document.getElementById('editTeamModal')).show();
+}
+
+function saveTeamEdit() {
+    const teamId = document.getElementById('editTeamId').value;
+    const newName = document.getElementById('editTeamName').value.trim();
+
+    if (!newName) {
+        AdminPanel.showMobileToast('Please enter a team name', 'warning');
+        return;
+    }
+
+    fetch(`/admin-panel/league-management/teams/api/${teamId}/update`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            AdminPanel.showMobileToast(result.message, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            AdminPanel.showMobileToast(result.message, 'danger');
+        }
+    })
+    .catch(error => {
+        AdminPanel.showMobileToast('Failed to update team', 'danger');
+    });
+}
+
+function syncTeamDiscord(teamId) {
+    AdminPanel.confirmAction('This will sync Discord resources for this team. Continue?', () => {
+        fetch(`/admin-panel/league-management/teams/api/${teamId}/sync-discord`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(result => {
+            AdminPanel.showMobileToast(result.message, result.success ? 'success' : 'warning');
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Failed to sync Discord', 'danger');
+        });
+    });
+}
+
+function deleteTeam(teamId, teamName) {
+    AdminPanel.confirmAction(`Are you sure you want to delete "${teamName}"? This will also remove Discord resources.`, () => {
+        fetch(`/admin-panel/league-management/teams/api/${teamId}/delete`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                AdminPanel.showMobileToast(result.message, 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                AdminPanel.showMobileToast(result.message, 'danger');
+            }
+        })
+        .catch(error => {
+            AdminPanel.showMobileToast('Failed to delete team', 'danger');
+        });
+    });
+}
+</script>
+{% endblock %}

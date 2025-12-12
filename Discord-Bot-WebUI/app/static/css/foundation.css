@@ -30875,6 +30875,20 @@ body {
   z-index: var(--z-modal) !important;
 }
 
+/* Ensure navbar drops below modals when modal is open */
+body.modal-open .layout-navbar,
+body.modal-open #layout-navbar,
+body.modal-open .navbar {
+  z-index: 10 !important;
+}
+
+/* Fix mobile navbar z-index when modal is open (overrides the @media rule that sets z-index:1080) */
+@media (max-width: 1199.98px) {
+  body.modal-open .layout-navbar {
+    z-index: 10 !important;
+  }
+}
+
 /* Dropdowns */
 .dropdown-menu {
   z-index: var(--z-dropdown) !important;

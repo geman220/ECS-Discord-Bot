@@ -5,12 +5,52 @@
 {% block panel_description %}View and manage draft pick history{% endblock %}
 
 {% block breadcrumb_items %}
-<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.draft_overview') }}">Draft Management</a></li>
-<li class="breadcrumb-item active">History</li>
+<li class="breadcrumb-item active">Draft Management</li>
 {% endblock %}
 
 {% block panel_content %}
 <div class="row">
+    <!-- Stats Cards -->
+    {% if stats %}
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card h-100 bg-primary bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-list-numbers fs-1 text-primary mb-2"></i>
+                <h3 class="mb-0">{{ stats.total_picks }}</h3>
+                <small class="text-muted">Total All-Time Picks</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card h-100 bg-success bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-calendar fs-1 text-success mb-2"></i>
+                <h3 class="mb-0">{{ stats.current_season_picks }}</h3>
+                <small class="text-muted">Current Season Picks</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card h-100 bg-info bg-opacity-10">
+            <div class="card-body text-center">
+                <i class="ti ti-filter fs-1 text-info mb-2"></i>
+                <h3 class="mb-0">{{ stats.filtered_picks }}</h3>
+                <small class="text-muted">Showing (Filtered)</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <a href="{{ url_for('draft_predictions.admin_dashboard') }}" class="btn btn-outline-primary mb-2">
+                    <i class="ti ti-chart-bar me-2"></i>Draft Predictions
+                </a>
+                <small class="text-muted">View predictions &amp; analytics</small>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Filters -->
     <div class="col-12 mb-4">
         <div class="card">
@@ -39,7 +79,7 @@
                         </select>
                     </div>
                     <div class="col-md-4 text-md-end">
-                        <span class="badge bg-primary fs-6">{{ total_picks }} picks total</span>
+                        <span class="badge bg-primary fs-6">{{ total_picks }} picks showing</span>
                     </div>
                 </form>
             </div>

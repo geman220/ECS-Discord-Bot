@@ -146,11 +146,16 @@ def create_app(config_object='web_config.Config'):
     import atexit
     def cleanup_redis_on_shutdown():
         try:
+            # Signal event consumers to shutdown gracefully
+            if hasattr(app, '_consumer_shutdown'):
+                logger.info("Signaling event consumers to shutdown...")
+                app._consumer_shutdown.set()
+
             redis_manager.cleanup()
             logger.info("Unified Redis connections cleaned up on application shutdown")
         except Exception as e:
             logger.error(f"Error during Redis shutdown: {e}")
-    
+
     atexit.register(cleanup_redis_on_shutdown)
     
     # Redis monitoring can be enabled if needed for debugging
@@ -850,59 +855,22 @@ def create_app(config_object='web_config.Config'):
     from app.core import celery
     celery.conf.worker_shutdown = worker_shutdown_cleanup
 
-    # Initialize Enterprise RSVP Event Consumers
-    logger.info("🚀 Initializing Enterprise RSVP Event Consumers...")
-    try:
-        # Import and start event consumers in a background thread
-        import threading
-        import asyncio
-        from app.services.event_consumer import initialize_default_consumers, start_all_consumers
-        
-        def start_event_consumers():
-            """Start event consumers in a separate thread."""
-            try:
-                logger.info("🔧 Starting Enterprise RSVP Event Consumers thread...")
-                
-                # Create new event loop for this thread
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                
-                async def run_consumers():
-                    """Initialize and run the event consumers."""
-                    try:
-                        # Initialize default consumers (WebSocket, Discord)
-                        await initialize_default_consumers()
-                        
-                        # Start all consumers
-                        await start_all_consumers()
-                        
-                        logger.info("✅ Enterprise RSVP Event Consumers started successfully!")
-                        
-                        # Keep the consumers running
-                        while True:
-                            await asyncio.sleep(1)
-                            
-                    except Exception as e:
-                        logger.error(f"❌ Error in event consumer thread: {e}", exc_info=True)
-                
-                # Run the async consumer setup
-                loop.run_until_complete(run_consumers())
-                
-            except Exception as e:
-                logger.error(f"❌ Failed to start event consumers: {e}", exc_info=True)
-        
-        # Start event consumers in daemon thread (won't block app shutdown)
-        consumer_thread = threading.Thread(target=start_event_consumers, daemon=True)
-        consumer_thread.start()
-        
-        # Store thread reference for potential cleanup
-        app.consumer_thread = consumer_thread
-        
-        logger.info("✅ Enterprise RSVP Event Consumers initialization started")
-        
-    except Exception as e:
-        logger.error(f"⚠️ Enterprise RSVP Event Consumers initialization failed: {e}", exc_info=True)
-        logger.info("Flask app will continue without event-driven features")
+    # Enterprise RSVP Event Consumers - DISABLED
+    #
+    # The event consumer system has been disabled because:
+    # 1. Mixed async runtime: asyncio thread + eventlet Flask causes unpredictable behavior
+    # 2. Not actually used: Flask routes use sync RSVPService which skips event publishing
+    # 3. Duplicate functionality: Direct emit_rsvp_update() and Celery tasks already handle
+    #    WebSocket broadcasts and Discord updates without the event stream complexity
+    # 4. Resource waste: Thread polling empty Redis streams continuously
+    #
+    # RSVP functionality continues to work via:
+    # - Direct socketio.emit() calls for WebSocket updates
+    # - Celery task update_discord_embed_task for Discord embed updates
+    #
+    # If event-driven architecture is needed in the future, consider:
+    # - Using Celery as the message broker (already in use)
+    # - Or running event consumers as a separate process (not a thread in Flask)
 
     return app
 

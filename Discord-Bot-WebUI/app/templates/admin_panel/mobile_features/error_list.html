@@ -1,0 +1,225 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Mobile Errors - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.mobile_features') }}">Mobile Features</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.mobile_error_analytics') }}">Error Analytics</a></li>
+<li class="breadcrumb-item active">Error List</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-filter me-2"></i>Filters
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('admin_panel.mobile_error_list') }}">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Time Range</label>
+                            <select name="days" class="form-select">
+                                <option value="1" {% if current_filters.days == 1 %}selected{% endif %}>Last 24 hours</option>
+                                <option value="7" {% if current_filters.days == 7 %}selected{% endif %}>Last 7 days</option>
+                                <option value="30" {% if current_filters.days == 30 %}selected{% endif %}>Last 30 days</option>
+                                <option value="90" {% if current_filters.days == 90 %}selected{% endif %}>Last 90 days</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Severity</label>
+                            <select name="severity" class="form-select">
+                                <option value="">All Severities</option>
+                                {% for severity in severity_options %}
+                                <option value="{{ severity }}" {% if current_filters.severity == severity %}selected{% endif %}>
+                                    {{ severity | title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Error Type</label>
+                            <select name="error_type" class="form-select">
+                                <option value="">All Types</option>
+                                {% for error_type in error_type_options %}
+                                <option value="{{ error_type }}" {% if current_filters.error_type == error_type %}selected{% endif %}>
+                                    {{ error_type }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary flex-grow-1">
+                                    <i class="ti ti-search me-1"></i>Filter
+                                </button>
+                                <a href="{{ url_for('admin_panel.mobile_error_list') }}" class="btn btn-outline-secondary">
+                                    <i class="ti ti-x"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error List -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-list me-2"></i>Error List
+                </h5>
+                <span class="badge bg-primary">{{ errors.total }} errors</span>
+            </div>
+            <div class="card-body">
+                {% if errors.items %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Error Type</th>
+                                <th>Severity</th>
+                                <th>Message</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for error in errors.items %}
+                            <tr>
+                                <td>
+                                    <small>{{ error.created_at.strftime('%Y-%m-%d %H:%M:%S') if error.created_at else 'N/A' }}</small>
+                                </td>
+                                <td>{{ error.error_type }}</td>
+                                <td>
+                                    <span class="badge bg-{% if error.severity == 'critical' %}danger{% elif error.severity == 'error' %}warning{% elif error.severity == 'warning' %}info{% else %}secondary{% endif %}">
+                                        {{ error.severity }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span title="{{ error.message }}">
+                                        {{ error.message[:50] }}{% if error.message|length > 50 %}...{% endif %}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="viewErrorDetails({{ error.id }})">
+                                        <i class="ti ti-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if errors.pages > 1 %}
+                <nav aria-label="Error pagination" class="mt-4">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if errors.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin_panel.mobile_error_list', page=errors.prev_num, severity=current_filters.severity, error_type=current_filters.error_type, days=current_filters.days) }}">
+                                Previous
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% for page_num in errors.iter_pages() %}
+                            {% if page_num %}
+                                <li class="page-item {% if page_num == errors.page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('admin_panel.mobile_error_list', page=page_num, severity=current_filters.severity, error_type=current_filters.error_type, days=current_filters.days) }}">
+                                        {{ page_num }}
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if errors.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin_panel.mobile_error_list', page=errors.next_num, severity=current_filters.severity, error_type=current_filters.error_type, days=current_filters.days) }}">
+                                Next
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="ti ti-check-circle" style="font-size: 3rem;"></i>
+                    <p class="mt-3 mb-0">No errors found matching your filters</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+async function viewErrorDetails(errorId) {
+    try {
+        const response = await fetch(`{{ url_for('admin_panel.api_mobile_error_details', error_id=0) }}`.replace('0', errorId));
+        const data = await response.json();
+
+        if (data.error) {
+            Swal.fire('Error', data.error, 'error');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Error Details',
+            html: `
+                <div class="text-start">
+                    <div class="mb-3">
+                        <strong>Error Type:</strong><br>
+                        <code>${data.error_type}</code>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Severity:</strong><br>
+                        <span class="badge bg-${data.severity === 'critical' ? 'danger' : data.severity === 'error' ? 'warning' : 'info'}">${data.severity}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Message:</strong><br>
+                        ${data.message}
+                    </div>
+                    ${data.stack_trace ? `
+                    <div class="mb-3">
+                        <strong>Stack Trace:</strong><br>
+                        <pre class="bg-light p-2 rounded" style="max-height: 200px; overflow-y: auto; font-size: 11px;">${data.stack_trace}</pre>
+                    </div>
+                    ` : ''}
+                    ${data.device_info ? `
+                    <div class="mb-3">
+                        <strong>Device Info:</strong><br>
+                        <pre class="bg-light p-2 rounded">${JSON.stringify(data.device_info, null, 2)}</pre>
+                    </div>
+                    ` : ''}
+                    <div class="mb-3">
+                        <strong>Timestamp:</strong><br>
+                        ${data.created_at || 'N/A'}
+                    </div>
+                </div>
+            `,
+            width: '600px',
+            confirmButtonText: 'Close'
+        });
+    } catch (error) {
+        console.error('Error fetching error details:', error);
+        Swal.fire('Error', 'Failed to load error details', 'error');
+    }
+}
+</script>
+{% endblock %}

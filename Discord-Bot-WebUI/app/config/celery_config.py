@@ -106,8 +106,8 @@ class CeleryConfig:
 
     # Worker Settings - Optimized for stability
     worker_prefetch_multiplier = 1  # One task at a time prevents overload
-    worker_max_tasks_per_child = 50  # More frequent restarts prevent memory leaks
-    worker_max_memory_per_child = 100000  # Reduced from 150MB to 100MB
+    worker_max_tasks_per_child = 500  # Increased from 50 - frequent restarts cause overhead
+    worker_max_memory_per_child = 150000  # 150MB - restart if memory exceeds this
     worker_concurrency = 2  # Reduced from 4 to prevent resource contention
     broker_connection_retry_on_startup = True
     worker_send_task_events = True  # Enable task event monitoring
@@ -193,11 +193,7 @@ class CeleryConfig:
     # Beat Configuration
     beat_schedule_filename = '/tmp/celerybeat-schedule'  # Persistent schedule file location
     beat_max_loop_interval = 5  # Check schedule every 5 seconds
-
-    # CRITICAL FIX: Prevent duplicate task execution
-    # If a periodic task is still running when the next schedule fires, skip it
-    task_ignore_result = False  # We need results to track task state
-    task_track_started = True    # Track when tasks start (required for acks_late)
+    # Note: task_ignore_result and task_track_started are set above in Task Settings
 
     # Beat Schedule: periodic tasks and their schedules
     beat_schedule = {
@@ -333,23 +329,8 @@ class CeleryConfig:
             }
         },
         # Legacy Robust Live Reporting - DISABLED (V2 is now active)
-        # 'process-active-live-sessions-legacy': {
-        #     'task': 'REMOVED - V2 is production version',
-        #     'schedule': crontab(minute='*/30'),  # Every 30 minutes (disabled)
-        #     'options': {
-        #         'queue': 'live_reporting',
-        #         'expires': 25
-        #     }
-        # },
-        # Clean up old live reporting sessions daily
-        'cleanup-old-live-sessions': {
-            # 'task': 'REMOVED - V2 handles session cleanup',
-            'schedule': crontab(hour=3, minute=30),  # Daily at 3:30 AM PST
-            'options': {
-                'queue': 'live_reporting',
-                'expires': 1740  # Task expires after 29 minutes
-            }
-        },
+        # 'process-active-live-sessions-legacy': removed - V2 is production version
+        # 'cleanup-old-live-sessions': removed - V2 handles session cleanup
         # TEMPORARILY DISABLED - These new maintenance tasks may be causing connection issues
         # Clean expired tasks from queues - More Aggressive
         # 'cleanup-expired-queue-tasks': {

@@ -32,17 +32,13 @@ class RateLimitedPool(QueuePool):
     connection usage to warn about long-running transactions.
     """
     def __init__(self, *args, **kwargs):
-        # Track the last checkout time to enforce a minimum interval between checkouts.
-        self._last_checkout = 0
-        self._min_checkout_interval = 0.01  # Reduced from 0.1 to 0.01 for faster RSVP updates
-
         # Dictionary to track active connections:
         # { connection_id: (checkout_time, stack_trace, route) }
         self._active_connections = {}
 
         # For periodic checking of long-running transactions.
         self._last_transaction_check = 0
-        self._transaction_check_interval = 15  # in seconds - reduced from 60s to 15s for more frequent checks
+        self._transaction_check_interval = 15  # in seconds - check every 15 seconds
 
         super().__init__(*args, **kwargs)
 
@@ -152,17 +148,15 @@ class RateLimitedPool(QueuePool):
 
     def _do_get(self):
         """
-        Override the pool's _do_get to enforce a minimum interval between checkouts and track active connections.
-        
+        Override the pool's _do_get to track active connections.
+
+        NOTE: Rate limiting (time.sleep) was removed because it blocks the eventlet
+        event loop, causing slowdowns under load. The pool_size and max_overflow
+        settings already provide adequate protection against connection storms.
+
         :return: A database connection from the underlying pool.
         """
         self._check_transactions()
-
-        now = time.time()
-        # Enforce a minimum checkout interval.
-        if now - self._last_checkout < self._min_checkout_interval:
-            time.sleep(self._min_checkout_interval)
-        self._last_checkout = now
 
         conn = super()._do_get()
         # Capture stack trace at checkout if debugging is enabled.

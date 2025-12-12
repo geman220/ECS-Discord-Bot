@@ -57,10 +57,10 @@ def dashboard():
                 'total_users': 0
             }
 
-        # Get recent admin actions with caching and fallback
+        # Get recent admin actions - NO caching to avoid detached session issues
+        # ORM objects cannot be safely cached as they become detached from the session
         try:
-            recent_actions = admin_stats_cache.get_stats('recent_actions', 
-                lambda: AdminAuditLog.get_recent_logs(limit=10))
+            recent_actions = AdminAuditLog.get_recent_logs(limit=10)
         except Exception as e:
             logger.warning(f"Error getting recent actions: {e}")
             recent_actions = []
@@ -294,6 +294,87 @@ def audit_logs():
         logger.error(f"Error loading audit logs: {e}")
         flash('Unable to load audit logs. Check database connectivity.', 'error')
         return redirect(url_for('admin_panel.dashboard'))
+
+
+@admin_panel_bp.route('/audit-logs/export')
+@login_required
+@role_required(['Global Admin'])
+def export_audit_logs():
+    """Export audit logs as CSV."""
+    import csv
+    from io import StringIO
+    from flask import Response
+
+    try:
+        # Get filter parameters
+        user_filter = request.args.get('user_id', type=int)
+        resource_filter = request.args.get('resource_type')
+        date_from = request.args.get('date_from')
+        date_to = request.args.get('date_to')
+
+        # Build query
+        query = AdminAuditLog.query
+
+        if user_filter:
+            query = query.filter_by(user_id=user_filter)
+        if resource_filter:
+            query = query.filter_by(resource_type=resource_filter)
+        if date_from:
+            query = query.filter(AdminAuditLog.timestamp >= datetime.fromisoformat(date_from))
+        if date_to:
+            query = query.filter(AdminAuditLog.timestamp <= datetime.fromisoformat(date_to))
+
+        logs = query.order_by(AdminAuditLog.timestamp.desc()).limit(10000).all()
+
+        # Create CSV
+        output = StringIO()
+        writer = csv.writer(output)
+
+        # Write header
+        writer.writerow(['Timestamp', 'User', 'Action', 'Resource Type', 'Resource ID', 'Old Value', 'New Value', 'IP Address'])
+
+        # Write data
+        for log in logs:
+            user_name = ''
+            if log.user:
+                user_name = log.user.name or log.user.username or log.user.email or str(log.user_id)
+
+            writer.writerow([
+                log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if log.timestamp else '',
+                user_name,
+                log.action or '',
+                log.resource_type or '',
+                log.resource_id or '',
+                log.old_value or '',
+                log.new_value or '',
+                log.ip_address or ''
+            ])
+
+        # Log the export action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='export_audit_logs',
+            resource_type='audit_logs',
+            resource_id='export',
+            new_value=f'Exported {len(logs)} audit log entries',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        # Return CSV response
+        output.seek(0)
+        return Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={
+                'Content-Disposition': f'attachment; filename=audit_logs_{datetime.utcnow().strftime("%Y%m%d_%H%M%S")}.csv'
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Error exporting audit logs: {e}")
+        flash('Failed to export audit logs.', 'error')
+        return redirect(url_for('admin_panel.audit_logs'))
 
 
 @admin_panel_bp.route('/system-info')

@@ -881,3 +881,240 @@ def mobile_analytics_api():
     except Exception as e:
         logger.error(f"Mobile analytics error: {e}")
         return jsonify({'error': 'Failed to get analytics'}), 500
+
+
+# Mobile Error Analytics Routes (migrated from legacy mobile_analytics_admin)
+
+@admin_panel_bp.route('/mobile-features/error-analytics')
+@login_required
+@role_required(['Global Admin'])
+def mobile_error_analytics():
+    """Mobile error analytics dashboard."""
+    try:
+        from sqlalchemy import func, desc
+
+        # Try to import mobile error models
+        try:
+            from app.models_mobile_analytics import MobileErrorAnalytics, MobileErrorPatterns, MobileLogs
+            models_available = True
+        except ImportError:
+            models_available = False
+
+        if not models_available:
+            flash('Mobile error analytics models are not available.', 'warning')
+            return redirect(url_for('admin_panel.mobile_features'))
+
+        # Get basic statistics
+        total_errors = db.session.query(MobileErrorAnalytics).count()
+        total_logs = db.session.query(MobileLogs).count()
+        total_patterns = db.session.query(MobileErrorPatterns).count()
+
+        # Recent activity (last 7 days)
+        week_ago = datetime.utcnow() - timedelta(days=7)
+        recent_errors = db.session.query(MobileErrorAnalytics).filter(
+            MobileErrorAnalytics.created_at >= week_ago
+        ).count()
+
+        recent_logs = db.session.query(MobileLogs).filter(
+            MobileLogs.created_at >= week_ago
+        ).count()
+
+        # Top error types this week
+        top_errors = db.session.query(
+            MobileErrorAnalytics.error_type,
+            MobileErrorAnalytics.severity,
+            func.count(MobileErrorAnalytics.id).label('count')
+        ).filter(
+            MobileErrorAnalytics.created_at >= week_ago
+        ).group_by(
+            MobileErrorAnalytics.error_type,
+            MobileErrorAnalytics.severity
+        ).order_by(desc('count')).limit(10).all()
+
+        # Active patterns
+        active_patterns = db.session.query(MobileErrorPatterns).filter(
+            MobileErrorPatterns.last_seen >= week_ago
+        ).order_by(desc(MobileErrorPatterns.occurrences)).limit(5).all()
+
+        # Critical errors (last 24 hours)
+        day_ago = datetime.utcnow() - timedelta(days=1)
+        critical_errors = db.session.query(MobileErrorAnalytics).filter(
+            MobileErrorAnalytics.created_at >= day_ago,
+            MobileErrorAnalytics.severity == 'critical'
+        ).count()
+
+        stats = {
+            'total_errors': total_errors,
+            'total_logs': total_logs,
+            'total_patterns': total_patterns,
+            'recent_errors': recent_errors,
+            'recent_logs': recent_logs,
+            'critical_errors_24h': critical_errors,
+            'top_errors': [
+                {
+                    'error_type': error.error_type,
+                    'severity': error.severity,
+                    'count': error.count
+                } for error in top_errors
+            ],
+            'active_patterns': [pattern.to_dict() for pattern in active_patterns]
+        }
+
+        return render_template('admin_panel/mobile_features/error_analytics.html', stats=stats)
+
+    except Exception as e:
+        logger.error(f"Error loading mobile error analytics: {str(e)}", exc_info=True)
+        flash('Error loading error analytics data', 'error')
+        return redirect(url_for('admin_panel.mobile_features'))
+
+
+@admin_panel_bp.route('/mobile-features/error-analytics/errors')
+@login_required
+@role_required(['Global Admin'])
+def mobile_error_list():
+    """View mobile error analytics with filtering and pagination."""
+    try:
+        from sqlalchemy import desc
+
+        try:
+            from app.models_mobile_analytics import MobileErrorAnalytics
+            models_available = True
+        except ImportError:
+            models_available = False
+
+        if not models_available:
+            flash('Mobile error analytics models are not available.', 'warning')
+            return redirect(url_for('admin_panel.mobile_features'))
+
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+        severity_filter = request.args.get('severity')
+        error_type_filter = request.args.get('error_type')
+        days_filter = request.args.get('days', 7, type=int)
+
+        # Build query
+        query = db.session.query(MobileErrorAnalytics)
+
+        # Date filter
+        if days_filter:
+            cutoff_date = datetime.utcnow() - timedelta(days=days_filter)
+            query = query.filter(MobileErrorAnalytics.created_at >= cutoff_date)
+
+        # Severity filter
+        if severity_filter:
+            query = query.filter(MobileErrorAnalytics.severity == severity_filter)
+
+        # Error type filter
+        if error_type_filter:
+            query = query.filter(MobileErrorAnalytics.error_type == error_type_filter)
+
+        # Order by most recent
+        query = query.order_by(desc(MobileErrorAnalytics.created_at))
+
+        # Paginate
+        errors = query.paginate(page=page, per_page=per_page, error_out=False)
+
+        # Get filter options
+        severity_options = db.session.query(
+            MobileErrorAnalytics.severity.distinct()
+        ).all()
+        severity_options = [s[0] for s in severity_options]
+
+        error_type_options = db.session.query(
+            MobileErrorAnalytics.error_type.distinct()
+        ).all()
+        error_type_options = [e[0] for e in error_type_options]
+
+        return render_template(
+            'admin_panel/mobile_features/error_list.html',
+            errors=errors,
+            severity_options=severity_options,
+            error_type_options=error_type_options,
+            current_filters={
+                'severity': severity_filter,
+                'error_type': error_type_filter,
+                'days': days_filter
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Error loading mobile errors: {str(e)}", exc_info=True)
+        flash('Error loading error data', 'error')
+        return redirect(url_for('admin_panel.mobile_error_analytics'))
+
+
+@admin_panel_bp.route('/mobile-features/error-analytics/cleanup', methods=['GET', 'POST'])
+@login_required
+@role_required(['Global Admin'])
+def mobile_error_cleanup():
+    """Data cleanup management page."""
+    try:
+        from app.tasks.mobile_analytics_cleanup import (
+            cleanup_mobile_analytics,
+            get_cleanup_preview,
+            get_analytics_storage_stats
+        )
+
+        if request.method == 'POST':
+            # Verify confirmation
+            data = request.get_json()
+            if not data or not data.get('confirmed'):
+                return jsonify({'error': 'Cleanup must be confirmed'}), 400
+
+            # Execute cleanup
+            result = cleanup_mobile_analytics()
+
+            # Log the action
+            AdminAuditLog.log_action(
+                user_id=current_user.id,
+                action='mobile_analytics_cleanup',
+                resource_type='mobile_features',
+                resource_id='error_cleanup',
+                new_value=str(result),
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+
+            if result['status'] == 'success':
+                return jsonify(result)
+            else:
+                return jsonify(result), 500
+
+        # GET request - show cleanup page
+        preview = get_cleanup_preview()
+        storage_stats = get_analytics_storage_stats()
+
+        return render_template(
+            'admin_panel/mobile_features/error_cleanup.html',
+            preview=preview,
+            storage_stats=storage_stats
+        )
+
+    except ImportError:
+        flash('Mobile analytics cleanup tasks are not available.', 'warning')
+        return redirect(url_for('admin_panel.mobile_error_analytics'))
+    except Exception as e:
+        logger.error(f"Error loading cleanup page: {str(e)}", exc_info=True)
+        flash('Error loading cleanup data', 'error')
+        return redirect(url_for('admin_panel.mobile_error_analytics'))
+
+
+@admin_panel_bp.route('/api/mobile/error/<int:error_id>')
+@login_required
+@role_required(['Global Admin'])
+def api_mobile_error_details(error_id):
+    """API endpoint for error details."""
+    try:
+        from app.models_mobile_analytics import MobileErrorAnalytics
+
+        error = db.session.query(MobileErrorAnalytics).get(error_id)
+        if not error:
+            return jsonify({'error': 'Error not found'}), 404
+
+        return jsonify(error.to_dict())
+
+    except ImportError:
+        return jsonify({'error': 'Mobile error analytics models not available'}), 500
+    except Exception as e:
+        logger.error(f"Error getting error details: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500

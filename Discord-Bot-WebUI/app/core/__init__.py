@@ -46,14 +46,9 @@ def configure_celery(app):
     Returns:
         Celery: The configured Celery instance.
     """
-    # Configure Redis client with connection pool settings
-    redis_socket_options = {
-        'socket_timeout': 5,
-        'socket_connect_timeout': 5,
-        'retry_on_timeout': True,
-        'health_check_interval': 30
-    }
-    
+    # Base Celery configuration for Flask app context
+    # NOTE: These settings may be overridden by CeleryConfig in celery_worker_base.py
+    # The authoritative config for workers/beat is app/config/celery_config.py
     celery.conf.update(
         broker_url=app.config.get('REDIS_URL', 'redis://redis:6379/0'),
         result_backend=app.config.get('REDIS_URL', 'redis://redis:6379/0'),
@@ -64,7 +59,7 @@ def configure_celery(app):
             'visibility_timeout': 3600,  # 1 hour
             'socket_timeout': 5,
             'socket_connect_timeout': 5,
-            'max_connections': 5  # Further reduced for unified architecture
+            'max_connections': 20  # Prevent broker connection bottleneck
         },
         result_backend_transport_options={
             'socket_timeout': 5,
@@ -73,15 +68,17 @@ def configure_celery(app):
         task_serializer='json',
         accept_content=['json'],
         result_serializer='json',
-        timezone='UTC',
-        enable_utc=True,
+        # Timezone settings - match CeleryConfig (America/Los_Angeles)
+        timezone='America/Los_Angeles',
+        enable_utc=False,
         broker_connection_retry_on_startup=True,
         worker_prefetch_multiplier=1,
         worker_cancel_long_running_tasks_on_connection_loss=True,
         task_track_started=True,
         task_time_limit=30 * 60,
         task_soft_time_limit=15 * 60,
-        worker_max_tasks_per_child=50,
+        # Worker settings - match CeleryConfig
+        worker_max_tasks_per_child=500,
         worker_max_memory_per_child=150000
     )
 

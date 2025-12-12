@@ -14,7 +14,6 @@ from flask_socketio import emit, join_room
 from flask_login import login_required
 from sqlalchemy import and_
 import jwt
-import threading
 import time
 
 from app.core import socketio, db
@@ -33,21 +32,49 @@ logger.info("🎯 SINGLE SOCKET HANDLERS MODULE LOADED")
 # Import RSVP socket handlers to register them
 from app.sockets import rsvp
 
-# Global locks for preventing race conditions in draft operations
-_draft_locks = {}  # Dictionary of player_id -> lock
-_draft_lock_mutex = threading.Lock()  # Protects _draft_locks dictionary
+# =============================================================================
+# REDIS DISTRIBUTED LOCK FOR DRAFT OPERATIONS
+# =============================================================================
+# Uses Redis distributed locks instead of threading.Lock to:
+# 1. Not block the eventlet event loop
+# 2. Work across multiple workers/processes
+# 3. Auto-expire if a worker crashes
 
-def get_draft_lock(player_id: int) -> threading.Lock:
-    """Get or create a lock for a specific player draft operation."""
-    with _draft_lock_mutex:
-        if player_id not in _draft_locks:
-            _draft_locks[player_id] = threading.Lock()
-        return _draft_locks[player_id]
+def get_draft_lock(player_id: int):
+    """
+    Get a Redis distributed lock for a specific player draft operation.
+
+    Returns a Redis lock object that can be used as a context manager or
+    with acquire()/release() methods.
+
+    The lock auto-expires after 30 seconds to prevent deadlocks if a worker crashes.
+    """
+    from app.utils.redis_manager import get_redis_connection
+    redis_client = get_redis_connection()
+
+    # Create a Redis lock with:
+    # - timeout=30: Lock auto-expires after 30 seconds (prevents deadlock on crash)
+    # - blocking_timeout=5: Wait up to 5 seconds to acquire (matches old behavior)
+    # - thread_local=False: Required for eventlet compatibility
+    return redis_client.lock(
+        name=f"draft:player:{player_id}",
+        timeout=30,
+        blocking_timeout=5,
+        thread_local=False
+    )
+
 
 def cleanup_draft_lock(player_id: int):
-    """Clean up the lock for a player after operation completes."""
-    with _draft_lock_mutex:
-        _draft_locks.pop(player_id, None)
+    """
+    Clean up the lock for a player after operation completes.
+
+    Note: With Redis locks, cleanup happens automatically via the lock's release()
+    method or timeout expiration. This function is kept for API compatibility
+    but is now a no-op since Redis handles cleanup automatically.
+    """
+    # Redis locks are cleaned up automatically when released or when they expire.
+    # No manual cleanup needed - this is kept for backward compatibility.
+    pass
 
 
 # =============================================================================
@@ -279,9 +306,18 @@ def handle_connect(auth):
 
 @socketio.on('disconnect', namespace='/')
 def handle_disconnect():
-    """Handle client disconnection."""
-    print("🔌 Client disconnected from Socket.IO")
-    logger.info("🔌 Client disconnected from Socket.IO")
+    """Handle client disconnection - clean up any tracked resources."""
+    sid = request.sid
+    logger.info(f"🔌 Client disconnected from Socket.IO (sid: {sid})")
+
+    # Clean up any match room tracking for this socket
+    try:
+        from app.sockets.rsvp import cleanup_room_users_for_sid
+        cleaned_entries = cleanup_room_users_for_sid(sid)
+        if cleaned_entries:
+            logger.info(f"🧹 Cleaned up {len(cleaned_entries)} room entries for disconnected socket {sid}")
+    except Exception as e:
+        logger.error(f"Error cleaning up room users on disconnect: {e}")
 
 
 # =============================================================================
@@ -336,15 +372,16 @@ def handle_draft_player_enhanced(data):
         emit('draft_error', {'message': 'Invalid player or team ID format'})
         return
     
-    # Acquire player-specific lock to prevent race conditions
+    # Acquire player-specific Redis distributed lock to prevent race conditions
     draft_lock = get_draft_lock(player_id)
-    
-    # Use a timeout to prevent indefinite blocking
-    if not draft_lock.acquire(timeout=5.0):
+
+    # Use blocking=True with the pre-configured blocking_timeout (5 seconds)
+    # Redis lock.acquire() returns True if acquired, False if timeout
+    if not draft_lock.acquire(blocking=True):
         print(f"🚫 Draft operation timeout for player {player_id} - possibly concurrent request")
         emit('draft_error', {'message': 'Draft operation in progress for this player, please wait'})
         return
-    
+
     try:
         print(f"🎯 Draft player request: {data}")
         logger.info(f"🎯 Draft player request: {data}")

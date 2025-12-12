@@ -36,3 +36,6 @@ from app.admin import user_waitlist_routes
 
 # Import docker management routes
 from app.admin import docker_routes
+
+# Import legacy redirect routes for backward compatibility
+from app.admin import legacy_redirects

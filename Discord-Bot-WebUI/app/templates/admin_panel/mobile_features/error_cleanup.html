@@ -1,0 +1,268 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Error Data Cleanup - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.mobile_features') }}">Mobile Features</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.mobile_error_analytics') }}">Error Analytics</a></li>
+<li class="breadcrumb-item active">Data Cleanup</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Warning Alert -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-alert-triangle me-2" style="font-size: 1.5rem;"></i>
+                <div>
+                    <strong>Data Cleanup Operations</strong><br>
+                    Cleanup operations permanently delete old error analytics data. This action cannot be undone.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Storage Statistics -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ storage_stats.total_errors or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Errors</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-bug" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ storage_stats.total_logs or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Total Logs</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-file-text" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ storage_stats.total_patterns or 0 }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Error Patterns</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-chart-dots" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title text-white mb-1">{{ storage_stats.estimated_size or 'N/A' }}</h5>
+                        <p class="card-text small opacity-75 mb-0">Estimated Size</p>
+                    </div>
+                    <div class="card-icon">
+                        <i class="ti ti-database" style="font-size: 2rem; opacity: 0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cleanup Preview -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-search me-2"></i>Cleanup Preview
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">The following data will be deleted based on the current retention settings:</p>
+
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Data Type</th>
+                                <th>Retention Period</th>
+                                <th>Records to Delete</th>
+                                <th>Records to Keep</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <i class="ti ti-bug me-2 text-danger"></i>Error Records
+                                </td>
+                                <td>{{ preview.errors.retention_days or 30 }} days</td>
+                                <td class="text-danger">{{ preview.errors.to_delete or 0 }}</td>
+                                <td class="text-success">{{ preview.errors.to_keep or 0 }}</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <i class="ti ti-file-text me-2 text-info"></i>Log Entries
+                                </td>
+                                <td>{{ preview.logs.retention_days or 7 }} days</td>
+                                <td class="text-danger">{{ preview.logs.to_delete or 0 }}</td>
+                                <td class="text-success">{{ preview.logs.to_keep or 0 }}</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <i class="ti ti-chart-dots me-2 text-warning"></i>Error Patterns
+                                </td>
+                                <td>{{ preview.patterns.retention_days or 90 }} days</td>
+                                <td class="text-danger">{{ preview.patterns.to_delete or 0 }}</td>
+                                <td class="text-success">{{ preview.patterns.to_keep or 0 }}</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-secondary">
+                                <td><strong>Total</strong></td>
+                                <td></td>
+                                <td class="text-danger">
+                                    <strong>{{ (preview.errors.to_delete or 0) + (preview.logs.to_delete or 0) + (preview.patterns.to_delete or 0) }}</strong>
+                                </td>
+                                <td class="text-success">
+                                    <strong>{{ (preview.errors.to_keep or 0) + (preview.logs.to_keep or 0) + (preview.patterns.to_keep or 0) }}</strong>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cleanup Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-trash me-2"></i>Execute Cleanup
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="confirmCleanup">
+                        <label class="form-check-label" for="confirmCleanup">
+                            I understand that this action will permanently delete data and cannot be undone.
+                        </label>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-danger" id="cleanupBtn" onclick="executeCleanup()" disabled>
+                        <i class="ti ti-trash me-1"></i>Execute Cleanup
+                    </button>
+                    <a href="{{ url_for('admin_panel.mobile_error_analytics') }}" class="btn btn-outline-secondary">
+                        <i class="ti ti-arrow-left me-1"></i>Back to Analytics
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+const confirmCheckbox = document.getElementById('confirmCleanup');
+const cleanupBtn = document.getElementById('cleanupBtn');
+
+confirmCheckbox.addEventListener('change', function() {
+    cleanupBtn.disabled = !this.checked;
+});
+
+async function executeCleanup() {
+    const result = await Swal.fire({
+        title: 'Execute Cleanup?',
+        html: `
+            <p>This will permanently delete:</p>
+            <ul class="text-start">
+                <li>{{ preview.errors.to_delete or 0 }} error records</li>
+                <li>{{ preview.logs.to_delete or 0 }} log entries</li>
+                <li>{{ preview.patterns.to_delete or 0 }} error patterns</li>
+            </ul>
+            <p class="text-danger"><strong>This action cannot be undone!</strong></p>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete data',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) return;
+
+    // Show loading
+    Swal.fire({
+        title: 'Executing Cleanup...',
+        text: 'Please wait while old data is being deleted',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const response = await fetch('{{ url_for("admin_panel.mobile_error_cleanup") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ confirmed: true })
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            await Swal.fire({
+                icon: 'success',
+                title: 'Cleanup Complete',
+                html: `
+                    <p>Successfully deleted:</p>
+                    <ul class="text-start">
+                        <li>${data.deleted_errors || 0} error records</li>
+                        <li>${data.deleted_logs || 0} log entries</li>
+                        <li>${data.deleted_patterns || 0} error patterns</li>
+                    </ul>
+                `,
+                confirmButtonText: 'OK'
+            });
+            location.reload();
+        } else {
+            Swal.fire('Error', data.error || 'Cleanup failed', 'error');
+        }
+    } catch (error) {
+        console.error('Cleanup error:', error);
+        Swal.fire('Error', 'Failed to execute cleanup. Please try again.', 'error');
+    }
+}
+</script>
+{% endblock %}

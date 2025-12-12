@@ -2,25 +2,123 @@
 
 {% block title %}Schedule Matches - Admin Panel{% endblock %}
 
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.match_operations') }}">Match Operations</a>
+</li>
+<li class="breadcrumb-item active">Schedule Matches</li>
+{% endblock %}
+
 {% block panel_content %}
-<div class="admin-panel-content">
-    <div class="row">
-        <div class="large-12 columns">
-            <h2>Schedule Matches</h2>
-            
-            {% if active_season %}
-            <div class="row">
-                <div class="large-12 columns">
-                    <h4>Current Season: {{ active_season.name }}</h4>
+
+<!-- Season Info and Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-filter me-2"></i>Filter by League
+                    </h5>
+                    {% if current_season %}
+                    <span class="badge bg-info">
+                        <i class="ti ti-calendar me-1"></i>{{ current_season.name }}
+                    </span>
+                    {% endif %}
                 </div>
             </div>
-            {% endif %}
-            
-            <div class="row">
-                <div class="large-6 columns">
-                    <h5>Unscheduled Matches</h5>
-                    {% if unscheduled_matches %}
-                    <table>
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">League / Division</label>
+                        <select name="league_id" class="form-select">
+                            <option value="">All Leagues (Premier, Classic, ECS FC)</option>
+                            {% for league in leagues %}
+                            <option value="{{ league.id }}" {% if current_league_id == league.id %}selected{% endif %}>
+                                {{ league.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-search me-1"></i>Filter
+                            </button>
+                            <a href="{{ url_for('admin_panel.schedule_matches') }}" class="btn btn-outline-secondary">
+                                <i class="ti ti-x me-1"></i>Clear
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-0">Available Teams</h6>
+                        <h4 class="mb-0">{{ teams|length }}</h4>
+                    </div>
+                    <div class="text-primary">
+                        <i class="ti ti-users" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-0">Active Leagues</h6>
+                        <h4 class="mb-0">{{ leagues|length }}</h4>
+                    </div>
+                    <div class="text-success">
+                        <i class="ti ti-flag" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-0">Unscheduled Matches</h6>
+                        <h4 class="mb-0 text-warning">{{ unscheduled_matches|length }}</h4>
+                    </div>
+                    <div class="text-warning">
+                        <i class="ti ti-clock" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Unscheduled Matches -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-calendar-event me-2"></i>Unscheduled Matches
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if unscheduled_matches %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
                         <thead>
                             <tr>
                                 <th>Home Team</th>
@@ -32,53 +130,308 @@
                         <tbody>
                             {% for match in unscheduled_matches %}
                             <tr>
-                                <td>{{ match.home_team.name if match.home_team else 'TBD' }}</td>
-                                <td>{{ match.away_team.name if match.away_team else 'TBD' }}</td>
-                                <td>{{ match.league.name if match.league else 'N/A' }}</td>
                                 <td>
-                                    <button class="button small" onclick="scheduleMatch({{ match.id }})">Schedule</button>
+                                    <strong>{{ match.home_team.name if match.home_team else 'TBD' }}</strong>
+                                </td>
+                                <td>
+                                    {{ match.away_team.name if match.away_team else 'TBD' }}
+                                </td>
+                                <td>
+                                    {% if match.home_team and match.home_team.league %}
+                                    <span class="badge bg-info">{{ match.home_team.league.name }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="scheduleMatch({{ match.id }})">
+                                        <i class="ti ti-calendar-plus me-1"></i>Schedule
+                                    </button>
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
-                    {% else %}
-                    <p>No unscheduled matches found.</p>
-                    {% endif %}
                 </div>
-                
-                <div class="large-6 columns">
-                    <h5>Quick Schedule</h5>
-                    <div class="callout secondary">
-                        <p>Use the quick schedule feature to automatically assign dates and times to unscheduled matches.</p>
-                        <button class="button" onclick="quickSchedule()">Quick Schedule All</button>
-                    </div>
-                    
-                    <h5>Active Leagues</h5>
-                    {% if leagues %}
-                    <ul>
-                        {% for league in leagues %}
-                        <li>{{ league.name }} ({{ league.teams|length if league.teams else 0 }} teams)</li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <p>No active leagues found.</p>
-                    {% endif %}
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-calendar-check text-success" style="font-size: 4rem;"></i>
+                    <h5 class="text-muted mt-3">All Matches Scheduled</h5>
+                    <p class="text-muted">There are no unscheduled matches for the current season.</p>
                 </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Sidebar -->
+    <div class="col-lg-4">
+        <!-- Quick Schedule Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Use quick schedule to automatically assign dates and times to unscheduled matches.</p>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" onclick="quickSchedule()" {% if not unscheduled_matches %}disabled{% endif %}>
+                        <i class="ti ti-calendar-plus me-1"></i>Quick Schedule All
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="createNewMatch()">
+                        <i class="ti ti-plus me-1"></i>Create New Match
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Leagues Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-flag me-2"></i>Active Leagues
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if leagues %}
+                <ul class="list-group list-group-flush">
+                    {% for league in leagues %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ league.name }}
+                        <span class="badge bg-primary rounded-pill">
+                            {{ league.teams|length if league.teams else 0 }} teams
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted mb-0">No active leagues found for the current season.</p>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
+{% endblock %}
+
+{% block custom_js %}
 <script>
 function scheduleMatch(matchId) {
-    // Placeholder for match scheduling functionality
-    alert('Match scheduling feature will be implemented here');
+    Swal.fire({
+        title: 'Schedule Match',
+        html: `
+            <form id="scheduleForm" class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Date</label>
+                    <input type="date" class="form-control" id="matchDate" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Time</label>
+                    <input type="time" class="form-control" id="matchTime" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Location</label>
+                    <input type="text" class="form-control" id="matchLocation" placeholder="e.g., North Field">
+                </div>
+            </form>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Schedule Match',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const date = document.getElementById('matchDate').value;
+            const time = document.getElementById('matchTime').value;
+            const location = document.getElementById('matchLocation').value;
+
+            if (!date || !time) {
+                Swal.showValidationMessage('Please enter both date and time');
+                return false;
+            }
+
+            return { date, time, location };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Submit the schedule update
+            const formData = new FormData();
+            formData.append('match_id', matchId);
+            formData.append('date', result.value.date);
+            formData.append('time', result.value.time);
+            formData.append('location', result.value.location);
+
+            fetch('{{ url_for("admin_panel.update_match_schedule") }}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Scheduled!', 'Match has been scheduled.', 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.message || 'Failed to schedule match', 'error');
+                }
+            })
+            .catch(error => {
+                Swal.fire('Error', 'Failed to schedule match', 'error');
+            });
+        }
+    });
 }
 
 function quickSchedule() {
-    // Placeholder for quick scheduling functionality
-    alert('Quick schedule feature will be implemented here');
+    Swal.fire({
+        title: 'Quick Schedule',
+        text: 'This will automatically schedule all unscheduled matches. Continue?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Schedule All',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Scheduling...',
+                text: 'Please wait while matches are being scheduled.',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Call auto-schedule endpoint
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+            fetch('{{ url_for("admin_panel.auto_schedule_matches") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    league_id: result.value.league_id,
+                    start_date: result.value.start_date,
+                    weeks_between: parseInt(result.value.weeks_between)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Schedule Created!',
+                        text: data.message,
+                        icon: 'success'
+                    }).then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Failed to create schedule', 'error');
+            });
+        }
+    });
+}
+
+function createNewMatch() {
+    Swal.fire({
+        title: 'Create New Match',
+        html: `
+            <form id="newMatchForm" class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Home Team</label>
+                    <select class="form-select" id="homeTeam" required>
+                        <option value="">Select Home Team</option>
+                        {% for team in teams %}
+                        <option value="{{ team.id }}">{{ team.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Away Team</label>
+                    <select class="form-select" id="awayTeam" required>
+                        <option value="">Select Away Team</option>
+                        {% for team in teams %}
+                        <option value="{{ team.id }}">{{ team.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Date (Optional)</label>
+                    <input type="date" class="form-control" id="newMatchDate">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Time (Optional)</label>
+                    <input type="time" class="form-control" id="newMatchTime">
+                </div>
+            </form>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Create Match',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const homeTeam = document.getElementById('homeTeam').value;
+            const awayTeam = document.getElementById('awayTeam').value;
+
+            if (!homeTeam || !awayTeam) {
+                Swal.showValidationMessage('Please select both teams');
+                return false;
+            }
+
+            if (homeTeam === awayTeam) {
+                Swal.showValidationMessage('Home and Away teams must be different');
+                return false;
+            }
+
+            return {
+                homeTeam,
+                awayTeam,
+                date: document.getElementById('newMatchDate').value,
+                time: document.getElementById('newMatchTime').value
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Call create match endpoint
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+            fetch('{{ url_for("admin_panel.create_match") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    home_team_id: parseInt(result.value.homeTeam),
+                    away_team_id: parseInt(result.value.awayTeam),
+                    date: result.value.date || null,
+                    time: result.value.time || null
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Match Created!',
+                        text: data.message,
+                        icon: 'success'
+                    }).then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Failed to create match', 'error');
+            });
+        }
+    });
 }
 </script>
 {% endblock %}

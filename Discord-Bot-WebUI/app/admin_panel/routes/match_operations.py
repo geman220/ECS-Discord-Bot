@@ -103,8 +103,12 @@ def match_operations():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def schedule_matches():
-    """Schedule new matches."""
+    """Schedule new matches for Pub League (Premier, Classic, ECS FC)."""
     try:
+        from app.models import Team, League, Season, Match, Schedule
+        from sqlalchemy import or_
+        from sqlalchemy.orm import joinedload
+
         # Log the access to match scheduling
         AdminAuditLog.log_action(
             user_id=current_user.id,
@@ -115,28 +119,72 @@ def schedule_matches():
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
-        
-        # Get data needed for match scheduling
-        from app.models import Team, League, Season, Match
-        
-        active_season = Season.query.filter_by(is_current=True).first()
-        leagues = League.query.all()
-        teams = Team.query.join(League).all()
-        
-        # Get unscheduled matches
-        unscheduled_matches = Match.query.filter(
-            db.or_(
-                Match.time.is_(None),
-                Match.date.is_(None)
-            )
-        ).limit(20).all()
-        
+
+        # Get current Pub League season
+        current_season = Season.query.filter_by(is_current=True, league_type="Pub League").first()
+        if not current_season:
+            current_season = Season.query.filter_by(is_current=True).first()
+
+        # Get filter parameter
+        league_filter = request.args.get('league_id', type=int)
+
+        # Get all leagues for the current season (Premier, Classic, ECS FC)
+        if current_season:
+            leagues = League.query.filter_by(season_id=current_season.id).order_by(League.name).all()
+        else:
+            leagues = League.query.order_by(League.name).all()
+
+        # Get teams filtered by season and optionally by league
+        if current_season:
+            teams_query = Team.query.join(League).filter(League.season_id == current_season.id)
+            if league_filter:
+                teams_query = teams_query.filter(Team.league_id == league_filter)
+            teams = teams_query.order_by(Team.name).all()
+        else:
+            teams = Team.query.order_by(Team.name).all()
+
+        # Get unscheduled matches (from current season teams)
+        if current_season:
+            league_ids = [l.id for l in leagues]
+            team_ids = [t.id for t in Team.query.filter(Team.league_id.in_(league_ids)).all()]
+            unscheduled_matches = Match.query.filter(
+                or_(
+                    Match.home_team_id.in_(team_ids),
+                    Match.away_team_id.in_(team_ids)
+                ),
+                or_(
+                    Match.time.is_(None),
+                    Match.date.is_(None)
+                )
+            ).options(
+                joinedload(Match.home_team),
+                joinedload(Match.away_team)
+            ).limit(50).all()
+        else:
+            unscheduled_matches = Match.query.filter(
+                or_(
+                    Match.time.is_(None),
+                    Match.date.is_(None)
+                )
+            ).limit(50).all()
+
+        # Get weeks for dropdown if needed
+        weeks = []
+        if current_season:
+            week_results = db.session.query(Schedule.week).filter(
+                Schedule.season_id == current_season.id,
+                Schedule.week != None
+            ).distinct().all()
+            weeks = sorted([w[0] for w in week_results if w[0]], key=lambda x: int(x) if str(x).isdigit() else 0)
+
         return render_template(
             'admin_panel/match_operations/schedule_matches.html',
-            active_season=active_season,
+            current_season=current_season,
             leagues=leagues,
             teams=teams,
-            unscheduled_matches=unscheduled_matches
+            weeks=weeks,
+            unscheduled_matches=unscheduled_matches,
+            current_league_id=league_filter
         )
     except Exception as e:
         logger.error(f"Error loading schedule matches: {e}")
@@ -144,63 +192,366 @@ def schedule_matches():
         return redirect(url_for('admin_panel.match_operations'))
 
 
+@admin_panel_bp.route('/match-operations/create-match', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def create_match():
+    """Create a new match for Pub League."""
+    try:
+        from app.models import Match, Team, Season, League, Schedule
+        from datetime import datetime
+
+        data = request.get_json()
+        home_team_id = data.get('home_team_id')
+        away_team_id = data.get('away_team_id')
+        match_date = data.get('date')
+        match_time = data.get('time')
+        week = data.get('week')
+
+        # Validation
+        if not home_team_id or not away_team_id:
+            return jsonify({'success': False, 'message': 'Both teams are required'}), 400
+
+        if home_team_id == away_team_id:
+            return jsonify({'success': False, 'message': 'Home and Away teams must be different'}), 400
+
+        # Get teams
+        home_team = Team.query.get(home_team_id)
+        away_team = Team.query.get(away_team_id)
+
+        if not home_team or not away_team:
+            return jsonify({'success': False, 'message': 'One or both teams not found'}), 404
+
+        # Check if teams are in the same league
+        if home_team.league_id != away_team.league_id:
+            return jsonify({'success': False, 'message': 'Teams must be in the same league'}), 400
+
+        # Create match
+        new_match = Match(
+            home_team_id=home_team_id,
+            away_team_id=away_team_id
+        )
+
+        # Set date and time if provided
+        if match_date:
+            new_match.date = datetime.strptime(match_date, '%Y-%m-%d').date()
+        if match_time:
+            new_match.time = datetime.strptime(match_time, '%H:%M').time()
+
+        db.session.add(new_match)
+        db.session.commit()
+
+        # Create schedule entry if week provided
+        if week and home_team.league_id:
+            league = League.query.get(home_team.league_id)
+            if league and league.season_id:
+                schedule = Schedule(
+                    season_id=league.season_id,
+                    week=week,
+                    match_id=new_match.id
+                )
+                db.session.add(schedule)
+                db.session.commit()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='create_match',
+            resource_type='match',
+            resource_id=str(new_match.id),
+            new_value=f'{home_team.name} vs {away_team.name}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': 'Match created successfully',
+            'match_id': new_match.id
+        })
+
+    except Exception as e:
+        logger.error(f"Error creating match: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Error creating match'}), 500
+
+
+@admin_panel_bp.route('/match-operations/auto-schedule', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def auto_schedule_matches():
+    """Auto-schedule matches for a league based on round-robin format."""
+    try:
+        from app.models import Match, Team, Season, League, Schedule
+        from datetime import datetime, timedelta
+        import itertools
+
+        data = request.get_json()
+        league_id = data.get('league_id')
+        start_date = data.get('start_date')
+        weeks_between = data.get('weeks_between', 1)
+
+        if not league_id:
+            return jsonify({'success': False, 'message': 'League is required'}), 400
+
+        # Get league and its teams
+        league = League.query.get(league_id)
+        if not league:
+            return jsonify({'success': False, 'message': 'League not found'}), 404
+
+        teams = Team.query.filter_by(league_id=league_id).all()
+        if len(teams) < 2:
+            return jsonify({'success': False, 'message': 'Need at least 2 teams to schedule matches'}), 400
+
+        # Generate round-robin schedule
+        team_ids = [t.id for t in teams]
+        matches_created = 0
+
+        # Generate all possible matchups
+        matchups = list(itertools.combinations(team_ids, 2))
+
+        # Parse start date
+        if start_date:
+            current_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        else:
+            current_date = datetime.utcnow().date() + timedelta(days=7)  # Start next week
+
+        week_num = 1
+
+        # Create matches
+        for i, (home_id, away_id) in enumerate(matchups):
+            # Check if match already exists
+            existing = Match.query.filter(
+                ((Match.home_team_id == home_id) & (Match.away_team_id == away_id)) |
+                ((Match.home_team_id == away_id) & (Match.away_team_id == home_id))
+            ).first()
+
+            if not existing:
+                match = Match(
+                    home_team_id=home_id,
+                    away_team_id=away_id,
+                    date=current_date
+                )
+                db.session.add(match)
+                db.session.flush()  # Get the match ID
+
+                # Create schedule entry
+                if league.season_id:
+                    schedule = Schedule(
+                        season_id=league.season_id,
+                        week=str(week_num),
+                        match_id=match.id
+                    )
+                    db.session.add(schedule)
+
+                matches_created += 1
+
+            # Move to next week every few matches
+            if (i + 1) % (len(teams) // 2) == 0:
+                current_date += timedelta(weeks=weeks_between)
+                week_num += 1
+
+        db.session.commit()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='auto_schedule_matches',
+            resource_type='match_operations',
+            resource_id=str(league_id),
+            new_value=f'Auto-scheduled {matches_created} matches for {league.name}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully created {matches_created} matches',
+            'matches_created': matches_created
+        })
+
+    except Exception as e:
+        logger.error(f"Error auto-scheduling matches: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Error auto-scheduling matches'}), 500
+
+
+@admin_panel_bp.route('/match-operations/update-match-time', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def update_match_time():
+    """Update the date/time for an existing match."""
+    try:
+        from app.models import Match
+        from datetime import datetime
+
+        data = request.get_json()
+        match_id = data.get('match_id')
+        match_date = data.get('date')
+        match_time = data.get('time')
+
+        if not match_id:
+            return jsonify({'success': False, 'message': 'Match ID is required'}), 400
+
+        match = Match.query.get(match_id)
+        if not match:
+            return jsonify({'success': False, 'message': 'Match not found'}), 404
+
+        # Update date and time
+        old_value = f'{match.date} {match.time}'
+
+        if match_date:
+            match.date = datetime.strptime(match_date, '%Y-%m-%d').date()
+        if match_time:
+            match.time = datetime.strptime(match_time, '%H:%M').time()
+
+        db.session.commit()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='update_match_time',
+            resource_type='match',
+            resource_id=str(match_id),
+            old_value=old_value,
+            new_value=f'{match.date} {match.time}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': 'Match time updated successfully'
+        })
+
+    except Exception as e:
+        logger.error(f"Error updating match time: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Error updating match time'}), 500
+
+
 @admin_panel_bp.route('/match-operations/matches')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def view_matches():
-    """View all matches."""
+    """View all Pub League matches (Premier, Classic, ECS FC)."""
     try:
         from app.models import Match, Team, Season, League, Schedule
-        
+        from sqlalchemy import or_
+        from sqlalchemy.orm import joinedload
+
+        # Get current Pub League season
+        current_season = Season.query.filter_by(is_current=True, league_type="Pub League").first()
+        if not current_season:
+            current_season = Season.query.filter_by(is_current=True).first()
+
         # Get pagination parameters
         page = request.args.get('page', 1, type=int)
         per_page = 20
-        
+
         # Get filter parameters
         status_filter = request.args.get('status')
-        league_filter = request.args.get('league', type=int)
+        league_filter = request.args.get('league_id', type=int)
+        week_filter = request.args.get('week')
         date_from = request.args.get('date_from')
         date_to = request.args.get('date_to')
-        
-        # Build query
-        query = Match.query
-        
+
+        # Build query with eager loading
+        query = Match.query.options(
+            joinedload(Match.home_team),
+            joinedload(Match.away_team),
+            joinedload(Match.schedule)
+        )
+
+        # Filter by current season teams
+        if current_season:
+            league_ids = [league.id for league in League.query.filter_by(season_id=current_season.id).all()]
+            if league_ids:
+                team_ids = [team.id for team in Team.query.filter(Team.league_id.in_(league_ids)).all()]
+                if team_ids:
+                    query = query.filter(
+                        or_(
+                            Match.home_team_id.in_(team_ids),
+                            Match.away_team_id.in_(team_ids)
+                        )
+                    )
+
+        # Apply status filter
         if status_filter:
             if status_filter == 'upcoming':
                 query = query.filter(Match.date >= datetime.utcnow().date())
             elif status_filter == 'past':
                 query = query.filter(Match.date < datetime.utcnow().date())
-            elif hasattr(Match, 'status'):
-                query = query.filter(Match.status == status_filter)
-        
+            elif status_filter == 'verified':
+                query = query.filter(Match.home_team_verified == True, Match.away_team_verified == True)
+            elif status_filter == 'unverified':
+                query = query.filter(
+                    Match.home_team_score != None,
+                    or_(Match.home_team_verified == False, Match.away_team_verified == False)
+                )
+
+        # Apply league filter (filter by team's league)
         if league_filter:
-            # Assuming matches have league relationship
-            query = query.filter(Match.league_id == league_filter) if hasattr(Match, 'league_id') else query
-        
+            league_team_ids = [team.id for team in Team.query.filter_by(league_id=league_filter).all()]
+            if league_team_ids:
+                query = query.filter(
+                    or_(
+                        Match.home_team_id.in_(league_team_ids),
+                        Match.away_team_id.in_(league_team_ids)
+                    )
+                )
+
+        # Apply week filter
+        if week_filter:
+            query = query.join(Schedule, Match.schedule_id == Schedule.id).filter(Schedule.week == week_filter)
+
+        # Apply date filters
         if date_from:
             try:
                 from_date = datetime.strptime(date_from, '%Y-%m-%d').date()
                 query = query.filter(Match.date >= from_date)
             except ValueError:
                 pass
-        
+
         if date_to:
             try:
                 to_date = datetime.strptime(date_to, '%Y-%m-%d').date()
                 query = query.filter(Match.date <= to_date)
             except ValueError:
                 pass
-        
+
         # Order by date descending
         matches = query.order_by(Match.date.desc(), Match.time.desc()).paginate(
             page=page, per_page=per_page, error_out=False
         )
-        
-        # Get leagues for filter dropdown
-        leagues = League.query.all()
-        
-        return render_template('admin_panel/match_operations/view_matches.html', 
-                             matches=matches, leagues=leagues, today_date=datetime.utcnow().date())
+
+        # Get leagues for filter dropdown (current season only)
+        if current_season:
+            leagues = League.query.filter_by(season_id=current_season.id).order_by(League.name).all()
+        else:
+            leagues = League.query.order_by(League.name).all()
+
+        # Get weeks for filter dropdown
+        weeks = []
+        if current_season:
+            week_results = db.session.query(Schedule.week).filter(
+                Schedule.season_id == current_season.id,
+                Schedule.week != None,
+                Schedule.week != ''
+            ).distinct().all()
+            weeks = sorted([w[0] for w in week_results if w[0]], key=lambda x: int(x) if x.isdigit() else 0)
+
+        return render_template(
+            'admin_panel/match_operations/view_matches.html',
+            matches=matches,
+            leagues=leagues,
+            weeks=weeks,
+            current_league_id=league_filter,
+            current_week=week_filter,
+            current_status=status_filter,
+            current_season=current_season,
+            today_date=datetime.utcnow().date()
+        )
     except Exception as e:
         logger.error(f"Error loading view matches: {e}")
         flash('Match view unavailable. Check database connectivity and match data integrity.', 'error')
@@ -554,8 +905,8 @@ def seasons():
     try:
         from app.models import Season, League, Match
         
-        # Get all seasons
-        seasons = Season.query.order_by(Season.created_at.desc()).all()
+        # Get all seasons (ordered by id since Season has no created_at)
+        seasons = Season.query.order_by(Season.id.desc()).all()
         
         # Get season statistics
         current_season = Season.query.filter_by(is_current=True).first()
@@ -601,23 +952,42 @@ def seasons():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def manage_teams():
-    """Manage teams."""
+    """Manage teams across all Pub League divisions (Premier, Classic, ECS FC)."""
     try:
         from app.models import Team, League, Player, Season
-        
-        # Get current season
-        current_season = Season.query.filter_by(is_current=True).first()
-        
-        # Get teams for current season only
+        from sqlalchemy import or_
+
+        # Get current Pub League season
+        current_season = Season.query.filter_by(is_current=True, league_type="Pub League").first()
+        if not current_season:
+            # Fallback to any current season
+            current_season = Season.query.filter_by(is_current=True).first()
+
+        # Get filter parameters
+        league_filter = request.args.get('league_id', type=int)
+
+        # Get all leagues for the current season (Premier, Classic, ECS FC)
         if current_season:
-            teams = Team.query.join(
+            leagues = League.query.filter_by(season_id=current_season.id).order_by(League.name.asc()).all()
+        else:
+            leagues = League.query.order_by(League.name.asc()).all()
+
+        # Build teams query - show ALL teams from all leagues in the current season
+        if current_season:
+            teams_query = Team.query.join(
                 League, Team.league_id == League.id
             ).filter(
                 League.season_id == current_season.id
-            ).order_by(Team.name.asc()).all()
+            )
         else:
-            teams = Team.query.order_by(Team.name.asc()).all()
-        
+            teams_query = Team.query
+
+        # Apply league filter if specified
+        if league_filter:
+            teams_query = teams_query.filter(Team.league_id == league_filter)
+
+        teams = teams_query.order_by(Team.name.asc()).all()
+
         # Get team statistics
         stats = {
             'total_teams': len(teams),
@@ -626,23 +996,26 @@ def manage_teams():
             'teams_with_players': 0,
             'current_season': current_season.name if current_season else 'All Seasons'
         }
-        
+
         # Group teams by league
         for team in teams:
             league_name = team.league.name if team.league else 'No League'
             if league_name not in stats['teams_by_league']:
                 stats['teams_by_league'][league_name] = 0
             stats['teams_by_league'][league_name] += 1
-            
+
             # Count teams that have players (if player-team relationship exists)
             if hasattr(team, 'players') and team.players:
                 stats['teams_with_players'] += 1
-        
-        # Get leagues for form dropdown
-        leagues = League.query.order_by(League.name.asc()).all()
-        
-        return render_template('admin_panel/match_operations/manage_teams.html',
-                             teams=teams, leagues=leagues, stats=stats)
+
+        return render_template(
+            'admin_panel/match_operations/manage_teams.html',
+            teams=teams,
+            leagues=leagues,
+            stats=stats,
+            current_league_id=league_filter,
+            current_season=current_season
+        )
     except Exception as e:
         logger.error(f"Error loading manage teams: {e}")
         flash('Team management unavailable. Check database connectivity and team data.', 'error')
@@ -1082,12 +1455,20 @@ def assign_substitute():
 
 @admin_panel_bp.route('/match-verification')
 @login_required
-@role_required(['Global Admin', 'Pub League Admin'])
+@role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
 def match_verification():
-    """Match verification dashboard."""
+    """
+    Match verification dashboard.
+
+    Shows the verification status of matches, highlighting those that need attention.
+    Coaches can only see matches for their teams, while admins can see all matches.
+    """
     try:
-        from app.models import Match, Season, Schedule
-        
+        from app.models import Match, Season, Schedule, Team, League
+        from sqlalchemy.orm import joinedload, aliased
+        from sqlalchemy import or_, desc, cast, Integer
+        from app.utils.user_helpers import safe_current_user
+
         # Log the access to match verification
         AdminAuditLog.log_action(
             user_id=current_user.id,
@@ -1098,53 +1479,181 @@ def match_verification():
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
-        
-        # Get current season
-        current_season = Season.query.filter_by(is_current=True).first()
-        
-        # Base query for current season matches
-        base_query = Match.query
-        if current_season:
-            base_query = base_query.join(Schedule).filter(Schedule.season_id == current_season.id)
-        
-        # Get matches that need verification (using team verification fields)
-        unverified_matches = base_query.filter(
-            Match.home_team_score.isnot(None),
-            Match.away_team_score.isnot(None),
-            db.or_(
-                Match.home_team_verified == False,
-                Match.away_team_verified == False
+
+        # Get current Pub League season
+        current_season = Season.query.filter_by(is_current=True, league_type="Pub League").first()
+        if not current_season:
+            # Fallback to any current season
+            current_season = Season.query.filter_by(is_current=True).first()
+
+        if not current_season:
+            flash('No current season found. Contact an administrator.', 'warning')
+            return render_template(
+                'admin_panel/match_verification.html',
+                matches=[],
+                weeks=[],
+                leagues=[],
+                current_week=None,
+                current_league_id=None,
+                current_verification_status='all',
+                current_season=None,
+                verifiable_teams={},
+                is_coach=False
             )
-        ).order_by(Match.date.desc()).limit(50).all()
-        
-        # Get recently verified matches (both teams verified)
-        verified_matches = base_query.filter(
-            Match.home_team_verified == True,
-            Match.away_team_verified == True
-        ).order_by(Match.date.desc()).limit(20).all()
-        
-        stats = {
-            'total_unverified': len(unverified_matches),
-            'total_verified': len(verified_matches),
-            'pending_verification': base_query.filter(
-                Match.home_team_score.isnot(None),
-                Match.away_team_score.isnot(None),
-                db.or_(
-                    Match.home_team_verified == False,
-                    Match.away_team_verified == False
+
+        # Start with base query with eager loading
+        query = Match.query.options(
+            joinedload(Match.home_team),
+            joinedload(Match.away_team),
+            joinedload(Match.schedule)
+        )
+
+        # Get all team IDs that belong to leagues in the current season
+        league_ids = [league.id for league in League.query.filter_by(season_id=current_season.id).all()]
+        team_ids = []
+        if league_ids:
+            team_ids = [team.id for team in Team.query.filter(Team.league_id.in_(league_ids)).all()]
+
+        # Filter matches to only include those with teams from current season
+        if team_ids:
+            query = query.filter(
+                or_(
+                    Match.home_team_id.in_(team_ids),
+                    Match.away_team_id.in_(team_ids)
                 )
-            ).count(),
-            'current_season': current_season.name if current_season else 'All Seasons'
-        }
-        
+            )
+
+        # Process request filters
+        current_week = request.args.get('week')
+        current_league_id = request.args.get('league_id')
+        current_verification_status = request.args.get('verification_status', 'all')
+
+        # Filter by week if specified
+        if current_week:
+            query = query.join(Schedule, Match.schedule_id == Schedule.id).filter(Schedule.week == current_week)
+
+        # Filter by league if specified
+        if current_league_id:
+            league_team_ids = [team.id for team in Team.query.filter_by(league_id=int(current_league_id)).all()]
+            if league_team_ids:
+                query = query.filter(
+                    or_(
+                        Match.home_team_id.in_(league_team_ids),
+                        Match.away_team_id.in_(league_team_ids)
+                    )
+                )
+
+        # Filter by verification status
+        if current_verification_status == 'unverified':
+            query = query.filter(
+                Match.home_team_score != None,
+                Match.away_team_score != None,
+                ~(Match.home_team_verified & Match.away_team_verified)
+            )
+        elif current_verification_status == 'partially_verified':
+            query = query.filter(
+                Match.home_team_score != None,
+                Match.away_team_score != None,
+                or_(Match.home_team_verified, Match.away_team_verified),
+                ~(Match.home_team_verified & Match.away_team_verified)
+            )
+        elif current_verification_status == 'fully_verified':
+            query = query.filter(Match.home_team_verified, Match.away_team_verified)
+        elif current_verification_status == 'not_reported':
+            query = query.filter(or_(Match.home_team_score == None, Match.away_team_score == None))
+
+        # Check if user is a coach (to limit matches to their teams)
+        is_coach = safe_current_user.has_role('Pub League Coach') and not (
+            safe_current_user.has_role('Pub League Admin') or safe_current_user.has_role('Global Admin')
+        )
+
+        # Get verifiable teams for the user
+        verifiable_teams = {}
+        if hasattr(safe_current_user, 'player') and safe_current_user.player:
+            for team in safe_current_user.player.teams:
+                verifiable_teams[team.id] = team.name
+
+            # If coach, filter to only their teams
+            if is_coach:
+                coach_team_ids = list(verifiable_teams.keys())
+                if coach_team_ids:
+                    query = query.filter(
+                        or_(
+                            Match.home_team_id.in_(coach_team_ids),
+                            Match.away_team_id.in_(coach_team_ids)
+                        )
+                    )
+
+        # Apply sorting - default by week descending
+        sort_by = request.args.get('sort_by', 'week')
+        sort_order = request.args.get('sort_order', 'desc')
+
+        if sort_by == 'date':
+            query = query.order_by(Match.date.desc() if sort_order == 'desc' else Match.date)
+        elif sort_by == 'week':
+            schedule_alias = aliased(Schedule)
+            query = query.outerjoin(schedule_alias, Match.schedule_id == schedule_alias.id)
+            if sort_order == 'desc':
+                query = query.order_by(desc(cast(schedule_alias.week, Integer)), Match.date.desc())
+            else:
+                query = query.order_by(cast(schedule_alias.week, Integer), Match.date)
+        else:
+            query = query.order_by(Match.date.desc())
+
+        # Execute query
+        matches = query.limit(500).all()
+
+        # Get weeks for filter dropdown
+        weeks = []
+        try:
+            # First try getting weeks from Schedule table
+            week_results = db.session.query(Schedule.week).filter(
+                Schedule.season_id == current_season.id,
+                Schedule.week != None,
+                Schedule.week != ''
+            ).distinct().all()
+            weeks = [w[0] for w in week_results if w[0]]
+
+            # If no weeks found in Schedule, try getting from Match->Schedule relationship
+            if not weeks and team_ids:
+                match_week_results = db.session.query(Schedule.week).join(
+                    Match, Match.schedule_id == Schedule.id
+                ).filter(
+                    or_(
+                        Match.home_team_id.in_(team_ids),
+                        Match.away_team_id.in_(team_ids)
+                    ),
+                    Schedule.week != None,
+                    Schedule.week != ''
+                ).distinct().all()
+                weeks = [w[0] for w in match_week_results if w[0]]
+
+            # Sort weeks numerically if possible
+            try:
+                weeks = sorted(weeks, key=lambda x: int(x))
+            except (ValueError, TypeError):
+                weeks = sorted(weeks)
+        except Exception as e:
+            logger.warning(f"Error getting weeks: {e}")
+            weeks = [str(i) for i in range(1, 21)]  # Fallback
+
+        # Get leagues for filter dropdown
+        leagues = League.query.filter_by(season_id=current_season.id).all()
+
         return render_template(
             'admin_panel/match_verification.html',
-            unverified_matches=unverified_matches,
-            verified_matches=verified_matches,
-            stats=stats
+            matches=matches,
+            weeks=weeks,
+            leagues=leagues,
+            current_week=current_week,
+            current_league_id=int(current_league_id) if current_league_id else None,
+            current_verification_status=current_verification_status,
+            current_season=current_season,
+            verifiable_teams=verifiable_teams,
+            is_coach=is_coach
         )
     except Exception as e:
-        logger.error(f"Error loading match verification: {e}")
+        logger.error(f"Error loading match verification: {e}", exc_info=True)
         flash('Match verification unavailable. Verify database connection and match data.', 'error')
         return redirect(url_for('admin_panel.match_operations'))
 
@@ -1264,11 +1773,11 @@ def verify_match(match_id):
             match.home_team_verified_by = None
             match.home_team_verified_at = None
             match.away_team_verified = False
-            match.away_team_verified_by = None  
+            match.away_team_verified_by = None
             match.away_team_verified_at = None
             match.home_team_score = None
             match.away_team_score = None
-            
+
             # Log the action
             AdminAuditLog.log_action(
                 user_id=current_user.id,
@@ -1279,13 +1788,578 @@ def verify_match(match_id):
                 ip_address=request.remote_addr,
                 user_agent=request.headers.get('User-Agent')
             )
-            
+
             flash(f'Match result rejected and scores reset.', 'warning')
-        
+
         db.session.commit()
         return redirect(url_for('admin_panel.match_verification'))
-        
+
     except Exception as e:
         logger.error(f"Error verifying match: {e}")
         flash('Match verification failed. Check database connectivity and permissions.', 'error')
         return redirect(url_for('admin_panel.match_verification'))
+
+
+# =============================================================================
+# Substitute Pool Management Routes
+# =============================================================================
+
+# League type configuration for substitute pools
+LEAGUE_TYPES = {
+    'ECS FC': {
+        'name': 'ECS FC',
+        'role': 'ECS FC Sub',
+        'color': '#3498db',
+        'icon': 'ti ti-ball-football'
+    },
+    'Classic': {
+        'name': 'Classic Division',
+        'role': 'Classic Sub',
+        'color': '#2ecc71',
+        'icon': 'ti ti-trophy'
+    },
+    'Premier': {
+        'name': 'Premier Division',
+        'role': 'Premier Sub',
+        'color': '#e74c3c',
+        'icon': 'ti ti-crown'
+    }
+}
+
+
+@admin_panel_bp.route('/substitute-pools')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+def substitute_pools():
+    """
+    Main substitute pool management page.
+    Shows all league types and their respective pools.
+    """
+    try:
+        from app.models import Player, User, Role, Team, League, Season
+        from app.models_substitute_pools import SubstitutePool, get_eligible_players
+        from sqlalchemy.orm import joinedload
+
+        # Log access
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='access_substitute_pools',
+            resource_type='match_operations',
+            resource_id='substitute_pools',
+            new_value='Accessed substitute pools dashboard',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        # Get data for all league types
+        pools_data = {}
+        for league_type, config in LEAGUE_TYPES.items():
+            try:
+                # Get active pools by league_type directly
+                active_pools = SubstitutePool.query.options(
+                    joinedload(SubstitutePool.player).joinedload(Player.user)
+                ).filter(
+                    SubstitutePool.league_type == league_type,
+                    SubstitutePool.is_active == True
+                ).all()
+
+                pools_data[league_type] = {
+                    'config': config,
+                    'active_pools': active_pools,
+                    'total_active': len(active_pools)
+                }
+            except Exception as pool_error:
+                logger.warning(f"Error loading pool data for {league_type}: {pool_error}")
+                pools_data[league_type] = {
+                    'config': config,
+                    'active_pools': [],
+                    'total_active': 0
+                }
+
+        return render_template(
+            'admin_panel/match_operations/substitute_pools.html',
+            pools_data=pools_data,
+            league_types=LEAGUE_TYPES
+        )
+
+    except ImportError as ie:
+        logger.error(f"Missing substitute pool models: {ie}")
+        flash('Substitute pool models not configured. Contact an administrator.', 'error')
+        return redirect(url_for('admin_panel.match_operations'))
+    except Exception as e:
+        logger.error(f"Error loading substitute pools: {e}")
+        flash('Substitute pools unavailable. Check database connectivity.', 'error')
+        return redirect(url_for('admin_panel.match_operations'))
+
+
+@admin_panel_bp.route('/substitute-pools/<league_type>')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+def substitute_pool_detail(league_type):
+    """
+    Manage substitute pool for a specific league type.
+    """
+    try:
+        if league_type not in LEAGUE_TYPES:
+            flash('Invalid league type.', 'error')
+            return redirect(url_for('admin_panel.substitute_pools'))
+
+        from app.models import Player, User, Role, Team, League, Season
+        from app.models_substitute_pools import (
+            SubstitutePool, SubstitutePoolHistory, SubstituteRequest,
+            SubstituteResponse, SubstituteAssignment, get_eligible_players
+        )
+        from sqlalchemy.orm import joinedload
+
+        # Get active pools with full player information
+        active_pools = SubstitutePool.query.options(
+            joinedload(SubstitutePool.player).joinedload(Player.user)
+        ).filter(
+            SubstitutePool.league_type == league_type,
+            SubstitutePool.is_active == True
+        ).order_by(SubstitutePool.last_active_at.desc()).all()
+
+        # Get eligible players not in pool
+        eligible_players = get_eligible_players(league_type)
+        active_pool_player_ids = {pool.player_id for pool in active_pools}
+
+        # Also get rejected/inactive players to exclude from available list
+        rejected_player_ids = {
+            pool.player_id for pool in SubstitutePool.query.filter(
+                SubstitutePool.league_type == league_type,
+                SubstitutePool.is_active == False
+            ).all()
+        }
+
+        available_players = [
+            p for p in eligible_players
+            if p.id not in active_pool_player_ids and p.id not in rejected_player_ids
+        ]
+
+        # Get recent activity
+        try:
+            recent_activity = SubstitutePoolHistory.query.options(
+                joinedload(SubstitutePoolHistory.player),
+                joinedload(SubstitutePoolHistory.performer)
+            ).join(
+                SubstitutePool, SubstitutePoolHistory.pool_id == SubstitutePool.id
+            ).filter(
+                SubstitutePool.league_type == league_type
+            ).order_by(
+                SubstitutePoolHistory.performed_at.desc()
+            ).limit(10).all()
+        except Exception as hist_error:
+            logger.warning(f"Error loading pool history: {hist_error}")
+            recent_activity = []
+
+        # Get statistics
+        stats = {
+            'total_active': len(active_pools),
+            'total_eligible': len(eligible_players),
+            'pending_approval': len(available_players),
+            'total_requests_sent': sum(pool.requests_received for pool in active_pools),
+            'total_matches_played': sum(pool.matches_played for pool in active_pools)
+        }
+
+        return render_template(
+            'admin_panel/match_operations/substitute_pool_detail.html',
+            league_type=league_type,
+            league_config=LEAGUE_TYPES[league_type],
+            active_pools=active_pools,
+            available_players=available_players,
+            recent_activity=recent_activity,
+            stats=stats
+        )
+
+    except ImportError as ie:
+        logger.error(f"Missing substitute pool models: {ie}")
+        flash('Substitute pool models not configured. Contact an administrator.', 'error')
+        return redirect(url_for('admin_panel.substitute_pools'))
+    except Exception as e:
+        logger.error(f"Error loading league pool for {league_type}: {e}")
+        flash('League pool unavailable. Check database connectivity.', 'error')
+        return redirect(url_for('admin_panel.substitute_pools'))
+
+
+@admin_panel_bp.route('/substitute-pools/<league_type>/add-player', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+def add_player_to_pool(league_type):
+    """Add a player to the substitute pool for a specific league."""
+    try:
+        if league_type not in LEAGUE_TYPES:
+            return jsonify({'success': False, 'message': 'Invalid league type'}), 400
+
+        from app.models import Player, User, Role, League, Season
+        from app.models_substitute_pools import SubstitutePool
+        from sqlalchemy.orm import joinedload
+
+        # Get form data
+        player_id = request.json.get('player_id')
+        if not player_id:
+            return jsonify({'success': False, 'message': 'Player ID is required'}), 400
+
+        # Verify player exists
+        player = Player.query.options(
+            joinedload(Player.user).joinedload(User.roles)
+        ).get(player_id)
+
+        if not player:
+            return jsonify({'success': False, 'message': 'Player not found'}), 404
+
+        # Assign the required role if not already assigned
+        required_role_name = LEAGUE_TYPES[league_type]['role']
+        required_role = Role.query.filter_by(name=required_role_name).first()
+
+        if player.user and required_role and required_role not in player.user.roles:
+            player.user.roles.append(required_role)
+
+        # Check if already in pool for this league type
+        existing_pool = SubstitutePool.query.filter_by(
+            player_id=player_id,
+            league_type=league_type
+        ).first()
+
+        if existing_pool:
+            if existing_pool.is_active:
+                return jsonify({'success': False, 'message': 'Player is already in the active pool'}), 400
+            else:
+                # Reactivate
+                existing_pool.is_active = True
+                message = f"{player.name} has been reactivated in the {league_type} substitute pool"
+        else:
+            # Create new pool entry
+            pool_entry = SubstitutePool(
+                player_id=player_id,
+                league_type=league_type,
+                preferred_positions=request.json.get('preferred_positions', ''),
+                sms_for_sub_requests=request.json.get('sms_notifications', True),
+                discord_for_sub_requests=request.json.get('discord_notifications', True),
+                email_for_sub_requests=request.json.get('email_notifications', True),
+                is_active=True
+            )
+            db.session.add(pool_entry)
+            message = f"{player.name} has been added to the {league_type} substitute pool"
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='add_to_substitute_pool',
+            resource_type='substitute_pools',
+            resource_id=str(player_id),
+            new_value=f'Added player {player.name} to {league_type} pool',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        db.session.commit()
+
+        # Trigger Discord role update
+        try:
+            from app.tasks.tasks_discord import assign_roles_to_player_task
+            assign_roles_to_player_task.delay(player_id=player.id, only_add=False)
+        except Exception as task_error:
+            logger.warning(f"Failed to queue Discord role update: {task_error}")
+
+        return jsonify({
+            'success': True,
+            'message': message,
+            'player_data': {
+                'id': player.id,
+                'name': player.name,
+                'discord_id': player.discord_id,
+                'phone_number': player.phone,
+                'email': player.user.email if player.user else None
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error adding player to pool: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 500
+
+
+@admin_panel_bp.route('/substitute-pools/<league_type>/remove-player', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+def remove_player_from_pool(league_type):
+    """Remove a player from the substitute pool."""
+    try:
+        if league_type not in LEAGUE_TYPES:
+            return jsonify({'success': False, 'message': 'Invalid league type'}), 400
+
+        from app.models import Player, Role
+        from app.models_substitute_pools import SubstitutePool
+
+        player_id = request.json.get('player_id')
+        if not player_id:
+            return jsonify({'success': False, 'message': 'Player ID is required'}), 400
+
+        # Find the pool entry
+        pool_entry = SubstitutePool.query.filter_by(
+            player_id=player_id,
+            league_type=league_type,
+            is_active=True
+        ).first()
+
+        if not pool_entry:
+            return jsonify({'success': False, 'message': 'Player not found in active pool'}), 404
+
+        # Deactivate the pool entry
+        pool_entry.is_active = False
+
+        # Remove the Flask role if player is not in any other active pools
+        player = pool_entry.player
+        if player and player.user:
+            other_active_pools = SubstitutePool.query.filter(
+                SubstitutePool.player_id == player_id,
+                SubstitutePool.is_active == True,
+                SubstitutePool.id != pool_entry.id
+            ).count()
+
+            if other_active_pools == 0:
+                # Remove all substitute roles
+                for role_name in ['ECS FC Sub', 'Classic Sub', 'Premier Sub']:
+                    role = Role.query.filter_by(name=role_name).first()
+                    if role and role in player.user.roles:
+                        player.user.roles.remove(role)
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='remove_from_substitute_pool',
+            resource_type='substitute_pools',
+            resource_id=str(player_id),
+            new_value=f'Removed player {player.name} from {league_type} pool',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        db.session.commit()
+
+        # Trigger Discord role update
+        try:
+            from app.tasks.tasks_discord import assign_roles_to_player_task
+            assign_roles_to_player_task.delay(player_id=player_id, only_add=False)
+        except Exception as task_error:
+            logger.warning(f"Failed to queue Discord role update: {task_error}")
+
+        return jsonify({
+            'success': True,
+            'message': f"{pool_entry.player.name} has been removed from the {league_type} substitute pool"
+        })
+
+    except Exception as e:
+        logger.error(f"Error removing player from pool: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+
+@admin_panel_bp.route('/substitute-pools/<league_type>/reject-player', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+def reject_player_from_pool(league_type):
+    """Reject a player from being added to the substitute pool.
+
+    This prevents the player from appearing in the "Available to Add" list
+    without actually adding them to the pool. The rejection is recorded in history.
+    """
+    try:
+        if league_type not in LEAGUE_TYPES:
+            return jsonify({'success': False, 'message': 'Invalid league type'}), 400
+
+        from app.models import Player
+        from app.models_substitute_pools import SubstitutePool, SubstitutePoolHistory
+
+        player_id = request.json.get('player_id')
+        reason = request.json.get('reason', 'Admin rejected')
+
+        if not player_id:
+            return jsonify({'success': False, 'message': 'Player ID is required'}), 400
+
+        # Get the player
+        player = Player.query.get(player_id)
+        if not player:
+            return jsonify({'success': False, 'message': 'Player not found'}), 404
+
+        # Check if already in pool (shouldn't happen but check anyway)
+        existing_pool = SubstitutePool.query.filter_by(
+            player_id=player_id,
+            league_type=league_type,
+            is_active=True
+        ).first()
+
+        if existing_pool:
+            return jsonify({'success': False, 'message': 'Player is already in this pool'}), 400
+
+        # Create a rejected pool entry (inactive with rejected status)
+        rejected_entry = SubstitutePool(
+            player_id=player_id,
+            league_type=league_type,
+            is_active=False  # Marked as rejected/inactive
+        )
+        db.session.add(rejected_entry)
+        db.session.flush()
+
+        # Log to history
+        history = SubstitutePoolHistory(
+            pool_id=rejected_entry.id,
+            action='REJECTED',
+            performed_by=current_user.id,
+            notes=reason
+        )
+        db.session.add(history)
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='reject_from_substitute_pool',
+            resource_type='substitute_pools',
+            resource_id=str(player_id),
+            new_value=f'Rejected player {player.name} from {league_type} pool: {reason}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f"{player.name} has been rejected from the {league_type} substitute pool"
+        })
+
+    except Exception as e:
+        logger.error(f"Error rejecting player from pool: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+
+@admin_panel_bp.route('/substitute-pools/<league_type>/statistics')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+def substitute_pool_statistics(league_type):
+    """Get detailed statistics for a substitute pool."""
+    try:
+        if league_type not in LEAGUE_TYPES:
+            return jsonify({'success': False, 'message': 'Invalid league type'}), 400
+
+        from app.models_substitute_pools import SubstitutePool
+        from sqlalchemy.orm import joinedload
+
+        # Get active pools with statistics
+        active_pools = SubstitutePool.query.options(
+            joinedload(SubstitutePool.player)
+        ).filter(
+            SubstitutePool.league_type == league_type,
+            SubstitutePool.is_active == True
+        ).all()
+
+        # Calculate statistics
+        stats = {
+            'total_active': len(active_pools),
+            'total_requests_sent': sum(pool.requests_received for pool in active_pools),
+            'total_requests_accepted': sum(pool.requests_accepted for pool in active_pools),
+            'total_matches_played': sum(pool.matches_played for pool in active_pools),
+            'average_acceptance_rate': 0,
+            'top_performers': [],
+            'notification_preferences': {
+                'sms_enabled': sum(1 for pool in active_pools if pool.sms_for_sub_requests),
+                'discord_enabled': sum(1 for pool in active_pools if pool.discord_for_sub_requests),
+                'email_enabled': sum(1 for pool in active_pools if pool.email_for_sub_requests)
+            }
+        }
+
+        if active_pools:
+            total_acceptance = sum(pool.acceptance_rate for pool in active_pools)
+            stats['average_acceptance_rate'] = total_acceptance / len(active_pools)
+
+            # Get top performers
+            top_performers = sorted(
+                active_pools,
+                key=lambda p: (p.matches_played, p.acceptance_rate),
+                reverse=True
+            )[:5]
+
+            stats['top_performers'] = [
+                {
+                    'player_name': pool.player.name if pool.player else 'Unknown',
+                    'matches_played': pool.matches_played,
+                    'acceptance_rate': pool.acceptance_rate,
+                    'requests_received': pool.requests_received
+                }
+                for pool in top_performers
+            ]
+
+        return jsonify({'success': True, 'statistics': stats})
+
+    except Exception as e:
+        logger.error(f"Error getting pool statistics: {e}")
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+
+
+@admin_panel_bp.route('/substitute-pools/player-search')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+def substitute_pool_player_search():
+    """Search for players that can be added to substitute pools."""
+    try:
+        from app.models import Player, User, Role
+        from app.models_substitute_pools import SubstitutePool
+        from sqlalchemy.orm import joinedload
+        from sqlalchemy import or_
+
+        query_str = request.args.get('q', '').strip()
+        league_type = request.args.get('league_type', '').strip()
+
+        if not query_str or len(query_str) < 2:
+            return jsonify({'success': True, 'players': []})
+
+        if league_type and league_type not in LEAGUE_TYPES:
+            return jsonify({'success': False, 'message': 'Invalid league type'}), 400
+
+        # Build base query
+        base_query = Player.query.options(
+            joinedload(Player.user).joinedload(User.roles)
+        ).join(User).filter(
+            or_(
+                Player.name.ilike(f'%{query_str}%'),
+                User.email.ilike(f'%{query_str}%'),
+                User.username.ilike(f'%{query_str}%')
+            )
+        )
+
+        players = base_query.limit(20).all()
+
+        # Format results
+        results = []
+        for player in players:
+            # Check which leagues they're eligible for
+            eligible_leagues = []
+            for lt, config in LEAGUE_TYPES.items():
+                if player.user and any(role.name == config['role'] for role in player.user.roles):
+                    eligible_leagues.append(lt)
+
+            # Check current pool status
+            current_pools = SubstitutePool.query.filter_by(
+                player_id=player.id,
+                is_active=True
+            ).all()
+
+            current_pool_types = [pool.league_type for pool in current_pools]
+
+            results.append({
+                'id': player.id,
+                'name': player.name,
+                'email': player.user.email if player.user else None,
+                'discord_id': player.discord_id,
+                'phone_number': player.phone,
+                'eligible_leagues': eligible_leagues,
+                'current_pools': current_pool_types,
+                'can_add_to': [lt for lt in LEAGUE_TYPES.keys() if lt not in current_pool_types]
+            })
+
+        return jsonify({'success': True, 'players': results})
+
+    except Exception as e:
+        logger.error(f"Error searching players: {e}")
+        return jsonify({'success': False, 'message': 'An error occurred'}), 500

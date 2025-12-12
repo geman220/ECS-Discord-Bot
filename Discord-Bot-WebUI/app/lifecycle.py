@@ -13,7 +13,7 @@ import logging
 from flask import g, has_app_context, request
 import time
 import uuid
-from typing import List, Callable, Dict, Any, Optional
+from typing import List, Callable, Dict, Any
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,6 @@ class RequestLifecycle:
         self.after_request_handlers: List[Callable] = []
         self._template_cache: dict = {}
         self._static_cache: dict = {}
-        self._db_operation_log: List[dict] = []
         self.db = None  # Will be set in init_app
 
     def init_app(self, app, db):
@@ -171,28 +170,6 @@ class RequestLifecycle:
         """Add an after-request handler."""
         self.after_request_handlers.append(handler)
 
-    def log_db_operation(self, operation: str, duration: float, sql_query: Optional[str] = None):
-        """Log database operation timing with details."""
-        if has_app_context() and not getattr(g, '_bypass_db', False):
-            if not hasattr(g, '_db_operations'):
-                g._db_operations = []
-            
-            operation_data = {
-                'operation': operation,
-                'duration': duration,
-                'timestamp': time.time(),
-                'sql_query': sql_query,
-                'session_id': getattr(g, '_session_id', None)
-            }
-            
-            g._db_operations.append(operation_data)
-            self._db_operation_log.append(operation_data)
-            
-            logger.debug(
-                f"DB Operation: {operation}, Duration: {duration:.2f}s, "
-                f"Query: {sql_query}, Session: {getattr(g, '_session_id', None)}"
-            )
-
     def log_request_performance(self, response):
         """Log detailed request performance metrics."""
         if not getattr(g, '_bypass_db', False):
@@ -223,17 +200,5 @@ class RequestLifecycle:
                 logger.error(f"Error logging request performance: {e}")
                 return None
 
-    def get_request_stats(self) -> Dict[str, Any]:
-        """Get current request statistics."""
-        return {
-            'db_operations': len(self._db_operation_log),
-            'cache_hits': getattr(g, '_cache_hits', 0),
-            'cache_misses': getattr(g, '_cache_misses', 0),
-            'active_handlers': {
-                'cleanup': len(self.cleanup_handlers),
-                'before_request': len(self.before_request_handlers),
-                'after_request': len(self.after_request_handlers)
-            }
-        }
 
 request_lifecycle = RequestLifecycle()

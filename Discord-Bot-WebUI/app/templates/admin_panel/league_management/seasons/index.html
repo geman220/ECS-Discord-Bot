@@ -1,0 +1,294 @@
+{% extends "admin_panel/base.html" %}
+
+{% block panel_description %}Manage seasons for Pub League and ECS FC{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<style>
+    /* Dark mode button fixes */
+    [data-style="dark"] .btn-outline-primary,
+    .dark-style .btn-outline-primary {
+        border-color: var(--bs-primary) !important;
+        color: var(--bs-primary) !important;
+    }
+    [data-style="dark"] .btn-outline-primary:hover,
+    .dark-style .btn-outline-primary:hover {
+        background-color: var(--bs-primary) !important;
+        border-color: var(--bs-primary) !important;
+        color: #fff !important;
+    }
+    [data-style="dark"] .btn-outline-success,
+    .dark-style .btn-outline-success {
+        border-color: var(--bs-success) !important;
+        color: var(--bs-success) !important;
+    }
+    [data-style="dark"] .btn-outline-success:hover,
+    .dark-style .btn-outline-success:hover {
+        background-color: var(--bs-success) !important;
+        border-color: var(--bs-success) !important;
+        color: #fff !important;
+    }
+    [data-style="dark"] .btn-outline-danger,
+    .dark-style .btn-outline-danger {
+        border-color: var(--bs-danger) !important;
+        color: var(--bs-danger) !important;
+    }
+    [data-style="dark"] .btn-outline-danger:hover,
+    .dark-style .btn-outline-danger:hover {
+        background-color: var(--bs-danger) !important;
+        border-color: var(--bs-danger) !important;
+        color: #fff !important;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.league_management_dashboard') }}">League Management</a></li>
+<li class="breadcrumb-item active">Seasons</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0">
+                    <i class="ti ti-calendar me-2"></i>Seasons
+                </h5>
+                <div class="d-flex gap-2 flex-wrap">
+                    <!-- Filters -->
+                    <select class="form-select form-select-sm" id="leagueTypeFilter" style="width: auto;">
+                        <option value="">All League Types</option>
+                        <option value="Pub League" {% if current_league_type == 'Pub League' %}selected{% endif %}>Pub League</option>
+                        <option value="ECS FC" {% if current_league_type == 'ECS FC' %}selected{% endif %}>ECS FC</option>
+                    </select>
+                    <div class="form-check form-switch d-flex align-items-center ms-2">
+                        <input class="form-check-input" type="checkbox" id="currentOnlyFilter" {% if show_current_only %}checked{% endif %}>
+                        <label class="form-check-label ms-1" for="currentOnlyFilter">Current Only</label>
+                    </div>
+                    <a href="{{ url_for('admin_panel.season_wizard') }}" class="btn btn-primary btn-sm">
+                        <i class="ti ti-plus me-1"></i>New Season
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if seasons %}
+                <div class="row g-4">
+                    {% for season in seasons %}
+                    <div class="col-lg-6 col-xl-4">
+                        <div class="card border h-100 {% if season.is_current %}border-primary{% endif %}">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">{{ season.name }}</h6>
+                                {% if season.is_current %}
+                                <span class="badge bg-success">Current</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">League Type:</span>
+                                    <span class="badge bg-label-primary">{{ season.league_type }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Leagues:</span>
+                                    <span>{{ season.league_count }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Teams:</span>
+                                    <span>{{ season.team_count }}</span>
+                                </div>
+                                {% if season.created_at %}
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Created:</span>
+                                    <small>{{ season.created_at.strftime('%Y-%m-%d') }}</small>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="card-footer d-flex gap-2">
+                                <a href="{{ url_for('admin_panel.league_management_season_detail', season_id=season.id) }}"
+                                   class="btn btn-sm btn-outline-primary flex-grow-1">
+                                    <i class="ti ti-eye me-1"></i>View
+                                </a>
+                                {% if not season.is_current %}
+                                <button class="btn btn-sm btn-outline-success" onclick="setCurrentSeason({{ season.id }}, '{{ season.name }}')">
+                                    <i class="ti ti-check"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteSeason({{ season.id }}, '{{ season.name }}')">
+                                    <i class="ti ti-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-calendar-off text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-2">No seasons found</p>
+                    <a href="{{ url_for('admin_panel.season_wizard') }}" class="btn btn-primary">
+                        <i class="ti ti-plus me-1"></i>Create First Season
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Set Current Season Modal -->
+<div class="modal fade" id="setCurrentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="ti ti-check me-2"></i>Set as Current Season</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Set <strong id="setCurrentSeasonName"></strong> as the current season?</p>
+                <input type="hidden" id="setCurrentSeasonId">
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="performRollover">
+                    <label class="form-check-label" for="performRollover">
+                        Perform season rollover
+                    </label>
+                    <small class="text-muted d-block">Records player team history and clears team assignments</small>
+                </div>
+
+                <div id="rolloverPreview" class="alert alert-info" style="display: none;">
+                    <i class="ti ti-info-circle me-2"></i>
+                    Loading rollover preview...
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="confirmSetCurrent()">
+                    <i class="ti ti-check me-1"></i>Set as Current
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter handlers
+    document.getElementById('leagueTypeFilter').addEventListener('change', applyFilters);
+    document.getElementById('currentOnlyFilter').addEventListener('change', applyFilters);
+
+    // Rollover checkbox handler
+    document.getElementById('performRollover').addEventListener('change', function() {
+        if (this.checked) {
+            loadRolloverPreview();
+        } else {
+            document.getElementById('rolloverPreview').style.display = 'none';
+        }
+    });
+});
+
+function applyFilters() {
+    const leagueType = document.getElementById('leagueTypeFilter').value;
+    const currentOnly = document.getElementById('currentOnlyFilter').checked;
+
+    let url = '{{ url_for("admin_panel.league_management_seasons") }}';
+    const params = new URLSearchParams();
+
+    if (leagueType) params.set('league_type', leagueType);
+    if (currentOnly) params.set('current_only', 'true');
+
+    if (params.toString()) {
+        url += '?' + params.toString();
+    }
+
+    window.location.href = url;
+}
+
+function setCurrentSeason(seasonId, seasonName) {
+    document.getElementById('setCurrentSeasonId').value = seasonId;
+    document.getElementById('setCurrentSeasonName').textContent = seasonName;
+    document.getElementById('performRollover').checked = false;
+    document.getElementById('rolloverPreview').style.display = 'none';
+    new bootstrap.Modal(document.getElementById('setCurrentModal')).show();
+}
+
+function loadRolloverPreview() {
+    const seasonId = document.getElementById('setCurrentSeasonId').value;
+    const previewDiv = document.getElementById('rolloverPreview');
+    previewDiv.style.display = 'block';
+    previewDiv.innerHTML = '<i class="ti ti-loader me-2"></i>Loading preview...';
+
+    fetch(`/admin-panel/league-management/seasons/api/${seasonId}/rollover-preview`)
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                const preview = result.preview;
+                previewDiv.innerHTML = `
+                    <i class="ti ti-info-circle me-2"></i>
+                    <strong>Rollover will:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Affect ${preview.players_affected} players</li>
+                        <li>Clear ${preview.teams_to_clear.length} team assignments</li>
+                        <li>Record history for ${preview.leagues_mapping.length} leagues</li>
+                    </ul>
+                `;
+            } else {
+                previewDiv.innerHTML = '<i class="ti ti-alert-circle me-2"></i>Could not load preview';
+            }
+        })
+        .catch(error => {
+            previewDiv.innerHTML = '<i class="ti ti-alert-circle me-2"></i>Error loading preview';
+        });
+}
+
+function confirmSetCurrent() {
+    const seasonId = document.getElementById('setCurrentSeasonId').value;
+    const performRollover = document.getElementById('performRollover').checked;
+
+    fetch(`/admin-panel/league-management/seasons/api/${seasonId}/set-current`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ perform_rollover: performRollover })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            AdminPanel.showMobileToast(result.message, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            AdminPanel.showMobileToast(result.message, 'danger');
+        }
+    })
+    .catch(error => {
+        AdminPanel.showMobileToast('Failed to set current season', 'danger');
+    });
+}
+
+function deleteSeason(seasonId, seasonName) {
+    AdminPanel.confirmAction(
+        `Are you sure you want to delete "${seasonName}"? This will remove all associated leagues, teams, and matches. This cannot be undone.`,
+        () => {
+            fetch(`/admin-panel/league-management/seasons/api/${seasonId}/delete`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    AdminPanel.showMobileToast(result.message, 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    AdminPanel.showMobileToast(result.message, 'danger');
+                }
+            })
+            .catch(error => {
+                AdminPanel.showMobileToast('Failed to delete season', 'danger');
+            });
+        }
+    );
+}
+</script>
+{% endblock %}

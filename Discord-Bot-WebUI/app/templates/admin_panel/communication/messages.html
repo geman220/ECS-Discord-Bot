@@ -12,6 +12,51 @@
 
 {% block panel_content %}
 
+    <!-- Help / Documentation Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info border-0" style="background: linear-gradient(135deg, rgba(0, 123, 255, 0.1) 0%, rgba(0, 123, 255, 0.05) 100%);">
+                <div class="d-flex align-items-start">
+                    <i class="ti ti-info-circle me-3" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <h6 class="alert-heading mb-1">About Message Templates</h6>
+                        <p class="mb-2 small">
+                            Message Templates allow you to create reusable, customizable messages for the system.
+                            Organize templates into <strong>categories</strong> (e.g., "Notifications", "Welcome Messages", "Match Reminders")
+                            and use <strong>variables</strong> to personalize messages dynamically.
+                        </p>
+                        <div class="row small">
+                            <div class="col-md-4">
+                                <strong>Example Categories:</strong>
+                                <ul class="mb-0 ps-3">
+                                    <li>Match Notifications</li>
+                                    <li>Welcome/Onboarding</li>
+                                    <li>Discord Bot Messages</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Example Variables:</strong>
+                                <ul class="mb-0 ps-3">
+                                    <li><code>{player_name}</code></li>
+                                    <li><code>{team_name}</code></li>
+                                    <li><code>{match_date}</code></li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Where Used:</strong>
+                                <ul class="mb-0 ps-3">
+                                    <li>Email notifications</li>
+                                    <li>SMS messages</li>
+                                    <li>Discord bot announcements</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Message Template Overview -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-3">

@@ -1,0 +1,325 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Audit Logs - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item active">Audit Logs</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Audit Logs Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-history me-2"></i>
+                <div>
+                    <strong>Admin Audit Logs</strong><br>
+                    Track all administrative actions performed in the system. Use filters to find specific activities.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-filter me-2"></i>Filters
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">User</label>
+                        <select name="user_id" class="form-select">
+                            <option value="">All Users</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}" {% if current_filters.user_id == user.id %}selected{% endif %}>
+                                {{ user.name or user.username or user.email }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Resource Type</label>
+                        <select name="resource_type" class="form-select">
+                            <option value="">All Types</option>
+                            {% for rt in resource_types %}
+                            <option value="{{ rt }}" {% if current_filters.resource_type == rt %}selected{% endif %}>
+                                {{ rt.replace('_', ' ').title() }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Date From</label>
+                        <input type="date" name="date_from" class="form-control"
+                               value="{{ current_filters.date_from or '' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Date To</label>
+                        <input type="date" name="date_to" class="form-control"
+                               value="{{ current_filters.date_to or '' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-grow-1">
+                                <i class="ti ti-search me-1"></i>Filter
+                            </button>
+                            <a href="{{ url_for('admin_panel.audit_logs') }}" class="btn btn-outline-secondary">
+                                <i class="ti ti-x"></i>
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-0">Total Entries</h6>
+                        <h4 class="mb-0">{{ logs.total }}</h4>
+                    </div>
+                    <div class="text-primary">
+                        <i class="ti ti-list" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-0">Current Page</h6>
+                        <h4 class="mb-0">{{ logs.page }} / {{ logs.pages or 1 }}</h4>
+                    </div>
+                    <div class="text-info">
+                        <i class="ti ti-file" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-0">Active Users</h6>
+                        <h4 class="mb-0">{{ users|length }}</h4>
+                    </div>
+                    <div class="text-success">
+                        <i class="ti ti-users" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-0">Resource Types</h6>
+                        <h4 class="mb-0">{{ resource_types|length }}</h4>
+                    </div>
+                    <div class="text-warning">
+                        <i class="ti ti-category" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Audit Logs Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-list me-2"></i>Audit Log Entries
+                </h5>
+                <div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="exportLogs('csv')">
+                        <i class="ti ti-download me-1"></i>Export CSV
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if logs.items %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>User</th>
+                                <th>Action</th>
+                                <th>Resource Type</th>
+                                <th>Resource ID</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs.items %}
+                            <tr>
+                                <td>
+                                    <span class="text-nowrap">{{ log.timestamp.strftime('%Y-%m-%d') }}</span><br>
+                                    <small class="text-muted">{{ log.timestamp.strftime('%H:%M:%S') }}</small>
+                                </td>
+                                <td>
+                                    {% if log.user %}
+                                    <span class="badge bg-secondary">{{ log.user.name or log.user.username or log.user.email }}</span>
+                                    {% else %}
+                                    <span class="text-muted">System</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if log.action == 'create' %}
+                                    <span class="badge bg-success"><i class="ti ti-plus me-1"></i>{{ log.action }}</span>
+                                    {% elif log.action == 'update' or log.action == 'toggle' %}
+                                    <span class="badge bg-warning"><i class="ti ti-edit me-1"></i>{{ log.action }}</span>
+                                    {% elif log.action == 'delete' %}
+                                    <span class="badge bg-danger"><i class="ti ti-trash me-1"></i>{{ log.action }}</span>
+                                    {% elif log.action == 'access' or 'access' in log.action %}
+                                    <span class="badge bg-info"><i class="ti ti-eye me-1"></i>{{ log.action }}</span>
+                                    {% elif log.action == 'verify' or 'verify' in log.action %}
+                                    <span class="badge bg-primary"><i class="ti ti-check me-1"></i>{{ log.action }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ log.action }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark">{{ log.resource_type.replace('_', ' ').title() if log.resource_type else 'N/A' }}</span>
+                                </td>
+                                <td>
+                                    <code>{{ log.resource_id or '-' }}</code>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-info"
+                                            onclick="showLogDetails({{ log.id }}, '{{ log.old_value|e if log.old_value else '' }}', '{{ log.new_value|e if log.new_value else '' }}', '{{ log.ip_address or '' }}')">
+                                        <i class="ti ti-info-circle"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if logs.pages > 1 %}
+                <nav aria-label="Audit logs pagination" class="mt-4">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if logs.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin_panel.audit_logs', page=logs.prev_num, **current_filters) }}">
+                                <i class="ti ti-chevron-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% for page_num in logs.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                            {% if page_num %}
+                                {% if page_num == logs.page %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('admin_panel.audit_logs', page=page_num, **current_filters) }}">{{ page_num }}</a>
+                                </li>
+                                {% endif %}
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if logs.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('admin_panel.audit_logs', page=logs.next_num, **current_filters) }}">
+                                <i class="ti ti-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-history text-muted" style="font-size: 4rem;"></i>
+                    <h4 class="text-muted mt-3">No audit log entries found</h4>
+                    <p class="text-muted">Try adjusting your filters or check back later.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function showLogDetails(logId, oldValue, newValue, ipAddress) {
+    let detailsHtml = '<div class="text-start">';
+
+    if (oldValue) {
+        detailsHtml += `<p><strong>Previous Value:</strong><br><code>${oldValue}</code></p>`;
+    }
+    if (newValue) {
+        detailsHtml += `<p><strong>New Value:</strong><br><code>${newValue}</code></p>`;
+    }
+    if (ipAddress) {
+        detailsHtml += `<p><strong>IP Address:</strong> ${ipAddress}</p>`;
+    }
+
+    if (!oldValue && !newValue && !ipAddress) {
+        detailsHtml += '<p class="text-muted">No additional details available.</p>';
+    }
+
+    detailsHtml += '</div>';
+
+    Swal.fire({
+        title: 'Log Details',
+        html: detailsHtml,
+        icon: 'info',
+        confirmButtonText: 'Close'
+    });
+}
+
+function exportLogs(format) {
+    // Build export URL with current filters
+    const params = new URLSearchParams(window.location.search);
+    const exportUrl = `{{ url_for('admin_panel.export_audit_logs') }}?${params.toString()}`;
+
+    Swal.fire({
+        title: 'Export Audit Logs',
+        text: 'This will download a CSV file with the filtered audit log entries. Continue?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Download CSV',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = exportUrl;
+        }
+    });
+}
+</script>
+{% endblock %}

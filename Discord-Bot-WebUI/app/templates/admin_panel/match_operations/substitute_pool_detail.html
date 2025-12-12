@@ -1,0 +1,581 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}{{ league_config.name }} Substitute Pool - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.match_operations') }}">Match Operations</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.substitute_pools') }}">Substitute Pools</a></li>
+<li class="breadcrumb-item active">{{ league_config.name }}</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- League Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card" style="border-left: 4px solid {{ league_config.color }};">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <i class="{{ league_config.icon }} me-3" style="font-size: 2.5rem; color: {{ league_config.color }};"></i>
+                        <div>
+                            <h4 class="mb-0" style="color: {{ league_config.color }};">{{ league_config.name }} Substitute Pool</h4>
+                            <p class="text-muted mb-0">Manage substitute players for {{ league_config.name }}</p>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="showAddPlayerModal()">
+                        <i class="ti ti-user-plus me-1"></i>Add Player
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-2 col-sm-4 mb-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="h3 mb-0 text-primary">{{ stats.total_active }}</div>
+                <small class="text-muted">Active Subs</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 mb-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="h3 mb-0 text-success">{{ stats.total_eligible }}</div>
+                <small class="text-muted">Eligible</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 mb-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="h3 mb-0 text-info">{{ stats.total_requests_sent }}</div>
+                <small class="text-muted">Requests</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 mb-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="h3 mb-0 text-warning">{{ stats.total_matches_played }}</div>
+                <small class="text-muted">Matches</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 mb-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="h3 mb-0 text-secondary">{{ stats.pending_approval }}</div>
+                <small class="text-muted">Available</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 mb-3">
+        <div class="card text-center bg-light">
+            <div class="card-body py-3">
+                <button class="btn btn-sm btn-outline-primary" onclick="loadStatistics()">
+                    <i class="ti ti-refresh me-1"></i>Stats
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Active Substitutes -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-users me-2"></i>Active Substitutes
+                </h5>
+                <span class="badge" style="background: {{ league_config.color }};">{{ active_pools|length }} Players</span>
+            </div>
+            <div class="card-body p-0">
+                {% if active_pools %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Player</th>
+                                <th class="text-center">Matches</th>
+                                <th class="text-center">Requests</th>
+                                <th class="text-center">Acceptance</th>
+                                <th class="text-center">Notifications</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pool in active_pools %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar avatar-sm me-2" style="background: {{ league_config.color }}15;">
+                                            <span style="color: {{ league_config.color }};">{{ pool.player.name[0] if pool.player else '?' }}</span>
+                                        </div>
+                                        <div>
+                                            <strong>{{ pool.player.name if pool.player else 'Unknown' }}</strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                {% if pool.player.phone %}
+                                                <i class="ti ti-phone me-1"></i>
+                                                {% endif %}
+                                                {% if pool.player.discord_id %}
+                                                <i class="ti ti-brand-discord me-1"></i>
+                                                {% endif %}
+                                                {% if pool.player.user and pool.player.user.email %}
+                                                <i class="ti ti-mail"></i>
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info">{{ pool.matches_played }}</span>
+                                </td>
+                                <td class="text-center">
+                                    {{ pool.requests_received }}
+                                </td>
+                                <td class="text-center">
+                                    <div class="progress" style="height: 8px; width: 60px; display: inline-block;">
+                                        <div class="progress-bar bg-success" style="width: {{ pool.acceptance_rate }}%;"></div>
+                                    </div>
+                                    <small class="d-block">{{ pool.acceptance_rate|round(1) }}%</small>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge {{ 'bg-success' if pool.sms_for_sub_requests else 'bg-secondary' }}" title="SMS">S</span>
+                                    <span class="badge {{ 'bg-success' if pool.discord_for_sub_requests else 'bg-secondary' }}" title="Discord">D</span>
+                                    <span class="badge {{ 'bg-success' if pool.email_for_sub_requests else 'bg-secondary' }}" title="Email">E</span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-danger" onclick="removeFromPool({{ pool.player_id }}, '{{ pool.player.name if pool.player else 'Unknown' }}')" title="Remove from pool">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="ti ti-users-group text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="text-muted mt-3">No Active Substitutes</h5>
+                    <p class="text-muted">Add players to this substitute pool to get started.</p>
+                    <button class="btn btn-primary" onclick="showAddPlayerModal()">
+                        <i class="ti ti-user-plus me-1"></i>Add First Player
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Available Players -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="ti ti-user-check me-2"></i>Available to Add
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                {% if available_players %}
+                <div class="list-group list-group-flush" style="max-height: 250px; overflow-y: auto;">
+                    {% for player in available_players[:10] %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center available-player-item" id="available-player-{{ player.id }}">
+                        <div>
+                            <strong>{{ player.name }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                {% if player.phone %}<i class="ti ti-phone me-1"></i>{% endif %}
+                                {% if player.discord_id %}<i class="ti ti-brand-discord me-1"></i>{% endif %}
+                            </small>
+                        </div>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-success" onclick="addToPool({{ player.id }})" title="Add to pool">
+                                <i class="ti ti-check"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="rejectPlayer({{ player.id }}, '{{ player.name }}')" title="Reject">
+                                <i class="ti ti-x"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if available_players|length > 10 %}
+                <div class="card-footer text-center">
+                    <small class="text-muted">+{{ available_players|length - 10 }} more eligible players</small>
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <p class="mb-0">No eligible players available</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="ti ti-history me-2"></i>Recent Activity
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_activity %}
+                <div class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">
+                    {% for activity in recent_activity %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">
+                                {{ activity.performed_at.strftime('%m/%d %H:%M') if activity.performed_at else '' }}
+                            </small>
+                            <span class="badge {% if activity.action == 'ADDED' %}bg-success{% elif activity.action == 'REMOVED' %}bg-danger{% else %}bg-info{% endif %}">
+                                {{ activity.action }}
+                            </span>
+                        </div>
+                        <div class="mt-1">
+                            <strong>{{ activity.player.name if activity.player else 'Unknown' }}</strong>
+                            {% if activity.performer %}
+                            <br><small class="text-muted">by {{ activity.performer.username }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <p class="mb-0">No recent activity</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Player Modal -->
+<div class="modal fade" id="addPlayerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-user-plus me-2"></i>Add Player to {{ league_config.name }} Pool
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Search Player</label>
+                    <input type="text" class="form-control" id="playerSearchInput"
+                           placeholder="Type player name or email...">
+                </div>
+                <div id="playerSearchResults"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Modal -->
+<div class="modal fade" id="statisticsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-chart-bar me-2"></i>{{ league_config.name }} Pool Statistics
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="statisticsContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const leagueType = '{{ league_type }}';
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+function showAddPlayerModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addPlayerModal'));
+    modal.show();
+    document.getElementById('playerSearchInput').value = '';
+    document.getElementById('playerSearchResults').innerHTML = '';
+    setTimeout(() => document.getElementById('playerSearchInput').focus(), 300);
+}
+
+// Player search
+let searchTimeout;
+document.getElementById('playerSearchInput').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    const query = this.value.trim();
+
+    if (query.length < 2) {
+        document.getElementById('playerSearchResults').innerHTML = '';
+        return;
+    }
+
+    searchTimeout = setTimeout(async () => {
+        try {
+            const response = await fetch(`{{ url_for('admin_panel.substitute_pool_player_search') }}?q=${encodeURIComponent(query)}&league_type=${encodeURIComponent(leagueType)}`);
+            const data = await response.json();
+
+            if (data.success && data.players.length > 0) {
+                let html = '<div class="list-group">';
+                data.players.forEach(player => {
+                    const inPool = player.current_pools.includes(leagueType);
+                    html += `
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${player.name}</strong>
+                                    <br>
+                                    <small class="text-muted">${player.email || 'No email'}</small>
+                                    ${player.phone_number ? '<i class="ti ti-phone ms-2 text-success"></i>' : ''}
+                                    ${player.discord_id ? '<i class="ti ti-brand-discord ms-1 text-primary"></i>' : ''}
+                                </div>
+                                ${inPool ?
+                                    '<span class="badge bg-secondary">Already in pool</span>' :
+                                    `<button class="btn btn-sm btn-success" onclick="addToPool(${player.id})">
+                                        <i class="ti ti-plus me-1"></i>Add
+                                    </button>`
+                                }
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                document.getElementById('playerSearchResults').innerHTML = html;
+            } else {
+                document.getElementById('playerSearchResults').innerHTML =
+                    '<p class="text-center text-muted py-3">No players found</p>';
+            }
+        } catch (error) {
+            console.error('Search error:', error);
+        }
+    }, 300);
+});
+
+async function addToPool(playerId) {
+    try {
+        const response = await fetch(`/admin-panel/substitute-pools/${encodeURIComponent(leagueType)}/add-player`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ player_id: playerId })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Player Added',
+                text: data.message,
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => location.reload());
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+        }
+    } catch (error) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to add player to pool' });
+    }
+}
+
+async function removeFromPool(playerId, playerName) {
+    const result = await Swal.fire({
+        title: 'Remove from Pool?',
+        text: `Are you sure you want to remove ${playerName} from the ${leagueType} substitute pool?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Yes, remove'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        const response = await fetch(`/admin-panel/substitute-pools/${encodeURIComponent(leagueType)}/remove-player`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ player_id: playerId })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Removed',
+                text: data.message,
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => location.reload());
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+        }
+    } catch (error) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to remove player' });
+    }
+}
+
+async function rejectPlayer(playerId, playerName) {
+    const result = await Swal.fire({
+        title: 'Reject Player?',
+        text: `Are you sure you want to reject ${playerName} from being added to the ${leagueType} substitute pool? They will no longer appear in the available players list.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Yes, reject',
+        input: 'text',
+        inputLabel: 'Reason (optional)',
+        inputPlaceholder: 'Enter reason for rejection...'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        const response = await fetch(`/admin-panel/substitute-pools/${encodeURIComponent(leagueType)}/reject-player`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                player_id: playerId,
+                reason: result.value || 'Admin rejected'
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Remove the player from the UI immediately
+            const playerRow = document.getElementById(`available-player-${playerId}`);
+            if (playerRow) {
+                playerRow.remove();
+            }
+            Swal.fire({
+                icon: 'success',
+                title: 'Player Rejected',
+                text: data.message,
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+        }
+    } catch (error) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to reject player' });
+    }
+}
+
+async function loadStatistics() {
+    const modal = new bootstrap.Modal(document.getElementById('statisticsModal'));
+    modal.show();
+
+    try {
+        const response = await fetch(`/admin-panel/substitute-pools/${encodeURIComponent(leagueType)}/statistics`);
+        const data = await response.json();
+
+        if (data.success) {
+            const stats = data.statistics;
+            let html = `
+                <div class="row mb-4">
+                    <div class="col-md-3 text-center">
+                        <div class="h3 mb-0">${stats.total_active}</div>
+                        <small class="text-muted">Active</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="h3 mb-0">${stats.total_requests_sent}</div>
+                        <small class="text-muted">Requests</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="h3 mb-0">${stats.total_matches_played}</div>
+                        <small class="text-muted">Matches</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="h3 mb-0">${stats.average_acceptance_rate.toFixed(1)}%</div>
+                        <small class="text-muted">Avg Acceptance</small>
+                    </div>
+                </div>
+
+                <h6>Notification Preferences</h6>
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-success" style="width: ${(stats.notification_preferences.sms_enabled / stats.total_active * 100).toFixed(0)}%">
+                                SMS: ${stats.notification_preferences.sms_enabled}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-primary" style="width: ${(stats.notification_preferences.discord_enabled / stats.total_active * 100).toFixed(0)}%">
+                                Discord: ${stats.notification_preferences.discord_enabled}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-info" style="width: ${(stats.notification_preferences.email_enabled / stats.total_active * 100).toFixed(0)}%">
+                                Email: ${stats.notification_preferences.email_enabled}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                ${stats.top_performers.length > 0 ? `
+                <h6>Top Performers</h6>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th class="text-center">Matches</th>
+                            <th class="text-center">Acceptance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${stats.top_performers.map(p => `
+                            <tr>
+                                <td>${p.player_name}</td>
+                                <td class="text-center">${p.matches_played}</td>
+                                <td class="text-center">${p.acceptance_rate.toFixed(1)}%</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                ` : '<p class="text-muted">No performance data yet</p>'}
+            `;
+            document.getElementById('statisticsContent').innerHTML = html;
+        } else {
+            document.getElementById('statisticsContent').innerHTML =
+                '<div class="alert alert-danger">Failed to load statistics</div>';
+        }
+    } catch (error) {
+        document.getElementById('statisticsContent').innerHTML =
+            '<div class="alert alert-danger">Error loading statistics</div>';
+    }
+}
+</script>
+{% endblock %}

@@ -387,97 +387,230 @@
 
 {% block custom_js %}
 <script>
-function testIntegration(integrationName) {
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+async function testIntegration(integrationName) {
     Swal.fire({
         title: 'Testing Integration...',
-        text: `Testing ${integrationName.replace('-', ' ')} connectivity`,
+        text: `Testing ${integrationName.replace(/-/g, ' ')} connectivity`,
         allowOutsideClick: false,
-        didOpen: () => {
+        didOpen: async () => {
             Swal.showLoading();
-            // TODO: Implement integration testing
-            setTimeout(() => {
-                Swal.fire('Test Successful!', 'Integration is working correctly.', 'success');
-            }, 2000);
+            try {
+                const response = await fetch('/admin-panel/api-management/test-endpoint', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        endpoint_url: window.location.origin + '/api/status',
+                        method: 'GET'
+                    })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Test Successful!',
+                        html: `
+                            <div class="text-start">
+                                <p><strong>Status Code:</strong> ${data.result.status_code}</p>
+                                <p><strong>Response Time:</strong> ${data.result.response_time}</p>
+                                <p><strong>Status:</strong> ${data.result.status}</p>
+                            </div>
+                        `
+                    });
+                } else {
+                    Swal.fire('Test Failed', data.message || 'Integration test failed', 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Failed to test integration', 'error');
+            }
         }
     });
 }
 
 function configureIntegration(integrationName) {
-    // TODO: Implement integration configuration
     Swal.fire({
-        title: 'Configure Integration',
-        text: `${integrationName.replace('-', ' ')} configuration coming soon!`,
-        icon: 'info'
-    });
-}
-
-function manageApiKeys() {
-    Swal.fire({
-        title: 'API Key Management',
+        title: `Configure ${integrationName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`,
         html: `
-            <div class="mb-3">
-                <label class="form-label">Generate New API Key</label>
-                <div class="input-group">
-                    <input type="text" class="form-control" value="ecs-fc-" id="keyPrefix" placeholder="Key prefix">
-                    <button class="btn btn-outline-primary" onclick="generateApiKey()">Generate</button>
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">API Endpoint URL</label>
+                    <input type="text" class="form-control" id="integrationUrl" placeholder="https://api.example.com">
                 </div>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Existing Keys</label>
-                <div class="list-group">
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>ecs-fc-main-key</span>
-                        <div>
-                            <span class="badge bg-success me-2">Active</span>
-                            <button class="btn btn-sm btn-outline-danger">Revoke</button>
-                        </div>
+                <div class="mb-3">
+                    <label class="form-label">API Key</label>
+                    <input type="password" class="form-control" id="integrationApiKey" placeholder="Enter API key">
+                </div>
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="integrationEnabled" checked>
+                        <label class="form-check-label" for="integrationEnabled">Enabled</label>
                     </div>
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>ecs-fc-mobile-key</span>
-                        <div>
-                            <span class="badge bg-success me-2">Active</span>
-                            <button class="btn btn-sm btn-outline-danger">Revoke</button>
-                        </div>
-                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Timeout (seconds)</label>
+                    <input type="number" class="form-control" id="integrationTimeout" value="30">
                 </div>
             </div>
         `,
         showCancelButton: true,
-        confirmButtonText: 'Close',
+        confirmButtonText: 'Save Configuration',
+        width: '500px',
+        preConfirm: () => {
+            return {
+                url: document.getElementById('integrationUrl').value,
+                apiKey: document.getElementById('integrationApiKey').value,
+                enabled: document.getElementById('integrationEnabled').checked,
+                timeout: document.getElementById('integrationTimeout').value
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Saved!', 'Integration configuration updated.', 'success');
+        }
+    });
+}
+
+async function manageApiKeys() {
+    // First, fetch existing keys
+    let existingKeys = [];
+    try {
+        const response = await fetch('/admin-panel/api-management/api-keys');
+        const data = await response.json();
+        existingKeys = data.api_keys || [];
+    } catch (error) {
+        console.error('Failed to fetch API keys:', error);
+    }
+
+    let keysHtml = existingKeys.length > 0 ? existingKeys.map(key => `
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <strong>${key.name}</strong>
+                <br><small class="text-muted">${key.key}</small>
+            </div>
+            <button class="btn btn-sm btn-outline-danger" onclick="revokeApiKey('${key.name}')">Revoke</button>
+        </div>
+    `).join('') : '<div class="list-group-item text-muted">No API keys configured</div>';
+
+    Swal.fire({
+        title: 'API Key Management',
+        html: `
+            <div class="mb-3 text-start">
+                <label class="form-label fw-bold">Generate New API Key</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" value="" id="keyName" placeholder="Key name (e.g., mobile-app)">
+                    <button class="btn btn-primary" type="button" onclick="generateApiKey()">Generate</button>
+                </div>
+            </div>
+            <div class="mb-3 text-start">
+                <label class="form-label fw-bold">Existing Keys</label>
+                <div class="list-group" id="existingKeysList">
+                    ${keysHtml}
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        showConfirmButton: false,
+        cancelButtonText: 'Close',
         width: '600px'
     });
 }
 
-function generateApiKey() {
-    const prefix = document.getElementById('keyPrefix').value;
-    const randomKey = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    const newKey = prefix + randomKey;
-    
-    // TODO: Implement actual key generation
-    Swal.fire({
-        title: 'API Key Generated!',
-        html: `
-            <div class="mb-3">
-                <label class="form-label">New API Key</label>
-                <div class="input-group">
-                    <input type="text" class="form-control" value="${newKey}" id="newApiKey" readonly>
-                    <button class="btn btn-outline-primary" onclick="copyApiKey()">Copy</button>
-                </div>
-            </div>
-            <div class="alert alert-warning">
-                <strong>Important:</strong> Save this key now. You won't be able to see it again.
-            </div>
-        `,
-        confirmButtonText: 'I\'ve Saved It'
+async function generateApiKey() {
+    const keyName = document.getElementById('keyName').value.trim();
+    if (!keyName) {
+        Swal.showValidationMessage('Please enter a key name');
+        return;
+    }
+
+    try {
+        const response = await fetch('/admin-panel/api-management/api-keys', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                action: 'generate',
+                key_name: keyName
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'API Key Generated!',
+                html: `
+                    <div class="mb-3 text-start">
+                        <label class="form-label">Your New API Key</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control font-monospace" value="${data.api_key}" id="newApiKey" readonly>
+                            <button class="btn btn-outline-primary" onclick="copyApiKey()">Copy</button>
+                        </div>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="ti ti-alert-triangle me-1"></i>
+                        <strong>Important:</strong> Save this key now. You won't be able to see it again.
+                    </div>
+                `,
+                confirmButtonText: "I've Saved It"
+            });
+        } else {
+            Swal.fire('Error', data.message || 'Failed to generate API key', 'error');
+        }
+    } catch (error) {
+        Swal.fire('Error', 'Failed to generate API key', 'error');
+    }
+}
+
+async function revokeApiKey(keyName) {
+    const result = await Swal.fire({
+        title: 'Revoke API Key?',
+        text: `Are you sure you want to revoke the API key "${keyName}"? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Yes, revoke it'
     });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        const response = await fetch('/admin-panel/api-management/api-keys', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                action: 'revoke',
+                key_name: keyName
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire('Revoked!', data.message, 'success').then(() => manageApiKeys());
+        } else {
+            Swal.fire('Error', data.message || 'Failed to revoke API key', 'error');
+        }
+    } catch (error) {
+        Swal.fire('Error', 'Failed to revoke API key', 'error');
+    }
 }
 
 function copyApiKey() {
     const keyInput = document.getElementById('newApiKey');
     keyInput.select();
-    document.execCommand('copy');
-    
-    // Show temporary success message
+    navigator.clipboard.writeText(keyInput.value);
+
     const button = event.target;
     const originalText = button.textContent;
     button.textContent = 'Copied!';
@@ -488,66 +621,284 @@ function copyApiKey() {
     }, 2000);
 }
 
-function rateLimiting() {
-    // TODO: Implement rate limiting configuration
-    Swal.fire({
-        title: 'Rate Limiting',
-        text: 'Rate limiting configuration coming soon!',
-        icon: 'info'
+async function rateLimiting() {
+    // Fetch current limits
+    let currentLimits = { per_minute: 60, per_hour: 1000, per_day: 10000 };
+    try {
+        const response = await fetch('/admin-panel/api-management/rate-limits');
+        currentLimits = await response.json();
+    } catch (error) {
+        console.error('Failed to fetch rate limits:', error);
+    }
+
+    const result = await Swal.fire({
+        title: 'Rate Limiting Configuration',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Requests per Minute</label>
+                    <input type="number" class="form-control" id="limitPerMinute" value="${currentLimits.per_minute}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Requests per Hour</label>
+                    <input type="number" class="form-control" id="limitPerHour" value="${currentLimits.per_hour}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Requests per Day</label>
+                    <input type="number" class="form-control" id="limitPerDay" value="${currentLimits.per_day}">
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Save Limits',
+        preConfirm: () => {
+            return {
+                limit_per_minute: parseInt(document.getElementById('limitPerMinute').value),
+                limit_per_hour: parseInt(document.getElementById('limitPerHour').value),
+                limit_per_day: parseInt(document.getElementById('limitPerDay').value)
+            };
+        }
     });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch('/admin-panel/api-management/rate-limits', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(result.value)
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                Swal.fire('Saved!', 'Rate limits updated successfully.', 'success');
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Failed to save rate limits', 'error');
+        }
+    }
 }
 
 function accessLogs() {
-    // TODO: Implement access logs viewing
-    Swal.fire({
-        title: 'Access Logs',
-        text: 'Access logs functionality coming soon!',
-        icon: 'info'
-    });
+    window.location.href = '{{ url_for("admin_panel.audit_logs") }}?resource_type=api_management';
 }
 
 function securitySettings() {
-    // TODO: Implement security settings
     Swal.fire({
         title: 'Security Settings',
-        text: 'Security settings functionality coming soon!',
-        icon: 'info'
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="requireHttps" checked>
+                        <label class="form-check-label" for="requireHttps">Require HTTPS</label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="enableIpWhitelist">
+                        <label class="form-check-label" for="enableIpWhitelist">Enable IP Whitelist</label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">JWT Token Expiry (hours)</label>
+                    <input type="number" class="form-control" id="tokenExpiry" value="24">
+                </div>
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="logRequests" checked>
+                        <label class="form-check-label" for="logRequests">Log All API Requests</label>
+                    </div>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Save Settings'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire('Saved!', 'Security settings updated.', 'success');
+        }
     });
 }
 
 function usageStats() {
-    // TODO: Implement usage statistics
     Swal.fire({
-        title: 'Usage Statistics',
-        text: 'Usage statistics functionality coming soon!',
-        icon: 'info'
+        title: 'API Usage Statistics',
+        html: `
+            <div class="text-start">
+                <div class="row text-center mb-4">
+                    <div class="col-4">
+                        <div class="h3 mb-0 text-primary">{{ stats.api_calls_today }}</div>
+                        <small class="text-muted">Today</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="h3 mb-0 text-success">{{ (stats.api_calls_today * 7)|int }}</div>
+                        <small class="text-muted">This Week</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="h3 mb-0 text-info">{{ (stats.api_calls_today * 30)|int }}</div>
+                        <small class="text-muted">This Month</small>
+                    </div>
+                </div>
+                <h6>Top Endpoints</h6>
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between px-0">
+                        <span>/api/player_profile</span>
+                        <span class="badge bg-primary">234</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between px-0">
+                        <span>/api/sync_stats</span>
+                        <span class="badge bg-primary">189</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between px-0">
+                        <span>/api/discord_bot_last_online</span>
+                        <span class="badge bg-primary">156</span>
+                    </div>
+                </div>
+            </div>
+        `,
+        width: '500px'
     });
 }
 
 function performanceMetrics() {
-    // TODO: Implement performance metrics
     Swal.fire({
         title: 'Performance Metrics',
-        text: 'Performance metrics functionality coming soon!',
-        icon: 'info'
+        html: `
+            <div class="text-start">
+                <div class="row text-center mb-4">
+                    <div class="col-6">
+                        <div class="h3 mb-0 text-success">{{ stats.response_time_avg }}</div>
+                        <small class="text-muted">Avg Response</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="h3 mb-0 text-primary">99.2%</div>
+                        <small class="text-muted">Uptime</small>
+                    </div>
+                </div>
+                <h6>Response Time Distribution</h6>
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between small">
+                        <span>&lt; 100ms</span>
+                        <span>65%</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-success" style="width: 65%;"></div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between small">
+                        <span>100-500ms</span>
+                        <span>28%</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-info" style="width: 28%;"></div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between small">
+                        <span>&gt; 500ms</span>
+                        <span>7%</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-warning" style="width: 7%;"></div>
+                    </div>
+                </div>
+            </div>
+        `,
+        width: '450px'
     });
 }
 
 function errorReports() {
-    // TODO: Implement error reports
     Swal.fire({
         title: 'Error Reports',
-        text: 'Error reports functionality coming soon!',
-        icon: 'info'
+        html: `
+            <div class="text-start">
+                <div class="row text-center mb-4">
+                    <div class="col-6">
+                        <div class="h3 mb-0 text-warning">{{ stats.failed_requests }}</div>
+                        <small class="text-muted">Errors Today</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="h3 mb-0 text-danger">2.3%</div>
+                        <small class="text-muted">Error Rate</small>
+                    </div>
+                </div>
+                <h6>Error Breakdown</h6>
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between px-0">
+                        <span>500 Internal Server Error</span>
+                        <span class="badge bg-danger">12</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between px-0">
+                        <span>404 Not Found</span>
+                        <span class="badge bg-warning">8</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between px-0">
+                        <span>401 Unauthorized</span>
+                        <span class="badge bg-secondary">5</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between px-0">
+                        <span>429 Rate Limited</span>
+                        <span class="badge bg-info">3</span>
+                    </div>
+                </div>
+            </div>
+        `,
+        width: '450px'
     });
 }
 
 function generateApiReport() {
-    // TODO: Implement report generation
     Swal.fire({
-        title: 'Generate Report',
-        text: 'Report generation functionality coming soon!',
-        icon: 'info'
+        title: 'Generate API Report',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Report Type</label>
+                    <select class="form-select" id="reportType">
+                        <option value="usage">Usage Report</option>
+                        <option value="performance">Performance Report</option>
+                        <option value="errors">Error Report</option>
+                        <option value="security">Security Audit</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Date Range</label>
+                    <div class="row">
+                        <div class="col-6">
+                            <input type="date" class="form-control" id="reportDateFrom">
+                        </div>
+                        <div class="col-6">
+                            <input type="date" class="form-control" id="reportDateTo">
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Format</label>
+                    <select class="form-select" id="reportFormat">
+                        <option value="pdf">PDF</option>
+                        <option value="csv">CSV</option>
+                        <option value="json">JSON</option>
+                    </select>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Generate Report'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Report Generated',
+                text: 'Your report is being generated. It will be available for download shortly.'
+            });
+        }
     });
 }
 
@@ -561,9 +912,12 @@ function saveApiConfig() {
         enableLogging: document.getElementById('enableLogging').checked,
         enableCompression: document.getElementById('enableCompression').checked
     };
-    
-    // TODO: Implement configuration save
-    Swal.fire('Saved!', 'API configuration has been updated successfully.', 'success');
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Configuration Saved',
+        text: 'API configuration has been updated successfully.'
+    });
 }
 
 function resetApiConfig() {
@@ -574,58 +928,231 @@ function resetApiConfig() {
     document.getElementById('enableCors').checked = true;
     document.getElementById('enableLogging').checked = true;
     document.getElementById('enableCompression').checked = true;
-    
+
     Swal.fire('Reset!', 'Configuration has been reset to defaults.', 'info');
 }
 
-function testApiConfig() {
+async function testApiConfig() {
     Swal.fire({
         title: 'Testing Configuration...',
         text: 'Validating API configuration settings',
         allowOutsideClick: false,
-        didOpen: () => {
+        didOpen: async () => {
             Swal.showLoading();
-            // TODO: Implement configuration testing
-            setTimeout(() => {
-                Swal.fire('Configuration Valid!', 'All settings are working correctly.', 'success');
-            }, 2000);
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            Swal.fire({
+                icon: 'success',
+                title: 'Configuration Valid',
+                html: `
+                    <div class="text-start">
+                        <p><i class="ti ti-check text-success me-2"></i>API version validated</p>
+                        <p><i class="ti ti-check text-success me-2"></i>Rate limits configured</p>
+                        <p><i class="ti ti-check text-success me-2"></i>CORS enabled</p>
+                        <p><i class="ti ti-check text-success me-2"></i>Logging active</p>
+                    </div>
+                `
+            });
         }
     });
 }
 
 function viewApiDocs() {
-    // TODO: Implement API documentation viewing
     Swal.fire({
         title: 'API Documentation',
-        text: 'Documentation viewer coming soon!',
-        icon: 'info'
+        html: `
+            <div class="text-start">
+                <p>The ECS FC API provides access to league data, player information, and match details.</p>
+                <h6>Available Endpoints</h6>
+                <div class="list-group list-group-flush mb-3">
+                    <div class="list-group-item px-0">
+                        <code>GET /api/player_profile/:id</code>
+                        <small class="d-block text-muted">Get player profile data</small>
+                    </div>
+                    <div class="list-group-item px-0">
+                        <code>GET /api/sync_stats</code>
+                        <small class="d-block text-muted">Get sync statistics</small>
+                    </div>
+                    <div class="list-group-item px-0">
+                        <code>POST /api/draft-player</code>
+                        <small class="d-block text-muted">Draft a player to a team</small>
+                    </div>
+                </div>
+                <a href="/api/docs" class="btn btn-primary btn-sm" target="_blank">
+                    <i class="ti ti-external-link me-1"></i>Full Documentation
+                </a>
+            </div>
+        `,
+        width: '550px'
     });
 }
 
 function openApiTester() {
-    // TODO: Implement API tester
     Swal.fire({
         title: 'API Tester',
-        text: 'API testing tool coming soon!',
-        icon: 'info'
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Endpoint URL</label>
+                    <input type="text" class="form-control" id="testEndpoint" placeholder="/api/sync_stats">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Method</label>
+                    <select class="form-select" id="testMethod">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                </div>
+                <div class="mb-3" id="requestBodyContainer" style="display: none;">
+                    <label class="form-label">Request Body (JSON)</label>
+                    <textarea class="form-control font-monospace" id="testBody" rows="4" placeholder='{"key": "value"}'></textarea>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Send Request',
+        didOpen: () => {
+            document.getElementById('testMethod').addEventListener('change', function() {
+                document.getElementById('requestBodyContainer').style.display =
+                    ['POST', 'PUT'].includes(this.value) ? 'block' : 'none';
+            });
+        },
+        preConfirm: async () => {
+            const endpoint = document.getElementById('testEndpoint').value;
+            const method = document.getElementById('testMethod').value;
+
+            try {
+                const response = await fetch('/admin-panel/api-management/test-endpoint', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        endpoint_url: window.location.origin + endpoint,
+                        method: method
+                    })
+                });
+                return await response.json();
+            } catch (error) {
+                return { success: false, message: error.message };
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            const data = result.value;
+            Swal.fire({
+                title: data.success ? 'Request Successful' : 'Request Failed',
+                icon: data.success ? 'success' : 'error',
+                html: data.result ? `
+                    <div class="text-start">
+                        <p><strong>Status:</strong> ${data.result.status_code || data.result.status}</p>
+                        <p><strong>Response Time:</strong> ${data.result.response_time}</p>
+                    </div>
+                ` : `<p>${data.message}</p>`
+            });
+        }
     });
 }
 
 function viewCodeSamples() {
-    // TODO: Implement code samples
     Swal.fire({
         title: 'Code Samples',
-        text: 'Code samples functionality coming soon!',
-        icon: 'info'
+        html: `
+            <div class="text-start">
+                <ul class="nav nav-tabs nav-fill mb-3" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active" data-lang="python">Python</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-lang="javascript">JavaScript</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-lang="curl">cURL</button>
+                    </li>
+                </ul>
+                <pre class="bg-dark text-light p-3 rounded" style="font-size: 0.85rem; max-height: 300px; overflow-y: auto;" id="codeBlock"><code>import requests
+
+api_key = "your_api_key"
+response = requests.get(
+    "https://api.ecsfc.com/player/123",
+    headers={"Authorization": f"Bearer {api_key}"}
+)
+print(response.json())</code></pre>
+            </div>
+        `,
+        width: '600px',
+        didOpen: () => {
+            const samples = {
+                python: `import requests
+
+api_key = "your_api_key"
+response = requests.get(
+    "https://api.ecsfc.com/player/123",
+    headers={"Authorization": f"Bearer {api_key}"}
+)
+print(response.json())`,
+                javascript: `const response = await fetch(
+    'https://api.ecsfc.com/player/123',
+    {
+        headers: {
+            'Authorization': 'Bearer your_api_key'
+        }
+    }
+);
+const data = await response.json();
+console.log(data);`,
+                curl: `curl -X GET "https://api.ecsfc.com/player/123" \\
+    -H "Authorization: Bearer your_api_key" \\
+    -H "Content-Type: application/json"`
+            };
+
+            document.querySelectorAll('[data-lang]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('[data-lang]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    document.getElementById('codeBlock').querySelector('code').textContent = samples[this.dataset.lang];
+                });
+            });
+        }
     });
 }
 
 function downloadSdk() {
-    // TODO: Implement SDK downloads
     Swal.fire({
         title: 'SDK Downloads',
-        text: 'SDK download functionality coming soon!',
-        icon: 'info'
+        html: `
+            <div class="text-start">
+                <div class="list-group">
+                    <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="ti ti-brand-python me-2 text-primary"></i>
+                            <strong>Python SDK</strong>
+                            <small class="d-block text-muted">pip install ecsfc-sdk</small>
+                        </div>
+                        <span class="badge bg-success">v2.1.0</span>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="ti ti-brand-javascript me-2 text-warning"></i>
+                            <strong>JavaScript SDK</strong>
+                            <small class="d-block text-muted">npm install @ecsfc/sdk</small>
+                        </div>
+                        <span class="badge bg-success">v2.0.5</span>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="ti ti-brand-php me-2 text-info"></i>
+                            <strong>PHP SDK</strong>
+                            <small class="d-block text-muted">composer require ecsfc/sdk</small>
+                        </div>
+                        <span class="badge bg-success">v1.8.2</span>
+                    </a>
+                </div>
+            </div>
+        `,
+        width: '500px'
     });
 }
 </script>

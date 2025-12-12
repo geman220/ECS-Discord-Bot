@@ -121,6 +121,87 @@ def mls_overview():
                              error=str(e))
 
 
+@admin_panel_bp.route('/mls/live-reporting')
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def live_reporting_dashboard():
+    """
+    Live Reporting Dashboard - Real-time service monitoring and control.
+
+    Provides system status, active sessions, and recent activity for the
+    ESPN-based live reporting system.
+    """
+    session = g.db_session
+    try:
+        from app.models import LiveReportingSession
+        from app.services.realtime_bridge_service import check_realtime_health, get_coordination_status
+
+        now = datetime.now(pytz.UTC)
+
+        # Get system status
+        realtime_health = check_realtime_health()
+        coordination_status = get_coordination_status()
+
+        # Get active sessions
+        active_sessions = session.query(LiveReportingSession).filter_by(is_active=True).all()
+
+        # Get recent sessions (last 24 hours)
+        recent_cutoff = now - timedelta(hours=24)
+        recent_sessions = session.query(LiveReportingSession).filter(
+            LiveReportingSession.started_at >= recent_cutoff
+        ).order_by(LiveReportingSession.started_at.desc()).limit(20).all()
+
+        # Get upcoming matches for the next 14 days
+        upcoming_matches = session.query(MLSMatch).filter(
+            MLSMatch.date_time > now,
+            MLSMatch.date_time < now + timedelta(days=14)
+        ).order_by(MLSMatch.date_time).limit(10).all()
+
+        # Add status info to matches
+        for match in upcoming_matches:
+            match.status_color = get_status_color(match.live_reporting_status)
+            match.status_icon = get_status_icon(match.live_reporting_status)
+            match.status_display = get_status_display(match.live_reporting_status)
+
+        # Statistics
+        stats = {
+            'active_sessions': len(active_sessions),
+            'recent_sessions': len(recent_sessions),
+            'upcoming_matches': len(upcoming_matches),
+            'service_status': realtime_health.get('health', 'unknown')
+        }
+
+        # Log the access
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='access_live_reporting_dashboard',
+            resource_type='mls',
+            resource_id='live_reporting',
+            new_value='Accessed live reporting dashboard',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return render_template('admin_panel/mls/live_reporting_dashboard.html',
+                             realtime_health=realtime_health,
+                             coordination_status=coordination_status,
+                             active_sessions=active_sessions,
+                             recent_sessions=recent_sessions,
+                             upcoming_matches=upcoming_matches,
+                             stats=stats)
+
+    except Exception as e:
+        logger.error(f"Error loading live reporting dashboard: {e}")
+        return render_template('admin_panel/mls/live_reporting_dashboard.html',
+                             realtime_health={'health': 'unknown', 'heartbeat_age_seconds': None},
+                             coordination_status={},
+                             active_sessions=[],
+                             recent_sessions=[],
+                             upcoming_matches=[],
+                             stats={'active_sessions': 0, 'recent_sessions': 0, 'upcoming_matches': 0, 'service_status': 'error'},
+                             error=str(e))
+
+
 @admin_panel_bp.route('/mls/matches')
 @login_required
 @role_required(['Global Admin', 'Discord Admin', 'Pub League Admin'])

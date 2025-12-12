@@ -25,89 +25,73 @@ from app.utils.user_helpers import safe_current_user
 logger = logging.getLogger(__name__)
 
 # Track which users are in which match rooms for efficient broadcasting
-match_room_users = {}  # {match_id: {user_id: {username, player_name, team_id}}}
+# Structure: {match_id: {user_id: {username, player_name, team_id, sid, joined_at}}}
+match_room_users = {}
+
+# Reverse mapping for efficient cleanup on disconnect: {sid: [(match_id, user_id), ...]}
+_sid_to_match_users = {}
+
+# TTL for room tracking entries (2 hours) - prevents memory leak from stale entries
+_ROOM_USER_TTL = 7200
+# Max entries per match
+_MAX_USERS_PER_MATCH = 500
+# Cleanup interval counter
+_room_cleanup_counter = 0
+_ROOM_CLEANUP_INTERVAL = 100
 
 
-def update_discord_embed_async(match_id, player_id, availability, player_name):
-    """
-    Background task to update Discord embed when RSVP changes from other platforms.
-    
-    This provides true cross-platform real-time sync by updating Discord embeds
-    immediately when someone changes their RSVP on mobile/web.
-    """
-    try:
-        import requests
-        import os
-        from datetime import datetime
-        
-        # Find the Discord messages to update (both home and away teams)
-        with managed_session() as session:
-            match = session.query(Match).get(match_id)
-            if not match:
-                logger.debug(f"Match {match_id} not found - skipping embed update")
-                return
-            
-            # Check if we have Discord message info for this match
-            updates_to_make = []
-            
-            if match.home_team_message_id and match.home_team_channel_id:
-                updates_to_make.append({
-                    'message_id': match.home_team_message_id,
-                    'channel_id': match.home_team_channel_id,
-                    'team_type': 'home'
-                })
-            
-            if match.away_team_message_id and match.away_team_channel_id:
-                updates_to_make.append({
-                    'message_id': match.away_team_message_id,
-                    'channel_id': match.away_team_channel_id,
-                    'team_type': 'away'
-                })
-            
-            if not updates_to_make:
-                logger.debug(f"No Discord message/channel info for match {match_id} - skipping embed update")
-                return
-        
-        # Call Discord bot's embed update endpoint for each team
-        bot_base_url = os.getenv('DISCORD_BOT_BASE_URL', 'http://localhost:5001')
-        update_url = f"{bot_base_url}/api/update_embed"
-        
-        success_count = 0
-        for update_info in updates_to_make:
-            try:
-                payload = {
-                    'match_id': match_id,
-                    'channel_id': int(update_info['channel_id']),
-                    'message_id': int(update_info['message_id']),
-                    'trigger_source': 'flask_websocket',
-                    'player_change': {
-                        'player_id': player_id,
-                        'player_name': player_name,
-                        'new_availability': availability,
-                        'timestamp': datetime.utcnow().isoformat()
-                    }
-                }
-                
-                # Make call to Discord bot (with short timeout to avoid blocking)
-                response = requests.post(update_url, json=payload, timeout=2)
-                
-                if response.status_code == 200:
-                    success_count += 1
-                    logger.debug(f"✅ Discord embed updated for {update_info['team_type']} team (match {match_id})")
-                else:
-                    logger.warning(f"Discord embed update failed for {update_info['team_type']} team: {response.status_code}")
-                    
-            except Exception as embed_error:
-                logger.warning(f"Error updating Discord embed for {update_info['team_type']} team: {embed_error}")
-        
-        if success_count > 0:
-            logger.info(f"✅ Updated {success_count}/{len(updates_to_make)} Discord embeds for match {match_id} (player: {player_name} -> {availability})")
-        else:
-            logger.warning(f"❌ Failed to update any Discord embeds for match {match_id}")
-            
-    except Exception as e:
-        # Don't fail the WebSocket emission if Discord update fails
-        logger.warning(f"Discord embed update failed for match {match_id}: {e}")
+def _cleanup_stale_room_users():
+    """Remove room user entries that are older than TTL."""
+    import time
+    current_time = time.time()
+    stale_entries = []
+
+    for match_id, users in list(match_room_users.items()):
+        for user_id, user_data in list(users.items()):
+            joined_at = user_data.get('joined_at_timestamp', 0)
+            if current_time - joined_at > _ROOM_USER_TTL:
+                stale_entries.append((match_id, user_id, user_data.get('sid')))
+
+    for match_id, user_id, sid in stale_entries:
+        _remove_user_from_room(match_id, user_id, sid)
+
+    if stale_entries:
+        logger.info(f"Cleaned up {len(stale_entries)} stale room user entries")
+
+
+def _remove_user_from_room(match_id, user_id, sid=None):
+    """Remove a user from room tracking."""
+    if match_id in match_room_users and user_id in match_room_users[match_id]:
+        del match_room_users[match_id][user_id]
+        if not match_room_users[match_id]:
+            del match_room_users[match_id]
+
+    # Also clean up reverse mapping
+    if sid and sid in _sid_to_match_users:
+        _sid_to_match_users[sid] = [
+            (m, u) for m, u in _sid_to_match_users[sid]
+            if not (m == match_id and u == user_id)
+        ]
+        if not _sid_to_match_users[sid]:
+            del _sid_to_match_users[sid]
+
+
+def cleanup_room_users_for_sid(sid):
+    """Clean up all room user entries for a disconnected socket."""
+    if sid not in _sid_to_match_users:
+        return []
+
+    cleaned_entries = []
+    for match_id, user_id in _sid_to_match_users[sid]:
+        if match_id in match_room_users and user_id in match_room_users[match_id]:
+            player_name = match_room_users[match_id][user_id].get('player_name', 'Unknown')
+            cleaned_entries.append((match_id, user_id, player_name))
+            del match_room_users[match_id][user_id]
+            if not match_room_users[match_id]:
+                del match_room_users[match_id]
+
+    del _sid_to_match_users[sid]
+    return cleaned_entries
 
 
 def emit_rsvp_update(match_id, player_id, availability, source='system', player_name=None, team_id=None):
@@ -165,13 +149,14 @@ def emit_rsvp_update(match_id, player_id, availability, source='system', player_
         logger.debug(f"📤 Emitted RSVP update to rooms {room_with_underscore} & {room_without_underscore}: {player_name} -> {availability} (source: {source})")
         
         # CROSS-PLATFORM SYNC: Trigger Discord embed update for non-Discord sources
+        # Use Celery task instead of background greenlet to avoid blocking the eventlet event loop
         if source != 'discord':
             try:
-                # Use background task to avoid blocking WebSocket emission
-                socketio.start_background_task(update_discord_embed_async, match_id, player_id, availability, player_name)
-                logger.debug(f"🔄 Triggered Discord embed update for match {match_id} (source: {source})")
+                from app.tasks.tasks_rsvp import update_discord_embed_task
+                update_discord_embed_task.delay(match_id, player_id, availability, player_name)
+                logger.debug(f"🔄 Queued Discord embed update task for match {match_id} (source: {source})")
             except Exception as e:
-                logger.warning(f"Failed to trigger Discord embed update: {e}")
+                logger.warning(f"Failed to queue Discord embed update task: {e}")
         
         # Skip summary emission for real-time performance - clients can calculate locally
         # emit_rsvp_summary(match_id)  # Commented out for speed
@@ -289,17 +274,34 @@ def handle_join_match_rsvp(data):
             player_name = player.name if player else username
             player_id = player.id if player else None
             
-            # Track user in room
+            # Track user in room with SID for disconnect cleanup
+            import time
+            global _room_cleanup_counter
+
+            sid = request.sid
             if match_id not in match_room_users:
                 match_room_users[match_id] = {}
-            
+
             match_room_users[match_id][user_id] = {
                 'username': username,
                 'player_name': player_name,
                 'player_id': player_id,
                 'team_id': team_id,
-                'joined_at': datetime.utcnow().isoformat()
+                'sid': sid,
+                'joined_at': datetime.utcnow().isoformat(),
+                'joined_at_timestamp': time.time()
             }
+
+            # Track reverse mapping for disconnect cleanup
+            if sid not in _sid_to_match_users:
+                _sid_to_match_users[sid] = []
+            _sid_to_match_users[sid].append((match_id, user_id))
+
+            # Periodically cleanup stale entries
+            _room_cleanup_counter += 1
+            if _room_cleanup_counter >= _ROOM_CLEANUP_INTERVAL:
+                _room_cleanup_counter = 0
+                _cleanup_stale_room_users()
             
             # Get current RSVPs for initial state
             current_rsvps = get_match_rsvps_data(match_id, team_id, session)
@@ -359,15 +361,12 @@ def handle_leave_match_rsvp(data):
         else:
             user_id = None
         
-        # Remove from tracking
+        # Remove from tracking using the helper function
+        sid = request.sid
         if user_id and match_id in match_room_users and user_id in match_room_users[match_id]:
             player_name = match_room_users[match_id][user_id].get('player_name', 'Unknown')
-            del match_room_users[match_id][user_id]
-            
-            # Clean up empty match entries
-            if not match_room_users[match_id]:
-                del match_room_users[match_id]
-            
+            _remove_user_from_room(match_id, user_id, sid)
+
             # Notify others in room
             emit('user_left_rsvp', {
                 'user_id': user_id,

@@ -39,48 +39,9 @@ logger = logging.getLogger(__name__)
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def reports_dashboard():
-    """Admin reports dashboard with overview and filtering."""
-    session = g.db_session
-
-    page = request.args.get('page', 1, type=int)
-    per_page = 20
-    filters = {
-        'status': request.args.get('status', ''),
-        'priority': request.args.get('priority', ''),
-        'sort_by': request.args.get('sort_by', 'created_at'),
-        'order': request.args.get('order', 'desc')
-    }
-
-    query = session.query(Feedback)
-    if filters['status']:
-        query = query.filter(Feedback.status == filters['status'])
-    if filters['priority']:
-        query = query.filter(Feedback.priority == filters['priority'])
-
-    sort_col = getattr(Feedback, filters['sort_by'], Feedback.created_at)
-    if filters['order'] == 'asc':
-        query = query.order_by(sort_col.asc())
-    else:
-        query = query.order_by(sort_col.desc())
-
-    total = query.count()
-    feedbacks = query.offset((page - 1) * per_page).limit(per_page).all()
-
-    # Get statistics
-    stats = {
-        'total': total,
-        'open': session.query(Feedback).filter(Feedback.status == 'Open').count(),
-        'in_progress': session.query(Feedback).filter(Feedback.status == 'In Progress').count(),
-        'closed': session.query(Feedback).filter(Feedback.status == 'Closed').count()
-    }
-
-    return render_template('admin_panel/reports/dashboard.html',
-                         feedbacks=feedbacks,
-                         page=page,
-                         total=total,
-                         per_page=per_page,
-                         filters=filters,
-                         stats=stats)
+    """Redirect to unified feedback management page."""
+    # Redirect to the feedback list page - they show the same data
+    return redirect(url_for('admin_panel.feedback_list'))
 
 
 @admin_panel_bp.route('/reports/api/stats')

@@ -94,12 +94,11 @@
                                 <span class="badge bg-primary">{{ stats.mobile_users or 0 }}</span>
                             </div>
                         </a>
-                        <a href="{{ url_for('user_management.manage_users') }}" class="list-group-item list-group-item-action">
+                        <a href="{{ url_for('admin_panel.user_management') }}" class="list-group-item list-group-item-action">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <i class="ti ti-users-group me-2"></i>All User Management
                                 </div>
-                                <i class="ti ti-external-link"></i>
                             </div>
                         </a>
                         <a href="{{ url_for('admin_panel.mobile_users') }}" class="list-group-item list-group-item-action">
@@ -295,14 +294,94 @@
     <!-- Information Alert -->
     <div class="row mt-4">
         <div class="col-12">
-            <div class="alert alert-info">
-                <div class="d-flex align-items-center">
-                    <i class="ti ti-info-circle me-2"></i>
-                    <div>
-                        <strong>Mobile Features:</strong> 
-                        This section provides comprehensive management tools for mobile app features, 
-                        including user management, push notifications, and mobile app analytics.
+            <div class="alert alert-info border-0" style="background: linear-gradient(135deg, rgba(0, 123, 255, 0.1) 0%, rgba(0, 123, 255, 0.05) 100%);">
+                <h6 class="alert-heading mb-2"><i class="ti ti-info-circle me-2"></i>Mobile App Status Information</h6>
+                <p class="mb-2 small">
+                    <strong>Mobile Service Status</strong> reflects whether the mobile app is configured and enabled in Admin Settings.
+                    <strong>Push Service Status</strong> shows if push notifications are enabled.
+                </p>
+                <div class="row small">
+                    <div class="col-md-4">
+                        <strong>If "Offline":</strong>
+                        <ul class="mb-0 ps-3">
+                            <li>Check Admin Config for <code>mobile_app_enabled</code></li>
+                            <li>Verify API endpoints are accessible</li>
+                        </ul>
                     </div>
+                    <div class="col-md-4">
+                        <strong>If "Inactive":</strong>
+                        <ul class="mb-0 ps-3">
+                            <li>Enable <code>push_notifications_enabled</code></li>
+                            <li>Configure Firebase/APNS keys</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Mobile App (In Development):</strong>
+                        <ul class="mb-0 ps-3">
+                            <li>iOS &amp; Android apps in progress</li>
+                            <li>Contact tech team for API docs</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile API Documentation Link -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-api me-2"></i>Mobile API Documentation
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">
+                        The following API endpoints are available for mobile app integration. Share this with the mobile development team.
+                    </p>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>/api/mobile/auth/login</code></td>
+                                    <td><span class="badge bg-success">POST</span></td>
+                                    <td>User authentication</td>
+                                </tr>
+                                <tr>
+                                    <td><code>/api/mobile/user/profile</code></td>
+                                    <td><span class="badge bg-primary">GET</span></td>
+                                    <td>Get user profile data</td>
+                                </tr>
+                                <tr>
+                                    <td><code>/api/mobile/matches</code></td>
+                                    <td><span class="badge bg-primary">GET</span></td>
+                                    <td>Get matches for user's team</td>
+                                </tr>
+                                <tr>
+                                    <td><code>/api/mobile/push/register</code></td>
+                                    <td><span class="badge bg-success">POST</span></td>
+                                    <td>Register device for push notifications</td>
+                                </tr>
+                                <tr>
+                                    <td><code>/api/mobile/notifications</code></td>
+                                    <td><span class="badge bg-primary">GET</span></td>
+                                    <td>Get user notifications</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">
+                        <i class="ti ti-info-circle me-1"></i>
+                        Full API documentation available at <code>/api/docs</code> (if enabled) or contact tech support for Swagger/OpenAPI spec.
+                    </p>
                 </div>
             </div>
         </div>

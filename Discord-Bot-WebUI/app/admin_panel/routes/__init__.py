@@ -53,6 +53,9 @@ def register_all_routes(admin_panel_bp):
     # Phase 4: Draft Management
     from . import draft_management
 
+    # Phase 5: League Management Hub (Centralized season/team management)
+    from . import league_management
+
     # All routes are automatically registered when modules are imported
     # due to the @admin_panel_bp.route decorators
     pass

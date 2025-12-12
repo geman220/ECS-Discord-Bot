@@ -34,56 +34,27 @@ logger = logging.getLogger(__name__)
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def draft_overview():
-    """Draft management overview page."""
-    try:
-        seasons = db.session.query(Season).order_by(desc(Season.id)).all()
-        leagues = db.session.query(League).distinct(League.name).order_by(League.name).all()
-
-        # Get draft statistics
-        total_picks = db.session.query(DraftOrderHistory).count()
-
-        # Get picks by season
-        current_season = db.session.query(Season).filter_by(is_current=True).first()
-        current_season_picks = 0
-        if current_season:
-            current_season_picks = db.session.query(DraftOrderHistory).filter_by(
-                season_id=current_season.id
-            ).count()
-
-        stats = {
-            'total_picks': total_picks,
-            'current_season_picks': current_season_picks,
-            'seasons_count': len(seasons),
-            'leagues_count': len(leagues)
-        }
-
-        return render_template('admin_panel/draft/overview.html',
-                             seasons=seasons,
-                             leagues=leagues,
-                             stats=stats,
-                             current_season=current_season)
-
-    except Exception as e:
-        logger.error(f"Error loading draft overview: {e}", exc_info=True)
-        return render_template('admin_panel/draft/overview.html',
-                             seasons=[],
-                             leagues=[],
-                             stats={'total_picks': 0, 'current_season_picks': 0,
-                                   'seasons_count': 0, 'leagues_count': 0},
-                             error=str(e))
+    """Redirect to unified draft history page."""
+    # Redirect to draft history which has all the filtering and data
+    return redirect(url_for('admin_panel.draft_history'))
 
 
 @admin_panel_bp.route('/draft/history')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def draft_history():
-    """Display draft history with filtering."""
+    """Display draft history with filtering - unified draft management page."""
     try:
         seasons = db.session.query(Season).order_by(desc(Season.id)).all()
         leagues = db.session.query(League).distinct(League.name).order_by(League.name).all()
+        current_season = db.session.query(Season).filter_by(is_current=True).first()
 
         season_filter = request.args.get('season', type=int)
         league_filter = request.args.get('league')
+
+        # Default to current season if no filter specified
+        if season_filter is None and current_season:
+            season_filter = current_season.id
 
         query = db.session.query(DraftOrderHistory).options(
             joinedload(DraftOrderHistory.player),
@@ -98,7 +69,7 @@ def draft_history():
         if league_filter:
             query = query.filter(DraftOrderHistory.league_id == league_filter)
 
-        draft_history = query.order_by(
+        draft_history_list = query.order_by(
             desc(DraftOrderHistory.season_id),
             DraftOrderHistory.league_id,
             DraftOrderHistory.draft_position
@@ -106,7 +77,7 @@ def draft_history():
 
         # Group by season and league
         grouped_history = {}
-        for pick in draft_history:
+        for pick in draft_history_list:
             season_key = f"{pick.season.name} (ID: {pick.season.id})"
             league_key = f"{pick.league.name} (ID: {pick.league.id})"
 
@@ -117,13 +88,30 @@ def draft_history():
 
             grouped_history[season_key][league_key].append(pick)
 
+        # Get statistics for the header
+        total_all_picks = db.session.query(DraftOrderHistory).count()
+        current_season_picks = 0
+        if current_season:
+            current_season_picks = db.session.query(DraftOrderHistory).filter_by(
+                season_id=current_season.id
+            ).count()
+
+        stats = {
+            'total_picks': total_all_picks,
+            'current_season_picks': current_season_picks,
+            'seasons_count': len(seasons),
+            'filtered_picks': len(draft_history_list)
+        }
+
         return render_template('admin_panel/draft/history.html',
                              draft_history=grouped_history,
                              seasons=seasons,
                              leagues=leagues,
+                             current_season=current_season,
                              current_season_filter=season_filter,
                              current_league_filter=league_filter,
-                             total_picks=len(draft_history))
+                             total_picks=len(draft_history_list),
+                             stats=stats)
 
     except Exception as e:
         logger.error(f"Error loading draft history: {e}", exc_info=True)

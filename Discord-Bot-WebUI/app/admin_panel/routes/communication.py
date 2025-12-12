@@ -1621,7 +1621,594 @@ def duplicate_message_template(template_id):
             'message': 'Template duplicated successfully',
             'new_id': duplicate.id
         })
-        
+
     except Exception as e:
         logger.error(f"Template duplication error: {e}")
         return jsonify({'success': False, 'message': 'Duplication failed'}), 500
+
+
+# =============================================================================
+# Direct Messaging Routes (SMS & Discord DM)
+# =============================================================================
+
+@admin_panel_bp.route('/communication/direct-messaging')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def direct_messaging():
+    """Direct messaging dashboard for SMS and Discord DMs."""
+    try:
+        from app.models import Player
+
+        # Get statistics
+        stats = {
+            'total_players': Player.query.count(),
+            'players_with_phone': Player.query.filter(Player.phone != None, Player.phone != '').count(),
+            'players_with_discord': Player.query.filter(Player.discord_id != None).count(),
+            'sms_enabled_users': User.query.filter_by(sms_notifications=True).count(),
+            'discord_enabled_users': User.query.filter_by(discord_notifications=True).count()
+        }
+
+        # Get recent players for quick messaging
+        recent_players = Player.query.order_by(Player.id.desc()).limit(20).all()
+
+        return render_template(
+            'admin_panel/communication/direct_messaging.html',
+            stats=stats,
+            recent_players=recent_players
+        )
+    except Exception as e:
+        logger.error(f"Error loading direct messaging: {e}")
+        flash('Direct messaging unavailable. Check database connectivity.', 'error')
+        return redirect(url_for('admin_panel.communication_hub'))
+
+
+@admin_panel_bp.route('/communication/send-sms', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
+def send_sms():
+    """Send an SMS message to a player."""
+    try:
+        from flask import g
+        from app.models import Player
+        from app.sms_helpers import send_sms as sms_send
+
+        player_id = request.form.get('player_id')
+        phone = request.form.get('phone')
+        message = request.form.get('message')
+
+        if not player_id or not phone or not message:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+            flash('Phone number and message are required.', 'error')
+            return redirect(url_for('admin_panel.direct_messaging'))
+
+        # Get player
+        player = Player.query.get(player_id)
+        if not player:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': 'Player not found'}), 404
+            flash('Player not found.', 'error')
+            return redirect(url_for('admin_panel.direct_messaging'))
+
+        # Check SMS notifications enabled
+        user = player.user
+        if not user or not user.sms_notifications:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': 'SMS notifications are disabled for this user'}), 403
+            flash('SMS notifications are disabled for this user.', 'error')
+            return redirect(url_for('admin_panel.direct_messaging'))
+
+        user_id = user.id
+
+        # Send the SMS
+        success, result = sms_send(phone, message, user_id=user_id)
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='send_sms',
+            resource_type='direct_messaging',
+            resource_id=str(player_id),
+            new_value=f'SMS sent to player {player.name}: {message[:50]}...',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        if success:
+            logger.info(f"Admin {current_user.id} sent SMS to player {player_id}")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': True, 'message': 'SMS sent successfully'})
+            flash('SMS sent successfully.', 'success')
+        else:
+            logger.error(f"Failed to send SMS to player {player_id}: {result}")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': f'Failed to send SMS: {result}'})
+            flash(f'Failed to send SMS: {result}', 'error')
+
+        return redirect(url_for('admin_panel.direct_messaging'))
+
+    except Exception as e:
+        logger.error(f"Error sending SMS: {e}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': str(e)}), 500
+        flash('Failed to send SMS.', 'error')
+        return redirect(url_for('admin_panel.direct_messaging'))
+
+
+@admin_panel_bp.route('/communication/send-discord-dm', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
+def send_discord_dm():
+    """Send a Discord DM to a player."""
+    try:
+        import requests as http_requests
+        from flask import current_app
+        from app.models import Player
+
+        player_id = request.form.get('player_id')
+        message = request.form.get('message')
+
+        if not player_id or not message:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+            flash('Player ID and message are required.', 'error')
+            return redirect(url_for('admin_panel.direct_messaging'))
+
+        # Get player
+        player = Player.query.get(player_id)
+        if not player or not player.discord_id:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': 'Player not found or no Discord ID'}), 404
+            flash('Player not found or has no Discord ID.', 'error')
+            return redirect(url_for('admin_panel.direct_messaging'))
+
+        # Check Discord notifications enabled
+        user = player.user
+        if not user or not user.discord_notifications:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': 'Discord notifications are disabled for this user'}), 403
+            flash('Discord notifications are disabled for this user.', 'error')
+            return redirect(url_for('admin_panel.direct_messaging'))
+
+        discord_id = player.discord_id
+
+        # Send the Discord DM using the bot API
+        payload = {
+            "message": message,
+            "discord_id": discord_id
+        }
+
+        bot_api_url = current_app.config.get('BOT_API_URL', 'http://localhost:5001') + '/send_discord_dm'
+
+        try:
+            response = http_requests.post(bot_api_url, json=payload, timeout=10)
+
+            # Log the action
+            AdminAuditLog.log_action(
+                user_id=current_user.id,
+                action='send_discord_dm',
+                resource_type='direct_messaging',
+                resource_id=str(player_id),
+                new_value=f'Discord DM sent to player {player.name}: {message[:50]}...',
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+
+            if response.status_code == 200:
+                logger.info(f"Admin {current_user.id} sent Discord DM to player {player_id}")
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': True, 'message': 'Discord DM sent successfully'})
+                flash('Discord DM sent successfully.', 'success')
+            else:
+                logger.error(f"Failed to send Discord DM to player {player_id}: {response.text}")
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': False, 'message': 'Failed to send Discord DM'})
+                flash('Failed to send Discord DM.', 'error')
+
+        except http_requests.exceptions.RequestException as e:
+            logger.error(f"Error contacting Discord bot: {str(e)}")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': f'Error contacting Discord bot: {str(e)}'})
+            flash(f'Error contacting Discord bot: {str(e)}', 'error')
+
+        return redirect(url_for('admin_panel.direct_messaging'))
+
+    except Exception as e:
+        logger.error(f"Error sending Discord DM: {e}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': str(e)}), 500
+        flash('Failed to send Discord DM.', 'error')
+        return redirect(url_for('admin_panel.direct_messaging'))
+
+
+@admin_panel_bp.route('/communication/sms-status')
+@login_required
+@role_required(['Global Admin'])
+def sms_status():
+    """Check SMS usage and rate limiting status."""
+    try:
+        import time
+        from app.sms_helpers import (
+            sms_user_cache, sms_system_counter,
+            SMS_RATE_LIMIT_PER_USER, SMS_SYSTEM_RATE_LIMIT, SMS_RATE_LIMIT_WINDOW
+        )
+
+        current_time = time.time()
+        cutoff_time = current_time - SMS_RATE_LIMIT_WINDOW
+
+        # Clean up expired timestamps
+        cleaned_system_counter = [t for t in sms_system_counter if t > cutoff_time]
+
+        # Prepare per-user data
+        user_data = {}
+        for user_id, timestamps in sms_user_cache.items():
+            valid_timestamps = [t for t in timestamps if t > cutoff_time]
+            if valid_timestamps:
+                user = User.query.get(user_id)
+                username = user.username if user else "Unknown"
+
+                user_data[user_id] = {
+                    'username': username,
+                    'count': len(valid_timestamps),
+                    'remaining': SMS_RATE_LIMIT_PER_USER - len(valid_timestamps),
+                    'last_send': datetime.fromtimestamp(max(valid_timestamps)).strftime('%Y-%m-%d %H:%M:%S'),
+                    'reset': datetime.fromtimestamp(min(valid_timestamps) + SMS_RATE_LIMIT_WINDOW).strftime('%Y-%m-%d %H:%M:%S')
+                }
+
+        # Calculate system-wide reset time
+        system_reset = None
+        if cleaned_system_counter:
+            system_reset = datetime.fromtimestamp(min(cleaned_system_counter) + SMS_RATE_LIMIT_WINDOW).strftime('%Y-%m-%d %H:%M:%S')
+
+        return jsonify({
+            'system': {
+                'total_count': len(cleaned_system_counter),
+                'limit': SMS_SYSTEM_RATE_LIMIT,
+                'remaining': SMS_SYSTEM_RATE_LIMIT - len(cleaned_system_counter),
+                'window_seconds': SMS_RATE_LIMIT_WINDOW,
+                'window_hours': SMS_RATE_LIMIT_WINDOW / 3600,
+                'reset_time': system_reset
+            },
+            'users': user_data,
+            'config': {
+                'per_user_limit': SMS_RATE_LIMIT_PER_USER,
+                'system_limit': SMS_SYSTEM_RATE_LIMIT,
+                'window_seconds': SMS_RATE_LIMIT_WINDOW
+            }
+        })
+
+    except ImportError:
+        # SMS helpers may not be configured
+        return jsonify({
+            'error': 'SMS system not configured',
+            'system': {'total_count': 0, 'limit': 0, 'remaining': 0},
+            'users': {},
+            'config': {}
+        })
+    except Exception as e:
+        logger.error(f"Error getting SMS status: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_panel_bp.route('/communication/player-search')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
+def player_search():
+    """Search for players by name for direct messaging."""
+    try:
+        from app.models import Player
+
+        query = request.args.get('q', '').strip()
+        if len(query) < 2:
+            return jsonify({'players': []})
+
+        # Search players by name
+        players = Player.query.filter(
+            Player.name.ilike(f'%{query}%')
+        ).limit(20).all()
+
+        results = []
+        for player in players:
+            user = player.user
+            results.append({
+                'id': player.id,
+                'name': player.name,
+                'phone': player.phone or '',
+                'discord_id': player.discord_id or '',
+                'has_phone': bool(player.phone),
+                'has_discord': bool(player.discord_id),
+                'sms_enabled': user.sms_notifications if user else False,
+                'discord_enabled': user.discord_notifications if user else False
+            })
+
+        return jsonify({'players': results})
+
+    except Exception as e:
+        logger.error(f"Error searching players: {e}")
+        return jsonify({'error': str(e), 'players': []}), 500
+
+
+# Push Notification Admin Routes (migrated from legacy notification_admin_routes)
+
+@admin_panel_bp.route('/communication/push-notifications/broadcast', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def push_notification_broadcast():
+    """Send broadcast notification from admin panel."""
+    try:
+        from app.models import User
+        from app.services.notification_service import notification_service
+
+        # Try to use UserFCMToken if available, fall back to DeviceToken
+        try:
+            from app.models import UserFCMToken
+            token_model = UserFCMToken
+        except ImportError:
+            token_model = DeviceToken
+
+        data = request.get_json()
+        title = data.get('title', 'ECS Soccer')
+        message = data.get('message', '')
+        target = data.get('target', 'all')
+
+        if not message:
+            return jsonify({'success': False, 'message': 'Message is required'}), 400
+
+        # Get target tokens based on selection
+        query = token_model.query.filter_by(is_active=True)
+
+        if target == 'ios':
+            query = query.filter_by(platform='ios')
+        elif target == 'android':
+            query = query.filter_by(platform='android')
+        elif target == 'coaches':
+            # Get coach user IDs
+            coach_users = User.query.join(User.roles).filter(
+                db.or_(
+                    db.text("roles.name = 'Pub League Coach'"),
+                    db.text("roles.name = 'ECS FC Coach'")
+                )
+            ).all()
+            coach_ids = [u.id for u in coach_users]
+            query = query.filter(token_model.user_id.in_(coach_ids))
+        elif target == 'admins':
+            # Get admin user IDs
+            admin_users = User.query.join(User.roles).filter(
+                db.or_(
+                    db.text("roles.name = 'Global Admin'"),
+                    db.text("roles.name = 'Pub League Admin'")
+                )
+            ).all()
+            admin_ids = [u.id for u in admin_users]
+            query = query.filter(token_model.user_id.in_(admin_ids))
+
+        tokens_objs = query.all()
+        token_attr = 'fcm_token' if hasattr(token_model, 'fcm_token') else 'token'
+        tokens = [getattr(token, token_attr) for token in tokens_objs]
+
+        if not tokens:
+            return jsonify({'success': False, 'message': 'No devices found for selected target'}), 404
+
+        result = notification_service.send_general_notification(tokens, title, message)
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='push_notification_broadcast',
+            resource_type='communication',
+            resource_id='broadcast',
+            new_value=f'Sent to {len(tokens)} devices: {title}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Broadcast sent to {len(tokens)} devices',
+            'result': result
+        })
+
+    except Exception as e:
+        logger.error(f"Error sending push broadcast: {e}")
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+
+
+@admin_panel_bp.route('/communication/push-notifications/test', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def push_notification_test():
+    """Send test notification to admin's devices."""
+    try:
+        from app.services.notification_service import notification_service
+
+        # Try to use UserFCMToken if available, fall back to DeviceToken
+        try:
+            from app.models import UserFCMToken
+            token_model = UserFCMToken
+        except ImportError:
+            token_model = DeviceToken
+
+        # Get current user's tokens
+        user_tokens = token_model.query.filter_by(
+            user_id=current_user.id,
+            is_active=True
+        ).all()
+
+        if not user_tokens:
+            return jsonify({
+                'success': False,
+                'message': 'No devices registered for your account. Please register a device first.'
+            }), 404
+
+        token_attr = 'fcm_token' if hasattr(token_model, 'fcm_token') else 'token'
+        tokens = [getattr(token, token_attr) for token in user_tokens]
+
+        result = notification_service.send_general_notification(
+            tokens,
+            "ECS Soccer Admin Test",
+            "Test notification from the admin panel - your push notifications are working!"
+        )
+
+        return jsonify({
+            'success': True,
+            'message': 'Test notification sent',
+            'result': result
+        })
+
+    except Exception as e:
+        logger.error(f"Error sending test notification: {e}")
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+
+
+@admin_panel_bp.route('/communication/push-notifications/cleanup-tokens', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def push_notification_cleanup_tokens():
+    """Clean up invalid/inactive FCM tokens."""
+    try:
+        # Try to use UserFCMToken if available, fall back to DeviceToken
+        try:
+            from app.models import UserFCMToken
+            token_model = UserFCMToken
+        except ImportError:
+            token_model = DeviceToken
+
+        # Remove tokens that haven't been updated in 90 days
+        cutoff_date = datetime.utcnow() - timedelta(days=90)
+        old_tokens = token_model.query.filter(
+            token_model.updated_at < cutoff_date
+        ).all()
+
+        count = len(old_tokens)
+        for token in old_tokens:
+            token.is_active = False
+
+        db.session.commit()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='push_notification_token_cleanup',
+            resource_type='communication',
+            resource_id='tokens',
+            new_value=f'Cleaned up {count} old tokens',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Cleaned up {count} old tokens',
+            'count': count
+        })
+
+    except Exception as e:
+        logger.error(f"Error cleaning up tokens: {e}")
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+
+
+@admin_panel_bp.route('/communication/push-notifications/tokens')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def push_notification_tokens():
+    """List all FCM tokens for management."""
+    try:
+        from app.models import User
+
+        # Try to use UserFCMToken if available, fall back to DeviceToken
+        try:
+            from app.models import UserFCMToken
+            token_model = UserFCMToken
+        except ImportError:
+            token_model = DeviceToken
+
+        page = request.args.get('page', 1, type=int)
+        per_page = 50
+
+        tokens = token_model.query.join(User).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+
+        token_data = []
+        for token in tokens.items:
+            token_data.append({
+                'id': token.id,
+                'user_id': token.user_id,
+                'username': token.user.username if hasattr(token, 'user') and token.user else 'Unknown',
+                'platform': getattr(token, 'platform', 'unknown'),
+                'is_active': token.is_active,
+                'created_at': token.created_at.isoformat() if token.created_at else None,
+                'updated_at': token.updated_at.isoformat() if token.updated_at else None
+            })
+
+        return jsonify({
+            'success': True,
+            'tokens': token_data,
+            'pagination': {
+                'page': tokens.page,
+                'pages': tokens.pages,
+                'per_page': tokens.per_page,
+                'total': tokens.total
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error listing tokens: {e}")
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+
+
+@admin_panel_bp.route('/communication/push-notifications/status')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def push_notification_status():
+    """Get notification system status and statistics."""
+    try:
+        # Check if notification service is initialized
+        try:
+            from app.services.notification_service import notification_service
+            firebase_configured = getattr(notification_service, '_initialized', False)
+        except ImportError:
+            firebase_configured = False
+
+        # Try to use UserFCMToken if available, fall back to DeviceToken
+        try:
+            from app.models import UserFCMToken
+            token_model = UserFCMToken
+        except ImportError:
+            token_model = DeviceToken
+
+        # Get FCM token statistics
+        total_tokens = token_model.query.filter_by(is_active=True).count()
+        ios_tokens = token_model.query.filter_by(is_active=True, platform='ios').count() if hasattr(token_model, 'platform') else 0
+        android_tokens = token_model.query.filter_by(is_active=True, platform='android').count() if hasattr(token_model, 'platform') else 0
+
+        # Get notifications sent in last 24 hours
+        yesterday = datetime.utcnow() - timedelta(days=1)
+        notifications_sent_24h = Notification.query.filter(
+            Notification.notification_type == 'push',
+            Notification.created_at >= yesterday
+        ).count()
+
+        return jsonify({
+            'success': True,
+            'firebase_configured': firebase_configured,
+            'stats': {
+                'total_devices': total_tokens,
+                'ios_devices': ios_tokens,
+                'android_devices': android_tokens,
+                'notifications_sent_24h': notifications_sent_24h
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting notification status: {e}")
+        return jsonify({
+            'success': False,
+            'firebase_configured': False,
+            'stats': {
+                'total_devices': 0,
+                'ios_devices': 0,
+                'android_devices': 0,
+                'notifications_sent_24h': 0
+            }
+        }), 500

@@ -11,6 +11,50 @@
 
 {% block panel_content %}
 
+<!-- Season Info and Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-filter me-2"></i>Filter Teams
+                    </h5>
+                    <span class="badge bg-info">
+                        <i class="ti ti-calendar me-1"></i>{{ stats.current_season }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">League / Division</label>
+                        <select name="league_id" class="form-select">
+                            <option value="">All Leagues (Premier, Classic, ECS FC)</option>
+                            {% for league in leagues %}
+                            <option value="{{ league.id }}" {% if current_league_id == league.id %}selected{% endif %}>
+                                {{ league.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-search me-1"></i>Filter
+                            </button>
+                            <a href="{{ url_for('admin_panel.manage_teams') }}" class="btn btn-outline-secondary">
+                                <i class="ti ti-x me-1"></i>Clear
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Statistics Cards -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">

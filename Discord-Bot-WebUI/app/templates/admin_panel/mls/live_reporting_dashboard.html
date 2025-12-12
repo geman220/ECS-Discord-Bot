@@ -1,0 +1,415 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Live Reporting Dashboard - Admin Panel{% endblock %}
+
+{% block panel_description %}Real-time ESPN data integration and live reporting control center{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.mls_overview') }}">MLS Management</a></li>
+<li class="breadcrumb-item active">Live Reporting</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">
+        <i class="ti ti-broadcast me-2 text-primary"></i>Live Reporting Dashboard
+    </h4>
+    <div>
+        <span class="badge bg-light text-dark me-2">
+            <i class="ti ti-refresh me-1" id="refreshIcon"></i>
+            Auto-refresh: <span id="countdown">30</span>s
+        </span>
+        <button class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+            <i class="ti ti-refresh me-1"></i>Refresh Now
+        </button>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger mb-4">
+    <i class="ti ti-alert-circle me-2"></i>
+    Error loading dashboard: {{ error }}
+</div>
+{% endif %}
+
+<!-- Status Cards -->
+<div class="row mb-4">
+    <!-- Real-time Service Status -->
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card h-100" style="border-left: 4px solid {% if realtime_health.health == 'healthy' %}#28a745{% elif realtime_health.health == 'degraded' %}#ffc107{% else %}#dc3545{% endif %};">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="ti ti-server me-2 text-primary" style="font-size: 1.5rem;"></i>
+                    <h6 class="mb-0">Real-time Service</h6>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-{% if realtime_health.health == 'healthy' %}success{% elif realtime_health.health == 'degraded' %}warning{% else %}danger{% endif %}">
+                            {{ realtime_health.health|default('unknown')|title }}
+                        </span>
+                    </div>
+                    <small class="text-muted">
+                        {% if realtime_health.heartbeat_age_seconds %}
+                            {{ realtime_health.heartbeat_age_seconds }}s ago
+                        {% else %}
+                            No heartbeat
+                        {% endif %}
+                    </small>
+                </div>
+                {% if realtime_health.is_running %}
+                <small class="text-success mt-2 d-block"><i class="ti ti-check"></i> Service running</small>
+                {% else %}
+                <small class="text-danger mt-2 d-block"><i class="ti ti-x"></i> Service offline</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Sessions -->
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card h-100" style="border-left: 4px solid #007bff;">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="ti ti-player-play me-2 text-info" style="font-size: 1.5rem;"></i>
+                    <h6 class="mb-0">Active Sessions</h6>
+                </div>
+                <h3 class="mb-0 text-info">{{ stats.active_sessions }}</h3>
+                <small class="text-muted">Live reporting sessions</small>
+                {% if coordination_status.database_sessions %}
+                <div class="mt-2">
+                    <small class="text-muted">Database: {{ coordination_status.database_sessions }} sessions</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Coordination Status -->
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card h-100" style="border-left: 4px solid {% if coordination_status.coordination_status == 'healthy' %}#28a745{% else %}#ffc107{% endif %};">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="ti ti-link me-2 text-warning" style="font-size: 1.5rem;"></i>
+                    <h6 class="mb-0">Coordination</h6>
+                </div>
+                <span class="badge bg-{% if coordination_status.coordination_status == 'healthy' %}success{% else %}warning{% endif %}">
+                    {{ coordination_status.coordination_status|default('unknown')|title }}
+                </span>
+                <small class="text-muted d-block mt-2">Celery ↔ Real-time Bridge</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Matches -->
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card h-100" style="border-left: 4px solid #6c757d;">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="ti ti-calendar me-2 text-secondary" style="font-size: 1.5rem;"></i>
+                    <h6 class="mb-0">Upcoming Matches</h6>
+                </div>
+                <h3 class="mb-0">{{ stats.upcoming_matches }}</h3>
+                <small class="text-muted">Next 14 days</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="row">
+    <!-- Active Sessions List -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-broadcast me-2"></i>Active Sessions
+                </h5>
+                <a href="{{ url_for('admin_panel.mls_task_monitoring') }}" class="btn btn-sm btn-outline-primary">
+                    Task Monitor
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                    {% if active_sessions %}
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Match</th>
+                                <th>Status</th>
+                                <th>Updates</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in active_sessions %}
+                            <tr>
+                                <td>
+                                    <strong>Match {{ session.match_id }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ session.competition or 'MLS' }}</small>
+                                </td>
+                                <td>
+                                    {% if session.last_status %}
+                                    <span class="badge bg-info">{{ session.last_status }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Active</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span>{{ session.update_count or 0 }}</span>
+                                    {% if session.error_count and session.error_count > 0 %}
+                                    <br><small class="text-warning">{{ session.error_count }} errors</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-xs btn-outline-danger"
+                                            onclick="stopSession({{ session.id }})"
+                                            title="Stop Session">
+                                        <i class="ti ti-player-stop"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="ti ti-moon" style="font-size: 3rem;"></i>
+                        <p class="mt-2 mb-0">No active live reporting sessions</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Matches List -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-calendar me-2"></i>Upcoming Matches
+                </h5>
+                <a href="{{ url_for('admin_panel.mls_matches') }}" class="btn btn-sm btn-outline-primary">
+                    All Matches
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                    {% if upcoming_matches %}
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Match</th>
+                                <th>Date/Time</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for match in upcoming_matches %}
+                            <tr>
+                                <td>
+                                    <strong>
+                                        {% if match.is_home_game %}
+                                        Sounders vs {{ match.opponent }}
+                                        {% else %}
+                                        {{ match.opponent }} vs Sounders
+                                        {% endif %}
+                                    </strong>
+                                    <br>
+                                    <small class="text-muted">{{ match.competition or 'MLS' }}</small>
+                                </td>
+                                <td>
+                                    <small>{{ match.date_time.strftime('%b %d, %I:%M %p') if match.date_time else 'TBD' }}</small>
+                                    {% if match.venue %}
+                                    <br><small class="text-muted">{{ match.venue }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge" style="background-color: {{ match.status_color }};">
+                                        <i class="ti ti-{{ match.status_icon }} me-1"></i>
+                                        {{ match.status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if match.live_reporting_status != 'running' %}
+                                    <button class="btn btn-xs btn-outline-success"
+                                            onclick="startReporting({{ match.id }})"
+                                            title="Start Live Reporting">
+                                        <i class="ti ti-player-play"></i>
+                                    </button>
+                                    {% else %}
+                                    <button class="btn btn-xs btn-outline-danger"
+                                            onclick="stopReporting({{ match.id }})"
+                                            title="Stop Live Reporting">
+                                        <i class="ti ti-player-stop"></i>
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="ti ti-calendar-off" style="font-size: 3rem;"></i>
+                        <p class="mt-2 mb-0">No upcoming matches in next 14 days</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Sessions -->
+{% if recent_sessions %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ti ti-history me-2"></i>Recent Sessions (Last 24 Hours)
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Session ID</th>
+                                <th>Match</th>
+                                <th>Started</th>
+                                <th>Ended</th>
+                                <th>Updates</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in recent_sessions %}
+                            <tr>
+                                <td><code>{{ session.id }}</code></td>
+                                <td>{{ session.match_id }}</td>
+                                <td>
+                                    <small>{{ session.started_at.strftime('%m/%d %H:%M') if session.started_at else 'N/A' }}</small>
+                                </td>
+                                <td>
+                                    <small>{{ session.ended_at.strftime('%m/%d %H:%M') if session.ended_at else '-' }}</small>
+                                </td>
+                                <td>{{ session.update_count or 0 }}</td>
+                                <td>
+                                    {% if session.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% elif session.ended_at %}
+                                    <span class="badge bg-secondary">Completed</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Unknown</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block custom_js %}
+<script>
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+// Auto-refresh countdown
+let countdown = 30;
+const countdownEl = document.getElementById('countdown');
+const refreshIcon = document.getElementById('refreshIcon');
+
+setInterval(() => {
+    countdown--;
+    if (countdownEl) countdownEl.textContent = countdown;
+
+    if (countdown <= 0) {
+        countdown = 30;
+        if (refreshIcon) refreshIcon.classList.add('ti-spin');
+        location.reload();
+    }
+}, 1000);
+
+async function startReporting(matchId) {
+    if (!confirm('Start live reporting for this match?')) return;
+
+    try {
+        const response = await fetch(`{{ url_for('admin_panel.mls_start_reporting', match_id=0) }}`.replace('/0/', `/${matchId}/`), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire('Success', data.message || 'Live reporting started', 'success').then(() => location.reload());
+        } else {
+            Swal.fire('Error', data.error || 'Failed to start reporting', 'error');
+        }
+    } catch (error) {
+        Swal.fire('Error', 'Failed to start live reporting', 'error');
+    }
+}
+
+async function stopReporting(matchId) {
+    if (!confirm('Stop live reporting for this match?')) return;
+
+    try {
+        const response = await fetch(`{{ url_for('admin_panel.mls_stop_reporting', match_id=0) }}`.replace('/0/', `/${matchId}/`), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire('Success', data.message || 'Live reporting stopped', 'success').then(() => location.reload());
+        } else {
+            Swal.fire('Error', data.error || 'Failed to stop reporting', 'error');
+        }
+    } catch (error) {
+        Swal.fire('Error', 'Failed to stop live reporting', 'error');
+    }
+}
+
+async function stopSession(sessionId) {
+    if (!confirm('Stop this reporting session?')) return;
+
+    try {
+        const response = await fetch(`/admin/live-reporting/api/session/${sessionId}/stop`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire('Success', 'Session stopped', 'success').then(() => location.reload());
+        } else {
+            Swal.fire('Error', data.error || 'Failed to stop session', 'error');
+        }
+    } catch (error) {
+        Swal.fire('Error', 'Failed to stop session', 'error');
+    }
+}
+</script>
+{% endblock %}
