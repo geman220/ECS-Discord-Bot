@@ -88,3 +88,4 @@ Discord-Bot-WebUI/flask_session/
 /.stfolder
 /Discord-Bot-WebUI/app/wallet_pass/certs
 /Discord-Bot-WebUI/test_reports
+/Discord-Bot-WebUI/docs
