@@ -1,0 +1,192 @@
+# app/init/request_handlers.py
+
+"""
+Request Handlers
+
+Before request, teardown, and CSRF handling.
+"""
+
+import logging
+
+from flask import request, session as flask_session, g, render_template
+from flask_wtf.csrf import generate_csrf
+
+logger = logging.getLogger(__name__)
+
+
+def init_request_handlers(app, csrf):
+    """
+    Initialize request handlers for the Flask application.
+
+    Args:
+        app: The Flask application instance.
+        csrf: The CSRF protection instance.
+    """
+    _init_csrf_handlers(app, csrf)
+    _init_before_request(app)
+    _init_teardown_handlers(app)
+
+
+def _init_csrf_handlers(app, csrf):
+    """Initialize CSRF token handling."""
+
+    @app.before_request
+    def ensure_csrf_token():
+        # Skip for static resources and exempt routes
+        if request.path.startswith('/static/') or request.method == 'GET':
+            return None
+
+        # Skip for API routes that should be exempt from CSRF
+        exempt_prefixes = [
+            '/api/substitute-pools/',
+            '/api/ecs-fc/',
+            '/api/availability/',
+            '/api/predictions/',
+            '/api/v2/',
+            '/api/v1/',
+            '/api/discord_bot_',
+            '/api/sync_'
+        ]
+
+        for prefix in exempt_prefixes:
+            if request.path.startswith(prefix):
+                return None
+
+        # Check if session exists but CSRF token is missing
+        if flask_session and 'csrf_token' not in flask_session:
+            token = generate_csrf()
+            logger.info(f"Generated missing CSRF token for path: {request.path}")
+
+        return None
+
+
+def _init_before_request(app):
+    """Initialize before_request handler."""
+    from app.utils.user_helpers import safe_current_user
+    from app.utils.pgbouncer_utils import set_session_timeout
+
+    @app.before_request
+    def before_request():
+        # Check for CSRF exemption first
+        path = request.path
+        exempt_routes = [
+            '/admin/force_send/',
+            '/admin/delete_message/',
+            '/admin/update_rsvp',
+            '/api/v1/',
+            '/api/v2/',
+            '/api/substitute-pools/',
+            '/api/ecs-fc/',
+            '/api/availability/',
+            '/api/predictions/'
+        ]
+
+        for route in exempt_routes:
+            if path.startswith(route):
+                logger.info(f"Exempting route from CSRF: {path}")
+                request.csrf_exempt = True
+                break
+
+        # Create a new database session for each request (excluding static assets)
+        if not request.path.startswith('/static/'):
+            session_created = _create_db_session(app)
+
+            if session_created and hasattr(g, 'db_session'):
+                _register_session_with_monitor(path)
+                _set_session_timeouts(path)
+            else:
+                logger.warning(f"Request {request.path} proceeding without database session due to pool exhaustion")
+                g.session_id = "no-session"
+
+            # Pre-load and cache user roles
+            _cache_user_roles()
+
+
+def _create_db_session(app):
+    """Create database session with retry logic."""
+    import time
+
+    max_retries = 3
+    retry_delay = 0.1
+
+    for attempt in range(max_retries):
+        try:
+            g.db_session = app.SessionLocal()
+            return True
+        except Exception as e:
+            if "pool" in str(e).lower() or "timeout" in str(e).lower():
+                logger.warning(f"Session creation attempt {attempt + 1}/{max_retries} failed: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    retry_delay *= 2
+                else:
+                    logger.error(f"Failed to create session after {max_retries} attempts: {e}")
+                    g._session_creation_failed = True
+                    return False
+            else:
+                logger.error(f"Session creation failed with non-pool error: {e}", exc_info=True)
+                g._session_creation_failed = True
+                return False
+
+    return False
+
+
+def _register_session_with_monitor(path):
+    """Register session with session monitor."""
+    from app.utils.session_monitor import get_session_monitor
+    from app.utils.user_helpers import safe_current_user
+
+    session_id = str(id(g.db_session))
+    user_id = None
+
+    try:
+        if safe_current_user and safe_current_user.is_authenticated:
+            user_id = safe_current_user.id
+    except Exception as e:
+        logger.warning(f"Could not get user ID for session monitoring: {e}")
+
+    get_session_monitor().register_session_start(session_id, path, user_id)
+    g.session_id = session_id
+
+
+def _set_session_timeouts(path):
+    """Set appropriate timeouts for the session based on request type."""
+    from app.utils.pgbouncer_utils import set_session_timeout
+
+    try:
+        if path.startswith('/admin/'):
+            set_session_timeout(g.db_session, statement_timeout_seconds=15, idle_timeout_seconds=10)
+        elif path.startswith('/api/'):
+            set_session_timeout(g.db_session, statement_timeout_seconds=5, idle_timeout_seconds=3)
+        else:
+            set_session_timeout(g.db_session, statement_timeout_seconds=8, idle_timeout_seconds=5)
+    except Exception as e:
+        logger.warning(f"Could not set session timeouts: {e}")
+
+
+def _cache_user_roles():
+    """Pre-load and cache user roles early in the request."""
+    from app.utils.user_helpers import safe_current_user
+
+    if safe_current_user and safe_current_user.is_authenticated:
+        try:
+            from app.role_impersonation import get_effective_roles, get_effective_permissions
+            roles = get_effective_roles()
+            permissions = get_effective_permissions()
+
+            g._cached_user_roles = list(roles) if roles else []
+            g._cached_user_permissions = list(permissions) if permissions else []
+        except Exception as e:
+            logger.error(f"Error pre-loading user roles: {e}", exc_info=True)
+            g._cached_user_roles = []
+            g._cached_user_permissions = []
+
+
+def _init_teardown_handlers(app):
+    """Initialize teardown handlers."""
+
+    @app.teardown_appcontext
+    def teardown_appcontext(exception):
+        # DO NOT cleanup Redis connections here - this runs after every request!
+        # Only cleanup database sessions here if needed.
+        pass

@@ -25,6 +25,11 @@
                         <button class="btn btn-primary btn-icon-text" id="refreshScheduleBtn">
                             <i class="ti ti-refresh me-1"></i> Refresh
                         </button>
+                        {% if can_edit_events %}
+                        <button class="btn btn-success btn-icon-text" id="addLeagueEventBtn">
+                            <i class="ti ti-calendar-plus me-1"></i> Add Event
+                        </button>
+                        {% endif %}
                         {% if can_assign_referee and not is_referee %}
                         <button class="btn btn-outline-primary btn-icon-text" id="toggleAssignmentMode">
                             <i class="ti ti-user-check me-1"></i> Assignment Mode
@@ -108,24 +113,37 @@
                             <input type="text" class="form-control border-start-0 ps-1" id="matchSearchInput" placeholder="Search matches...">
                         </div>
                         <div class="btn-group ms-2">
-                            <button type="button" class="btn btn-outline-primary btn-sm active" data-view="day" id="viewDayBtn">Day</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-view="day" id="viewDayBtn">Day</button>
                             <button type="button" class="btn btn-outline-primary btn-sm" data-view="week" id="viewWeekBtn">Week</button>
-                            <button type="button" class="btn btn-outline-primary btn-sm" data-view="month" id="viewMonthBtn">Month</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm active" data-view="month" id="viewMonthBtn">Month</button>
                             <button type="button" class="btn btn-outline-primary btn-sm" data-view="list" id="viewListBtn">List</button>
                         </div>
+                        <button type="button" class="btn btn-sm btn-icon btn-outline-secondary ms-2" id="keyboardHelpBtn" title="Keyboard shortcuts (?)">
+                            <i class="ti ti-keyboard"></i>
+                        </button>
                     </div>
                 </div>
                 <div class="card-body p-0">
                     <!-- Custom Schedule View -->
                     <div id="scheduleContainer" class="p-4 h-100">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <button class="btn btn-sm btn-icon btn-outline-primary" id="prevBtn">
-                                <i class="ti ti-chevron-left"></i>
-                            </button>
+                            <div class="d-flex gap-2 align-items-center">
+                                <button class="btn btn-sm btn-icon btn-outline-primary" id="prevBtn" title="Previous">
+                                    <i class="ti ti-chevron-left"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" id="todayBtn" title="Go to today">
+                                    Today
+                                </button>
+                            </div>
                             <h5 id="currentDateDisplay" class="mb-0 fw-semibold">Sunday, April 7, 2024</h5>
-                            <button class="btn btn-sm btn-icon btn-outline-primary" id="nextBtn">
-                                <i class="ti ti-chevron-right"></i>
-                            </button>
+                            <div class="d-flex gap-2 align-items-center">
+                                <button class="btn btn-sm btn-outline-info" id="nextEventBtn" title="Jump to next scheduled event">
+                                    <i class="ti ti-calendar-event me-1"></i>Next
+                                </button>
+                                <button class="btn btn-sm btn-icon btn-outline-primary" id="nextBtn" title="Next">
+                                    <i class="ti ti-chevron-right"></i>
+                                </button>
+                            </div>
                         </div>
                         
                         <!-- Schedule content will be loaded here dynamically -->
@@ -145,6 +163,81 @@
 
         <!-- Sidebar -->
         <div class="col-lg-4 col-xl-3">
+            <!-- Mini Calendar Card -->
+            <div class="card mb-4">
+                <div class="card-header border-bottom py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-sm me-2 bg-label-primary">
+                            <i class="ti ti-calendar"></i>
+                        </div>
+                        <h5 class="card-title mb-0">Quick Jump</h5>
+                    </div>
+                </div>
+                <div class="card-body p-2">
+                    <div id="miniCalendar"></div>
+                </div>
+            </div>
+
+            <!-- Calendar Filters Card -->
+            <div class="card mb-4">
+                <div class="card-header border-bottom">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-sm me-2 bg-label-info">
+                            <i class="ti ti-filter"></i>
+                        </div>
+                        <h5 class="card-title mb-0">Filters</h5>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Event Type Filters -->
+                    <div class="mb-3">
+                        <label class="form-label text-muted small text-uppercase">Event Types</label>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="filterShowMatches" checked>
+                            <label class="form-check-label" for="filterShowMatches">
+                                <i class="ti ti-ball-football me-1 text-primary"></i>Matches
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="filterShowLeagueEvents" checked>
+                            <label class="form-check-label" for="filterShowLeagueEvents">
+                                <i class="ti ti-calendar-event me-1 text-info"></i>League Events
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Division Filters -->
+                    <div class="mb-3">
+                        <label class="form-label text-muted small text-uppercase d-flex justify-content-between align-items-center">
+                            <span>Divisions</span>
+                            <span>
+                                <button type="button" class="btn btn-link btn-sm p-0 me-2" id="filterSelectAllDivisions">All</button>
+                                <button type="button" class="btn btn-link btn-sm p-0" id="filterClearAllDivisions">None</button>
+                            </span>
+                        </label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input filter-division" type="checkbox" value="Premier" id="filterDivPremier" checked>
+                            <label class="form-check-label" for="filterDivPremier">
+                                <span class="badge bg-primary me-1">&nbsp;</span>Premier
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input filter-division" type="checkbox" value="Classic" id="filterDivClassic" checked>
+                            <label class="form-check-label" for="filterDivClassic">
+                                <span class="badge bg-success me-1">&nbsp;</span>Classic
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Reset Button -->
+                    <div class="d-grid">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="filterResetBtn">
+                            <i class="ti ti-refresh me-1"></i>Reset Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Quick Stats Card -->
             {% if can_view_schedule_stats %}
             <div class="card mb-4">
@@ -394,16 +487,108 @@
         </div>
     </div>
 </div>
+
+<!-- League Event Modal (for admin event creation/editing) -->
+{% if can_edit_events %}
+<div class="modal fade" id="leagueEventModal" tabindex="-1" aria-labelledby="leagueEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="leagueEventModalLabel">
+                    <i class="ti ti-calendar-plus me-2"></i>
+                    <span id="eventModalTitle">Create League Event</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="leagueEventForm">
+                    <input type="hidden" id="eventId" value="">
+
+                    <div class="mb-3">
+                        <label for="eventTitle" class="form-label">Event Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="eventTitle" placeholder="e.g., Pre-Season Party" required>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="eventType" class="form-label">Event Type</label>
+                            <select class="form-select" id="eventType">
+                                <option value="party">Party</option>
+                                <option value="meeting">Meeting</option>
+                                <option value="social">Social Event</option>
+                                <option value="training">Training</option>
+                                <option value="tournament">Tournament</option>
+                                <option value="other" selected>Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="eventLocation" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="eventLocation" placeholder="e.g., The Local Pub">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="eventStartDate" class="form-label">Start Date/Time <span class="text-danger">*</span></label>
+                            <input type="datetime-local" class="form-control" id="eventStartDate" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="eventEndDate" class="form-label">End Date/Time</label>
+                            <input type="datetime-local" class="form-control" id="eventEndDate">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="eventAllDay">
+                            <label class="form-check-label" for="eventAllDay">
+                                All-day event
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="eventDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="eventDescription" rows="3" placeholder="Event details..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="eventNotifyDiscord">
+                            <label class="form-check-label" for="eventNotifyDiscord">
+                                <i class="ti ti-brand-discord me-1"></i>
+                                Announce in Discord
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger me-auto" id="deleteEventBtn" style="display: none;">
+                    <i class="ti ti-trash me-1"></i> Delete
+                </button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveEventBtn">
+                    <i class="ti ti-check me-1"></i> Save Event
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}
+<!-- Calendar Module JS -->
+<script src="{{ url_for('static', filename='assets/js/calendar/calendar-league-events.js') }}"></script>
+<script src="{{ url_for('static', filename='assets/js/calendar/calendar-filters.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // State variables
     let isAssignmentMode = false;
     let allEvents = [];
     let currentViewEvents = [];
-    let currentView = 'day';
+    let currentView = 'month';  // Default to month view for better overview
     let currentDate = new Date();
     const canAssignReferee = {{ 'true' if can_assign_referee else 'false' }};
     const isReferee = {{ 'true' if is_referee else 'false' }};
@@ -449,10 +634,56 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('prevBtn').addEventListener('click', () => {
         navigateDate(-1);
     });
-    
+
     document.getElementById('nextBtn').addEventListener('click', () => {
         navigateDate(1);
     });
+
+    // Today button - jump back to current date
+    document.getElementById('todayBtn').addEventListener('click', () => {
+        currentDate = new Date();
+        updateDateDisplay();
+        renderSchedule();
+    });
+
+    // Keyboard help button
+    document.getElementById('keyboardHelpBtn').addEventListener('click', () => {
+        showKeyboardShortcuts();
+    });
+
+    // Next Event button - jump to next scheduled event
+    document.getElementById('nextEventBtn').addEventListener('click', () => {
+        jumpToNextEvent();
+    });
+
+    function jumpToNextEvent() {
+        if (allEvents.length === 0) {
+            showToast('warning', 'No events loaded');
+            return;
+        }
+
+        const now = new Date();
+        // Find the next event that's in the future
+        const futureEvents = allEvents
+            .filter(event => new Date(event.start) > now)
+            .sort((a, b) => new Date(a.start) - new Date(b.start));
+
+        if (futureEvents.length > 0) {
+            currentDate = new Date(futureEvents[0].start);
+            updateDateDisplay();
+            renderSchedule();
+            showToast('info', `Jumped to ${currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`);
+        } else {
+            // No future events, jump to the most recent past event
+            const sortedEvents = [...allEvents].sort((a, b) => new Date(b.start) - new Date(a.start));
+            if (sortedEvents.length > 0) {
+                currentDate = new Date(sortedEvents[0].start);
+                updateDateDisplay();
+                renderSchedule();
+                showToast('info', `Showing most recent event on ${currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`);
+            }
+        }
+    }
     
     function navigateDate(direction) {
         switch(currentView) {
@@ -577,11 +808,12 @@ document.addEventListener('DOMContentLoaded', () => {
             allEvents = data.events.map(event => {
                 return {
                     ...event,
+                    type: event.type || 'match',  // Default to 'match' for legacy events
                     date: new Date(event.start),
                     // Parse more data needed for rendering
-                    homeTeam: event.teams.split(' vs ')[0],
-                    awayTeam: event.teams.split(' vs ')[1],
-                    location: event.description.replace('Location: ', ''),
+                    homeTeam: event.teams ? event.teams.split(' vs ')[0] : event.title,
+                    awayTeam: event.teams ? event.teams.split(' vs ')[1] : '',
+                    location: event.description ? event.description.replace('Location: ', '') : event.location || '',
                     time: new Date(event.start).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
                 };
             });
@@ -593,10 +825,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.referee_assigned_matches) {
                 refereeAssignedMatches = data.referee_assigned_matches;
             }
-            
+
+            // Auto-navigate to first upcoming event if today has no events
+            if (allEvents.length > 0) {
+                const today = new Date();
+                const todayStr = today.toDateString();
+                const hasEventsToday = allEvents.some(event => new Date(event.start).toDateString() === todayStr);
+
+                if (!hasEventsToday) {
+                    // Find next upcoming event
+                    const futureEvents = allEvents
+                        .filter(event => new Date(event.start) > today)
+                        .sort((a, b) => new Date(a.start) - new Date(b.start));
+
+                    if (futureEvents.length > 0) {
+                        currentDate = new Date(futureEvents[0].start);
+                    }
+                }
+            }
+
             // Render the schedule with the loaded events
             renderSchedule();
-            
+
             return data;
         } catch (error) {
             console.error('Error loading events:', error);
@@ -794,9 +1044,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function filterEventsByView() {
+        let filteredEvents = allEvents;
+
+        // Apply CalendarFilterManager filters first (if available)
+        if (typeof CalendarFilterManager !== 'undefined') {
+            const filters = CalendarFilterManager.getFilters();
+
+            filteredEvents = filteredEvents.filter(event => {
+                // Filter by event type (matches vs league events)
+                if (event.type === 'match' && !filters.showMatches) {
+                    return false;
+                }
+                if (event.type === 'league_event' && !filters.showLeagueEvents) {
+                    return false;
+                }
+
+                // Filter by division (matches only)
+                if (event.type === 'match' && filters.divisions && filters.divisions.length > 0) {
+                    if (!filters.divisions.includes(event.division)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+        }
+
+        // Then filter by date range based on view
         if (currentView === 'day') {
             // Filter events for the selected day
-            return allEvents.filter(event => {
+            return filteredEvents.filter(event => {
                 const eventDate = new Date(event.start);
                 return eventDate.toDateString() === currentDate.toDateString();
             });
@@ -804,24 +1081,24 @@ document.addEventListener('DOMContentLoaded', () => {
             // Filter events for the selected week
             const weekStart = new Date(currentDate);
             weekStart.setDate(currentDate.getDate() - currentDate.getDay()); // Start from Sunday
-            
+
             const weekEnd = new Date(weekStart);
             weekEnd.setDate(weekStart.getDate() + 6); // End on Saturday
-            
-            return allEvents.filter(event => {
+
+            return filteredEvents.filter(event => {
                 const eventDate = new Date(event.start);
                 return eventDate >= weekStart && eventDate <= weekEnd;
             });
         } else if (currentView === 'month') {
             // Filter events for the selected month
-            return allEvents.filter(event => {
+            return filteredEvents.filter(event => {
                 const eventDate = new Date(event.start);
-                return eventDate.getMonth() === currentDate.getMonth() && 
+                return eventDate.getMonth() === currentDate.getMonth() &&
                        eventDate.getFullYear() === currentDate.getFullYear();
             });
         } else {
-            // List view - show all events, sorted by date
-            return [...allEvents].sort((a, b) => new Date(a.start) - new Date(b.start));
+            // List view - show all filtered events, sorted by date
+            return [...filteredEvents].sort((a, b) => new Date(a.start) - new Date(b.start));
         }
     }
     
@@ -1096,12 +1373,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 return eventDate.toDateString() === date.toDateString();
             });
             
+            // Build event count badge
+            const eventCountBadge = dayEvents.length > 0
+                ? `<span class="event-count-badge">${dayEvents.length}</span>`
+                : '';
+
             html += `
-                <div class="month-day ${isToday ? 'today' : ''}">
-                    <div class="month-day-header">${day}</div>
+                <div class="month-day ${isToday ? 'today' : ''} ${dayEvents.length > 0 ? 'has-events' : ''}">
+                    <div class="month-day-header">
+                        <span class="day-number">${day}</span>
+                        ${eventCountBadge}
+                    </div>
                     <div class="month-day-content">
             `;
-            
+
             if (dayEvents.length > 0) {
                 // Sort events by time
                 dayEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
@@ -1170,7 +1455,7 @@ document.addEventListener('DOMContentLoaded', () => {
             item.addEventListener('click', function() {
                 // Get the day from the parent month-day element
                 const dayElement = this.closest('.month-day');
-                const dayNumber = dayElement.querySelector('.month-day-header').textContent;
+                const dayNumber = dayElement.querySelector('.day-number').textContent;
                 
                 // Set current date to this day
                 currentDate.setDate(parseInt(dayNumber));
@@ -2119,14 +2404,254 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // Initialize mini calendar with flatpickr
+    let miniCalendarInstance = null;
+    const miniCalendarEl = document.getElementById('miniCalendar');
+    if (miniCalendarEl && typeof flatpickr !== 'undefined') {
+        miniCalendarInstance = flatpickr(miniCalendarEl, {
+            inline: true,
+            monthSelectorType: 'static',
+            defaultDate: currentDate,
+            onChange: function(selectedDates, dateStr, instance) {
+                if (selectedDates.length > 0) {
+                    currentDate = selectedDates[0];
+                    updateDateDisplay();
+                    renderSchedule();
+                }
+            },
+            onDayCreate: function(dObj, dStr, fp, dayElem) {
+                // Highlight days with events
+                const date = dayElem.dateObj;
+                if (date && allEvents.length > 0) {
+                    const hasEvents = allEvents.some(event => {
+                        const eventDate = new Date(event.start);
+                        return eventDate.toDateString() === date.toDateString();
+                    });
+                    if (hasEvents) {
+                        dayElem.classList.add('has-event');
+                    }
+                }
+            }
+        });
+    }
+
+    // Function to update mini calendar when events load
+    function updateMiniCalendarDots() {
+        if (miniCalendarInstance) {
+            miniCalendarInstance.redraw();
+        }
+    }
+
     // Initialize the page
-    loadScheduleEvents();
+    loadScheduleEvents().then(() => {
+        updateMiniCalendarDots();
+    });
     fetchAvailableReferees();
-    
+
     // Load referee assignments if user is a referee
     if (isReferee) {
         loadRefereeAssignments();
         loadRefereeAvailabilityStatus();
+    }
+
+    // Initialize League Event Manager (for admins)
+    const canEditEvents = {{ 'true' if can_edit_events else 'false' }};
+    if (typeof LeagueEventManager !== 'undefined') {
+        LeagueEventManager.init({ isAdmin: canEditEvents });
+
+        // Bind Add Event button
+        const addEventBtn = document.getElementById('addLeagueEventBtn');
+        if (addEventBtn) {
+            addEventBtn.addEventListener('click', function() {
+                LeagueEventManager.openCreateModal();
+            });
+        }
+    }
+
+    // Initialize Calendar Filter Manager
+    if (typeof CalendarFilterManager !== 'undefined') {
+        CalendarFilterManager.init({
+            onFilterChange: function(filters) {
+                // Re-render schedule with new filters applied
+                renderSchedule();
+            }
+        });
+
+        // Reset filters button
+        const resetFiltersBtn = document.getElementById('filterResetBtn');
+        if (resetFiltersBtn) {
+            resetFiltersBtn.addEventListener('click', function() {
+                CalendarFilterManager.resetFilters();
+            });
+        }
+    }
+
+    // Expose refreshCalendar globally for use by other modules
+    window.refreshCalendar = function() {
+        loadScheduleEvents();
+        fetchAvailableReferees();
+    };
+
+    // Keyboard navigation for calendar
+    document.addEventListener('keydown', function(e) {
+        // Don't handle keyboard events when typing in inputs
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+            return;
+        }
+
+        // Don't handle if a modal is open
+        const openModal = document.querySelector('.modal.show');
+        if (openModal) {
+            return;
+        }
+
+        switch(e.key) {
+            case 'ArrowLeft':
+                // Navigate to previous period
+                e.preventDefault();
+                navigateDate(-1);
+                break;
+
+            case 'ArrowRight':
+                // Navigate to next period
+                e.preventDefault();
+                navigateDate(1);
+                break;
+
+            case 'ArrowUp':
+                // Switch to more detailed view
+                e.preventDefault();
+                switchView('up');
+                break;
+
+            case 'ArrowDown':
+                // Switch to less detailed view
+                e.preventDefault();
+                switchView('down');
+                break;
+
+            case 't':
+            case 'T':
+                // Go to today
+                e.preventDefault();
+                document.getElementById('todayBtn').click();
+                break;
+
+            case 'n':
+            case 'N':
+                // Go to next event
+                e.preventDefault();
+                jumpToNextEvent();
+                break;
+
+            case 'd':
+            case 'D':
+                // Switch to day view
+                if (!e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    setView('day');
+                }
+                break;
+
+            case 'w':
+            case 'W':
+                // Switch to week view
+                if (!e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    setView('week');
+                }
+                break;
+
+            case 'm':
+            case 'M':
+                // Switch to month view
+                if (!e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    setView('month');
+                }
+                break;
+
+            case 'l':
+            case 'L':
+                // Switch to list view
+                if (!e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    setView('list');
+                }
+                break;
+
+            case '?':
+                // Show keyboard shortcuts help
+                e.preventDefault();
+                showKeyboardShortcuts();
+                break;
+        }
+    });
+
+    function switchView(direction) {
+        const views = ['month', 'week', 'day'];
+        const currentIndex = views.indexOf(currentView);
+
+        if (direction === 'up' && currentIndex < views.length - 1) {
+            setView(views[currentIndex + 1]);
+        } else if (direction === 'down' && currentIndex > 0) {
+            setView(views[currentIndex - 1]);
+        }
+    }
+
+    function setView(view) {
+        currentView = view;
+        viewButtons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.view === view);
+        });
+        renderSchedule();
+    }
+
+    function showKeyboardShortcuts() {
+        const shortcuts = [
+            { key: '← / →', desc: 'Navigate previous/next' },
+            { key: '↑ / ↓', desc: 'Zoom in/out views' },
+            { key: 'T', desc: 'Go to today' },
+            { key: 'N', desc: 'Jump to next event' },
+            { key: 'D / W / M / L', desc: 'Day/Week/Month/List view' },
+            { key: '?', desc: 'Show this help' }
+        ];
+
+        const html = `
+            <div class="modal fade" id="keyboardShortcutsModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header border-bottom py-2">
+                            <h6 class="modal-title">
+                                <i class="ti ti-keyboard me-2"></i>Keyboard Shortcuts
+                            </h6>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body py-3">
+                            <table class="table table-sm mb-0">
+                                <tbody>
+                                    ${shortcuts.map(s => `
+                                        <tr>
+                                            <td><kbd>${s.key}</kbd></td>
+                                            <td class="text-muted small">${s.desc}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remove existing modal
+        const existing = document.getElementById('keyboardShortcutsModal');
+        if (existing) existing.remove();
+
+        // Add and show new modal
+        document.body.insertAdjacentHTML('beforeend', html);
+        const modal = new bootstrap.Modal(document.getElementById('keyboardShortcutsModal'));
+        modal.show();
     }
 });
 </script>
@@ -2134,6 +2659,159 @@ document.addEventListener('DOMContentLoaded', () => {
 
 {% block custom_css %}
 <style>
+/* Mini Calendar Styles */
+#miniCalendar {
+    display: flex;
+    justify-content: center;
+}
+
+#miniCalendar .flatpickr-calendar {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 280px;
+}
+
+#miniCalendar .flatpickr-innerContainer {
+    padding: 0;
+}
+
+#miniCalendar .flatpickr-day {
+    max-width: 36px;
+    height: 36px;
+    line-height: 36px;
+    border-radius: 50%;
+}
+
+#miniCalendar .flatpickr-day.has-event {
+    position: relative;
+}
+
+#miniCalendar .flatpickr-day.has-event::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    background: var(--bs-primary);
+    border-radius: 50%;
+}
+
+#miniCalendar .flatpickr-day.selected.has-event::after {
+    background: white;
+}
+
+#miniCalendar .flatpickr-day.today {
+    border: 2px solid var(--bs-primary) !important;
+}
+
+#miniCalendar .flatpickr-months {
+    padding-bottom: 0.5rem;
+}
+
+#miniCalendar .flatpickr-monthDropdown-months {
+    font-weight: 600;
+}
+
+/* Dark mode support for mini calendar */
+[data-bs-theme="dark"] #miniCalendar .flatpickr-calendar,
+.dark-style #miniCalendar .flatpickr-calendar {
+    background: var(--bs-card-bg, #2b2c40);
+    color: var(--bs-body-color, #a3a4cc);
+}
+
+[data-bs-theme="dark"] #miniCalendar .flatpickr-day,
+.dark-style #miniCalendar .flatpickr-day {
+    color: var(--bs-body-color, #a3a4cc);
+}
+
+[data-bs-theme="dark"] #miniCalendar .flatpickr-day:hover,
+.dark-style #miniCalendar .flatpickr-day:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: transparent;
+}
+
+[data-bs-theme="dark"] #miniCalendar .flatpickr-day.prevMonthDay,
+[data-bs-theme="dark"] #miniCalendar .flatpickr-day.nextMonthDay,
+.dark-style #miniCalendar .flatpickr-day.prevMonthDay,
+.dark-style #miniCalendar .flatpickr-day.nextMonthDay {
+    color: rgba(163, 164, 204, 0.4);
+}
+
+[data-bs-theme="dark"] #miniCalendar .flatpickr-day.selected,
+.dark-style #miniCalendar .flatpickr-day.selected {
+    background: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: #fff;
+}
+
+[data-bs-theme="dark"] #miniCalendar .flatpickr-day.today,
+.dark-style #miniCalendar .flatpickr-day.today {
+    border-color: var(--bs-primary) !important;
+}
+
+[data-bs-theme="dark"] #miniCalendar .flatpickr-months,
+.dark-style #miniCalendar .flatpickr-months {
+    background: var(--bs-card-bg, #2b2c40);
+}
+
+[data-bs-theme="dark"] #miniCalendar .flatpickr-months .flatpickr-month,
+.dark-style #miniCalendar .flatpickr-months .flatpickr-month {
+    background: transparent;
+    color: var(--bs-body-color, #a3a4cc);
+}
+
+[data-bs-theme="dark"] #miniCalendar .flatpickr-current-month,
+.dark-style #miniCalendar .flatpickr-current-month {
+    color: var(--bs-body-color, #a3a4cc);
+}
+
+[data-bs-theme="dark"] #miniCalendar .flatpickr-current-month .flatpickr-monthDropdown-months,
+.dark-style #miniCalendar .flatpickr-current-month .flatpickr-monthDropdown-months {
+    background: var(--bs-card-bg, #2b2c40);
+    color: var(--bs-body-color, #a3a4cc);
+}
+
+[data-bs-theme="dark"] #miniCalendar .flatpickr-current-month input.cur-year,
+.dark-style #miniCalendar .flatpickr-current-month input.cur-year {
+    color: var(--bs-body-color, #a3a4cc);
+}
+
+[data-bs-theme="dark"] #miniCalendar .flatpickr-weekdays,
+.dark-style #miniCalendar .flatpickr-weekdays {
+    background: var(--bs-card-bg, #2b2c40);
+}
+
+[data-bs-theme="dark"] #miniCalendar .flatpickr-weekday,
+.dark-style #miniCalendar .flatpickr-weekday {
+    color: var(--bs-body-color, #a3a4cc);
+    background: transparent;
+}
+
+[data-bs-theme="dark"] #miniCalendar .flatpickr-prev-month,
+[data-bs-theme="dark"] #miniCalendar .flatpickr-next-month,
+.dark-style #miniCalendar .flatpickr-prev-month,
+.dark-style #miniCalendar .flatpickr-next-month {
+    fill: var(--bs-body-color, #a3a4cc);
+    color: var(--bs-body-color, #a3a4cc);
+}
+
+[data-bs-theme="dark"] #miniCalendar .flatpickr-prev-month:hover,
+[data-bs-theme="dark"] #miniCalendar .flatpickr-next-month:hover,
+.dark-style #miniCalendar .flatpickr-prev-month:hover,
+.dark-style #miniCalendar .flatpickr-next-month:hover {
+    fill: var(--bs-primary);
+    color: var(--bs-primary);
+}
+
+[data-bs-theme="dark"] #miniCalendar .flatpickr-innerContainer,
+.dark-style #miniCalendar .flatpickr-innerContainer {
+    background: var(--bs-card-bg, #2b2c40);
+    border-color: var(--bs-border-color, #444564);
+}
+
 /* Schedule Views */
 .schedule-content {
     min-height: 500px;
@@ -2299,11 +2977,35 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 .month-day-header {
-    padding: 0.25rem;
-    text-align: center;
+    padding: 0.25rem 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     font-weight: bold;
     border-bottom: 1px solid rgba(0,0,0,0.1);
     background-color: rgba(0,0,0,0.02);
+}
+
+.month-day-header .day-number {
+    font-size: 0.9rem;
+}
+
+.event-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: var(--bs-primary);
+    color: white;
+    border-radius: 50px;
+}
+
+.month-day.has-events {
+    background-color: rgba(var(--bs-primary-rgb), 0.02);
 }
 
 .month-day-content {

@@ -304,7 +304,117 @@
                     {% endif %}
                 </div>
             </div>
-            
+
+            <!-- Calendar Subscription Card -->
+            <div class="card settings-card mb-4" id="calendarSubscriptionCard">
+                <div class="card-header d-flex align-items-center pb-2 border-bottom">
+                    <div class="settings-icon bg-info bg-opacity-10 text-info me-3">
+                        <i class="ti ti-calendar-share"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Calendar Subscription</h5>
+                        <small class="text-muted">Sync your schedule to Google, Apple, or Outlook</small>
+                    </div>
+                </div>
+                <div class="card-body pt-3">
+                    <!-- Loading State -->
+                    <div id="subscriptionLoading" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-muted mt-2 mb-0">Loading subscription...</p>
+                    </div>
+
+                    <!-- Error State -->
+                    <div id="subscriptionError" class="alert alert-danger" style="display: none;"></div>
+
+                    <!-- Content -->
+                    <div id="subscriptionContent" style="display: none;">
+                        <!-- Subscription URL -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Your Subscription URL</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="subscriptionUrl" readonly
+                                       placeholder="Loading...">
+                                <button class="btn btn-outline-primary" type="button" id="copySubscriptionUrl">
+                                    <i class="ti ti-copy me-1"></i>Copy
+                                </button>
+                            </div>
+                            <small class="text-muted">This is your personal calendar feed URL. Keep it private.</small>
+                        </div>
+
+                        <!-- Quick Subscribe Buttons -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Quick Subscribe</label>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-outline-secondary" id="subscribeWebcal">
+                                    <i class="ti ti-device-mobile me-1"></i>iOS / macOS
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="subscribeGoogle">
+                                    <i class="ti ti-brand-google me-1"></i>Google Calendar
+                                </button>
+                            </div>
+                            <small class="text-muted d-block mt-2">
+                                For Outlook: Copy the URL above and add it as a subscription calendar.
+                            </small>
+                        </div>
+
+                        <!-- Preferences -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Include in Calendar</label>
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="subIncludeMatches" checked>
+                                <label class="form-check-label" for="subIncludeMatches">
+                                    <i class="ti ti-ball-football me-1"></i>Team Matches
+                                </label>
+                            </div>
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="subIncludeLeagueEvents" checked>
+                                <label class="form-check-label" for="subIncludeLeagueEvents">
+                                    <i class="ti ti-calendar-event me-1"></i>League Events
+                                </label>
+                            </div>
+                            {% if is_referee %}
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="subIncludeRefAssignments" checked>
+                                <label class="form-check-label" for="subIncludeRefAssignments">
+                                    <i class="ti ti-whistle me-1"></i>Referee Assignments
+                                </label>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Stats -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-6">
+                                <div class="bg-light rounded p-3 text-center">
+                                    <small class="text-muted d-block">Last Synced</small>
+                                    <span class="fw-semibold" id="subLastAccessed">Never</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="bg-light rounded p-3 text-center">
+                                    <small class="text-muted d-block">Total Syncs</small>
+                                    <span class="fw-semibold" id="subAccessCount">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Security -->
+                        <div class="border-top pt-3">
+                            <h6 class="fw-semibold text-muted small text-uppercase mb-2">Security</h6>
+                            <p class="text-muted small mb-3">
+                                If you believe your subscription URL has been compromised, regenerate it below.
+                                This will invalidate your current URL.
+                            </p>
+                            <button type="button" class="btn btn-outline-danger btn-sm" id="regenerateSubscriptionToken">
+                                <i class="ti ti-refresh me-1"></i>Regenerate URL
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Player Status & Team Info (Debug/Info Section) -->
             {% if safe_current_user.player %}
             <div class="card settings-card mb-4">
@@ -648,4 +758,5 @@
 <script src="{{ url_for('static', filename='custom_js/settings.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/handle_2fa.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/sms-verification.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/calendar-subscription.js') }}"></script>
 {% endblock %}

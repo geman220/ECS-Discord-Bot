@@ -102,3 +102,37 @@ class DiscordEmbedUpdateRequest(BaseModel):
     message_id: int
     trigger_source: str
     player_change: Optional[PlayerChange] = None
+
+
+class LeagueEventAnnouncementRequest(BaseModel):
+    """Request to post a league event announcement to Discord."""
+    event_id: int
+    title: str
+    description: Optional[str] = None
+    event_type: str = "other"  # party, meeting, social, training, tournament, other
+    location: Optional[str] = None
+    start_datetime: str  # ISO format
+    end_datetime: Optional[str] = None
+    is_all_day: bool = False
+    channel_id: Optional[int] = None  # If None, uses configured default channel
+    channel_name: Optional[str] = None  # Alternative: lookup channel by name
+
+
+class LeagueEventUpdateRequest(BaseModel):
+    """Request to update an existing league event announcement."""
+    event_id: int
+    message_id: int
+    channel_id: int
+    title: str
+    description: Optional[str] = None
+    event_type: str = "other"
+    location: Optional[str] = None
+    start_datetime: str
+    end_datetime: Optional[str] = None
+    is_all_day: bool = False
+
+
+class LeagueEventDeleteRequest(BaseModel):
+    """Request to delete a league event announcement."""
+    message_id: int
+    channel_id: int

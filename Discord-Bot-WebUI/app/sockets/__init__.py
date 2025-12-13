@@ -107,5 +107,24 @@ class SocketSessionManager:
 # Import socket handler modules to register their events after class definition
 # The import order matters - base functionality first
 from . import session  # Session management
-from . import rsvp  # RSVP handlers  
+from . import rsvp  # RSVP handlers
 from . import live_reporting  # Live match reporting
+
+
+def register_socket_handlers():
+    """
+    Register all Socket.IO event handlers.
+
+    This function imports all handler modules which causes the @socketio.on
+    decorators to register the handlers. Must be called after socketio.init_app().
+    """
+    # Import handler modules to register their events
+    # The decorators in these modules register the handlers when imported
+    from . import auth  # JWT auth and connect/disconnect handlers
+    from . import draft  # Draft room and player drafting handlers
+    from . import discord_roles  # Discord role management handlers
+    from . import match_events  # Match room and event reporting handlers
+    from . import test_handlers  # Test/debug handlers
+
+
+__all__ = ['SocketSessionManager', 'register_socket_handlers']

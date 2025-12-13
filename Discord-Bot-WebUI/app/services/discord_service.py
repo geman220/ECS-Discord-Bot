@@ -261,6 +261,165 @@ class DiscordService:
             logger.error(f"Error getting bot status: {e}")
             return {'status': 'error', 'connected': False, 'error': str(e)}
     
+    async def post_league_event_announcement(
+        self,
+        event_id: int,
+        title: str,
+        start_datetime: str,
+        description: Optional[str] = None,
+        event_type: str = 'other',
+        location: Optional[str] = None,
+        end_datetime: Optional[str] = None,
+        is_all_day: bool = False,
+        channel_id: Optional[int] = None,
+        channel_name: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Post a league event announcement to Discord.
+
+        Args:
+            event_id: The league event ID
+            title: Event title
+            start_datetime: ISO format datetime string
+            description: Optional event description
+            event_type: Type of event (party, meeting, etc.)
+            location: Optional location
+            end_datetime: Optional end datetime ISO string
+            is_all_day: Whether it's an all-day event
+            channel_id: Optional specific channel ID
+            channel_name: Optional channel name (resolved by bot)
+
+        Returns:
+            Dict with message_id, channel_id, channel_name if successful
+        """
+        if self._should_skip_call("post_league_event_announcement"):
+            return None
+
+        try:
+            session = await self._get_session()
+            url = f"{self.bot_api_url}/api/league-event/announce"
+
+            payload = {
+                'event_id': event_id,
+                'title': title,
+                'description': description,
+                'event_type': event_type,
+                'location': location,
+                'start_datetime': start_datetime,
+                'end_datetime': end_datetime,
+                'is_all_day': is_all_day
+            }
+
+            # Add channel if specified
+            if channel_id:
+                payload['channel_id'] = channel_id
+            if channel_name:
+                payload['channel_name'] = channel_name
+
+            logger.info(f"Posting league event announcement for event {event_id}")
+
+            async with session.post(url, json=payload) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    logger.info(f"Posted league event announcement: message_id={result.get('message_id')}, channel={result.get('channel_name')}")
+                    return result
+                else:
+                    error_text = await response.text()
+                    logger.error(f"Failed to post league event announcement (status {response.status}): {error_text}")
+                    return None
+
+        except Exception as e:
+            logger.error(f"Error posting league event announcement for event {event_id}: {e}")
+            return None
+
+    async def update_league_event_announcement(
+        self,
+        event_id: int,
+        message_id: int,
+        channel_id: int,
+        title: str,
+        start_datetime: str,
+        description: Optional[str] = None,
+        event_type: str = 'other',
+        location: Optional[str] = None,
+        end_datetime: Optional[str] = None,
+        is_all_day: bool = False
+    ) -> bool:
+        """
+        Update an existing league event announcement in Discord.
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if self._should_skip_call("update_league_event_announcement"):
+            return False
+
+        try:
+            session = await self._get_session()
+            url = f"{self.bot_api_url}/api/league-event/announce/{event_id}"
+
+            payload = {
+                'event_id': event_id,
+                'message_id': message_id,
+                'channel_id': channel_id,
+                'title': title,
+                'description': description,
+                'event_type': event_type,
+                'location': location,
+                'start_datetime': start_datetime,
+                'end_datetime': end_datetime,
+                'is_all_day': is_all_day
+            }
+
+            async with session.put(url, json=payload) as response:
+                if response.status == 200:
+                    logger.info(f"Updated league event announcement for event {event_id}")
+                    return True
+                else:
+                    error_text = await response.text()
+                    logger.error(f"Failed to update league event announcement (status {response.status}): {error_text}")
+                    return False
+
+        except Exception as e:
+            logger.error(f"Error updating league event announcement for event {event_id}: {e}")
+            return False
+
+    async def delete_league_event_announcement(
+        self,
+        message_id: int,
+        channel_id: int
+    ) -> bool:
+        """
+        Delete a league event announcement from Discord.
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if self._should_skip_call("delete_league_event_announcement"):
+            return False
+
+        try:
+            session = await self._get_session()
+            url = f"{self.bot_api_url}/api/league-event/announce"
+
+            payload = {
+                'message_id': message_id,
+                'channel_id': channel_id
+            }
+
+            async with session.delete(url, json=payload) as response:
+                if response.status == 200:
+                    logger.info(f"Deleted league event announcement (message {message_id})")
+                    return True
+                else:
+                    error_text = await response.text()
+                    logger.error(f"Failed to delete league event announcement (status {response.status}): {error_text}")
+                    return False
+
+        except Exception as e:
+            logger.error(f"Error deleting league event announcement (message {message_id}): {e}")
+            return False
+
     async def close(self):
         """Close the aiohttp session."""
         if self._session and not self._session.closed:

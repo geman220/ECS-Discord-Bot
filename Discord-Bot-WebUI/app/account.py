@@ -162,12 +162,20 @@ def settings():
     enable_2fa_form = Enable2FAForm(prefix='enable2fa')
     disable_2fa_form = Disable2FAForm(prefix='disable2fa')
 
-    return render_template('settings.html', 
-                           notification_form=notification_form, 
-                           password_form=password_form, 
+    # Check if user is a referee (for calendar subscription options)
+    session_db = g.db_session
+    is_referee = False
+    if current_user.is_authenticated:
+        player = session_db.query(Player).filter_by(user_id=current_user.id, is_ref=True).first()
+        is_referee = player is not None
+
+    return render_template('settings.html',
+                           notification_form=notification_form,
+                           password_form=password_form,
                            enable_2fa_form=enable_2fa_form,
                            disable_2fa_form=disable_2fa_form,
-                           is_2fa_enabled=safe_current_user.is_2fa_enabled)
+                           is_2fa_enabled=safe_current_user.is_2fa_enabled,
+                           is_referee=is_referee)
 
 
 @account_bp.route('/update_notifications', methods=['POST'])

@@ -27,5 +27,6 @@ BOT_CONFIG = {
     'wp_username': get_env_variable('WP_USERNAME'),
     'wp_app_password': get_env_variable('WP_APP_PASSWORD'),
     'match_channel_id': get_env_variable('MATCH_CHANNEL_ID'),
+    'league_announcements_channel_id': get_env_variable('LEAGUE_ANNOUNCEMENTS_CHANNEL_ID'),
     'bot_version': "1.8.1"
 }

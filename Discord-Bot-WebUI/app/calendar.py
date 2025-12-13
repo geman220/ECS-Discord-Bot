@@ -557,11 +557,13 @@ def calendar_view():
     can_assign_referee = is_admin
     can_view_schedule_stats = is_admin
     can_view_available_referees = is_admin
-    
-    return render_template('calendar.html', 
-                         title='Pub League Calendar', 
+    can_edit_events = is_admin  # Only admins can create/edit league events
+
+    return render_template('calendar.html',
+                         title='Pub League Calendar',
                          is_referee=is_referee,
                          can_assign_referee=can_assign_referee,
                          can_view_schedule_stats=can_view_schedule_stats,
                          can_view_available_referees=can_view_available_referees,
-                         can_edit_referee_matches=is_referee)
+                         can_edit_referee_matches=is_referee,
+                         can_edit_events=can_edit_events)

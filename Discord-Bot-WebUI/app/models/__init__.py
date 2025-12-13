@@ -110,6 +110,10 @@ from .ai_prompt_config import (
     AIPromptConfig, AIPromptTemplate
 )
 
+from .calendar import (
+    LeagueEvent, LeagueEventType, CalendarSubscription
+)
+
 from .wallet import (
     WalletPassType, WalletPass, WalletPassDevice, WalletPassCheckin,
     PassValidityType, PassStatus, CheckInType,
@@ -202,6 +206,9 @@ __all__ = [
 
     # AI Prompt Configuration models
     'AIPromptConfig', 'AIPromptTemplate',
+
+    # Calendar models
+    'LeagueEvent', 'LeagueEventType', 'CalendarSubscription',
 
     # Wallet pass models
     'WalletPassType', 'WalletPass', 'WalletPassDevice', 'WalletPassCheckin',
