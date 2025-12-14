@@ -21,7 +21,7 @@ from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.models.core import User, Role
 from app.decorators import role_required
-from app.tasks.tasks_discord import assign_roles_to_player_task
+from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 from app.admin_panel.routes.user_management.helpers import find_duplicate_registrations
 
 logger = logging.getLogger(__name__)
@@ -174,6 +174,13 @@ def merge_duplicate_users():
         # Sync Discord roles for primary user
         if primary_user.player and primary_user.player.discord_id:
             assign_roles_to_player_task.delay(player_id=primary_user.player.id, only_add=False)
+
+        # Remove Discord roles from merged (deactivated) users
+        for dup_id in duplicate_user_ids:
+            dup_user = User.query.options(joinedload(User.player)).get(dup_id)
+            if dup_user and dup_user.player and dup_user.player.discord_id:
+                remove_player_roles_task.delay(player_id=dup_user.player.id)
+                logger.info(f"Triggered Discord role removal for merged user {dup_id}")
 
         return jsonify({
             'success': True,

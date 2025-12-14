@@ -84,6 +84,7 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp(), nullable=False)
     is_approved = db.Column(db.Boolean, default=False, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
     email_notifications = db.Column(db.Boolean, default=True)
     sms_notifications = db.Column(db.Boolean, default=True)
     sms_confirmation_code = db.Column(db.String(6), nullable=True)

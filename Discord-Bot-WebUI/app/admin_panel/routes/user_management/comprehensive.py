@@ -25,8 +25,28 @@ from app.models.core import User, Role, League
 from app.models import Player, Team, Season
 from app.decorators import role_required
 from app.utils.db_utils import transactional
+from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 
 logger = logging.getLogger(__name__)
+
+# Mapping from league names to role names
+LEAGUE_TO_ROLE_MAP = {
+    'classic': 'pl-classic',
+    'premier': 'pl-premier',
+    'ecs fc': 'pl-ecs-fc',
+    'ecs-fc': 'pl-ecs-fc',
+}
+
+# All league-related roles that should be managed
+LEAGUE_ROLES = ['pl-classic', 'pl-premier', 'pl-ecs-fc']
+
+
+def get_role_for_league(league):
+    """Get the appropriate role name for a league."""
+    if not league:
+        return None
+    league_name = league.name.lower().strip()
+    return LEAGUE_TO_ROLE_MAP.get(league_name)
 
 
 @admin_panel_bp.route('/users/manage')
@@ -154,11 +174,26 @@ def update_user_status():
         if status not in ['approved', 'pending', 'denied']:
             return jsonify({'success': False, 'message': 'Invalid status'})
 
-        user = User.query.get_or_404(user_id)
+        user = User.query.options(joinedload(User.player)).get_or_404(user_id)
         old_status = user.approval_status
         user.approval_status = status
 
+        # Also update is_approved based on status
+        if status == 'approved':
+            user.is_approved = True
+        elif status == 'denied':
+            user.is_approved = False
+
         db.session.commit()
+
+        # Trigger Discord sync based on status change
+        if user.player and user.player.discord_id:
+            if status == 'approved':
+                assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+                logger.info(f"Triggered Discord role sync for approved user {user.id}")
+            elif status == 'denied':
+                remove_player_roles_task.delay(player_id=user.player.id)
+                logger.info(f"Triggered Discord role removal for denied user {user.id}")
 
         # Log the action
         AdminAuditLog.log_action(
@@ -190,11 +225,20 @@ def update_user_active():
         if not user_id:
             return jsonify({'success': False, 'message': 'User ID is required'})
 
-        user = User.query.get_or_404(user_id)
+        user = User.query.options(joinedload(User.player)).get_or_404(user_id)
         old_active = user.is_active
         user.is_active = active
 
         db.session.commit()
+
+        # Trigger Discord sync based on active status change
+        if user.player and user.player.discord_id:
+            if active:
+                assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+                logger.info(f"Triggered Discord role sync for activated user {user.id}")
+            else:
+                remove_player_roles_task.delay(player_id=user.player.id)
+                logger.info(f"Triggered Discord role removal for deactivated user {user.id}")
 
         # Log the action
         AdminAuditLog.log_action(
@@ -272,24 +316,72 @@ def edit_user_comprehensive(user_id):
             # Active player status
             user.player.is_current_player = is_current_player
 
-            # Handle secondary team (add to teams relationship if not already there)
-            if secondary_team_id:
-                secondary_team = Team.query.get(int(secondary_team_id))
-                if secondary_team and secondary_team not in user.player.teams:
-                    user.player.teams.append(secondary_team)
-
-            # Handle secondary league (add to other_leagues relationship)
+            # Handle secondary league (clear existing and set new)
+            user.player.other_leagues.clear()
             if secondary_league_id:
                 secondary_league = League.query.get(int(secondary_league_id))
-                if secondary_league and secondary_league not in user.player.other_leagues:
+                if secondary_league and secondary_league != user.player.primary_league:
                     user.player.other_leagues.append(secondary_league)
 
-        # Update roles
+            # Handle secondary team (remove non-primary teams, add new if specified)
+            teams_to_remove = [t for t in user.player.teams if t.id != user.player.primary_team_id]
+            for team in teams_to_remove:
+                user.player.teams.remove(team)
+            if secondary_team_id:
+                secondary_team = Team.query.get(int(secondary_team_id))
+                if secondary_team and secondary_team.id != user.player.primary_team_id:
+                    if secondary_team not in user.player.teams:
+                        user.player.teams.append(secondary_team)
+
+        # Update roles - including auto league-to-role mapping
         if role_ids:
             new_roles = Role.query.filter(Role.id.in_(role_ids)).all()
             user.roles = new_roles
 
+        # Auto-manage league roles based on league assignments
+        if user.player:
+            # Determine which league roles the user should have
+            required_league_roles = set()
+
+            # Primary league role
+            if league_id:
+                primary_league = League.query.get(int(league_id))
+                primary_role_name = get_role_for_league(primary_league)
+                if primary_role_name:
+                    required_league_roles.add(primary_role_name)
+
+            # Secondary league role
+            if secondary_league_id:
+                secondary_league = League.query.get(int(secondary_league_id))
+                secondary_role_name = get_role_for_league(secondary_league)
+                if secondary_role_name:
+                    required_league_roles.add(secondary_role_name)
+
+            # Get current role names for comparison
+            current_role_names = {r.name for r in user.roles}
+
+            # Remove league roles that are no longer needed
+            for league_role in LEAGUE_ROLES:
+                if league_role in current_role_names and league_role not in required_league_roles:
+                    role_to_remove = Role.query.filter_by(name=league_role).first()
+                    if role_to_remove and role_to_remove in user.roles:
+                        user.roles.remove(role_to_remove)
+                        logger.info(f"Auto-removed role {league_role} from user {user.id}")
+
+            # Add league roles that should be present
+            for required_role in required_league_roles:
+                if required_role not in current_role_names:
+                    role_to_add = Role.query.filter_by(name=required_role).first()
+                    if role_to_add and role_to_add not in user.roles:
+                        user.roles.append(role_to_add)
+                        logger.info(f"Auto-added role {required_role} to user {user.id}")
+
         db.session.commit()
+
+        # Trigger Discord role sync if player has Discord ID
+        if user.player and user.player.discord_id:
+            assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+            logger.info(f"Triggered Discord role sync for user {user.id}")
 
         # Log the action
         AdminAuditLog.log_action(
@@ -324,12 +416,17 @@ def edit_user_comprehensive(user_id):
 def approve_user_comprehensive(user_id):
     """Quick approve user via AJAX from comprehensive management."""
     try:
-        user = User.query.get_or_404(user_id)
+        user = User.query.options(joinedload(User.player)).get_or_404(user_id)
         old_status = user.is_approved
 
         user.is_approved = True
         user.approval_status = 'approved'
         db.session.commit()
+
+        # Trigger Discord role sync if player has Discord ID
+        if user.player and user.player.discord_id:
+            assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+            logger.info(f"Triggered Discord role sync for approved user {user.id}")
 
         # Log the action
         AdminAuditLog.log_action(
@@ -356,11 +453,16 @@ def approve_user_comprehensive(user_id):
 def deactivate_user_comprehensive(user_id):
     """Quick deactivate user via AJAX from comprehensive management."""
     try:
-        user = User.query.get_or_404(user_id)
+        user = User.query.options(joinedload(User.player)).get_or_404(user_id)
         old_status = user.is_active
 
         user.is_active = False
         db.session.commit()
+
+        # Remove Discord roles for deactivated user
+        if user.player and user.player.discord_id:
+            remove_player_roles_task.delay(player_id=user.player.id)
+            logger.info(f"Triggered Discord role removal for deactivated user {user.id}")
 
         # Log the action
         AdminAuditLog.log_action(
@@ -393,28 +495,47 @@ def bulk_user_comprehensive_actions():
         if not action or not user_ids:
             return jsonify({'success': False, 'message': 'Action and user IDs are required'})
 
-        users = User.query.filter(User.id.in_(user_ids)).all()
+        users = User.query.options(joinedload(User.player)).filter(User.id.in_(user_ids)).all()
         if not users:
             return jsonify({'success': False, 'message': 'No users found'})
 
         count = 0
+        users_to_sync = []
+        users_to_remove_roles = []
+
         for user in users:
             if action == 'approve':
                 user.is_approved = True
                 user.approval_status = 'approved'
+                users_to_sync.append(user)
                 count += 1
             elif action == 'deactivate':
                 user.is_active = False
+                users_to_remove_roles.append(user)
                 count += 1
             elif action == 'activate':
                 user.is_active = True
+                users_to_sync.append(user)
                 count += 1
             elif action == 'deny':
                 user.is_approved = False
                 user.approval_status = 'denied'
+                users_to_remove_roles.append(user)
                 count += 1
 
         db.session.commit()
+
+        # Trigger Discord sync for affected users
+        for user in users_to_sync:
+            if user.player and user.player.discord_id:
+                assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+
+        for user in users_to_remove_roles:
+            if user.player and user.player.discord_id:
+                remove_player_roles_task.delay(player_id=user.player.id)
+
+        if users_to_sync or users_to_remove_roles:
+            logger.info(f"Bulk action '{action}': triggered Discord sync for {len(users_to_sync)} users, role removal for {len(users_to_remove_roles)} users")
 
         # Log the action
         AdminAuditLog.log_action(
@@ -452,7 +573,10 @@ def bulk_update_users():
         if not user_ids or not action:
             return jsonify({'success': False, 'message': 'Missing required parameters'})
 
-        users = User.query.filter(User.id.in_(user_ids)).all()
+        users = User.query.options(joinedload(User.player)).filter(User.id.in_(user_ids)).all()
+
+        users_to_sync = []
+        users_to_remove_roles = []
 
         if action == 'update_status':
             status = data.get('status')
@@ -461,6 +585,13 @@ def bulk_update_users():
 
             for user in users:
                 user.approval_status = status
+                # Also update is_approved
+                if status == 'approved':
+                    user.is_approved = True
+                    users_to_sync.append(user)
+                elif status == 'denied':
+                    user.is_approved = False
+                    users_to_remove_roles.append(user)
 
             message = f'{len(users)} users updated to {status} status'
 
@@ -468,6 +599,10 @@ def bulk_update_users():
             active = data.get('active', True)
             for user in users:
                 user.is_active = active
+                if active:
+                    users_to_sync.append(user)
+                else:
+                    users_to_remove_roles.append(user)
 
             action_word = 'activated' if active else 'deactivated'
             message = f'{len(users)} users {action_word}'
@@ -476,6 +611,18 @@ def bulk_update_users():
             return jsonify({'success': False, 'message': 'Invalid action'})
 
         db.session.commit()
+
+        # Trigger Discord sync for affected users
+        for user in users_to_sync:
+            if user.player and user.player.discord_id:
+                assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+
+        for user in users_to_remove_roles:
+            if user.player and user.player.discord_id:
+                remove_player_roles_task.delay(player_id=user.player.id)
+
+        if users_to_sync or users_to_remove_roles:
+            logger.info(f"Bulk update '{action}': triggered Discord sync for {len(users_to_sync)} users, role removal for {len(users_to_remove_roles)} users")
 
         # Log the action
         AdminAuditLog.log_action(

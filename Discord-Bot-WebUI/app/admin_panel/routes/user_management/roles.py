@@ -21,6 +21,7 @@ from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.models.core import User, Role
 from app.decorators import role_required
+from app.tasks.tasks_discord import assign_roles_to_player_task
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +121,7 @@ def assign_user_roles():
             flash('User ID is required', 'error')
             return redirect(url_for('admin_panel.roles_management'))
 
-        user = User.query.get_or_404(user_id)
+        user = User.query.options(joinedload(User.player)).get_or_404(user_id)
 
         # Clear existing roles and assign new ones
         user.roles.clear()
@@ -130,6 +131,11 @@ def assign_user_roles():
                 user.roles.append(role)
 
         db.session.commit()
+
+        # Trigger Discord role sync if player has Discord ID
+        if user.player and user.player.discord_id:
+            assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+            logger.info(f"Triggered Discord role sync for user {user.id} after role assignment")
 
         # Log the action
         AdminAuditLog.log_action(
@@ -281,7 +287,7 @@ def assign_user_role():
         if not all([user_id, role_id, action]):
             return jsonify({'success': False, 'message': 'Missing required parameters'})
 
-        user = User.query.get_or_404(user_id)
+        user = User.query.options(joinedload(User.player)).get_or_404(user_id)
         role = Role.query.get_or_404(role_id)
 
         if action == 'add':
@@ -302,6 +308,11 @@ def assign_user_role():
             return jsonify({'success': False, 'message': 'Invalid action'})
 
         db.session.commit()
+
+        # Trigger Discord role sync if player has Discord ID
+        if user.player and user.player.discord_id:
+            assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+            logger.info(f"Triggered Discord role sync for user {user.id} after role {action}")
 
         # Log the action
         AdminAuditLog.log_action(
