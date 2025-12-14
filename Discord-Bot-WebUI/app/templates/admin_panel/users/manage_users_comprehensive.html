@@ -347,11 +347,13 @@
                                                         <i class="ti ti-edit me-2"></i>Edit User
                                                     </a>
                                                 </li>
+                                                {% if user.player %}
                                                 <li>
-                                                    <a class="dropdown-item" href="#" onclick="viewUserDetails({{ user.id }})">
-                                                        <i class="ti ti-eye me-2"></i>View Details
+                                                    <a class="dropdown-item" href="{{ url_for('players.player_profile', player_id=user.player.id) }}">
+                                                        <i class="ti ti-user me-2"></i>View Profile
                                                     </a>
                                                 </li>
+                                                {% endif %}
                                                 {% if not user.is_approved %}
                                                 <li>
                                                     <a class="dropdown-item text-success" href="#" onclick="approveUser({{ user.id }})">
@@ -932,9 +934,9 @@ function bulkAction(action) {
     });
 }
 
-function viewUserDetails(userId) {
-    // Redirect to user detail page or show modal with details
-    window.location.href = `{{ url_for('admin_panel.users_comprehensive') }}/${userId}`;
+function viewPlayerProfile(playerId) {
+    // Redirect to player profile page
+    window.location.href = `/players/profile/${playerId}`;
 }
 
 function createUser() {

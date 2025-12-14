@@ -18,6 +18,7 @@ psycopg2-binary==2.9.9
 pydantic==2.9.0
 pytest==8.3.2
 python-dotenv==1.0.1
+python-multipart==0.0.9
 python_dateutil==2.9.0.post0
 pytz==2024.1
 Requests==2.32.3
