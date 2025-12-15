@@ -1,0 +1,7081 @@
+/**
+ * ============================================================================
+ * MOBILE LAYOUT CSS - Consolidated
+ * ============================================================================
+ *
+ * This file consolidates all mobile-responsive styles from:
+ * - mobile-critical.css (critical path styles)
+ * - mobile-scale-system.css (typography scaling)
+ * - mobile.css (base mobile styles)
+ * - mobile-forms.css (form optimizations)
+ * - mobile-tables.css (table card layouts)
+ * - mobile-modals.css (bottom sheet modals)
+ * - mobile-toggles.css (toggle switches)
+ * - mobile-unified.css (consolidated mobile system)
+ * - mobile-components.css (component fixes)
+ * - component-mobile-fixes.css (additional fixes)
+ * - admin-mobile.css (admin panel mobile)
+ *
+ * DARK MODE: See themes/classic/classic-dark.css for Classic theme dark mode
+ *            See themes/modern/modern-dark.css for Modern theme dark mode
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   SECTION 1: CRITICAL PATH STYLES
+   ============================================================================ */
+
+:root {
+  /* Mobile Typography - Critical */
+  --mobile-text-xs: 12px;
+  --mobile-text-sm: 14px;
+  --mobile-text-base: 16px;
+  --mobile-text-lg: 18px;
+  --mobile-text-xl: 20px;
+
+  /* Mobile Spacing - Critical */
+  --mobile-space-xs: 4px;
+  --mobile-space-sm: 8px;
+  --mobile-space-base: 12px;
+  --mobile-space-lg: 16px;
+  --mobile-space-xl: 24px;
+
+  /* Touch Targets - Critical */
+  --mobile-touch-sm: 40px;
+  --mobile-touch-base: 48px;  /* Standardized to 48px for better accessibility */
+  --mobile-touch-lg: 52px;
+
+  /* Container - Critical */
+  --mobile-container-padding: 12px;
+}
+
+/* Critical Z-Index */
+.modal {
+  z-index: 9999 !important;
+  position: fixed !important;  /* Force fixed positioning */
+}
+.modal-backdrop {
+  z-index: 9998 !important;
+  position: fixed !important;
+}
+.layout-navbar {
+  z-index: 1055 !important;
+  position: fixed !important;
+}
+.layout-menu { z-index: 1050 !important; }
+
+@media (max-width: 991.98px) {
+  .layout-menu { z-index: 1056 !important; }
+  .layout-overlay { z-index: 1054 !important; }
+}
+
+/* Critical Container Padding */
+.container-xxl:not(.auth-page .container-xxl),
+.container-fluid:not(.auth-page .container-fluid) {
+  padding-left: var(--mobile-container-padding);
+  padding-right: var(--mobile-container-padding);
+}
+
+/* Critical Typography */
+body:not(.auth-page) {
+  font-size: var(--mobile-text-base);
+  line-height: 1.4;
+}
+
+body:not(.auth-page) h1 { font-size: var(--mobile-text-xl); }
+body:not(.auth-page) h2 { font-size: var(--mobile-text-lg); }
+body:not(.auth-page) h3 { font-size: var(--mobile-text-base); }
+
+/* Critical Button Sizing */
+body:not(.auth-page) .btn {
+  min-height: var(--mobile-touch-base);
+  font-size: var(--mobile-text-base);
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+}
+
+/* Critical Form Sizing */
+body:not(.auth-page) .form-control,
+body:not(.auth-page) .form-select {
+  min-height: var(--mobile-touch-base);
+  font-size: var(--mobile-text-base);
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+}
+
+.form-control,
+.form-select {
+  font-size: 16px; /* Prevents iOS zoom */
+}
+
+/* Critical Navigation Touch Targets */
+.navbar-nav .nav-link {
+  min-height: var(--mobile-touch-base);
+  padding: var(--mobile-space-base);
+}
+
+/* Critical Modal Sizing */
+@media (max-width: 767.98px) {
+  .modal-dialog:not(.auth-page .modal-dialog) {
+    margin: 8px;
+    max-width: calc(100% - 16px);
+  }
+}
+
+/* iOS Smooth Scrolling */
+body,
+.modal-body,
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Viewport Height Fix for iOS */
+html {
+  height: -webkit-fill-available;
+}
+
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Critical Image Responsiveness */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Prevent Zoom on Focus (iOS) */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+/* Critical Touch Action */
+.btn,
+.nav-link,
+.form-control,
+.form-select {
+  touch-action: manipulation;
+}
+
+/* Tablet Adjustments */
+@media (min-width: 768px) {
+  :root {
+    --mobile-container-padding: 20px;
+    --mobile-space-base: 16px;
+  }
+}
+
+/* Desktop Adjustments */
+@media (min-width: 992px) {
+  :root {
+    --mobile-container-padding: 24px;
+    --mobile-space-base: 20px;
+  }
+}
+
+/* Reduced Motion - Critical Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+/**
+ * Mobile-First Scale System
+ * Fixes oversized UI elements and creates consistent mobile scaling
+ */
+
+/* Mobile-First CSS Variables for Consistent Scaling */
+:root {
+  /* Mobile Typography Scale */
+  --mobile-text-xs: 12px;    /* Minimum readable size */
+  --mobile-text-sm: 14px;    /* Small text, labels */
+  --mobile-text-base: 16px;  /* Body text, form inputs */
+  --mobile-text-lg: 18px;    /* Headings */
+  --mobile-text-xl: 20px;    /* Large headings */
+
+  /* Mobile Spacing Scale (Based on 4px grid) */
+  --mobile-space-xs: 4px;    /* Tight spacing */
+  --mobile-space-sm: 8px;    /* Small gaps */
+  --mobile-space-base: 12px; /* Standard spacing */
+  --mobile-space-lg: 16px;   /* Generous spacing */
+  --mobile-space-xl: 24px;   /* Large gaps */
+
+  /* Touch Target Sizes */
+  --mobile-touch-sm: 40px;   /* Minimum touch target */
+  --mobile-touch-base: 44px; /* Recommended touch target */
+  --mobile-touch-lg: 48px;   /* Large touch target */
+  
+  /* Container Sizes */
+  --mobile-container-padding: 12px; /* Tighter than desktop */
+  --mobile-modal-margin: 8px;       /* Smaller modal margins */
+}
+
+/* MOBILE-FIRST BASE STYLES (Mobile < 768px) */
+
+/* Container Optimization - Exclude auth pages */
+.container-xxl:not(.auth-page .container-xxl), 
+.container-fluid:not(.auth-page .container-fluid) {
+  padding-left: var(--mobile-container-padding);
+  padding-right: var(--mobile-container-padding);
+}
+
+/* Typography Scale - Exclude auth pages */
+body:not(.auth-page) {
+  font-size: var(--mobile-text-base);
+  line-height: 1.4; /* Tighter line height for mobile */
+}
+
+.auth-page body,
+.auth-page h1,
+.auth-page h2,
+.auth-page h3,
+.auth-page h4,
+.auth-page h5,
+.auth-page h6 {
+  /* Let auth pages use default Bootstrap typography */
+  font-size: revert;
+  line-height: revert;
+}
+
+body:not(.auth-page) h1 { font-size: var(--mobile-text-xl); }
+body:not(.auth-page) h2 { font-size: var(--mobile-text-lg); }
+body:not(.auth-page) h3 { font-size: var(--mobile-text-base); }
+body:not(.auth-page) h4, 
+body:not(.auth-page) h5, 
+body:not(.auth-page) h6 { font-size: var(--mobile-text-sm); }
+
+/* Button Scale System - Exclude auth pages */
+body:not(.auth-page) .btn {
+  min-height: var(--mobile-touch-base);
+  font-size: var(--mobile-text-base);
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+  border-radius: 6px; /* Smaller radius for mobile */
+}
+
+body:not(.auth-page) .btn-sm {
+  min-height: var(--mobile-touch-sm);
+  font-size: var(--mobile-text-sm);
+  padding: var(--mobile-space-xs) var(--mobile-space-sm);
+}
+
+body:not(.auth-page) .btn-lg {
+  min-height: var(--mobile-touch-lg);
+  font-size: var(--mobile-text-lg);
+  padding: var(--mobile-space-base) var(--mobile-space-lg);
+}
+
+/* Form Controls - Exclude auth pages */
+body:not(.auth-page) .form-control,
+body:not(.auth-page) .form-select {
+  min-height: var(--mobile-touch-base);
+  font-size: var(--mobile-text-base);
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+  border-radius: 6px;
+}
+
+/* Card System - Exclude auth pages */
+.card:not(.auth-page .card) {
+  margin-bottom: var(--mobile-space-base);
+  border-radius: 8px;
+}
+
+.card-body:not(.auth-page .card-body) {
+  padding: var(--mobile-space-base);
+}
+
+.card-header {
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+  font-size: var(--mobile-text-sm);
+  font-weight: 600;
+}
+
+/* ============================================================================
+   COMPREHENSIVE Z-INDEX SYSTEM
+   ============================================================================
+   
+   Centralized z-index management to prevent conflicts across the application.
+   
+   Z-Index Hierarchy (highest to lowest):
+   - Template Customizer: 99999999 (theme system, rarely visible)
+   - SweetAlert2: 10000+ (critical alerts, should be above everything)
+   - Mobile Modal Content: 9999 (MOBILE ONLY - force above theme z-index)
+   - Mobile Modal Backdrop: 9998 (MOBILE ONLY - behind modal content)
+   - Toast/Notifications: 1070 (important messages)
+   - Modal Content: 1060 (user interactions, must be accessible - DESKTOP)
+   - Search Autocomplete: 1058 (interactive elements)
+   - Mobile Sidebar (expanded): 1056 (MOBILE ONLY - above navbar when open)
+   - Navbar/Header: 1055 (Bootstrap default)
+   - Mobile Menu Overlay: 1054 (MOBILE ONLY - backdrop for sidebar)
+   - Sidebar: 1050 (Bootstrap default - DESKTOP)
+   - Modal Backdrop: 1040 (behind modal content but above page content - DESKTOP)
+   - Select2 Dropdown: 1030 (form dropdowns)
+   - Select2 Container: 1020 (form containers)
+   - Dropdown Menu: 1000 (general dropdowns)
+   - Content: 1-999 (page content)
+   
+   ============================================================================ */
+
+/* MODALS - REMOVED CONFLICTING LOW Z-INDEX (was 1060, now using 9999 from mobile-modals.css) */
+/* The 1060 z-index was causing modals to appear BEHIND navbar (1055) */
+
+/* GLOBAL MODAL FIX - Force modals above everything */
+.modal,
+.modal.show,
+.modal.fade,
+.modal.fade.show,
+div.modal,
+div.modal.show,
+div.modal.fade,
+div.modal.fade.show,
+/* Use attribute selector to match ALL match report modals instead of hardcoding specific IDs */
+[id^="reportMatchModal-"] {
+  z-index: 9999 !important;
+}
+
+.modal-backdrop,
+.modal-backdrop.show,
+.modal-backdrop.fade,
+.modal-backdrop.fade.show,
+div.modal-backdrop,
+div.modal-backdrop.show {
+  z-index: 9998 !important;
+}
+
+/* NOTIFICATIONS & ALERTS */
+.toast-container {
+  z-index: 1070 !important;
+}
+
+.alert {
+  z-index: auto; /* Let alerts follow normal document flow */
+}
+
+#connectionStatus {
+  z-index: 1070 !important; /* Same level as toast notifications */
+}
+
+/* INTERACTIVE ELEMENTS */
+.ui-autocomplete {
+  z-index: 1058 !important;
+}
+
+.dropdown-menu {
+  z-index: 1000 !important;
+}
+
+.select2-container {
+  z-index: 1020 !important;
+}
+
+.select2-dropdown {
+  z-index: 10050 !important;
+}
+
+/* Select2 containers when opened (ensures dropdown is clickable above modals) */
+.select2-container--open {
+  z-index: 10040 !important;
+}
+
+/* LAYOUT ELEMENTS */
+.layout-navbar,
+#layout-navbar {
+  z-index: 1055 !important;
+}
+
+.layout-menu,
+#layout-menu {
+  z-index: 1050 !important;
+}
+
+/* MOBILE-SPECIFIC OVERRIDES */
+@media (max-width: 991.98px) {
+  /* FORCE modals to highest z-index on mobile to override theme files */
+  .modal {
+    z-index: 9999 !important;
+  }
+  
+  .modal-backdrop {
+    z-index: 9998 !important;
+  }
+  
+  /* Force all navbar elements below modal on mobile */
+  .layout-navbar,
+  #layout-navbar,
+  .navbar,
+  .layout-menu-toggle,
+  .navbar-nav,
+  .navbar-nav-right,
+  #navbar-collapse {
+    z-index: 1055 !important;
+  }
+  
+  /* Force sidebar above navbar when expanded on mobile */
+  .layout-menu,
+  #layout-menu {
+    z-index: 1056 !important; /* Higher than navbar (1055) */
+  }
+  
+  /* Layout overlay for mobile menu should be below menu but above navbar */
+  .layout-overlay {
+    z-index: 1054 !important; /* Below sidebar (1056) but above content */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+  }
+  
+  /* Show overlay when menu is expanded */
+  .layout-menu-expanded .layout-overlay {
+    display: block !important;
+  }
+  
+  /* Search autocomplete below modals */
+  .ui-autocomplete {
+    z-index: 1058 !important;
+  }
+  
+  /* Make sure modal components stay together */
+  .modal-header,
+  .modal-body,
+  .modal-footer,
+  .modal-content {
+    z-index: inherit; /* Inherit from parent modal */
+  }
+}
+
+/* Modal Optimization - Only on mobile screens, exclude auth pages */
+@media (max-width: 767.98px) {
+  .modal-dialog:not(.auth-page .modal-dialog) {
+    margin: var(--mobile-modal-margin);
+    max-width: calc(100% - calc(var(--mobile-modal-margin) * 2));
+  }
+}
+
+/* Desktop Modal Restoration - Ensure proper centering and sizing on desktop */
+@media (min-width: 768px) {
+  .modal-dialog {
+    margin: 1.75rem auto;
+    max-width: 700px; /* Wider default for better content display */
+  }
+  
+  .modal-lg .modal-dialog {
+    max-width: 900px; /* Increased for complex forms */
+  }
+  
+  .modal-xl .modal-dialog {
+    max-width: 1140px;
+  }
+  
+  .modal-sm .modal-dialog {
+    max-width: 400px; /* Slightly larger small modals */
+  }
+  
+  /* Specific sizing for report match modals */
+  [id^="reportMatchModal"] .modal-dialog {
+    max-width: 850px; /* Extra wide for match reporting forms */
+  }
+}
+
+.modal-content {
+  border-radius: 8px;
+}
+
+.modal-header,
+.modal-footer {
+  padding: var(--mobile-space-base);
+}
+
+.modal-body {
+  padding: var(--mobile-space-base);
+}
+
+/* Badge/Label System */
+.badge {
+  font-size: var(--mobile-text-xs);
+  padding: var(--mobile-space-xs) var(--mobile-space-sm);
+  border-radius: 4px;
+}
+
+/* Table Mobile Optimization */
+.table-responsive {
+  border-radius: 6px;
+  margin-bottom: var(--mobile-space-base);
+}
+
+/* Mobile Card Tables */
+@media (max-width: 767.98px) {
+  /* Transform tables to cards */
+  .table-responsive table {
+    display: block;
+  }
+  
+  .table-responsive thead {
+    display: none;
+  }
+  
+  .table-responsive tbody {
+    display: block;
+  }
+  
+  .table-responsive tr {
+    display: block;
+    background: white;
+    border: 1px solid var(--ecs-neutral-20, var(--ecs-neutral-20));
+    border-radius: 6px;
+    margin-bottom: var(--mobile-space-base);
+    padding: var(--mobile-space-base);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .table-responsive td {
+    display: block;
+    padding: var(--mobile-space-xs) 0;
+    border: none;
+    font-size: var(--mobile-text-sm);
+  }
+  
+  .table-responsive td:not(:last-child) {
+    border-bottom: 1px solid var(--ecs-neutral-5, var(--ecs-neutral-5));
+    margin-bottom: var(--mobile-space-xs);
+    padding-bottom: var(--mobile-space-xs);
+  }
+  
+  /* Data labels for mobile cards */
+  .table-responsive td[data-label]:before {
+    content: attr(data-label) ": ";
+    font-weight: 600;
+    color: var(--ecs-neutral-50, var(--ecs-neutral-50));
+    display: inline-block;
+    margin-right: var(--mobile-space-xs);
+    font-size: var(--mobile-text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  /* Action buttons in table cards */
+  .table-responsive td:last-child {
+    text-align: center;
+    padding-top: var(--mobile-space-sm);
+    border-top: 1px solid var(--ecs-neutral-5, var(--ecs-neutral-5));
+    margin-top: var(--mobile-space-sm);
+  }
+  
+  .table-responsive .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mobile-space-xs);
+    justify-content: center;
+  }
+  
+  .table-responsive .btn-group .btn {
+    flex: 1;
+    min-width: 80px;
+    font-size: var(--mobile-text-xs);
+    padding: var(--mobile-space-xs) var(--mobile-space-sm);
+  }
+}
+
+/* Alert System */
+.alert {
+  padding: var(--mobile-space-base);
+  margin-bottom: var(--mobile-space-base);
+  border-radius: 6px;
+  font-size: var(--mobile-text-sm);
+}
+
+/* Navigation Improvements */
+.navbar-nav .nav-link {
+  padding: var(--mobile-space-base);
+  font-size: var(--mobile-text-base);
+  min-height: var(--mobile-touch-base);
+  display: flex;
+  align-items: center;
+}
+
+/* Dropdown Optimization */
+.dropdown-menu {
+  border-radius: 6px;
+  padding: var(--mobile-space-xs);
+}
+
+.dropdown-item {
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+  font-size: var(--mobile-text-sm);
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+
+/* TABLET AND UP ADJUSTMENTS (768px+) */
+@media (min-width: 768px) {
+  :root {
+    --mobile-container-padding: 20px;
+    --mobile-space-base: 16px;
+    --mobile-space-lg: 24px;
+  }
+  
+  .btn {
+    font-size: 14px;
+    border-radius: 8px;
+  }
+  
+  .card-body {
+    padding: var(--mobile-space-lg);
+  }
+}
+
+/* DESKTOP OVERRIDES (992px+) */
+@media (min-width: 992px) {
+  :root {
+    --mobile-container-padding: 24px;
+    --mobile-space-base: 20px;
+    --mobile-space-lg: 32px;
+  }
+  
+  /* Restore table layout for desktop */
+  .table-responsive table,
+  .table-responsive thead,
+  .table-responsive tbody,
+  .table-responsive tr,
+  .table-responsive td {
+    display: revert;
+  }
+  
+  .table-responsive td[data-label]:before {
+    display: none;
+  }
+}
+
+/* MOBILE-SPECIFIC COMPONENT FIXES */
+
+/* Fix Home/Away badge sizing */
+.match-badge {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  font-size: var(--mobile-text-sm) !important;
+  font-weight: 600 !important;
+  flex-shrink: 0 !important; /* Prevent stretching */
+  min-width: 24px !important; /* Ensure minimum size */
+}
+
+/* Fix nav pills fade-out issue on mobile */
+.nav.nav-pills.overflow-auto.flex-nowrap {
+  /* Remove default webkit scrollbar fade */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.nav.nav-pills.overflow-auto.flex-nowrap::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
+}
+
+/* Fix nav pills container to prevent fade-out */
+.nav.nav-pills.small-tabs.overflow-auto.flex-nowrap {
+  position: relative;
+  background: transparent !important;
+}
+
+/* Remove any fade-out gradients or masks */
+.nav.nav-pills.small-tabs.overflow-auto.flex-nowrap::before,
+.nav.nav-pills.small-tabs.overflow-auto.flex-nowrap::after {
+  display: none !important;
+}
+
+/* Fix nav-link styling */
+.nav.nav-pills .nav-link {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+/* Welcome header mobile fixes */
+@media (max-width: 767.98px) {
+  .welcome-header .d-flex.justify-content-between.align-items-center {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: var(--mobile-space-base) !important;
+  }
+  
+  .welcome-header .d-flex.align-items-center:last-child {
+    align-self: flex-end !important;
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+  
+  /* Make profile button smaller on mobile */
+  .welcome-header .btn-sm {
+    font-size: var(--mobile-text-xs) !important;
+    padding: var(--mobile-space-xs) var(--mobile-space-sm) !important;
+  }
+}
+
+/* UTILITY CLASSES FOR QUICK FIXES */
+.mobile-hide { display: none !important; }
+.mobile-text-sm { font-size: var(--mobile-text-sm) !important; }
+.mobile-text-xs { font-size: var(--mobile-text-xs) !important; }
+.mobile-padding { padding: var(--mobile-space-base) !important; }
+.mobile-margin { margin: var(--mobile-space-base) !important; }
+.mobile-touch { min-height: var(--mobile-touch-base) !important; }
+
+@media (min-width: 768px) {
+  .mobile-hide { display: revert !important; }
+  .desktop-hide { display: none !important; }
+}/* 
+ * Simple Mobile Fixes - Updated for Match Management
+ * Only fixes the actual problems, nothing fancy
+ */
+
+@media (max-width: 991.98px) {
+  /* Fix 1: Make sure everything fits on screen */
+  .container-xxl, .container-fluid {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+  
+  /* Fix 2: For complex tables like match management - use card layout */
+  .table-responsive {
+    overflow: visible !important;
+  }
+  
+  .table-responsive table {
+    display: block;
+  }
+  
+  .table-responsive thead {
+    display: none;
+  }
+  
+  .table-responsive tbody {
+    display: block;
+  }
+  
+  .table-responsive tr {
+    display: block;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 8px;
+    margin-bottom: 15px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .table-responsive td {
+    display: block;
+    padding: 8px 0;
+    border: none;
+    text-align: left;
+    position: relative;
+    width: 100%;
+  }
+  
+  .table-responsive td:not(:last-child) {
+    border-bottom: 1px solid var(--bs-border-color);
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+  }
+  
+  /* Add labels before each cell */
+  .table-responsive td[data-label]:before {
+    content: attr(data-label) ": ";
+    font-weight: bold;
+    color: var(--bs-secondary);
+    display: inline-block;
+    margin-right: 5px;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+  
+  /* Special handling for action columns - don't show labels */
+  .table-responsive td:last-child:before {
+    content: none;
+  }
+  
+  /* Make sure action buttons stack vertically in cards */
+  .table-responsive td:last-child {
+    text-align: center;
+    padding: 12px 0;
+  }
+  
+  /* Override any table min-width constraints */
+  .table th, .table td {
+    min-width: 0 !important;
+    width: auto !important;
+  }
+  
+  /* Fix 3: Make modal fit screen properly */
+  .modal-dialog {
+    margin: 10px;
+    max-width: calc(100% - 20px);
+  }
+  
+  .modal-content {
+    max-height: calc(100vh - 20px);
+    overflow-y: auto;
+  }
+  
+  /* Fix 4: Make buttons smaller and more manageable */
+  .btn {
+    font-size: 14px;
+    padding: 10px 16px;
+    min-height: 44px;
+    margin: 4px;
+  }
+
+  .btn-sm {
+    font-size: 13px;
+    padding: 8px 12px;
+    min-height: 44px;
+    margin: 2px;
+  }
+  
+  /* Fix button groups to wrap properly */
+  .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+  
+  .btn-group .btn {
+    flex: 0 0 auto;
+    border-radius: 4px;
+  }
+  
+  /* Special handling for action buttons in table cells */
+  .table-responsive .btn-group-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: stretch;
+  }
+  
+  .table-responsive .btn-group-vertical .btn-group {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1px;
+  }
+  
+  .table-responsive .btn-group-vertical .btn {
+    font-size: 12px;
+    padding: 8px 12px;
+    min-height: 44px;
+    margin: 2px;
+  }
+  
+  /* Fix 5: Sidebar z-index */
+  .layout-menu {
+    z-index: 1055;
+  }
+  
+  .layout-overlay {
+    z-index: 1054;
+  }
+  
+  /* Fix 6: Form inputs */
+  .form-control, .form-select {
+    min-height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Fix 7: Navbar search */
+  .navbar-search input {
+    font-size: 16px;
+  }
+  
+  /* Fix 8: Badges in tables */
+  .table-responsive .badge {
+    font-size: 11px;
+    padding: 2px 6px;
+    margin: 2px;
+  }
+  
+  /* Fix 9: Remove any "swipe to see more" indicators only */
+  .table-responsive::after {
+    content: none !important;
+  }
+
+}
+
+/**
+ * Mobile Forms CSS
+ * Comprehensive form optimization for mobile touch interaction
+ * Ensures all forms are usable on small screens
+ */
+
+/* ========================================
+   Mobile-First Form Base Styles
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Touch-friendly input heights */
+  .form-control,
+  .form-select {
+    min-height: 44px;
+    font-size: 16px; /* Prevent iOS zoom */
+    padding: 10px 12px;
+    border-radius: 8px;
+  }
+
+  /* Textarea optimization */
+  textarea.form-control {
+    min-height: 100px;
+    resize: vertical;
+  }
+
+  /* File input optimization */
+  .form-control[type="file"] {
+    padding: 8px 12px;
+  }
+
+  /* Form labels */
+  .form-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--bs-body-color, var(--ecs-neutral-90, var(--ecs-neutral-90)));
+  }
+
+  /* Small form text */
+  .form-text {
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  /* Floating labels optimization */
+  .form-floating > label {
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .form-floating > .form-control {
+    padding-top: 1.625rem;
+    padding-bottom: 0.625rem;
+  }
+
+  /* Input group stacking */
+  .input-group {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .input-group > * {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  /* Keep small buttons at natural size */
+  .input-group .btn-close,
+  .input-group button[onclick*="remove"],
+  .input-group .btn-sm {
+    flex: 0 0 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Input group text (prepend/append) */
+  .input-group-text {
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: 16px;
+    flex: 0 1 auto;
+    min-width: 44px;
+  }
+
+  /* Stack prepended/appended text above input on very small screens */
+  @media (max-width: 575.98px) {
+    .input-group > .input-group-text:first-child {
+      flex: 1 1 100%;
+      border-radius: 8px;
+      text-align: center;
+    }
+  }
+
+  /* Form buttons full-width */
+  .btn:not(.btn-sm):not(.btn-close):not(.btn-icon) {
+    width: 100%;
+    min-height: 48px;
+    font-size: 16px;
+    padding: 12px 16px;
+    border-radius: 8px;
+  }
+
+  /* Button groups stack vertically */
+  .btn-group:not(.btn-group-horizontal) {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .btn-group .btn {
+    border-radius: 8px !important;
+    margin: 0 !important;
+  }
+
+  /* Horizontal button groups (explicitly marked) */
+  .btn-group.btn-group-horizontal {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .btn-group.btn-group-horizontal .btn {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* ========================================
+   Form Validation States
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Valid feedback */
+  .valid-feedback,
+  .invalid-feedback {
+    font-size: 14px;
+    margin-top: 6px;
+    display: block;
+  }
+
+  /* Invalid input styling */
+  .form-control.is-invalid,
+  .form-select.is-invalid {
+    border-color: var(--ecs-danger, var(--ecs-danger));
+    border-width: 2px;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+  }
+
+  /* Valid input styling */
+  .form-control.is-valid,
+  .form-select.is-valid {
+    border-color: var(--ecs-success, var(--ecs-success));
+    border-width: 2px;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+  }
+
+  /* Shake animation for validation errors */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+    20%, 40%, 60%, 80% { transform: translateX(10px); }
+  }
+
+  .form-control.shake,
+  .form-select.shake {
+    animation: shake 0.5s;
+  }
+}
+
+/* ========================================
+   Checkbox and Radio Buttons
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Regular checkboxes/radios - visually reasonable size */
+  .form-check-input:not([type="checkbox"]):not([type="radio"]),
+  .form-check:not(.form-switch) .form-check-input[type="checkbox"],
+  .form-check:not(.form-switch) .form-check-input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    margin-top: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* Form check label - entire row is tappable */
+  .form-check-label {
+    font-size: 15px;
+    padding-left: 12px;
+    padding: 8px 0 8px 12px;  /* Vertical padding for larger tap area */
+    cursor: pointer;
+    flex: 1;
+  }
+
+  /* Form check container - 44px touch target */
+  .form-check:not(.form-switch) {
+    padding-left: 0;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* Inline form checks */
+  .form-check-inline {
+    margin-right: 16px;
+  }
+
+  /* Stack inline form checks on very small screens */
+  @media (max-width: 575.98px) {
+    .form-check-inline {
+      display: flex;
+      width: 100%;
+      margin-right: 0;
+      margin-bottom: 8px;
+    }
+  }
+}
+
+/* ========================================
+   Range Sliders
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  .form-range {
+    height: 44px;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .form-range::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+    margin-top: -10px;
+  }
+
+  .form-range::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* ========================================
+   Select2 Mobile Optimization
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Select2 container */
+  .select2-container {
+    width: 100% !important;
+  }
+
+  .select2-container .select2-selection {
+    min-height: 44px;
+    font-size: 16px;
+    border-radius: 8px;
+  }
+
+  .select2-container .select2-selection__rendered {
+    line-height: 44px;
+    padding-left: 12px;
+  }
+
+  .select2-container .select2-selection__arrow {
+    height: 42px;
+  }
+
+  /* Select2 dropdown */
+  .select2-dropdown {
+    font-size: 16px;
+    border-radius: 8px;
+  }
+
+  .select2-results__option {
+    min-height: 44px;
+    padding: 12px 16px;
+    line-height: 1.5;
+  }
+
+  /* Select2 search */
+  .select2-search__field {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+}
+
+/* ========================================
+   Date and Time Pickers
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Native date/time inputs */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="week"] {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+
+  /* iOS date picker optimization */
+  @supports (-webkit-touch-callout: none) {
+    input[type="date"],
+    input[type="time"],
+    input[type="datetime-local"] {
+      min-height: 44px;
+      padding-right: 12px;
+    }
+  }
+}
+
+/* ========================================
+   Multi-Step Forms
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Form steps indicator */
+  .form-steps {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .form-step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    min-width: 80px;
+  }
+
+  .form-step::after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    right: -50%;
+    height: 2px;
+    background: var(--ecs-neutral-20, var(--ecs-neutral-20));
+    z-index: -1;
+  }
+
+  .form-step:last-child::after {
+    display: none;
+  }
+
+  .form-step.active .step-number {
+    background: var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+    color: white;
+  }
+
+  .form-step.completed .step-number {
+    background: var(--ecs-success, var(--ecs-success));
+    color: white;
+  }
+
+  .step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--ecs-neutral-20, var(--ecs-neutral-20));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 8px;
+    font-weight: 600;
+  }
+
+  .step-label {
+    font-size: 12px;
+    display: block;
+  }
+}
+
+/* ========================================
+   Sticky Form Actions
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Sticky submit button at bottom */
+  .form-actions-sticky {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bs-body-bg, var(--ecs-neutral-0));
+    border-top: 1px solid var(--bs-border-color, var(--ecs-neutral-20));
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 100;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .form-actions-sticky .btn {
+    width: 100%;
+    min-height: 48px;
+  }
+}
+
+/* ========================================
+   Dark Mode Support
+   ======================================== */
+
+[data-style="dark"] .form-control,
+[data-style="dark"] .form-select {
+  background: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+[data-style="dark"] .form-control:focus,
+[data-style="dark"] .form-select:focus {
+  background: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  border-color: var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+[data-style="dark"] .form-control::placeholder {
+  color: var(--ecs-dark-text-muted, var(--ecs-dark-text-muted));
+}
+
+[data-style="dark"] .form-label {
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+[data-style="dark"] .form-text {
+  color: var(--ecs-dark-text-muted, var(--ecs-dark-text-muted));
+}
+
+[data-style="dark"] .input-group-text {
+  background: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+[data-style="dark"] .form-check-input {
+  background-color: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+}
+
+[data-style="dark"] .form-check-input:checked {
+  background-color: var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+  border-color: var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+}
+
+[data-style="dark"] .form-actions-sticky {
+  background: var(--ecs-dark-bg-body, var(--ecs-dark-bg-body));
+  border-top-color: var(--ecs-dark-bg-elevated);
+}
+
+[data-style="dark"] .select2-container .select2-selection {
+  background: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+[data-style="dark"] .select2-dropdown {
+  background: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+}
+
+[data-style="dark"] .select2-results__option {
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+[data-style="dark"] .select2-results__option--highlighted {
+  background: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+}
+
+/* ========================================
+   Accessibility Enhancements
+   ======================================== */
+
+/* Focus indicators */
+.form-control:focus,
+.form-select:focus {
+  outline: 2px solid var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+  outline-offset: 2px;
+}
+
+/* Error announcement for screen readers */
+.invalid-feedback::before {
+  content: "Error: ";
+  font-weight: bold;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .form-control.shake {
+    animation: none;
+  }
+}
+
+/* ========================================
+   Edge Cases and Fixes
+   ======================================== */
+
+/* Fix for iOS zoom on focus */
+@media (max-width: 767.98px) {
+  @supports (-webkit-touch-callout: none) {
+    select,
+    textarea,
+    input[type="text"],
+    input[type="password"],
+    input[type="email"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="url"] {
+      font-size: 16px;
+    }
+  }
+}
+
+/* Fix for Android autofill background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px var(--bs-body-bg, var(--ecs-neutral-0)) inset;
+  -webkit-text-fill-color: var(--bs-body-color, var(--ecs-neutral-90, var(--ecs-neutral-90)));
+}
+
+[data-style="dark"] input:-webkit-autofill,
+[data-style="dark"] input:-webkit-autofill:hover,
+[data-style="dark"] input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px var(--ecs-dark-bg-elevated) inset;
+  -webkit-text-fill-color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+/* Fix for very long input values */
+@media (max-width: 767.98px) {
+  .form-control,
+  .form-select {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  textarea.form-control {
+    white-space: normal;
+  }
+}
+
+/* ========================================
+   Performance Optimizations
+   ======================================== */
+
+/* Use transform for better performance */
+.form-control,
+.form-select,
+.btn {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* Optimize will-change for animations */
+.form-control:focus,
+.form-select:focus,
+.btn:active {
+  will-change: transform, box-shadow;
+}
+/**
+ * Mobile Tables CSS
+ * Comprehensive table-to-card transformation system for mobile devices
+ * Ensures all tables are readable and usable on small screens
+ */
+
+/* ========================================
+   Base Table Responsive Container
+   ======================================== */
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ========================================
+   Mobile Table-to-Card Transformation
+   ======================================== */
+
+@media (max-width: 991.98px) {
+  /* Remove horizontal scroll for card layout */
+  .table-responsive {
+    overflow: visible !important;
+  }
+
+  /* Hide table header on mobile (data will be shown via data-label) */
+  .table-responsive thead {
+    display: none;
+  }
+
+  /* Convert table to block layout */
+  .table-responsive table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .table-responsive tbody {
+    display: block;
+  }
+
+  /* Each row becomes a card - Force override utility classes */
+  .table-responsive tr {
+    display: block !important;
+    background: var(--bs-body-bg, var(--ecs-neutral-0));
+    border: 1px solid var(--bs-border-color, var(--ecs-neutral-20));
+    border-radius: 8px;
+    margin-bottom: 12px;
+    padding: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 1;
+  }
+
+  .table-responsive tr:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+    z-index: 10;
+  }
+
+  /* When dropdown is open, ensure row stays above others */
+  .table-responsive tr:has(.dropdown.show),
+  .table-responsive tr:has(.dropdown-menu.show) {
+    z-index: 1050 !important;
+  }
+
+  /* Each cell becomes a row within the card - Force block display */
+  .table-responsive td {
+    display: block !important;       /* Override .text-center and other utilities */
+    text-align: left !important;     /* Override .text-center */
+    padding: 6px 0 !important;       /* Override default padding */
+    border: none !important;
+    position: relative;
+  }
+
+  /* Add mobile label before each cell using data-label attribute */
+  .table-responsive td[data-label]:before {
+    content: attr(data-label) ": " !important;
+    font-weight: 600 !important;
+    display: inline !important;
+    color: var(--bs-secondary, var(--ecs-secondary, var(--ecs-neutral-50)));
+    margin-right: 8px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    min-width: 80px;
+  }
+
+  /* ========================================
+     COMPACT GRID LAYOUT FOR COMPLEX TABLES
+     Tables with 6+ columns use grid layout
+     to show multiple stats per line
+     ======================================== */
+
+  /* Detect complex tables by checking if 6th cell exists */
+  .table-responsive tr:has(td:nth-child(6)) {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 16px;
+    padding: 16px;
+  }
+
+  /* First cell (rank/ID) spans full width */
+  .table-responsive tr:has(td:nth-child(6)) td:first-child {
+    grid-column: 1 / -1;
+    font-size: 14px;
+    font-weight: 700;
+    padding-bottom: 8px !important;
+    border-bottom: 2px solid var(--bs-border-color, var(--ecs-neutral-20)) !important;
+    margin-bottom: 8px;
+  }
+
+  /* Second cell (team name) spans full width */
+  .table-responsive tr:has(td:nth-child(6)) td:nth-child(2) {
+    grid-column: 1 / -1;
+    padding: 8px 0 12px 0 !important;
+    border-bottom: 1px solid rgba(0,0,0,0.05) !important;
+    margin-bottom: 4px;
+  }
+
+  /* Last cell (points/primary stat) spans full width and gets emphasis */
+  .table-responsive tr:has(td:nth-child(6)) td:last-child {
+    grid-column: 1 / -1;
+    margin-top: 8px !important;
+    padding-top: 12px !important;
+    border-top: 2px solid var(--bs-border-color, var(--ecs-neutral-20)) !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+  }
+
+  /* All other cells use grid and display inline */
+  .table-responsive tr:has(td:nth-child(6)) td {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+    padding: 4px 0 !important;
+  }
+
+  /* Make labels more compact in grid layout */
+  .table-responsive tr:has(td:nth-child(6)) td[data-label]:before {
+    min-width: auto !important;
+    font-size: 11px !important;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+
+  /* Status badges and role badges wrap naturally */
+  .table-responsive tr:has(td:nth-child(6)) td .badge {
+    display: inline-flex !important;
+    white-space: nowrap;
+  }
+
+  /* Checkbox column - hide on mobile or make compact */
+  .table-responsive tr:has(td:nth-child(6)) td:first-child:has(input[type="checkbox"]) {
+    display: none !important;
+  }
+
+  /* Actions column needs special handling - don't emphasize */
+  .table-responsive tr:has(td:nth-child(6)) td:last-child:has(.dropdown),
+  .table-responsive tr:has(td:nth-child(6)) td.table-actions {
+    grid-column: 1 / -1 !important;
+    margin-top: 8px !important;
+    padding-top: 8px !important;
+    border-top: 1px solid var(--bs-border-color, var(--ecs-neutral-20)) !important;
+    font-size: inherit !important;
+    font-weight: normal !important;
+    text-align: left !important;
+  }
+
+  /* Special styling for cells without labels (like action buttons) */
+  .table-responsive td:not([data-label]) {
+    padding-top: 12px;
+    margin-top: 8px;
+    border-top: 1px solid var(--bs-border-color, var(--ecs-neutral-20));
+  }
+
+  /* Action buttons at bottom of card */
+  .table-responsive td:last-child {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--bs-border-color, var(--ecs-neutral-20));
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-start;
+  }
+
+  /* Optimize button groups in table cards */
+  .table-responsive .btn-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .table-responsive .btn-group .btn {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Make all buttons in tables touch-friendly */
+  .table-responsive .btn {
+    min-height: 44px;
+    font-size: 14px;
+    padding: 8px 12px;
+    white-space: nowrap;
+  }
+
+  /* Small buttons get minimum touch target */
+  .table-responsive .btn-sm {
+    min-height: 44px;
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+
+  /* Icon-only buttons */
+  .table-responsive .btn-icon {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
+  }
+
+  /* Badge optimization in table cards */
+  .table-responsive .badge {
+    font-size: 11px;
+    padding: 4px 8px;
+    display: inline-block;
+  }
+
+  /* Checkbox/radio optimization */
+  .table-responsive input[type="checkbox"],
+  .table-responsive input[type="radio"] {
+    min-width: 44px;
+    min-height: 44px;
+    cursor: pointer;
+  }
+
+  /* Remove table striping on mobile (cards already have borders) */
+  .table-responsive .table-striped tbody tr:nth-of-type(odd) {
+    background-color: var(--bs-body-bg, var(--ecs-neutral-0));
+  }
+
+  /* Remove table hover effect (we have card hover instead) */
+  .table-responsive .table-hover tbody tr:hover {
+    background-color: var(--bs-body-bg, var(--ecs-neutral-0));
+  }
+}
+
+/* ========================================
+   Horizontal Scrolling Tables (optional)
+   ======================================== */
+
+@media (max-width: 991.98px) {
+  /* For tables that should remain horizontal (add class .table-horizontal-mobile) */
+  .table-responsive.table-horizontal-mobile {
+    overflow-x: auto !important;
+    overflow-y: visible;
+  }
+
+  .table-responsive.table-horizontal-mobile thead {
+    display: table-header-group;
+  }
+
+  .table-responsive.table-horizontal-mobile tr {
+    display: table-row;
+    border: none;
+    border-radius: 0;
+    margin-bottom: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .table-responsive.table-horizontal-mobile td {
+    display: table-cell;
+    border: 1px solid var(--bs-border-color, var(--ecs-neutral-20));
+  }
+
+  .table-responsive.table-horizontal-mobile td:before {
+    content: none;
+  }
+
+  /* Add scroll hint for horizontal tables */
+  .table-responsive.table-horizontal-mobile {
+    position: relative;
+  }
+
+  .table-responsive.table-horizontal-mobile::after {
+    content: '← Swipe to see more →';
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    pointer-events: none;
+    opacity: 0.8;
+    z-index: 10;
+  }
+
+  /* Hide scroll hint after user scrolls */
+  .table-responsive.table-horizontal-mobile.scrolled::after {
+    display: none;
+  }
+}
+
+/* ========================================
+   DataTables Mobile Optimization
+   ======================================== */
+
+@media (max-width: 991.98px) {
+  /* DataTables wrapper optimization */
+  .dataTables_wrapper {
+    width: 100%;
+  }
+
+  /* DataTables info and pagination stacking */
+  .dataTables_wrapper .dataTables_info,
+  .dataTables_wrapper .dataTables_paginate {
+    text-align: center;
+    margin-top: 12px;
+  }
+
+  /* DataTables length select optimization */
+  .dataTables_wrapper .dataTables_length select {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 8px;
+  }
+
+  /* DataTables filter input optimization */
+  .dataTables_wrapper .dataTables_filter input {
+    min-height: 44px;
+    font-size: 16px;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-top: 8px;
+  }
+
+  /* DataTables pagination buttons */
+  .dataTables_wrapper .dataTables_paginate .paginate_button {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px !important;
+    margin: 2px !important;
+  }
+}
+
+/* ========================================
+   Standings Table Specific Optimizations
+   ======================================== */
+
+@media (max-width: 991.98px) {
+  /* Standings table position indicators */
+  .table-responsive tr td:first-child[data-label="#"] {
+    font-weight: bold;
+    font-size: 16px;
+  }
+
+  /* Standings table team names */
+  .table-responsive tr td[data-label="Team"] {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--bs-body-color, var(--ecs-neutral-90, var(--ecs-neutral-90)));
+  }
+
+  /* Points column highlight */
+  .table-responsive tr td[data-label="Pts"],
+  .table-responsive tr td[data-label="Points"] {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+  }
+
+  /* Position badges for top/bottom teams */
+  .table-responsive tr.table-success td:first-child::after {
+    content: '↑';
+    margin-left: 8px;
+    color: var(--ecs-success, var(--ecs-success));
+  }
+
+  .table-responsive tr.table-danger td:first-child::after {
+    content: '↓';
+    margin-left: 8px;
+    color: var(--ecs-danger, var(--ecs-danger));
+  }
+}
+
+/* ========================================
+   User Management Table Optimizations
+   ======================================== */
+
+@media (max-width: 991.98px) {
+  /* User table role badges */
+  .table-responsive tr td[data-label="Role"] .badge,
+  .table-responsive tr td[data-label="Roles"] .badge {
+    margin: 2px;
+    display: inline-block;
+  }
+
+  /* User table status indicators */
+  .table-responsive tr td[data-label="Status"] {
+    font-weight: 600;
+  }
+
+  /* User table email addresses */
+  .table-responsive tr td[data-label="Email"] {
+    word-break: break-word;
+    font-size: 13px;
+  }
+}
+
+/* ========================================
+   Match Schedule Table Optimizations
+   ======================================== */
+
+@media (max-width: 991.98px) {
+  /* Match table date/time */
+  .table-responsive tr td[data-label="Date"],
+  .table-responsive tr td[data-label="Time"] {
+    font-weight: 600;
+    color: var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+  }
+
+  /* Match table scores */
+  .table-responsive tr td[data-label="Score"] {
+    font-weight: 700;
+    font-size: 18px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+  }
+
+  /* Match table status badges */
+  .table-responsive tr td[data-label="Status"] .badge {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+}
+
+/* ========================================
+   Dark Mode Support
+   ======================================== */
+
+[data-style="dark"] .table-responsive tr {
+  background: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+[data-style="dark"] .table-responsive tr:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+[data-style="dark"] .table-responsive td {
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+}
+
+[data-style="dark"] .table-responsive td[data-label]:before {
+  color: var(--ecs-dark-text-muted, var(--ecs-dark-text-muted));
+}
+
+[data-style="dark"] .table-responsive td:last-child {
+  border-top-color: var(--ecs-dark-border);
+}
+
+[data-style="dark"] .table-responsive td:not([data-label]) {
+  border-top-color: var(--ecs-dark-border);
+}
+
+[data-style="dark"] .table-responsive .table {
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+[data-style="dark"] .table-responsive.table-horizontal-mobile::after {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+/* ========================================
+   Accessibility Enhancements
+   ======================================== */
+
+/* Focus indicators for interactive elements */
+.table-responsive a:focus,
+.table-responsive button:focus {
+  outline: 2px solid var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+  outline-offset: 2px;
+}
+
+/* Ensure sufficient color contrast */
+@media (max-width: 991.98px) {
+  .table-responsive .text-muted {
+    color: var(--ecs-neutral-50, var(--ecs-neutral-50)) !important;
+  }
+
+  [data-style="dark"] .table-responsive .text-muted {
+    color: var(--ecs-dark-text-muted, var(--ecs-dark-text-muted)) !important;
+  }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .table-responsive tr {
+    transition: none;
+  }
+
+  .table-responsive tr:hover {
+    transform: none;
+  }
+}
+
+/* ========================================
+   Performance Optimizations
+   ======================================== */
+
+@media (max-width: 991.98px) {
+  /* Use transform for better performance */
+  .table-responsive tr {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+
+  /* Optimize will-change for hover effects */
+  .table-responsive tr:hover {
+    will-change: transform, box-shadow;
+  }
+}
+
+/* ========================================
+   Edge Cases and Fixes
+   ======================================== */
+
+/* Fix for nested tables (rare but possible) */
+@media (max-width: 991.98px) {
+  .table-responsive table table {
+    display: table;
+    width: 100%;
+  }
+
+  .table-responsive table table tr {
+    display: table-row;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .table-responsive table table td {
+    display: table-cell;
+    padding: 8px;
+  }
+
+  .table-responsive table table td:before {
+    display: none;
+  }
+}
+
+/* Fix for empty tables */
+@media (max-width: 991.98px) {
+  .table-responsive tbody:empty::after {
+    content: 'No data available';
+    display: block;
+    text-align: center;
+    padding: 24px;
+    color: var(--bs-secondary, var(--ecs-secondary, var(--ecs-neutral-50)));
+    font-style: italic;
+  }
+}
+
+/* Fix for very long text in cells */
+@media (max-width: 991.98px) {
+  .table-responsive td {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+}
+
+/* ========================================
+   Debug Helper (remove in production)
+   ======================================== */
+
+/* Uncomment to visualize table card boundaries */
+/*
+@media (max-width: 991.98px) {
+  .table-responsive tr {
+    border: 2px solid red !important;
+  }
+  .table-responsive td {
+    border: 1px dashed blue !important;
+  }
+  .table-responsive td[data-label]:before {
+    background: yellow;
+  }
+}
+*/
+/**
+ * Mobile Modals CSS
+ * Comprehensive mobile optimization for Bootstrap modals
+ * Implements bottom sheet patterns for mobile devices
+ */
+
+/* ========================================
+   Mobile-First Modal Base Styles
+   ======================================== */
+
+.modal-dialog {
+  margin: 0.5rem;
+  max-width: calc(100% - 1rem);
+}
+
+.modal-content {
+  border-radius: 12px;
+}
+
+/* ========================================
+   Bottom Sheet Variant for Mobile
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Unified z-index hierarchy - mobile overrides */
+  .modal {
+    z-index: 9999 !important;  /* Highest - above everything */
+  }
+
+  .modal-backdrop {
+    z-index: 9998 !important;  /* Just below modal */
+  }
+
+  .modal-dialog.form-modal .modal-footer {
+    z-index: 100 !important;   /* Above modal-body content (not 10) */
+  }
+
+  /* Convert modals to bottom sheets on mobile (unless opted out) */
+  .modal-dialog:not(.modal-keep-centered) {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    max-width: 100%;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .modal.show .modal-dialog:not(.modal-keep-centered) {
+    transform: translateY(0);
+  }
+
+  /* Bottom sheet content styling */
+  .modal-dialog:not(.modal-keep-centered) .modal-content {
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px 16px 0 0;
+    max-height: calc(90vh - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px));
+    overflow: hidden; /* NO scrolling on modal-content, only modal-body scrolls */
+    border-bottom: none;
+  }
+
+  /* Drag handle at top of bottom sheet */
+  .modal-dialog:not(.modal-keep-centered) .modal-header::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: var(--bs-border-color, var(--ecs-neutral-20));
+    border-radius: 2px;
+    margin: 0 auto 8px;
+    opacity: 0.6;
+  }
+
+  /* Modal header spacing adjustment */
+  .modal-dialog:not(.modal-keep-centered) .modal-header {
+    flex-shrink: 0; /* Header never shrinks */
+    padding-top: 16px;
+  }
+
+  /* Modal body optimizations - ONLY SCROLLABLE AREA */
+  .modal-body {
+    flex: 1 1 auto; /* Body takes remaining space */
+    padding: 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    /* NO max-height - flexbox handles sizing */
+  }
+
+  /* ========================================
+     MODAL FOOTER BUTTONS - SINGLE SOURCE OF TRUTH
+     All modal button styling MUST be defined here
+     Do NOT add inline styles or JavaScript-based styling
+     ======================================== */
+
+  .modal-footer {
+    flex-shrink: 0; /* Footer never shrinks - always visible */
+    flex-direction: column !important;  /* Stack buttons vertically on mobile */
+    gap: 12px;      /* Space between buttons */
+    padding: 16px;
+    background: var(--bs-modal-bg, var(--ecs-neutral-0));
+    border-top: 1px solid var(--bs-border-color, var(--ecs-neutral-20));
+  }
+
+  .modal-footer .btn {
+    width: 100% !important;      /* Full-width buttons */
+    flex: none !important;       /* Override any flex sizing */
+    min-height: 48px !important; /* Touch-friendly height */
+    margin: 0 !important;        /* No margins between stacked buttons */
+    font-size: 16px !important;  /* Prevent iOS zoom */
+    font-weight: 600;            /* Make text readable */
+    border-radius: 8px;
+    padding: 12px 24px;
+  }
+
+  /* Button stacking order (flexbox) */
+  .modal-footer .btn-primary {
+    order: -1 !important; /* Submit button appears FIRST (on top) */
+  }
+
+  .modal-footer .btn-secondary {
+    order: 1 !important;  /* Close button appears LAST (on bottom) */
+  }
+
+  /* CRITICAL: Hide any JavaScript-created duplicate buttons */
+  .modal-footer .mobile-quick-submit,
+  .modal-footer .btn-success.mobile-quick-submit {
+    display: none !important; /* Green submit button is DISABLED */
+  }
+
+  /* Close button optimization */
+  .modal-header .btn-close {
+    min-width: 44px !important;   /* Override 2rem from components.css */
+    min-height: 44px !important;
+    width: 44px !important;
+    height: 44px !important;
+    padding: 12px !important;     /* Override padding:0 */
+    margin-left: auto !important;
+  }
+
+  /* Form inputs in modals */
+  .modal-body .form-control,
+  .modal-body .form-select {
+    min-height: 44px;
+    font-size: 16px; /* Prevent iOS zoom */
+  }
+
+  /* Textarea in modals */
+  .modal-body textarea.form-control {
+    min-height: 100px;
+  }
+
+  /* Input groups in modals */
+  .modal-body .input-group {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .modal-body .input-group > * {
+    flex: 1 1 100%;
+  }
+
+  /* Keep small buttons at natural size */
+  .modal-body .input-group .btn-sm,
+  .modal-body .input-group .btn-close {
+    flex: 0 0 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* ========================================
+   Desktop Modal Restoration
+   ======================================== */
+
+@media (min-width: 768px) {
+  .modal-dialog {
+    margin: 1.75rem auto;
+    max-width: 500px;
+  }
+
+  .modal-dialog.modal-sm {
+    max-width: 300px;
+  }
+
+  .modal-dialog.modal-lg {
+    max-width: 800px;
+  }
+
+  .modal-dialog.modal-xl {
+    max-width: 1140px;
+  }
+
+  .modal-dialog.modal-fullscreen {
+    max-width: none;
+    margin: 0;
+  }
+
+  /* Restore horizontal button layout on desktop */
+  .modal-footer {
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  .modal-footer .btn {
+    width: auto;
+    min-height: auto;
+  }
+
+  /* Remove drag handle on desktop */
+  .modal-header::before {
+    display: none !important;
+  }
+}
+
+/* ========================================
+   Full Screen Modal Variant
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  .modal-fullscreen-mobile .modal-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+
+  .modal-fullscreen-mobile .modal-content {
+    height: 100vh;
+    border-radius: 0;
+    max-height: none;
+  }
+
+  .modal-fullscreen-mobile .modal-body {
+    max-height: calc(100vh - 120px);
+  }
+}
+
+/* ========================================
+   Swipe-to-Dismiss Indicator
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  .modal-dialog[data-dismiss-on-swipe="true"] .modal-header {
+    cursor: grab;
+  }
+
+  .modal-dialog[data-dismiss-on-swipe="true"] .modal-header:active {
+    cursor: grabbing;
+  }
+
+  /* Visual feedback during swipe */
+  .modal-dialog.swiping {
+    transition: none;
+  }
+}
+
+/* ========================================
+   Modal Backdrop Enhancement
+   ======================================== */
+
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 767.98px) {
+  .modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.6); /* Slightly darker on mobile */
+  }
+}
+
+/* ========================================
+   Dark Mode Support
+   ======================================== */
+
+[data-style="dark"] .modal-content {
+  background-color: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+}
+
+[data-style="dark"] .modal-header {
+  border-bottom-color: var(--ecs-dark-border);
+}
+
+[data-style="dark"] .modal-footer {
+  border-top-color: var(--ecs-dark-border);
+}
+
+[data-style="dark"] .modal-header .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+[data-style="dark"] .modal-header::before {
+  background: var(--ecs-dark-text-muted, var(--ecs-dark-text-muted));
+  opacity: 0.8;
+}
+
+/* ========================================
+   Form Modal Specific Optimizations
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Ensure form modals have enough space for keyboard */
+  .modal-dialog.form-modal {
+    max-height: 70vh;
+  }
+
+  .modal-dialog.form-modal .modal-content {
+    max-height: 70vh;
+  }
+
+  /* Add padding bottom for iOS keyboard */
+  .modal-dialog.form-modal .modal-body {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Sticky submit button in form modals */
+  .modal-dialog.form-modal .modal-footer {
+    position: sticky;
+    bottom: 0;
+    background: var(--bs-body-bg, var(--ecs-neutral-0));
+    border-top: 1px solid var(--bs-border-color, var(--ecs-neutral-20));
+    z-index: 10;
+  }
+}
+
+/* ========================================
+   Modal Animations
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Slide up animation for bottom sheets */
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideDown {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(100%);
+    }
+  }
+
+  .modal.show .modal-dialog:not(.modal-keep-centered) {
+    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .modal.hide .modal-dialog:not(.modal-keep-centered) {
+    animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* ========================================
+   Accessibility Enhancements
+   ======================================== */
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .modal-dialog {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Ensure focus is visible */
+.modal-content:focus {
+  outline: 2px solid var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+  outline-offset: 2px;
+}
+
+/* ========================================
+   Special Modal Types
+   ======================================== */
+
+/* Confirmation dialog optimization */
+@media (max-width: 767.98px) {
+  .modal-dialog.modal-confirm {
+    max-height: 50vh;
+  }
+
+  .modal-dialog.modal-confirm .modal-content {
+    max-height: 50vh;
+  }
+
+  .modal-dialog.modal-confirm .modal-body {
+    text-align: center;
+    padding: 24px 16px;
+  }
+
+  .modal-dialog.modal-confirm .modal-footer {
+    padding-top: 8px;
+  }
+}
+
+/* Alert/notification modal */
+@media (max-width: 767.98px) {
+  .modal-dialog.modal-alert {
+    max-height: 40vh;
+  }
+
+  .modal-dialog.modal-alert .modal-content {
+    max-height: 40vh;
+  }
+}
+
+/* Media/image modal */
+@media (max-width: 767.98px) {
+  .modal-dialog.modal-media .modal-content {
+    max-height: 90vh;
+  }
+
+  .modal-dialog.modal-media .modal-body {
+    padding: 8px;
+    max-height: calc(90vh - 60px);
+  }
+
+  .modal-dialog.modal-media img,
+  .modal-dialog.modal-media video {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+}
+
+/* ========================================
+   Keyboard Open State
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* When keyboard is open (detected via JS), reduce modal height */
+  body.keyboard-open .modal-dialog {
+    max-height: 50vh;
+  }
+
+  body.keyboard-open .modal-content {
+    max-height: 50vh;
+  }
+
+  body.keyboard-open .modal-body {
+    max-height: calc(50vh - 120px);
+  }
+}
+
+/* ========================================
+   Z-Index Management
+   ======================================== */
+
+.modal {
+  z-index: 9999 !important;  /* Added !important to prevent overrides from later CSS files */
+}
+
+.modal-backdrop {
+  z-index: 9998 !important;  /* Added !important to prevent overrides from later CSS files */
+}
+
+@media (max-width: 767.98px) {
+  /* Ensure modals are above everything except alerts - NUCLEAR OPTION */
+  .modal,
+  .modal.show,
+  .modal.fade.show,
+  [id^="reportMatchModal-"],
+  [id^="reportMatchModal-"].show {
+    z-index: 9999 !important;  /* Added !important to prevent overrides from later CSS files */
+    position: fixed !important;  /* Force fixed positioning in root stacking context */
+    isolation: auto !important;   /* Prevent stacking context isolation */
+  }
+
+  /* SweetAlert2 - Comprehensive z-index rules (consolidated from all files) */
+  .swal2-container {
+    z-index: 999999 !important;
+  }
+
+  .swal2-popup {
+    z-index: 999999 !important;
+  }
+
+  .swal2-backdrop-show {
+    z-index: 999998 !important;
+  }
+
+  /* Ensure SweetAlert appears over Bootstrap modals */
+  .modal-open .swal2-container {
+    z-index: 999999 !important;
+  }
+
+  /* All SweetAlert2 positioning variants */
+  .swal2-container.swal2-center > .swal2-popup,
+  .swal2-container.swal2-top > .swal2-popup,
+  .swal2-container.swal2-top-start > .swal2-popup,
+  .swal2-container.swal2-top-end > .swal2-popup,
+  .swal2-container.swal2-bottom > .swal2-popup,
+  .swal2-container.swal2-bottom-start > .swal2-popup,
+  .swal2-container.swal2-bottom-end > .swal2-popup {
+    z-index: 999999 !important;
+  }
+}
+
+/* ========================================
+   Performance Optimizations
+   ======================================== */
+
+/* Use GPU acceleration for transforms */
+.modal-dialog {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Optimize scrolling performance */
+.modal-body {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+/* ========================================
+   Edge Cases and Fixes
+   ======================================== */
+
+/* Fix iOS Safari bottom sheet */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  @media (max-width: 767.98px) {
+    .modal-footer {
+      padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    }
+  }
+}
+
+/* Prevent background scroll on iOS */
+@media (max-width: 767.98px) {
+  body.modal-open {
+    position: fixed;
+    width: 100%;
+    overflow: hidden;
+  }
+}
+
+/* Fix for nested modals (if needed) */
+.modal.show ~ .modal-backdrop {
+  z-index: 9997;
+}
+
+/* ========================================
+   Debug Helper (remove in production)
+   ======================================== */
+
+/* Uncomment to visualize modal boundaries */
+/*
+@media (max-width: 767.98px) {
+  .modal-dialog {
+    border: 2px solid red;
+  }
+  .modal-content {
+    border: 2px solid blue;
+  }
+  .modal-body {
+    border: 2px solid green;
+  }
+}
+*/
+/**
+ * Mobile Toggles CSS
+ * Comprehensive toggle switch optimization for mobile touch interaction
+ * Ensures all toggles meet 44px minimum touch target requirement
+ */
+
+/* ========================================
+   Base Toggle Switch Styling (Desktop)
+   ======================================== */
+
+/* Desktop: Use Bootstrap default sizing */
+.form-check-input {
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Desktop: Normal switch sizing (32px x 16px) */
+.form-switch .form-check-input {
+  /* Use Bootstrap defaults from foundation.css */
+}
+
+.form-switch .form-check-input:checked {
+  background-position: right center;
+}
+
+/* ========================================
+   Large Switch Variant for Settings/Admin
+   ======================================== */
+
+.form-switch-lg .form-check-input {
+  width: 72px;
+  height: 40px;
+  border-radius: 20px;
+}
+
+/* Extra large for prominent settings */
+.form-switch-xl .form-check-input {
+  width: 84px;
+  height: 48px;
+  border-radius: 24px;
+}
+
+/* ========================================
+   Mobile-Specific Optimizations
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Ensure minimum touch target on container, not the switch itself */
+  .form-check,
+  .form-switch {
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    cursor: pointer;
+    padding: 6px 0 !important;
+  }
+
+  /* Switch specific mobile sizing - Visually appealing size with large touch target */
+  .form-switch .form-check-input,
+  .form-check.form-switch .form-check-input,
+  .ecs-form-check.form-switch .form-check-input,
+  .form-switch .ecs-form-check-input {
+    width: 51px !important;         /* iOS-like proportions (2:1 ratio) */
+    height: 31px !important;        /* Visually smaller, more elegant */
+    min-height: 31px !important;
+    min-width: 51px !important;
+    max-height: 31px !important;
+    margin-left: 0 !important;      /* CRITICAL: Remove -2.5rem shift */
+    background-size: contain !important;
+    border-radius: 16px !important; /* Half of height for rounded */
+  }
+
+  /* Make entire row tappable (label + switch) for 44px touch target */
+  .form-switch {
+    padding-left: 0 !important;
+    padding: 8px 0 !important;     /* Vertical padding for 44px+ total height */
+  }
+
+  /* Entire label is clickable */
+  .form-check-label {
+    cursor: pointer !important;
+    flex: 1 !important;
+    padding: 8px 12px 8px 0 !important;  /* Add padding to label for larger tap area */
+  }
+
+  /* Label positioning for proper layout */
+  .form-check-label {
+    order: 1 !important;
+    flex: 1 !important;
+    padding-left: 0 !important;
+  }
+
+  .form-check-input {
+    order: 2 !important;
+    margin-left: auto !important;   /* Right align the switch */
+    margin-top: 0 !important;
+  }
+
+  /* Large switch on mobile */
+  .form-switch-lg .form-check-input {
+    width: 72px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    min-width: 72px !important;
+    border-radius: 24px !important;
+  }
+
+  /* Extra large switch on mobile */
+  .form-switch-xl .form-check-input {
+    width: 84px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    min-width: 84px !important;
+    border-radius: 24px !important;
+  }
+
+  /* Form check label spacing */
+  .form-check-label {
+    font-size: 15px;
+    line-height: 1.5;
+    padding-left: 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  /* Form switch label positioning */
+  .form-switch .form-check-label {
+    order: 1;
+    flex: 1;
+  }
+
+  .form-switch .form-check-input {
+    order: 2;
+    margin-left: auto;
+    margin-top: 0;
+  }
+}
+
+/* ========================================
+   Vertical Stacking on Very Small Screens
+   ======================================== */
+
+@media (max-width: 575.98px) {
+  /* Stack label above switch for very small screens */
+  .form-switch-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .form-switch-stack .form-check-label {
+    order: 1;
+    padding-left: 0;
+  }
+
+  .form-switch-stack .form-check-input {
+    order: 2;
+    margin-left: 0;
+  }
+}
+
+/* ========================================
+   Settings Page Toggle Layout
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Settings row with toggle */
+  .settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid var(--bs-border-color, var(--ecs-neutral-20));
+    min-height: 64px;
+  }
+
+  .settings-row .setting-info {
+    flex: 1;
+    padding-right: 16px;
+  }
+
+  .settings-row .setting-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--bs-body-color, var(--ecs-neutral-90, var(--ecs-neutral-90)));
+  }
+
+  .settings-row .setting-description {
+    font-size: 13px;
+    color: var(--bs-secondary, var(--ecs-secondary, var(--ecs-neutral-50)));
+    margin: 0;
+  }
+
+  .settings-row .form-switch {
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* ========================================
+   Toggle with Status Text
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Toggle status indicator */
+  .form-switch .toggle-status {
+    font-size: 14px;
+    font-weight: 600;
+    margin-left: 8px;
+    color: var(--bs-secondary, var(--ecs-secondary, var(--ecs-neutral-50)));
+  }
+
+  .form-switch .form-check-input:checked ~ .toggle-status {
+    color: var(--ecs-success, var(--ecs-success));
+  }
+
+  .form-switch .form-check-input:checked ~ .toggle-status::before {
+    content: 'Enabled';
+  }
+
+  .form-switch .form-check-input:not(:checked) ~ .toggle-status::before {
+    content: 'Disabled';
+  }
+}
+
+/* ========================================
+   Colored Toggle Variants
+   ======================================== */
+
+/* Success variant */
+.form-switch-success .form-check-input:checked {
+  background-color: var(--ecs-success, var(--ecs-success));
+  border-color: var(--ecs-success);
+}
+
+/* Danger variant */
+.form-switch-danger .form-check-input:checked {
+  background-color: var(--ecs-danger, var(--ecs-danger));
+  border-color: var(--ecs-danger);
+}
+
+/* Warning variant */
+.form-switch-warning .form-check-input:checked {
+  background-color: var(--ecs-warning, var(--ecs-warning));
+  border-color: var(--ecs-warning, var(--ecs-warning));
+}
+
+/* Info variant */
+.form-switch-info .form-check-input:checked {
+  background-color: var(--ecs-info, var(--ecs-info));
+  border-color: var(--ecs-info, var(--ecs-info));
+}
+
+/* ========================================
+   Disabled State
+   ======================================== */
+
+.form-switch .form-check-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled ~ .form-check-label {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   Focus State
+   ======================================== */
+
+.form-switch .form-check-input:focus {
+  outline: 2px solid var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.25);
+}
+
+/* ========================================
+   Animation
+   ======================================== */
+
+.form-switch .form-check-input {
+  transition: background-position 0.15s ease-in-out,
+              background-color 0.15s ease-in-out,
+              border-color 0.15s ease-in-out;
+}
+
+/* Haptic feedback animation */
+@keyframes togglePulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.form-switch .form-check-input.toggle-animated {
+  animation: togglePulse 0.3s ease;
+}
+
+/* ========================================
+   Dark Mode Support
+   ======================================== */
+
+[data-style="dark"] .form-switch .form-check-input {
+  background-color: var(--ecs-dark-border, var(--ecs-dark-border));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+}
+
+[data-style="dark"] .form-switch .form-check-input:checked {
+  background-color: var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+  border-color: var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+}
+
+[data-style="dark"] .form-check-label {
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+[data-style="dark"] .settings-row {
+  border-bottom-color: var(--ecs-dark-bg-elevated);
+}
+
+[data-style="dark"] .settings-row .setting-title {
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+[data-style="dark"] .settings-row .setting-description {
+  color: var(--ecs-dark-text-muted, var(--ecs-dark-text-muted));
+}
+
+[data-style="dark"] .form-switch .toggle-status {
+  color: var(--ecs-dark-text-muted, var(--ecs-dark-text-muted));
+}
+
+[data-style="dark"] .form-switch .form-check-input:checked ~ .toggle-status {
+  color: var(--ecs-success, var(--ecs-success));
+}
+
+/* ========================================
+   Admin Panel Toggle Optimizations
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  /* Admin feature toggle cards */
+  .feature-toggle-card {
+    padding: 16px;
+    border: 1px solid var(--bs-border-color, var(--ecs-neutral-20));
+    border-radius: 8px;
+    margin-bottom: 12px;
+  }
+
+  .feature-toggle-card .form-switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 44px;
+  }
+
+  .feature-toggle-card .feature-name {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .feature-toggle-card .feature-description {
+    font-size: 13px;
+    color: var(--bs-secondary, var(--ecs-secondary, var(--ecs-neutral-50)));
+    margin-bottom: 12px;
+  }
+}
+
+/* ========================================
+   Table Toggle Optimization
+   ======================================== */
+
+@media (max-width: 991.98px) {
+  /* Toggles in table cards */
+  .table-responsive .form-switch {
+    padding: 8px 0;
+  }
+
+  .table-responsive .form-switch .form-check-input {
+    margin: 0;
+  }
+
+  /* Center toggles in table cells */
+  .table-responsive td .form-switch {
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* ========================================
+   Accessibility Enhancements
+   ======================================== */
+
+/* Ensure toggle is keyboard accessible */
+.form-switch .form-check-input:focus-visible {
+  outline: 2px solid var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+  outline-offset: 2px;
+}
+
+/* Screen reader text for toggle state */
+.form-switch .form-check-input::before {
+  content: '';
+  position: absolute;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.form-switch .form-check-input:checked::before {
+  content: 'On';
+}
+
+.form-switch .form-check-input:not(:checked)::before {
+  content: 'Off';
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .form-switch .form-check-input {
+    transition: none;
+  }
+
+  .form-switch .form-check-input.toggle-animated {
+    animation: none;
+  }
+}
+
+/* ========================================
+   Loading State
+   ======================================== */
+
+.form-switch.is-loading .form-check-input {
+  opacity: 0.6;
+  pointer-events: none;
+  position: relative;
+}
+
+.form-switch.is-loading .form-check-input::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-top: -8px;
+  margin-left: -8px;
+  border: 2px solid white;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: toggleSpinner 0.6s linear infinite;
+}
+
+@keyframes toggleSpinner {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========================================
+   Group Toggle (Multiple Switches)
+   ======================================== */
+
+@media (max-width: 767.98px) {
+  .toggle-group {
+    border: 1px solid var(--bs-border-color, var(--ecs-neutral-20));
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .toggle-group .form-switch {
+    padding: 16px;
+    border-bottom: 1px solid var(--bs-border-color, var(--ecs-neutral-20));
+    margin: 0;
+  }
+
+  .toggle-group .form-switch:last-child {
+    border-bottom: none;
+  }
+
+  .toggle-group-title {
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 16px;
+    background: var(--bs-light, var(--ecs-neutral-5));
+    border-bottom: 1px solid var(--bs-border-color, var(--ecs-neutral-20));
+    margin: 0;
+  }
+}
+
+[data-style="dark"] .toggle-group {
+  border-color: var(--ecs-dark-bg-elevated);
+}
+
+[data-style="dark"] .toggle-group .form-switch {
+  border-bottom-color: var(--ecs-dark-bg-elevated);
+}
+
+[data-style="dark"] .toggle-group-title {
+  background: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  border-bottom-color: var(--ecs-dark-border);
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+/* ========================================
+   Performance Optimizations
+   ======================================== */
+
+/* Use transform for better performance */
+.form-switch .form-check-input {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* Optimize will-change for animations */
+.form-switch .form-check-input:active {
+  will-change: transform;
+}
+
+/* ========================================
+   Edge Cases and Fixes
+   ======================================== */
+
+/* Fix for iOS double-tap zoom */
+@media (max-width: 767.98px) {
+  @supports (-webkit-touch-callout: none) {
+    .form-switch .form-check-input {
+      touch-action: manipulation;
+    }
+  }
+}
+
+/* Fix for very small screens */
+@media (max-width: 320px) {
+  .form-switch .form-check-input {
+    width: 52px;
+    height: 28px;
+  }
+
+  .form-switch-lg .form-check-input {
+    width: 64px;
+    height: 36px;
+  }
+}
+
+/* Ensure toggle switch is always visible */
+.form-switch .form-check-input {
+  margin-left: 0 !important;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Fix for nested form-checks */
+.form-check .form-check {
+  padding-left: 0;
+}
+/**
+ * ============================================================================
+ * ECS MOBILE UNIFIED CSS
+ * ============================================================================
+ *
+ * Consolidated mobile-first responsive styles for the ECS Discord Bot WebUI.
+ * This file replaces 4 separate mobile CSS files:
+ *   - mobile.css (177 lines)
+ *   - mobile-scale-system.css (563 lines)
+ *   - component-mobile-fixes.css (402 lines)
+ *   - admin-mobile.css (1,156 lines)
+ *
+ * Organization:
+ *   1. CSS Variables & Design Tokens
+ *   2. Z-Index System
+ *   3. Base Mobile Styles
+ *   4. Component Styles
+ *   5. Admin-Specific Styles
+ *   6. Utility Classes
+ *   7. Media Queries & Progressive Enhancement
+ *
+ * ============================================================================
+ */
+
+
+/* ============================================================================
+   1. CSS VARIABLES & DESIGN TOKENS
+   ============================================================================ */
+
+:root {
+  /* Mobile Typography Scale */
+  --mobile-text-xs: 12px;    /* Minimum readable size */
+  --mobile-text-sm: 14px;    /* Small text, labels */
+  --mobile-text-base: 16px;  /* Body text, form inputs */
+  --mobile-text-lg: 18px;    /* Headings */
+  --mobile-text-xl: 20px;    /* Large headings */
+
+  /* Mobile Spacing Scale (Based on 4px grid) */
+  --mobile-space-xs: 4px;    /* Tight spacing */
+  --mobile-space-sm: 8px;    /* Small gaps */
+  --mobile-space-base: 12px; /* Standard spacing */
+  --mobile-space-lg: 16px;   /* Generous spacing */
+  --mobile-space-xl: 24px;   /* Large gaps */
+
+  /* Touch Target Sizes (iOS/Android standards) */
+  --mobile-touch-sm: 40px;   /* Minimum touch target */
+  --mobile-touch-base: 44px; /* Recommended touch target */
+  --mobile-touch-lg: 48px;   /* Large touch target */
+
+  /* Container Sizes */
+  --mobile-container-padding: 12px; /* Tighter than desktop */
+  --mobile-modal-margin: 8px;       /* Smaller modal margins */
+
+  /* Admin Theme Colors */
+  --admin-primary: var(--ecs-primary, var(--ecs-primary));
+  --admin-secondary: var(--ecs-secondary, var(--ecs-neutral-50));
+  --admin-success: var(--ecs-success, var(--ecs-success));
+  --admin-warning: var(--ecs-warning, var(--ecs-warning));
+  --admin-danger: var(--ecs-danger, var(--ecs-danger));
+  --admin-info: var(--ecs-info, var(--ecs-info));
+  --admin-light: var(--ecs-neutral-5, var(--ecs-neutral-5));
+  --admin-dark: var(--ecs-neutral-90, var(--ecs-neutral-90));
+  --admin-border-radius: 0.75rem;
+  --admin-box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  --admin-box-shadow-hover: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  --admin-transition: all 0.2s ease-in-out;
+}
+
+
+/* ============================================================================
+   2. Z-INDEX SYSTEM
+   ============================================================================
+
+   Centralized z-index management to prevent conflicts.
+
+   Z-Index Hierarchy (highest to lowest):
+   - SweetAlert2: 999999+ (critical alerts, above everything)
+   - Template Customizer: 99999999 (theme system, rarely visible)
+   - Mobile Modal Content: 9999 (MOBILE ONLY - force above theme)
+   - Mobile Modal Backdrop: 9998 (MOBILE ONLY - behind modal)
+   - Select2 Dropdown Open: 10050 (form dropdowns above modals)
+   - Select2 Dropdown: 10040
+   - Toast/Notifications: 1070 (important messages)
+   - Modal Content: 1060 (user interactions - DESKTOP)
+   - Search Autocomplete: 1058 (interactive elements)
+   - Mobile Sidebar: 1056 (MOBILE ONLY - above navbar when open)
+   - Navbar/Header: 1055 (Bootstrap default)
+   - Mobile Menu Overlay: 1054 (MOBILE ONLY - backdrop for sidebar)
+   - Sidebar: 1050 (Bootstrap default - DESKTOP)
+   - Modal Backdrop: 1040 (behind modal - DESKTOP)
+   - FAB: 1040 (Floating Action Button)
+   - Select2 Container: 1020 (form containers)
+   - Dropdown Menu: 1000 (general dropdowns)
+   - Content: 1-999 (page content)
+
+   ============================================================================ */
+
+/* MODALS - Z-index rules moved to mobile-modals.css to avoid conflicts */
+/* Modal z-index is now controlled by mobile-modals.css */
+
+/* NOTIFICATIONS & ALERTS */
+.toast-container {
+  z-index: 1070 !important;
+}
+
+.alert {
+  z-index: auto;
+}
+
+#connectionStatus {
+  z-index: 1070 !important;
+}
+
+/* INTERACTIVE ELEMENTS */
+.ui-autocomplete {
+  z-index: 1058 !important;
+}
+
+.dropdown-menu {
+  z-index: 1000 !important;
+}
+
+.select2-container {
+  z-index: 1020 !important;
+}
+
+.select2-dropdown {
+  z-index: 10050 !important;
+}
+
+.select2-container--open {
+  z-index: 10040 !important;
+}
+
+/* LAYOUT ELEMENTS */
+.layout-navbar,
+#layout-navbar {
+  z-index: 1055 !important;
+}
+
+.layout-menu,
+#layout-menu {
+  z-index: 1050 !important;
+}
+
+/* SWEETALERT2 - MOVED TO mobile-modals.css to avoid duplication */
+/* See mobile-modals.css for comprehensive SweetAlert2 z-index rules */
+
+/* MOBILE-SPECIFIC Z-INDEX OVERRIDES */
+@media (max-width: 991.98px) {
+  .modal {
+    z-index: 9999 !important;
+  }
+
+  .modal-backdrop {
+    z-index: 9998 !important;
+  }
+
+  .layout-navbar,
+  #layout-navbar,
+  .navbar,
+  .layout-menu-toggle,
+  .navbar-nav,
+  .navbar-nav-right,
+  #navbar-collapse {
+    z-index: 1055 !important;
+  }
+
+  .layout-menu,
+  #layout-menu {
+    z-index: 1056 !important;
+  }
+
+  .layout-overlay {
+    z-index: 1054 !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+  }
+
+  .layout-menu-expanded .layout-overlay {
+    display: block !important;
+  }
+
+  .ui-autocomplete {
+    z-index: 1058 !important;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer,
+  .modal-content {
+    z-index: inherit;
+  }
+}
+
+
+/* ============================================================================
+   3. BASE MOBILE STYLES
+   ============================================================================ */
+
+/* Global Overflow Prevention for Mobile */
+@media (max-width: 991.98px) {
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  .container-xxl,
+  .container-fluid,
+  .container {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Prevent any element from causing horizontal scroll */
+  main,
+  .content-wrapper,
+  .layout-page {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  /* Exception for positioned elements that need to extend */
+  .modal,
+  .offcanvas,
+  .layout-menu {
+    max-width: none;
+  }
+}
+
+/* Improved Sidebar Mobile Behavior */
+@media (max-width: 991.98px) {
+  .layout-menu,
+  #layout-menu {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for iOS */
+    width: 260px;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* When sidebar is expanded */
+  .layout-menu-expanded .layout-menu,
+  .layout-menu-expanded #layout-menu {
+    transform: translateX(0);
+  }
+
+  /* Overlay animation */
+  .layout-overlay {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+
+  .layout-menu-expanded .layout-overlay {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Prevent body scroll when menu is open */
+  body.layout-menu-expanded {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+  }
+}
+
+/* Container Optimization - Exclude auth pages */
+.container-xxl:not(.auth-page .container-xxl),
+.container-fluid:not(.auth-page .container-fluid) {
+  padding-left: var(--mobile-container-padding);
+  padding-right: var(--mobile-container-padding);
+}
+
+/* Typography Scale - Exclude auth pages */
+body:not(.auth-page) {
+  font-size: var(--mobile-text-base);
+  line-height: 1.4;
+}
+
+.auth-page body,
+.auth-page h1,
+.auth-page h2,
+.auth-page h3,
+.auth-page h4,
+.auth-page h5,
+.auth-page h6 {
+  font-size: revert;
+  line-height: revert;
+}
+
+body:not(.auth-page) h1 { font-size: var(--mobile-text-xl); }
+body:not(.auth-page) h2 { font-size: var(--mobile-text-lg); }
+body:not(.auth-page) h3 { font-size: var(--mobile-text-base); }
+body:not(.auth-page) h4,
+body:not(.auth-page) h5,
+body:not(.auth-page) h6 { font-size: var(--mobile-text-sm); }
+
+/* Responsive Images */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.avatar-lg {
+  width: 48px;
+  height: 48px;
+}
+
+
+/* ============================================================================
+   4. COMPONENT STYLES
+   ============================================================================ */
+
+/* ===== 4.1 BUTTONS ===== */
+
+/* Button Scale System - Exclude auth pages */
+body:not(.auth-page) .btn {
+  min-height: var(--mobile-touch-base);
+  font-size: var(--mobile-text-base);
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+  border-radius: 6px;
+  border-radius: var(--admin-border-radius);
+  transition: var(--admin-transition);
+  position: relative;
+  overflow: hidden;
+}
+
+body:not(.auth-page) .btn-sm {
+  min-height: var(--mobile-touch-sm);
+  font-size: var(--mobile-text-sm);
+  padding: var(--mobile-space-xs) var(--mobile-space-sm);
+}
+
+body:not(.auth-page) .btn-lg {
+  min-height: var(--mobile-touch-lg);
+  font-size: var(--mobile-text-lg);
+  padding: var(--mobile-space-base) var(--mobile-space-lg);
+}
+
+/* Button ripple effect */
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s;
+}
+
+.btn:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Button groups */
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.btn-group .btn {
+  flex: 0 0 auto;
+  border-radius: 4px;
+}
+
+/* ===== 4.2 FORMS & INPUTS ===== */
+
+/* Form Controls - Exclude auth pages */
+body:not(.auth-page) .form-control,
+body:not(.auth-page) .form-select {
+  min-height: var(--mobile-touch-base);
+  font-size: var(--mobile-text-base);
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+  border-radius: 6px;
+}
+
+.form-control, .form-select {
+  min-height: 44px;
+  font-size: 16px; /* Prevents zoom on iOS */
+}
+
+/* Form floating labels */
+.form-floating {
+  margin-bottom: 16px;
+}
+
+.form-floating > .form-control,
+.form-floating > .form-select {
+  height: 48px;
+  font-size: 16px;
+  padding: 12px;
+}
+
+.form-floating > label {
+  padding: 12px;
+  font-size: 14px;
+}
+
+/* Input groups */
+.input-group > .form-control,
+.input-group > .form-select,
+.input-group > .btn {
+  min-height: 44px;
+}
+
+.input-group-text {
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+/* Navbar search */
+.navbar-search input {
+  font-size: 16px;
+}
+
+/* SELECT2 MOBILE OPTIMIZATION */
+.select2-container .select2-selection--single {
+  height: 44px;
+  padding: 8px 12px;
+}
+
+.select2-container .select2-selection--single .select2-selection__rendered {
+  line-height: 28px;
+  font-size: 16px;
+}
+
+.select2-dropdown {
+  border-radius: 6px;
+}
+
+.select2-results__option {
+  padding: 12px 16px;
+  font-size: 16px;
+}
+
+/* ===== 4.3 TABLES ===== */
+
+/* Table responsive wrapper */
+.table-responsive {
+  border-radius: 6px;
+  margin-bottom: var(--mobile-space-base);
+}
+
+/* Mobile: Transform tables to card layout */
+@media (max-width: 991.98px) {
+  .table-responsive {
+    overflow: visible !important;
+    font-size: 0.875rem;
+    border-radius: var(--admin-border-radius);
+    overflow: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-responsive table {
+    display: block;
+  }
+
+  .table-responsive thead {
+    display: none;
+  }
+
+  .table-responsive tbody {
+    display: block;
+  }
+
+  .table-responsive tr {
+    display: block;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 8px;
+    margin-bottom: 15px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .table-responsive td {
+    display: block;
+    padding: 8px 0;
+    border: none;
+    text-align: left;
+    position: relative;
+    width: 100%;
+    font-size: var(--mobile-text-sm);
+  }
+
+  .table-responsive td:not(:last-child) {
+    border-bottom: 1px solid var(--bs-border-color);
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+  }
+
+  /* Add labels before each cell */
+  .table-responsive td[data-label]:before {
+    content: attr(data-label) ": ";
+    font-weight: 600;
+    color: var(--ecs-neutral-50, var(--ecs-neutral-50));
+    display: inline-block;
+    margin-right: 5px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Special handling for action columns - don't show labels */
+  .table-responsive td:last-child:before {
+    content: none;
+  }
+
+  /* Action buttons in table cards */
+  .table-responsive td:last-child {
+    text-align: center;
+    padding: 12px 0;
+    padding-top: var(--mobile-space-sm);
+    border-top: 1px solid var(--ecs-neutral-5, var(--ecs-neutral-5));
+    margin-top: var(--mobile-space-sm);
+  }
+
+  /* Override any table min-width constraints */
+  .table th, .table td {
+    min-width: 0 !important;
+    width: auto !important;
+    padding: 0.5rem 0.25rem;
+    vertical-align: middle;
+  }
+
+  /* Button groups in tables */
+  .table-responsive .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mobile-space-xs);
+    justify-content: center;
+  }
+
+  .table-responsive .btn-group .btn {
+    flex: 1;
+    min-width: 80px;
+    font-size: var(--mobile-text-xs);
+    padding: var(--mobile-space-xs) var(--mobile-space-sm);
+  }
+
+  .table-responsive .btn-group-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: stretch;
+  }
+
+  .table-responsive .btn-group-vertical .btn-group {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1px;
+  }
+
+  .table-responsive .btn-group-vertical .btn {
+    font-size: 12px;
+    padding: 8px 12px;
+    min-height: 44px;
+    margin: 2px;
+  }
+
+  /* Remove any "swipe to see more" indicators */
+  .table-responsive::after {
+    content: none !important;
+  }
+}
+
+/* Mobile-specific table badges */
+@media (max-width: 991.98px) {
+  .table-responsive .badge {
+    font-size: 11px;
+    padding: 2px 6px;
+    margin: 2px;
+    font-size: 0.7rem;
+    padding: 0.25em 0.5em;
+  }
+}
+
+/* DataTables mobile optimization */
+@media (max-width: 767.98px) {
+  .dataTables_wrapper {
+    padding: 0;
+  }
+
+  .dataTables_length,
+  .dataTables_filter {
+    margin-bottom: 12px;
+  }
+
+  .dataTables_length select {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+
+  .dataTables_filter input {
+    min-height: 44px;
+    padding: 10px 12px;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .dataTables_info {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  .dataTables_paginate .paginate_button {
+    padding: 8px 12px;
+    margin: 2px;
+    font-size: 14px;
+  }
+}
+
+/* ===== 4.4 MODALS ===== */
+
+/* Modal optimization */
+.modal-content {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.modal-header,
+.modal-footer {
+  padding: var(--mobile-space-base);
+  padding: 16px;
+  border-bottom: 1px solid var(--ecs-neutral-20, var(--ecs-neutral-20));
+}
+
+.modal-title {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.modal-body {
+  padding: var(--mobile-space-base);
+  padding: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Modal footer rules removed - handled by mobile-modals.css to avoid conflicts */
+
+/* Mobile modal sizing */
+@media (max-width: 767.98px) {
+  .modal-dialog:not(.auth-page .modal-dialog) {
+    margin: var(--mobile-modal-margin);
+    max-width: calc(100% - calc(var(--mobile-modal-margin) * 2));
+    margin: 8px;
+  }
+
+  .modal-content {
+    max-height: calc(100vh - 20px);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .modal-dialog {
+    margin: 0.5rem;
+    max-width: none;
+  }
+
+  .modal-content {
+    border-radius: var(--admin-border-radius);
+    border: none;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+  }
+
+  .modal-header,
+  .modal-footer {
+    padding: 0.75rem;
+    border-radius: var(--admin-border-radius) var(--admin-border-radius) 0 0;
+  }
+
+  .modal-body {
+    padding: 1rem 0.75rem;
+    max-height: 70vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-title {
+    font-size: 1.1rem;
+  }
+
+  /* REMOVED: Modal footer button styling moved to mobile-modals.css (single source of truth)
+     All modal button CSS is now centralized in mobile-modals.css lines 92-131
+     Do NOT add modal button styling here - it will create conflicts */
+}
+
+/* Desktop Modal Restoration */
+@media (min-width: 768px) {
+  .modal-dialog {
+    margin: 1.75rem auto;
+    max-width: 700px;
+  }
+
+  .modal-lg .modal-dialog {
+    max-width: 900px;
+  }
+
+  .modal-xl .modal-dialog {
+    max-width: 1140px;
+  }
+
+  .modal-sm .modal-dialog {
+    max-width: 400px;
+  }
+
+  [id^="reportMatchModal"] .modal-dialog {
+    max-width: 850px;
+  }
+}
+
+/* BOTTOM SHEET MODAL VARIANT (NEW) */
+@media (max-width: 767.98px) {
+  .modal.modal-bottom-sheet .modal-dialog {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .modal.modal-bottom-sheet.show .modal-dialog {
+    transform: translateY(0);
+  }
+
+  .modal.modal-bottom-sheet .modal-content {
+    border-radius: 16px 16px 0 0;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+
+  /* Drag handle for swipe-to-dismiss */
+  .modal-bottom-sheet .modal-header::before {
+    content: '';
+    width: 40px;
+    height: 4px;
+    background: var(--bs-border-color);
+    border-radius: 2px;
+    margin: 0 auto 12px;
+    display: block;
+  }
+}
+
+/* ===== 4.5 NAVIGATION ===== */
+
+/* Navigation links */
+.navbar-nav .nav-link {
+  padding: var(--mobile-space-base);
+  font-size: var(--mobile-text-base);
+  min-height: var(--mobile-touch-base);
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 991.98px) {
+  .navbar-nav .nav-item .nav-link {
+    padding: 12px 16px;
+    min-height: 44px;
+  }
+
+  .layout-menu .menu-item .menu-link {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+}
+
+/* Nav pills */
+.nav.nav-pills.overflow-auto.flex-nowrap {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.nav.nav-pills.overflow-auto.flex-nowrap::-webkit-scrollbar {
+  display: none;
+}
+
+.nav.nav-pills.small-tabs.overflow-auto.flex-nowrap {
+  position: relative;
+  background: transparent !important;
+}
+
+.nav.nav-pills.small-tabs.overflow-auto.flex-nowrap::before,
+.nav.nav-pills.small-tabs.overflow-auto.flex-nowrap::after {
+  display: none !important;
+}
+
+.nav.nav-pills .nav-link {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+/* Tab navigation */
+.nav-tabs .nav-link {
+  padding: 10px 12px;
+  font-size: 14px;
+  border-radius: 4px 4px 0 0;
+}
+
+.nav-pills .nav-link {
+  padding: 10px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+  padding: 8px 0;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+  font-size: 12px;
+}
+
+/* Sidebar z-index */
+.layout-menu {
+  z-index: 1055;
+}
+
+.layout-overlay {
+  z-index: 1054;
+}
+
+/* ===== 4.6 CARDS, BADGES, ALERTS ===== */
+
+/* Card System - Exclude auth pages */
+.card:not(.auth-page .card) {
+  margin-bottom: var(--mobile-space-base);
+  border-radius: 8px;
+}
+
+.card-body:not(.auth-page .card-body) {
+  padding: var(--mobile-space-base);
+  padding: 12px 16px;
+}
+
+.card-header {
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+  font-size: var(--mobile-text-sm);
+  font-weight: 600;
+}
+
+.card-header h5:not(.auth-page .card-header h5) {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+/* Admin card enhancements */
+.admin-card {
+  transition: var(--admin-transition);
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.125);
+  border-radius: var(--admin-border-radius);
+  overflow: hidden;
+  position: relative;
+  will-change: transform;
+}
+
+.admin-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--admin-primary), var(--admin-info));
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.admin-card:hover::before {
+  transform: scaleX(1);
+}
+
+.admin-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--admin-box-shadow-hover);
+  border-color: var(--admin-primary);
+}
+
+@media (max-width: 767.98px) {
+  .admin-card {
+    margin-bottom: 1rem;
+  }
+
+  .card-body {
+    padding: 1rem 0.75rem;
+  }
+
+  .card-title {
+    font-size: 1.1rem;
+  }
+
+  .display-6 {
+    font-size: 2rem;
+  }
+
+  .display-4 {
+    font-size: 2.5rem;
+  }
+
+  .h1, h1 {
+    font-size: 1.75rem;
+  }
+}
+
+/* Badge/Label System */
+.badge {
+  font-size: var(--mobile-text-xs);
+  padding: var(--mobile-space-xs) var(--mobile-space-sm);
+  border-radius: 4px;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1.2;
+}
+
+/* Match badge sizing */
+.match-badge {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  font-size: var(--mobile-text-sm) !important;
+  font-weight: 600 !important;
+  flex-shrink: 0 !important;
+  min-width: 24px !important;
+}
+
+/* Alert System */
+.alert {
+  padding: var(--mobile-space-base);
+  margin-bottom: var(--mobile-space-base);
+  border-radius: 6px;
+  font-size: var(--mobile-text-sm);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.alert-dismissible .btn-close {
+  padding: 12px;
+}
+
+/* List groups */
+.list-group-item-action {
+  padding: 12px 16px;
+  min-height: 44px;
+}
+
+.list-group-item-action h6 {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.list-group-item-action small {
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.list-group-item-action .ti {
+  font-size: 16px;
+}
+
+/* Dropdown Optimization */
+.dropdown-menu {
+  border-radius: 6px;
+  padding: var(--mobile-space-xs);
+  padding: 8px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.dropdown-item {
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+  font-size: var(--mobile-text-sm);
+  border-radius: 4px;
+  margin-bottom: 2px;
+  padding: 10px 12px;
+  font-size: 14px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+
+.dropdown-divider {
+  margin: 4px 0;
+}
+
+/* Spinner and loading states */
+.spinner-border {
+  width: 24px;
+  height: 24px;
+}
+
+.text-center.py-5 {
+  padding-top: 20px !important;
+  padding-bottom: 20px !important;
+}
+
+.loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid transparent;
+  border-top: 2px solid var(--admin-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  z-index: 1000;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Progress bars */
+.progress {
+  height: 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+/* Pagination */
+.pagination {
+  margin: 16px 0;
+  justify-content: center;
+}
+
+.page-link {
+  padding: 8px 12px;
+  font-size: 14px;
+  min-width: 40px;
+  text-align: center;
+}
+
+/* Accordion */
+.accordion-button {
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+.accordion-body {
+  padding: 16px;
+  font-size: 14px;
+}
+
+/* Toast notifications */
+.toast {
+  max-width: calc(100vw - 32px);
+  margin: 8px auto;
+}
+
+.toast-body {
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+/* Offcanvas */
+.offcanvas {
+  max-width: 85vw;
+}
+
+.offcanvas-header {
+  padding: 16px;
+}
+
+.offcanvas-body {
+  padding: 16px;
+}
+
+/* Floating Action Button */
+.fab {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  z-index: 1040;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  background: var(--bs-primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 1040;
+}
+
+@media (max-width: 767.98px) {
+  .fab {
+    bottom: 80px; /* Above bottom nav if present */
+    right: 16px;
+  }
+}
+
+/* Status indicators */
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 0.5rem;
+  position: relative;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.active {
+  background-color: var(--admin-success);
+  box-shadow: 0 0 10px rgba(25, 135, 84, 0.5);
+}
+
+.status-indicator.warning {
+  background-color: var(--admin-warning);
+  box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+}
+
+.status-indicator.danger {
+  background-color: var(--admin-danger);
+  box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Network status indicator */
+.network-status {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+
+/* ============================================================================
+   5. ADMIN-SPECIFIC STYLES
+   ============================================================================ */
+
+/* Admin navigation enhancements */
+@media (max-width: 991.98px) {
+  .layout-menu .navbar-nav,
+  .sidebar .navbar-nav {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--admin-border-radius);
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+
+  .layout-menu .nav-item,
+  .sidebar .nav-item {
+    width: 100%;
+  }
+
+  .layout-menu .nav-link,
+  .sidebar .nav-link {
+    padding: 0.75rem 1rem !important;
+    border-radius: var(--admin-border-radius);
+    margin-bottom: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 44px;
+  }
+
+  .layout-menu .nav-link i,
+  .sidebar .nav-link i {
+    margin-right: 0.75rem !important;
+    font-size: 1.2rem;
+  }
+
+  .layout-menu .dropdown-menu,
+  .sidebar .dropdown-menu {
+    position: static !important;
+    transform: none !important;
+    width: 100%;
+    border: none;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.05);
+    margin-top: 0.5rem;
+    border-radius: var(--admin-border-radius);
+  }
+
+  .layout-menu .dropdown-item,
+  .sidebar .dropdown-item {
+    padding: 0.5rem 1.5rem;
+    color: var(--admin-secondary);
+    border-radius: calc(var(--admin-border-radius) - 0.25rem);
+    margin: 0.25rem;
+    min-height: 44px;
+  }
+
+  .layout-menu .dropdown-item:hover,
+  .sidebar .dropdown-item:hover {
+    background: rgba(13, 110, 253, 0.1);
+    color: var(--admin-primary);
+  }
+}
+
+/* Enhanced admin navigation pills */
+.admin-content .nav-pills .nav-link,
+.card-body .nav-pills .nav-link {
+  color: var(--admin-secondary);
+  border-radius: var(--admin-border-radius);
+  padding: 0.75rem 1rem;
+  transition: var(--admin-transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-content .nav-pills .nav-link::before,
+.card-body .nav-pills .nav-link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.admin-content .nav-pills .nav-link:hover::before,
+.card-body .nav-pills .nav-link:hover::before {
+  left: 100%;
+}
+
+.admin-content .nav-pills .nav-link:hover,
+.card-body .nav-pills .nav-link:hover {
+  background-color: rgba(13, 110, 253, 0.1);
+  color: var(--admin-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--admin-box-shadow);
+}
+
+.admin-content .nav-pills .nav-link.active,
+.card-body .nav-pills .nav-link.active {
+  background: linear-gradient(135deg, var(--admin-primary), var(--ecs-primary, var(--ecs-primary)));
+  color: white;
+  box-shadow: var(--admin-box-shadow-hover);
+}
+
+.admin-content .nav-pills .nav-link i,
+.card-body .nav-pills .nav-link i {
+  font-size: 1.1rem;
+  transition: var(--admin-transition);
+}
+
+.admin-content .nav-pills .nav-link:hover i,
+.card-body .nav-pills .nav-link:hover i {
+  transform: scale(1.1);
+}
+
+/* Timeline optimization */
+@media (max-width: 767.98px) {
+  .timeline {
+    padding-left: 20px;
+  }
+
+  .timeline::before {
+    left: 8px;
+    width: 2px;
+  }
+
+  .timeline-marker {
+    left: -16px;
+    width: 6px;
+    height: 6px;
+  }
+
+  .timeline-content {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+    border-radius: var(--admin-border-radius);
+    background: white;
+    box-shadow: var(--admin-box-shadow);
+    border: 1px solid var(--admin-light);
+  }
+}
+
+/* Chart container */
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 300px;
+}
+
+@media (max-width: 767.98px) {
+  .chart-container {
+    height: 250px;
+  }
+
+  .chart-container canvas {
+    max-height: 250px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .chart-container {
+    height: 200px;
+  }
+
+  .chart-container canvas {
+    max-height: 200px;
+  }
+}
+
+/* Welcome header mobile fixes */
+@media (max-width: 767.98px) {
+  .welcome-header .d-flex.justify-content-between.align-items-center {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: var(--mobile-space-base) !important;
+  }
+
+  .welcome-header .d-flex.align-items-center:last-child {
+    align-self: flex-end !important;
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  .welcome-header .btn-sm {
+    font-size: var(--mobile-text-xs) !important;
+    padding: var(--mobile-space-xs) var(--mobile-space-sm) !important;
+  }
+}
+
+
+/* ============================================================================
+   6. UTILITY CLASSES
+   ============================================================================ */
+
+.mobile-hide { display: none !important; }
+.mobile-text-sm { font-size: var(--mobile-text-sm) !important; }
+.mobile-text-xs { font-size: var(--mobile-text-xs) !important; }
+.mobile-padding { padding: var(--mobile-space-base) !important; }
+.mobile-margin { margin: var(--mobile-space-base) !important; }
+.mobile-touch { min-height: var(--mobile-touch-base) !important; }
+.mobile-full-width { width: 100% !important; }
+.mobile-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mobile-center { text-align: center; }
+.mobile-compact {
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+}
+.mobile-touch-target {
+  min-height: 44px !important;
+  min-width: 44px !important;
+}
+
+
+/* ============================================================================
+   7. MEDIA QUERIES & PROGRESSIVE ENHANCEMENT
+   ============================================================================ */
+
+/* ===== 7.1 MOBILE-SPECIFIC (<768px) ===== */
+
+@media (max-width: 767.98px) {
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-body {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Mobile button optimizations */
+  .btn {
+    min-height: 44px;
+    font-size: 0.875rem;
+  }
+
+  .btn-sm {
+    min-height: 44px;
+    font-size: 0.85rem;
+  }
+
+  .btn-lg {
+    min-height: 56px;
+    font-size: 1rem;
+  }
+
+  /* Form controls */
+  .form-control,
+  .form-select {
+    font-size: 16px;
+    min-height: 44px;
+    border-radius: var(--admin-border-radius);
+  }
+
+  .form-label {
+    font-weight: 600;
+    color: var(--admin-dark);
+    margin-bottom: 0.5rem;
+  }
+
+  .form-check-input {
+    width: 1.25em;
+    height: 1.25em;
+  }
+
+  .input-group > .form-control {
+    min-height: 44px;
+  }
+}
+
+/* ===== 7.2 TABLET ADJUSTMENTS (768px+) ===== */
+
+@media (min-width: 768px) {
+  :root {
+    --mobile-container-padding: 20px;
+    --mobile-space-base: 16px;
+    --mobile-space-lg: 24px;
+  }
+
+  .btn {
+    font-size: 14px;
+    border-radius: 8px;
+  }
+
+  .card-body {
+    padding: var(--mobile-space-lg);
+  }
+
+  .mobile-hide { display: revert !important; }
+  .desktop-hide { display: none !important; }
+}
+
+/* ===== 7.3 DESKTOP OVERRIDES (992px+) ===== */
+
+@media (min-width: 992px) {
+  :root {
+    --mobile-container-padding: 24px;
+    --mobile-space-base: 20px;
+    --mobile-space-lg: 32px;
+  }
+
+  /* Restore table layout for desktop */
+  .table-responsive table,
+  .table-responsive thead,
+  .table-responsive tbody,
+  .table-responsive tr,
+  .table-responsive td {
+    display: revert;
+  }
+
+  .table-responsive td[data-label]:before {
+    display: none;
+  }
+}
+
+/* ===== 7.4 TOUCH DEVICE OPTIMIZATIONS ===== */
+
+@media (pointer: coarse) {
+  .admin-card {
+    padding: 0.25rem;
+  }
+
+  .layout-menu .nav-link,
+  .sidebar .nav-link {
+    min-height: 44px;
+    padding: 0.75rem 1rem !important;
+    touch-action: manipulation;
+  }
+
+  .layout-menu .dropdown-item,
+  .sidebar .dropdown-item {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+  }
+
+  .btn {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+}
+
+/* ===== 7.5 LANDSCAPE MOBILE (max 926px landscape) ===== */
+
+@media (max-width: 926px) and (orientation: landscape) {
+  .layout-menu .navbar-nav,
+  .sidebar .navbar-nav {
+    max-height: 60vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-dialog {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+/* ===== 7.6 VERY SMALL SCREENS (<320px) ===== */
+
+@media (max-width: 320px) {
+  .container-xxl {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .card-body {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .btn {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .layout-menu .nav-link,
+  .sidebar .nav-link {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem !important;
+  }
+}
+
+/* ===== 7.7 DARK MODE ===== */
+
+[data-style="dark"] .modal-content {
+  background-color: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+[data-style="dark"] .dropdown-menu {
+  background-color: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+}
+
+[data-style="dark"] .form-control,
+[data-style="dark"] .form-select {
+  background-color: var(--ecs-dark-bg-body, var(--ecs-dark-bg-body));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+[data-style="dark"] .admin-card {
+  background-color: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+[data-style="dark"] .timeline-content {
+  background-color: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --admin-light: var(--ecs-neutral-90, var(--ecs-neutral-90));
+    --admin-dark: var(--ecs-neutral-5, var(--ecs-neutral-5));
+  }
+
+  .admin-card {
+    background-color: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+    border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+    color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+  }
+
+  .layout-navbar {
+    background-color: rgba(45, 55, 72, 0.9) !important;
+  }
+
+  .timeline-content {
+    background-color: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+    color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+    border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+  }
+}
+
+/* ===== 7.8 ACCESSIBILITY ===== */
+
+/* Focus indicators */
+.nav-link:focus,
+.btn:focus,
+.form-control:focus,
+.form-select:focus {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .status-indicator {
+    animation: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .admin-card {
+    border: 2px solid var(--admin-dark);
+  }
+
+  .nav-link {
+    border: 1px solid var(--admin-secondary);
+  }
+
+  .btn {
+    border: 2px solid currentColor;
+  }
+
+  .form-control,
+  .form-select {
+    border: 2px solid;
+  }
+}
+
+/* ===== 7.9 PRINT STYLES ===== */
+
+@media print {
+  .layout-navbar,
+  .btn,
+  .modal,
+  .dropdown,
+  .toast,
+  .mobile-hide-print {
+    display: none !important;
+  }
+
+  .card {
+    border: 1px solid var(--ecs-neutral-90, var(--ecs-neutral-90));
+    break-inside: avoid;
+    margin-bottom: 1rem;
+  }
+
+  .admin-card {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+}
+
+/* ===== 7.10 PROGRESSIVE ENHANCEMENT (Backdrop Filter) ===== */
+
+@supports (backdrop-filter: blur(10px)) {
+  .layout-navbar {
+    backdrop-filter: blur(10px);
+    background-color: rgba(248, 249, 250, 0.8) !important;
+  }
+
+  @media (max-width: 991.98px) {
+    .layout-menu .navbar-nav,
+    .sidebar .navbar-nav {
+      backdrop-filter: blur(10px);
+    }
+  }
+}
+
+/* ===== 7.11 PERFORMANCE HINTS ===== */
+
+.admin-card,
+.nav-link,
+.btn {
+  will-change: transform;
+}
+
+/* ===== 7.12 MOBILE BOTTOM SPACING FOR FIXED NAVIGATION ===== */
+
+@media (max-width: 767.98px) {
+  /* Add padding to page content to account for 60px fixed bottom nav */
+  .layout-page,
+  .content-wrapper {
+    padding-bottom: 80px !important;  /* 60px nav + 20px extra */
+  }
+
+  /* Last sections in pages need extra bottom margin */
+  .card:last-child,
+  .detail-section:last-child,
+  form:last-child {
+    margin-bottom: 40px !important;
+  }
+
+  /* Action buttons at page bottom */
+  .btn-group:last-child,
+  .form-actions:last-child {
+    margin-bottom: 60px !important;
+    padding-bottom: 20px !important;
+  }
+}
+
+
+/* ============================================================================
+   END OF MOBILE UNIFIED CSS
+   ============================================================================ */
+/**
+ * ============================================================================
+ * ECS MOBILE COMPONENTS CSS
+ * ============================================================================
+ *
+ * Consolidated mobile component styles for:
+ * - Modals (bottom sheets, dialogs)
+ * - Tables (card layouts)
+ * - Forms (inputs, buttons)
+ * - Toggles (switches, checkboxes)
+ *
+ * This file consolidates 4 separate mobile CSS files for better performance.
+ *
+ * Source files merged:
+ * - mobile-modals.css
+ * - mobile-tables.css
+ * - mobile-forms.css
+ * - mobile-toggles.css
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. MODALS - Bottom Sheet Patterns
+   ============================================================================ */
+
+/* Mobile-First Modal Base */
+.modal-dialog {
+  margin: 0.5rem;
+  max-width: calc(100% - 1rem);
+}
+
+.modal-content {
+  border-radius: 12px;
+}
+
+@media (max-width: 767.98px) {
+  /* Z-index hierarchy for modals */
+  .modal {
+    z-index: 9999 !important;
+  }
+
+  .modal-backdrop {
+    z-index: 9998 !important;
+  }
+
+  /* Convert modals to bottom sheets */
+  .modal-dialog:not(.modal-keep-centered) {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    max-width: 100%;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .modal.show .modal-dialog:not(.modal-keep-centered) {
+    transform: translateY(0);
+  }
+
+  .modal-dialog:not(.modal-keep-centered) .modal-content {
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px 16px 0 0;
+    max-height: calc(90vh - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px));
+    overflow: hidden;
+    border-bottom: none;
+  }
+
+  /* Drag handle */
+  .modal-dialog:not(.modal-keep-centered) .modal-header::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: var(--bs-border-color, var(--ecs-neutral-20));
+    border-radius: 2px;
+    margin: 0 auto 8px;
+    opacity: 0.6;
+  }
+
+  .modal-dialog:not(.modal-keep-centered) .modal-header {
+    flex-shrink: 0;
+    padding-top: 16px;
+  }
+
+  .modal-body {
+    flex: 1 1 auto;
+    padding: 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-footer {
+    flex-shrink: 0;
+    flex-direction: column !important;
+    gap: 12px;
+    padding: 16px;
+    background: var(--bs-modal-bg, var(--ecs-neutral-0));
+    border-top: 1px solid var(--bs-border-color, var(--ecs-neutral-20));
+  }
+
+  .modal-footer .btn {
+    width: 100% !important;
+    flex: none !important;
+    min-height: 48px !important;
+    margin: 0 !important;
+    font-size: 16px !important;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 12px 24px;
+  }
+
+  .modal-footer .btn-primary {
+    order: -1 !important;
+  }
+
+  .modal-footer .btn-secondary {
+    order: 1 !important;
+  }
+
+  .modal-header .btn-close {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    width: 44px !important;
+    height: 44px !important;
+    padding: 12px !important;
+    margin-left: auto !important;
+  }
+
+  .modal-body .form-control,
+  .modal-body .form-select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 768px) {
+  .modal-dialog {
+    margin: 1.75rem auto;
+    max-width: 500px;
+  }
+
+  .modal-dialog.modal-lg {
+    max-width: 800px;
+  }
+
+  .modal-dialog.modal-xl {
+    max-width: 1140px;
+  }
+
+  .modal-footer {
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  .modal-footer .btn {
+    width: auto;
+    min-height: auto;
+  }
+
+  .modal-header::before {
+    display: none !important;
+  }
+}
+
+/* SweetAlert2 z-index */
+.swal2-container {
+  z-index: 999999 !important;
+}
+
+.swal2-popup {
+  z-index: 999999 !important;
+}
+
+.swal2-backdrop-show {
+  z-index: 999998 !important;
+}
+
+/* ============================================================================
+   2. TABLES - Mobile Card Layouts
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Transform tables to cards */
+  .table-responsive-cards thead {
+    display: none;
+  }
+
+  .table-responsive-cards tbody tr {
+    display: block;
+    margin-bottom: 12px;
+    background: var(--bs-card-bg, var(--ecs-neutral-0));
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 12px;
+  }
+
+  .table-responsive-cards tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--bs-border-color, var(--ecs-neutral-20));
+  }
+
+  .table-responsive-cards tbody td:last-child {
+    border-bottom: none;
+  }
+
+  .table-responsive-cards tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--bs-secondary-color, var(--ecs-neutral-50));
+    font-size: 0.875rem;
+    flex-shrink: 0;
+    margin-right: 12px;
+  }
+
+  /* DataTables mobile optimization */
+  .dataTables_wrapper {
+    overflow-x: hidden;
+  }
+
+  .dataTables_wrapper .dataTables_length,
+  .dataTables_wrapper .dataTables_filter {
+    width: 100%;
+    text-align: left;
+    margin-bottom: 12px;
+  }
+
+  .dataTables_wrapper .dataTables_filter input {
+    width: 100% !important;
+    margin-left: 0 !important;
+    min-height: 44px;
+    font-size: 16px;
+    border-radius: 8px;
+  }
+
+  .dataTables_wrapper .dataTables_paginate {
+    margin-top: 16px;
+    text-align: center;
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px !important;
+    margin: 2px;
+    border-radius: 8px !important;
+  }
+
+  .dataTables_wrapper .dataTables_info {
+    text-align: center;
+    padding-top: 12px;
+  }
+
+  /* Table action buttons */
+  .table .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .table .btn-group .btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* ============================================================================
+   3. FORMS - Mobile Input Optimization
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Prevent iOS zoom on input focus */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  textarea,
+  select,
+  .form-control,
+  .form-select {
+    font-size: 16px !important;
+    min-height: 48px;
+  }
+
+  /* Touch-friendly form controls */
+  .form-control,
+  .form-select {
+    padding: 12px 16px;
+    border-radius: 8px;
+    border-width: 2px;
+  }
+
+  .form-control:focus,
+  .form-select:focus {
+    border-color: var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+  }
+
+  /* Form labels */
+  .form-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  /* Input groups */
+  .input-group {
+    flex-wrap: wrap;
+  }
+
+  .input-group > .form-control,
+  .input-group > .form-select {
+    min-height: 48px;
+  }
+
+  .input-group-text {
+    min-height: 48px;
+    padding: 12px 16px;
+  }
+
+  /* Buttons */
+  .btn {
+    min-height: 44px;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 8px;
+  }
+
+  .btn-lg {
+    min-height: 52px;
+    padding: 14px 28px;
+    font-size: 18px;
+  }
+
+  .btn-sm {
+    min-height: 36px;
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+
+  /* Full-width buttons on mobile */
+  .btn-block-mobile {
+    width: 100%;
+    display: block;
+  }
+
+  /* Form row spacing */
+  .mb-3 {
+    margin-bottom: 16px !important;
+  }
+
+  .row.g-3 > [class*="col-"] {
+    padding-bottom: 8px;
+  }
+
+  /* Textarea */
+  textarea.form-control {
+    min-height: 100px;
+  }
+
+  /* Select2 mobile optimization */
+  .select2-container {
+    width: 100% !important;
+  }
+
+  .select2-container--bootstrap-5 .select2-selection {
+    min-height: 48px !important;
+    padding: 10px 12px;
+    font-size: 16px;
+  }
+
+  .select2-container--bootstrap-5 .select2-selection__rendered {
+    line-height: 26px;
+  }
+
+  .select2-container--bootstrap-5 .select2-dropdown {
+    font-size: 16px;
+  }
+
+  .select2-container--bootstrap-5 .select2-results__option {
+    padding: 12px 16px;
+    min-height: 44px;
+  }
+}
+
+/* ============================================================================
+   4. TOGGLES - Switches and Checkboxes
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Form check touch targets */
+  .form-check {
+    min-height: 44px;
+    padding-left: 2.5em;
+    display: flex;
+    align-items: center;
+  }
+
+  .form-check-input {
+    width: 1.25em;
+    height: 1.25em;
+    margin-top: 0;
+    margin-left: -2.5em;
+  }
+
+  .form-check-label {
+    padding-left: 0.5em;
+    line-height: 1.5;
+    cursor: pointer;
+  }
+
+  /* Form switch (toggle) */
+  .form-switch {
+    padding-left: 3.5em;
+    min-height: 48px;
+  }
+
+  .form-switch .form-check-input {
+    width: 2.5em;
+    height: 1.4em;
+    margin-left: -3.5em;
+    border-radius: 2em;
+    background-size: contain;
+  }
+
+  .form-switch .form-check-input:checked {
+    background-color: var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+    border-color: var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+  }
+
+  /* Large toggle variant for admin settings */
+  .form-switch-lg {
+    padding-left: 4.5em;
+    min-height: 56px;
+  }
+
+  .form-switch-lg .form-check-input {
+    width: 3.5em;
+    height: 2em;
+    margin-left: -4.5em;
+  }
+
+  /* Radio buttons */
+  .form-check-input[type="radio"] {
+    border-radius: 50%;
+  }
+
+  /* Checkbox/radio inline group */
+  .form-check-inline {
+    display: inline-flex;
+    align-items: center;
+    padding-left: 0;
+    margin-right: 16px;
+    min-height: 44px;
+  }
+
+  .form-check-inline .form-check-input {
+    margin-left: 0;
+    margin-right: 8px;
+  }
+}
+
+/* ============================================================================
+   5. DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] .modal-content {
+  background-color: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+}
+
+[data-style="dark"] .modal-header {
+  border-bottom-color: var(--ecs-dark-border);
+}
+
+[data-style="dark"] .modal-footer {
+  border-top-color: var(--ecs-dark-border);
+  background-color: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+}
+
+[data-style="dark"] .modal-header .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+[data-style="dark"] .modal-header::before {
+  background: var(--ecs-dark-text-muted, var(--ecs-dark-text-muted));
+}
+
+[data-style="dark"] .table-responsive-cards tbody tr {
+  background: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+}
+
+[data-style="dark"] .form-control,
+[data-style="dark"] .form-select {
+  background-color: var(--ecs-dark-bg-body, var(--ecs-dark-bg-body));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+[data-style="dark"] .form-control:focus,
+[data-style="dark"] .form-select:focus {
+  border-color: var(--ecs-info, var(--ecs-info));
+  box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.2);
+}
+
+/* ============================================================================
+   6. ACCESSIBILITY
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-dialog {
+    transition: none;
+    animation: none;
+  }
+
+  .form-switch .form-check-input {
+    transition: none;
+  }
+}
+
+/* Visible focus states */
+.form-control:focus-visible,
+.form-select:focus-visible,
+.btn:focus-visible,
+.form-check-input:focus-visible {
+  outline: 2px solid var(--bs-primary, var(--ecs-primary, var(--ecs-primary)));
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   7. IOS SAFE AREA SUPPORT
+   ============================================================================ */
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  @media (max-width: 767.98px) {
+    .modal-footer {
+      padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    }
+
+    .form-floating,
+    .input-group:last-child {
+      margin-bottom: env(safe-area-inset-bottom);
+    }
+  }
+}
+
+/* Prevent background scroll when modal is open */
+@media (max-width: 767.98px) {
+  body.modal-open {
+    position: fixed;
+    width: 100%;
+    overflow: hidden;
+  }
+}
+/**
+ * Component-Specific Mobile Optimizations
+ * Fixes specific UI components that cause mobile usability issues
+ */
+
+/* ADMIN DASHBOARD FIXES */
+.list-group-item-action {
+  padding: 12px 16px;
+  min-height: 44px;
+}
+
+.list-group-item-action h6 {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.list-group-item-action small {
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.list-group-item-action .ti {
+  font-size: 16px;
+}
+
+/* CARD OPTIMIZATIONS - Exclude auth pages */
+.card-header h5:not(.auth-page .card-header h5) {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.card-body:not(.auth-page .card-body) {
+  padding: 12px 16px;
+}
+
+/* SPINNER AND LOADING STATES */
+.spinner-border {
+  width: 24px;
+  height: 24px;
+}
+
+.text-center.py-5 {
+  padding-top: 20px !important;
+  padding-bottom: 20px !important;
+}
+
+/* NAVIGATION AND MENU FIXES */
+@media (max-width: 991.98px) {
+  /* Sidebar menu optimization */
+  .layout-menu .menu-item .menu-link {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+  
+  /* Navbar improvements */
+  .navbar-nav .nav-item .nav-link {
+    padding: 12px 16px;
+    min-height: 44px;
+  }
+}
+
+/* TABLE IMPROVEMENTS FOR MOBILE */
+@media (max-width: 767.98px) {
+  /* DataTables mobile optimization */
+  .dataTables_wrapper {
+    padding: 0;
+  }
+  
+  .dataTables_length,
+  .dataTables_filter {
+    margin-bottom: 12px;
+  }
+  
+  .dataTables_length select {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+
+  .dataTables_filter input {
+    min-height: 44px;
+    padding: 10px 12px;
+    width: 100%;
+    margin-left: 0;
+  }
+  
+  .dataTables_info {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+  
+  .dataTables_paginate .paginate_button {
+    padding: 8px 12px;
+    margin: 2px;
+    font-size: 14px;
+  }
+}
+
+/* MODAL CONTENT FIXES - Only on mobile screens, exclude auth pages */
+@media (max-width: 767.98px) {
+  .modal-dialog:not(.auth-page .modal-dialog) {
+    margin: 8px;
+  }
+}
+
+.modal-content {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--ecs-neutral-20, var(--ecs-neutral-20));
+}
+
+.modal-title {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.modal-body {
+  padding: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.modal-footer {
+  padding: 12px 16px;
+  gap: 8px;
+}
+
+.modal-footer .btn {
+  flex: 1;
+  min-height: 44px;
+}
+
+/* FORM SPECIFIC IMPROVEMENTS */
+.form-floating {
+  margin-bottom: 16px;
+}
+
+.form-floating > .form-control,
+.form-floating > .form-select {
+  height: 48px;
+  font-size: 16px;
+  padding: 12px;
+}
+
+.form-floating > label {
+  padding: 12px;
+  font-size: 14px;
+}
+
+/* SELECT2 MOBILE OPTIMIZATION */
+.select2-container .select2-selection--single {
+  height: 44px;
+  padding: 8px 12px;
+}
+
+.select2-container .select2-selection--single .select2-selection__rendered {
+  line-height: 28px;
+  font-size: 16px;
+}
+
+.select2-dropdown {
+  border-radius: 6px;
+}
+
+.select2-results__option {
+  padding: 12px 16px;
+  font-size: 16px;
+}
+
+/* ALERT OPTIMIZATIONS */
+.alert {
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.alert-dismissible .btn-close {
+  padding: 12px;
+}
+
+/* BREADCRUMB FIXES */
+.breadcrumb {
+  padding: 8px 0;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+  font-size: 12px;
+}
+
+/* PAGINATION MOBILE OPTIMIZATION */
+.pagination {
+  margin: 16px 0;
+  justify-content: center;
+}
+
+.page-link {
+  padding: 8px 12px;
+  font-size: 14px;
+  min-width: 40px;
+  text-align: center;
+}
+
+/* DROPDOWN MENU IMPROVEMENTS */
+.dropdown-menu {
+  padding: 8px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.dropdown-item {
+  padding: 10px 12px;
+  font-size: 14px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+
+.dropdown-divider {
+  margin: 4px 0;
+}
+
+/* PROGRESS BAR FIXES */
+.progress {
+  height: 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+/* BADGE SYSTEM IMPROVEMENTS */
+.badge {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1.2;
+}
+
+/* TAB NAVIGATION MOBILE */
+.nav-tabs .nav-link {
+  padding: 10px 12px;
+  font-size: 14px;
+  border-radius: 4px 4px 0 0;
+}
+
+.nav-pills .nav-link {
+  padding: 10px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+/* ACCORDION MOBILE OPTIMIZATION */
+.accordion-button {
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+.accordion-body {
+  padding: 16px;
+  font-size: 14px;
+}
+
+/* TOAST NOTIFICATIONS */
+.toast {
+  max-width: calc(100vw - 32px);
+  margin: 8px auto;
+}
+
+.toast-body {
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+/* OFFCANVAS MOBILE OPTIMIZATION */
+.offcanvas {
+  max-width: 85vw;
+}
+
+.offcanvas-header {
+  padding: 16px;
+}
+
+.offcanvas-body {
+  padding: 16px;
+}
+
+/* INPUT GROUP FIXES */
+.input-group > .form-control,
+.input-group > .form-select,
+.input-group > .btn {
+  min-height: 44px;
+}
+
+.input-group-text {
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+/* FLOATING ACTION BUTTON (if used) */
+.fab {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+/* UTILITY CLASSES FOR COMMON FIXES */
+.mobile-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-center {
+  text-align: center;
+}
+
+.mobile-full-width {
+  width: 100% !important;
+}
+
+.mobile-compact {
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+}
+
+.mobile-touch-target {
+  min-height: 44px !important;
+  min-width: 44px !important;
+}
+
+/* RESPONSIVE IMAGES */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.avatar-lg {
+  width: 48px;
+  height: 48px;
+}
+
+/* DARK MODE MOBILE ADJUSTMENTS */
+[data-style="dark"] .modal-content {
+  background-color: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+[data-style="dark"] .dropdown-menu {
+  background-color: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+}
+
+[data-style="dark"] .form-control,
+[data-style="dark"] .form-select {
+  background-color: var(--ecs-dark-bg-body, var(--ecs-dark-bg-body));
+  border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+  color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+/* PRINT MEDIA QUERIES */
+@media print {
+  .mobile-hide-print {
+    display: none !important;
+  }
+  
+  .btn, .dropdown, .modal {
+    display: none !important;
+  }
+}
+
+/* HIGH CONTRAST MODE */
+@media (prefers-contrast: high) {
+  .btn {
+    border: 2px solid;
+  }
+  
+  .form-control,
+  .form-select {
+    border: 2px solid;
+  }
+}
+
+/* REDUCED MOTION */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}/* ECS Admin Panel - Mobile-First Responsive Design */
+/* NOTE: Uses ECS theme variables (--ecs-*) for consistency with Modern theme */
+
+:root {
+    /* Use ECS theme primary, fallback to violet for consistency */
+    --admin-primary: var(--ecs-primary, var(--ecs-primary));
+    --admin-primary-dark: var(--ecs-primary-dark, var(--ecs-primary-dark));
+    --admin-secondary: var(--ecs-secondary, var(--ecs-secondary));
+    --admin-success: var(--ecs-success, var(--ecs-success));
+    --admin-warning: var(--ecs-warning, var(--ecs-warning));
+    --admin-danger: var(--ecs-danger, var(--ecs-danger));
+    --admin-info: var(--ecs-info, var(--ecs-info));
+    --admin-light: var(--ecs-neutral-5, var(--ecs-neutral-5));
+    --admin-dark: var(--ecs-neutral-90, var(--ecs-neutral-90));
+    --admin-border-radius: 0.75rem;
+    --admin-box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --admin-box-shadow-hover: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    --admin-transition: all 0.2s ease-in-out;
+}
+
+/* Mobile Navigation Enhancements - Only for sidebar/admin menu */
+@media (max-width: 991.98px) {
+    /* Sidebar menu styles only */
+    .layout-menu .navbar-nav,
+    .sidebar .navbar-nav {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: var(--admin-border-radius);
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+
+    .layout-menu .nav-item,
+    .sidebar .nav-item {
+        width: 100%;
+    }
+
+    /* Only apply to menu nav-links, not main navbar */
+    .layout-menu .nav-link,
+    .sidebar .nav-link {
+        padding: 0.75rem 1rem !important;
+        border-radius: var(--admin-border-radius);
+        margin-bottom: 0.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    .layout-menu .nav-link i,
+    .sidebar .nav-link i {
+        margin-right: 0.75rem !important;
+        font-size: 1.2rem;
+    }
+
+    /* Only apply to menu dropdowns */
+    .layout-menu .dropdown-menu,
+    .sidebar .dropdown-menu {
+        position: static !important;
+        transform: none !important;
+        width: 100%;
+        border: none;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        background: rgba(0, 0, 0, 0.05);
+        margin-top: 0.5rem;
+        border-radius: var(--admin-border-radius);
+    }
+
+    .layout-menu .dropdown-item,
+    .sidebar .dropdown-item {
+        padding: 0.5rem 1.5rem;
+        color: var(--admin-secondary);
+        border-radius: calc(var(--admin-border-radius) - 0.25rem);
+        margin: 0.25rem;
+    }
+
+    .layout-menu .dropdown-item:hover,
+    .sidebar .dropdown-item:hover {
+        background: rgba(13, 110, 253, 0.1);
+        color: var(--admin-primary);
+    }
+}
+
+/* Enhanced navigation styling - Only for admin content areas */
+.admin-content .nav-pills .nav-link,
+.card-body .nav-pills .nav-link {
+    color: var(--admin-secondary);
+    border-radius: var(--admin-border-radius);
+    padding: 0.75rem 1rem;
+    transition: var(--admin-transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-content .nav-pills .nav-link::before,
+.card-body .nav-pills .nav-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.admin-content .nav-pills .nav-link:hover::before,
+.card-body .nav-pills .nav-link:hover::before {
+    left: 100%;
+}
+
+.admin-content .nav-pills .nav-link:hover,
+.card-body .nav-pills .nav-link:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: var(--admin-primary);
+    transform: translateY(-1px);
+    box-shadow: var(--admin-box-shadow);
+}
+
+.admin-content .nav-pills .nav-link.active,
+.card-body .nav-pills .nav-link.active {
+    background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-dark, var(--ecs-primary-dark)));
+    color: white;
+    box-shadow: var(--admin-box-shadow-hover);
+}
+
+.admin-content .nav-pills .nav-link i,
+.card-body .nav-pills .nav-link i {
+    font-size: 1.1rem;
+    transition: var(--admin-transition);
+}
+
+.admin-content .nav-pills .nav-link:hover i,
+.card-body .nav-pills .nav-link:hover i {
+    transform: scale(1.1);
+}
+
+/* Responsive Card System */
+.admin-card {
+    transition: var(--admin-transition);
+    cursor: pointer;
+    border: 1px solid rgba(0, 0, 0, 0.125);
+    border-radius: var(--admin-border-radius);
+    overflow: hidden;
+    position: relative;
+}
+
+.admin-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--admin-primary), var(--admin-info));
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.admin-card:hover::before {
+    transform: scaleX(1);
+}
+
+.admin-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--admin-box-shadow-hover);
+    border-color: var(--admin-primary);
+}
+
+/* Mobile-responsive cards */
+@media (max-width: 767.98px) {
+    .admin-card {
+        margin-bottom: 1rem;
+    }
+    
+    .card-body {
+        padding: 1rem 0.75rem;
+    }
+    
+    .card-title {
+        font-size: 1.1rem;
+    }
+    
+    .display-6 {
+        font-size: 2rem;
+    }
+    
+    .display-4 {
+        font-size: 2.5rem;
+    }
+    
+    .h1, h1 {
+        font-size: 1.75rem;
+    }
+}
+
+/* Status indicators with animations */
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.5rem;
+    position: relative;
+    animation: pulse 2s infinite;
+}
+
+.status-indicator.active {
+    background-color: var(--admin-success);
+    box-shadow: 0 0 10px rgba(25, 135, 84, 0.5);
+}
+
+.status-indicator.warning {
+    background-color: var(--admin-warning);
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+}
+
+.status-indicator.danger {
+    background-color: var(--admin-danger);
+    box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Enhanced buttons */
+.btn {
+    border-radius: var(--admin-border-radius);
+    transition: var(--admin-transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, height 0.3s;
+}
+
+.btn:active::before {
+    width: 300px;
+    height: 300px;
+}
+
+/* Mobile button optimizations */
+@media (max-width: 767.98px) {
+    .btn {
+        min-height: 44px; /* Touch target size */
+        font-size: 0.875rem;
+    }
+    
+    .btn-sm {
+        min-height: 44px;
+        font-size: 0.85rem;
+    }
+    
+    .btn-lg {
+        min-height: 56px;
+        font-size: 1rem;
+    }
+}
+
+/* Mobile table responsiveness */
+@media (max-width: 767.98px) {
+    .table-responsive {
+        font-size: 0.875rem;
+        border-radius: var(--admin-border-radius);
+        overflow: hidden;
+    }
+    
+    .table th,
+    .table td {
+        padding: 0.5rem 0.25rem;
+        vertical-align: middle;
+    }
+    
+    .table thead th {
+        border-bottom: 2px solid var(--admin-primary);
+        background: var(--admin-light);
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .badge {
+        font-size: 0.7rem;
+        padding: 0.25em 0.5em;
+    }
+    
+    /* Stack table for very small screens */
+    @media (max-width: 575.98px) {
+        .table-mobile-stack {
+            display: block;
+        }
+        
+        .table-mobile-stack thead {
+            display: none;
+        }
+        
+        .table-mobile-stack tbody,
+        .table-mobile-stack tr,
+        .table-mobile-stack td {
+            display: block;
+            width: 100%;
+        }
+        
+        .table-mobile-stack tr {
+            border: 1px solid var(--admin-light);
+            border-radius: var(--admin-border-radius);
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: white;
+            box-shadow: var(--admin-box-shadow);
+        }
+        
+        .table-mobile-stack td {
+            border: none;
+            padding: 0.25rem 0;
+            text-align: left !important;
+        }
+        
+        .table-mobile-stack td::before {
+            content: attr(data-label) ": ";
+            font-weight: bold;
+            color: var(--admin-primary);
+        }
+    }
+}
+
+/* Modal mobile optimization */
+@media (max-width: 575.98px) {
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: none;
+    }
+    
+    .modal-content {
+        border-radius: var(--admin-border-radius);
+        border: none;
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+    }
+    
+    .modal-header,
+    .modal-footer {
+        padding: 0.75rem;
+        border-radius: var(--admin-border-radius) var(--admin-border-radius) 0 0;
+    }
+    
+    .modal-body {
+        padding: 1rem 0.75rem;
+    }
+    
+    .modal-title {
+        font-size: 1.1rem;
+    }
+    
+    .modal-footer .btn {
+        flex: 1;
+        margin: 0 0.25rem;
+    }
+}
+
+/* Timeline mobile optimization */
+@media (max-width: 767.98px) {
+    .timeline {
+        padding-left: 20px;
+    }
+    
+    .timeline::before {
+        left: 8px;
+        width: 2px;
+    }
+    
+    .timeline-marker {
+        left: -16px;
+        width: 6px;
+        height: 6px;
+    }
+    
+    .timeline-content {
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        border-radius: var(--admin-border-radius);
+        background: white;
+        box-shadow: var(--admin-box-shadow);
+        border: 1px solid var(--admin-light);
+    }
+}
+
+/* Chart container mobile responsiveness */
+.chart-container {
+    position: relative;
+    width: 100%;
+    height: 300px;
+}
+
+@media (max-width: 767.98px) {
+    .chart-container {
+        height: 250px;
+    }
+    
+    .chart-container canvas {
+        max-height: 250px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .chart-container {
+        height: 200px;
+    }
+    
+    .chart-container canvas {
+        max-height: 200px;
+    }
+}
+
+/* Form controls mobile optimization */
+@media (max-width: 767.98px) {
+    .form-control,
+    .form-select {
+        font-size: 16px; /* Prevents zoom on iOS */
+        min-height: 44px;
+        border-radius: var(--admin-border-radius);
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: var(--admin-dark);
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-check-input {
+        width: 1.25em;
+        height: 1.25em;
+    }
+    
+    .input-group > .form-control {
+        min-height: 44px;
+    }
+}
+
+/* Progressive Enhancement - Only for layout navbar */
+@supports (backdrop-filter: blur(10px)) {
+    .layout-navbar {
+        backdrop-filter: blur(10px);
+        background-color: rgba(248, 249, 250, 0.8) !important;
+    }
+
+    @media (max-width: 991.98px) {
+        .layout-menu .navbar-nav,
+        .sidebar .navbar-nav {
+            backdrop-filter: blur(10px);
+        }
+    }
+}
+
+/* Dark mode support - Uses data-style attribute, not prefers-color-scheme */
+/* Modern theme has its own comprehensive dark mode in modern-dark.css */
+[data-style="dark"]:not([data-theme-variant="modern"]) {
+    --admin-light: var(--ecs-neutral-90, var(--ecs-neutral-90));
+    --admin-dark: var(--ecs-neutral-5, var(--ecs-neutral-5));
+}
+
+[data-style="dark"]:not([data-theme-variant="modern"]) .admin-card {
+    background-color: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+    border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+    color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+}
+
+[data-style="dark"]:not([data-theme-variant="modern"]) .layout-navbar {
+    background-color: rgba(45, 55, 72, 0.9) !important;
+}
+
+[data-style="dark"]:not([data-theme-variant="modern"]) .timeline-content {
+    background-color: var(--ecs-dark-bg-elevated, var(--ecs-dark-bg-elevated));
+    color: var(--ecs-dark-text-secondary, var(--ecs-dark-text-primary));
+    border-color: var(--ecs-dark-border, var(--ecs-dark-border));
+}
+
+/* Focus indicators for accessibility - Admin content only */
+.sub-requests-page .nav-link:focus,
+.sub-requests-page .btn:focus,
+.sub-requests-page .form-control:focus,
+.sub-requests-page .form-select:focus {
+    outline: 2px solid var(--admin-primary);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Loading states */
+.loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid transparent;
+    border-top: 2px solid var(--admin-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 1000;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Touch optimizations */
+@media (pointer: coarse) {
+    .admin-card {
+        padding: 0.25rem;
+    }
+
+    .layout-menu .nav-link,
+    .sidebar .nav-link {
+        min-height: 44px;
+        padding: 0.75rem 1rem !important;
+    }
+
+    .layout-menu .dropdown-item,
+    .sidebar .dropdown-item {
+        min-height: 44px;
+        padding: 0.75rem 1rem;
+    }
+
+    .sub-requests-page .btn {
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+}
+
+/* Print styles */
+@media print {
+    .layout-navbar,
+    .sub-requests-page .btn,
+    .modal,
+    .dropdown,
+    .toast {
+        display: none !important;
+    }
+
+    .card {
+        border: 1px solid var(--ecs-neutral-90, var(--ecs-neutral-90));
+        break-inside: avoid;
+        margin-bottom: 1rem;
+    }
+
+    .admin-card {
+        transform: none;
+        box-shadow: none;
+    }
+
+    .page-break {
+        page-break-before: always;
+    }
+}
+
+/* Network status indicator */
+.network-status {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Scroll optimization for mobile */
+@media (max-width: 767.98px) {
+    body {
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .table-responsive {
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .modal-body {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Performance hints */
+.admin-card,
+.nav-link,
+.btn {
+    will-change: transform;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .status-indicator {
+        animation: none;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .admin-card {
+        border: 2px solid var(--admin-dark);
+    }
+    
+    .nav-link {
+        border: 1px solid var(--admin-secondary);
+    }
+    
+    .btn {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Landscape mobile optimizations */
+@media (max-width: 926px) and (orientation: landscape) {
+    .layout-menu .navbar-nav,
+    .sidebar .navbar-nav {
+        max-height: 60vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .sub-requests-page .modal-dialog {
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+}
+
+/* Very small screens */
+@media (max-width: 320px) {
+    .container-xxl {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+
+    .card-body {
+        padding: 0.75rem 0.5rem;
+    }
+
+    .sub-requests-page .btn {
+        font-size: 0.8rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .layout-menu .nav-link,
+    .sidebar .nav-link {
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem !important;
+    }
+}
+
+/* Sub Requests - Mobile-First Redesign */
+/* Mobile-first approach: design for mobile, enhance for desktop */
+
+/* Base styles for all screens */
+.sub-requests-page {
+    --sub-primary: var(--ecs-primary, var(--ecs-primary));
+    --sub-primary-dark: var(--ecs-primary-dark, var(--ecs-primary-dark));
+    --sub-success: var(--ecs-success, var(--ecs-success));
+    --sub-warning: var(--ecs-warning, var(--ecs-warning));
+    --sub-danger: var(--ecs-danger, var(--ecs-danger));
+    --sub-info: var(--ecs-info, var(--ecs-info));
+    --sub-light: var(--ecs-neutral-5, var(--ecs-neutral-5));
+    --sub-dark: var(--ecs-neutral-90, var(--ecs-neutral-90));
+    --sub-border: var(--ecs-neutral-20, var(--ecs-neutral-20));
+    --sub-radius: 12px;
+    --sub-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    --sub-shadow-hover: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Mobile-first match cards - these are the primary layout */
+.matches-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+}
+
+.match-card {
+    background: var(--ecs-card-bg, var(--ecs-neutral-0)fff);
+    border: 1px solid var(--ecs-border-color, var(--ecs-neutral-20));
+    border-radius: var(--sub-radius);
+    box-shadow: var(--sub-shadow);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-style="dark"] .match-card {
+    background: var(--ecs-card-bg, var(--ecs-dark-bg-card));
+    border-color: var(--ecs-border-color, var(--ecs-dark-border));
+    color: var(--ecs-text-primary, var(--ecs-dark-text-primary));
+}
+
+/* Priority matches (with sub requests) styling */
+@media (max-width: 767.98px) {
+    .match-card.priority-match {
+        border-left: 4px solid var(--ecs-danger);
+        order: -1;
+    }
+
+    .match-card.priority-match .match-card-header {
+        background: linear-gradient(135deg, var(--ecs-danger), var(--ecs-warning));
+    }
+}
+
+.match-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--sub-shadow-hover);
+}
+
+.match-card-header {
+    background: linear-gradient(135deg, var(--sub-primary), var(--sub-info));
+    color: white;
+    padding: 1rem;
+    text-align: center;
+}
+
+.match-teams {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.match-meta {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin-top: 0.25rem;
+}
+
+.match-card-body {
+    padding: 1rem;
+}
+
+.team-request {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--ecs-border-color, var(--ecs-neutral-20));
+    background: var(--ecs-card-bg, var(--ecs-neutral-5));
+}
+
+[data-style="dark"] .team-request {
+    background: var(--ecs-card-bg, var(--ecs-dark-bg-elevated));
+    border-color: var(--ecs-border-color, var(--ecs-dark-border));
+    color: var(--ecs-text-primary, var(--ecs-dark-text-primary));
+}
+
+.team-request:last-child {
+    margin-bottom: 0;
+}
+
+.team-name {
+    font-weight: 600;
+    color: var(--ecs-text-primary, var(--ecs-neutral-90));
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+[data-style="dark"] .team-name {
+    color: var(--ecs-text-primary, var(--ecs-dark-text-primary));
+}
+
+.request-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--sub-danger);
+    animation: pulse-indicator 2s infinite;
+}
+
+@keyframes pulse-indicator {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    white-space: nowrap;
+}
+
+.status-pending {
+    background: rgba(253, 126, 20, 0.1);
+    color: var(--ecs-warning);
+    border: 1px solid rgba(253, 126, 20, 0.2);
+}
+
+.status-approved {
+    background: rgba(13, 202, 240, 0.1);
+    color: var(--ecs-info);
+    border: 1px solid rgba(13, 202, 240, 0.2);
+}
+
+.status-fulfilled {
+    background: rgba(25, 135, 84, 0.1);
+    color: var(--ecs-success, var(--ecs-success));
+    border: 1px solid rgba(25, 135, 84, 0.2);
+}
+
+.status-declined {
+    background: rgba(220, 53, 69, 0.1);
+    color: var(--ecs-danger, var(--ecs-danger));
+    border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+.status-none {
+    background: rgba(108, 117, 125, 0.1);
+    color: var(--ecs-neutral-50, var(--ecs-neutral-50));
+    border: 1px solid rgba(108, 117, 125, 0.2);
+}
+
+.request-details {
+    font-size: 0.8rem;
+    color: var(--ecs-text-primary, var(--ecs-neutral-90));
+    margin-bottom: 0.5rem;
+}
+
+[data-style="dark"] .request-details {
+    color: var(--ecs-text-primary, var(--ecs-dark-text-primary));
+}
+
+.request-count {
+    font-weight: 600;
+    color: var(--sub-primary);
+}
+
+.request-notes {
+    background: var(--ecs-card-bg, var(--ecs-neutral-0)fff);
+    border: 1px solid var(--ecs-border-color, var(--ecs-neutral-20));
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    border-left: 3px solid var(--ecs-info);
+}
+
+[data-style="dark"] .request-notes {
+    background: var(--ecs-card-bg, var(--ecs-dark-bg-elevated));
+    border-color: var(--ecs-border-color, var(--ecs-dark-border));
+    color: var(--ecs-text-primary, var(--ecs-dark-text-primary));
+}
+
+.request-notes-label {
+    font-weight: 600;
+    color: var(--bs-primary);
+    margin-bottom: 0.25rem;
+}
+
+.match-actions {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--bs-border-color);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.action-btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+}
+
+.action-btn-primary {
+    background: var(--sub-primary);
+    color: white;
+}
+
+.action-btn-primary:hover {
+    background: var(--sub-primary-dark, var(--ecs-primary-dark, var(--ecs-primary-dark)));
+    color: white;
+    transform: translateY(-1px);
+}
+
+.action-btn-outline {
+    background: var(--ecs-card-bg, var(--ecs-neutral-0)fff);
+    color: var(--sub-primary);
+    border: 1px solid var(--sub-primary);
+}
+
+.action-btn-outline:hover {
+    background: var(--sub-primary);
+    color: white;
+    transform: translateY(-1px);
+}
+
+[data-style="dark"] .action-btn-outline {
+    background: var(--ecs-card-bg, var(--ecs-dark-bg-card));
+    border-color: var(--sub-primary);
+}
+
+/* Mobile optimizations */
+@media (max-width: 767.98px) {
+    .matches-grid {
+        padding: 0 0.5rem;
+    }
+
+    .match-card {
+        margin-bottom: 0.5rem;
+    }
+
+    .match-card-header {
+        padding: 0.875rem;
+    }
+
+    .match-teams {
+        font-size: 1rem;
+    }
+
+    .match-meta {
+        font-size: 0.8rem;
+    }
+
+    .match-card-body {
+        padding: 0.875rem;
+    }
+
+    .action-btn {
+        min-height: 44px; /* iOS/Android touch target */
+        font-size: 0.9rem;
+    }
+}
+
+/* Desktop enhancements */
+@media (min-width: 768px) {
+    .matches-grid {
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .team-requests-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .match-actions {
+        flex-wrap: nowrap;
+    }
+
+    .action-btn {
+        flex: 0 1 auto;
+        min-width: auto;
+        padding: 0.5rem 1rem;
+    }
+}
+
+/* Filters mobile optimization */
+@media (max-width: 767.98px) {
+    .filter-buttons-stack .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    .filter-buttons-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* Pending requests mobile cards */
+.pending-requests-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+}
+
+.pending-request-card {
+    background: var(--ecs-card-bg, var(--ecs-neutral-0)fff);
+    border: 1px solid var(--ecs-border-color, var(--ecs-neutral-20));
+    border-radius: var(--sub-radius);
+    box-shadow: var(--sub-shadow);
+    padding: 1rem;
+    border-left: 4px solid var(--ecs-warning);
+}
+
+[data-style="dark"] .pending-request-card {
+    background: var(--ecs-card-bg, var(--ecs-dark-bg-card));
+    border-color: var(--ecs-border-color, var(--ecs-dark-border));
+    color: var(--ecs-text-primary, var(--ecs-dark-text-primary));
+}
+
+.pending-request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.pending-match-info {
+    flex: 1;
+}
+
+.pending-match-title {
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+    color: var(--ecs-text-primary, var(--ecs-neutral-90));
+}
+
+[data-style="dark"] .pending-match-title {
+    color: var(--ecs-text-primary, var(--ecs-dark-text-primary));
+}
+
+.pending-match-meta {
+    font-size: 0.85rem;
+    color: var(--ecs-neutral-50, var(--ecs-neutral-50));
+}
+
+[data-style="dark"] .pending-match-meta {
+    color: var(--ecs-dark-text-muted);
+}
+
+.pending-team-badge {
+    background: var(--ecs-primary, var(--ecs-primary));
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.pending-actions {
+    margin-top: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Hide desktop table on mobile, show cards */
+@media (max-width: 767.98px) {
+    .desktop-table {
+        display: none;
+    }
+
+    .mobile-cards {
+        display: block;
+    }
+}
+
+@media (min-width: 768px) {
+    .desktop-table {
+        display: block;
+    }
+
+    .mobile-cards {
+        display: none;
+    }
+}
+
+/* Modal optimizations for mobile */
+@media (max-width: 767.98px) {
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: calc(100% - 1rem);
+    }
+
+    .modal-content {
+        border-radius: var(--sub-radius);
+    }
+
+    .modal-body {
+        padding: 1rem;
+        max-height: 70vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .modal-footer .btn {
+        flex: 1;
+        min-height: 44px;
+    }
+}
+
+/* SweetAlert z-index - MOVED TO mobile-modals.css to avoid duplication */
+/* See mobile-modals.css for comprehensive SweetAlert2 z-index rules */

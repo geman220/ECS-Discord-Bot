@@ -893,10 +893,86 @@ def on_player_shift_update(data):
                 }, room=f"user_{team_reporter.user_id}")
             
             logger.info(f"Player shift updated: Match {match_id}, Player {player_id}, Active: {is_active}, Team: {team_id}")
-            
+
         except Exception as e:
             logger.error(f"Error updating player shift: {str(e)}", exc_info=True)
             emit('error', {'message': f'Error updating player shift: {str(e)}'})
+
+
+@socketio.on('update_shift_timer', namespace='/live')
+def on_shift_timer_update(data):
+    """
+    Update a team's shift timer during a match.
+
+    Shift timers are controlled by each team's coach but are VISIBLE
+    to everyone in the match room for transparency.
+
+    Args:
+        data: Dictionary containing:
+            - match_id: The match ID
+            - team_id: The team whose shift timer is being updated
+            - action: 'start', 'pause', 'resume', 'stop', 'reset'
+            - is_running: Whether the timer is currently running
+            - elapsed_time_ms: Elapsed time in milliseconds
+            - formatted_time: Human-readable time string (e.g., "05:30")
+            - timestamp: ISO timestamp of the action
+    """
+    with socket_session(db.engine) as session:
+        # Get authenticated user
+        user = get_socket_current_user(session)
+        if not user:
+            emit('error', {'message': 'Authentication required'})
+            disconnect()
+            return
+
+        match_id = data.get('match_id')
+        team_id = data.get('team_id')
+        action = data.get('action')
+        user_id = user.id
+
+        if not match_id or not team_id:
+            emit('error', {'message': 'Match ID and team ID are required'})
+            return
+
+        try:
+            # Verify the user is reporting for this team (only own team can control)
+            reporter = session.query(ActiveMatchReporter).filter_by(
+                match_id=match_id, user_id=user_id
+            ).first()
+
+            if not reporter or reporter.team_id != team_id:
+                emit('error', {'message': 'You can only control your own team\'s shift timer'})
+                return
+
+            # Get team name for the broadcast
+            team = session.query(Team).get(team_id)
+            team_name = team.name if team else f"Team {team_id}"
+
+            # Build broadcast data
+            broadcast_data = {
+                'match_id': match_id,
+                'team_id': team_id,
+                'team_name': team_name,
+                'action': action,
+                'is_running': data.get('is_running', False),
+                'is_paused': data.get('is_paused', False),
+                'is_stopped': data.get('is_stopped', False),
+                'elapsed_time_ms': data.get('elapsed_time_ms', 0),
+                'formatted_time': data.get('formatted_time', '00:00'),
+                'timestamp': data.get('timestamp') or datetime.utcnow().isoformat(),
+                'updated_by': user_id,
+                'updated_by_name': user.username
+            }
+
+            # Broadcast to ALL users in the match room (both teams can see)
+            # Use include_self=False so the sender doesn't get their own update
+            emit('shift_timer_updated', broadcast_data, room=f"match_{match_id}", include_self=False)
+
+            logger.info(f"Shift timer updated for match {match_id}, team {team_id}: {action} - {broadcast_data.get('formatted_time')} by user {user_id}")
+
+        except Exception as e:
+            logger.error(f"Error updating shift timer: {str(e)}", exc_info=True)
+            emit('error', {'message': f'Error updating shift timer: {str(e)}'})
 
 
 @socketio.on('submit_report', namespace='/live')

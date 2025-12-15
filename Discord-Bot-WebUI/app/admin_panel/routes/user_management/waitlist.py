@@ -178,7 +178,7 @@ def remove_from_waitlist(user_id: int):
 @transactional
 def contact_waitlist_user(user_id: int):
     """
-    Contact a user on the waitlist (placeholder for future implementation).
+    Contact a user on the waitlist via email, SMS, or Discord DM.
     """
     try:
         current_user_safe = safe_current_user
@@ -195,6 +195,16 @@ def contact_waitlist_user(user_id: int):
         # Get contact message from request
         message = request.json.get('message', '')
         contact_method = request.json.get('contact_method', 'email')
+        subject = request.json.get('subject', 'ECS Pub League - Waitlist Update')
+
+        if not message:
+            return jsonify({'success': False, 'message': 'Message content is required'}), 400
+
+        # Send the message based on contact method
+        send_result = _send_waitlist_contact(user, contact_method, message, subject)
+
+        if not send_result['success']:
+            return jsonify(send_result), 400
 
         # Log the action
         AdminAuditLog.log_action(
@@ -202,25 +212,138 @@ def contact_waitlist_user(user_id: int):
             action='contact_waitlist_user',
             resource_type='user_waitlist',
             resource_id=str(user_id),
-            new_value=f'contacted via {contact_method}',
+            new_value=f'contacted via {contact_method}: {message[:50]}...',
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
 
-        logger.info(f"Contact initiated for waitlist user {user.id} ({user.username}) by {current_user_safe.id} ({current_user_safe.username}). Method: {contact_method}")
-
-        # TODO: Implement actual contact functionality (email, Discord DM, etc.)
-        # For now, we'll just log and return success
+        logger.info(f"Contact sent to waitlist user {user.id} ({user.username}) by {current_user_safe.id} ({current_user_safe.username}). Method: {contact_method}")
 
         return jsonify({
             'success': True,
-            'message': f'Contact logged for user {user.username}',
+            'message': send_result['message'],
             'user_id': user.id
         })
 
     except Exception as e:
         logger.error(f"Error contacting waitlist user {user_id}: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'message': 'Failed to contact user'}), 500
+
+
+def _send_waitlist_contact(user, contact_method: str, message: str, subject: str) -> dict:
+    """
+    Helper function to send contact message via the specified method.
+
+    Args:
+        user: User object to contact
+        contact_method: One of 'email', 'sms', or 'discord'
+        message: The message content
+        subject: Email subject (only used for email method)
+
+    Returns:
+        dict with 'success' and 'message' keys
+    """
+    if contact_method == 'email':
+        return _send_waitlist_email(user, subject, message)
+    elif contact_method == 'sms':
+        return _send_waitlist_sms(user, message)
+    elif contact_method == 'discord':
+        return _send_waitlist_discord_dm(user, message)
+    else:
+        return {'success': False, 'message': f'Unknown contact method: {contact_method}'}
+
+
+def _send_waitlist_email(user, subject: str, message: str) -> dict:
+    """Send email to waitlist user."""
+    if not user.email:
+        return {'success': False, 'message': 'User has no email address'}
+
+    try:
+        from app.email import send_email
+
+        # Wrap message in basic HTML
+        html_body = f"""
+        <html>
+        <body>
+            <p>{message.replace(chr(10), '<br>')}</p>
+            <hr>
+            <p><small>This message was sent regarding your position on the ECS Pub League waitlist.</small></p>
+        </body>
+        </html>
+        """
+
+        result = send_email(user.email, subject, html_body)
+
+        if result:
+            logger.info(f"Email sent to waitlist user {user.id} at {user.email}")
+            return {'success': True, 'message': f'Email sent to {user.email}'}
+        else:
+            logger.error(f"Failed to send email to waitlist user {user.id}")
+            return {'success': False, 'message': 'Failed to send email'}
+
+    except Exception as e:
+        logger.error(f"Error sending email to waitlist user {user.id}: {e}")
+        return {'success': False, 'message': f'Email error: {str(e)}'}
+
+
+def _send_waitlist_sms(user, message: str) -> dict:
+    """Send SMS to waitlist user."""
+    if not user.player or not user.player.phone:
+        return {'success': False, 'message': 'User has no phone number'}
+
+    if not user.sms_notifications:
+        return {'success': False, 'message': 'User has SMS notifications disabled'}
+
+    try:
+        from app.sms_helpers import send_sms
+
+        success, result = send_sms(user.player.phone, message, user_id=user.id)
+
+        if success:
+            logger.info(f"SMS sent to waitlist user {user.id} at {user.player.phone}")
+            return {'success': True, 'message': f'SMS sent to {user.player.phone}'}
+        else:
+            logger.error(f"Failed to send SMS to waitlist user {user.id}: {result}")
+            return {'success': False, 'message': f'Failed to send SMS: {result}'}
+
+    except ImportError:
+        return {'success': False, 'message': 'SMS system not configured'}
+    except Exception as e:
+        logger.error(f"Error sending SMS to waitlist user {user.id}: {e}")
+        return {'success': False, 'message': f'SMS error: {str(e)}'}
+
+
+def _send_waitlist_discord_dm(user, message: str) -> dict:
+    """Send Discord DM to waitlist user."""
+    if not user.player or not user.player.discord_id:
+        return {'success': False, 'message': 'User has no Discord ID'}
+
+    if not user.discord_notifications:
+        return {'success': False, 'message': 'User has Discord notifications disabled'}
+
+    try:
+        import requests as http_requests
+        from flask import current_app
+
+        payload = {
+            "message": message,
+            "discord_id": user.player.discord_id
+        }
+
+        bot_api_url = current_app.config.get('BOT_API_URL', 'http://localhost:5001') + '/send_discord_dm'
+
+        response = http_requests.post(bot_api_url, json=payload, timeout=10)
+
+        if response.status_code == 200:
+            logger.info(f"Discord DM sent to waitlist user {user.id}")
+            return {'success': True, 'message': 'Discord DM sent successfully'}
+        else:
+            logger.error(f"Failed to send Discord DM to waitlist user {user.id}: {response.text}")
+            return {'success': False, 'message': 'Failed to send Discord DM'}
+
+    except Exception as e:
+        logger.error(f"Error sending Discord DM to waitlist user {user.id}: {e}")
+        return {'success': False, 'message': f'Discord DM error: {str(e)}'}
 
 
 @admin_panel_bp.route('/users/waitlist/user/<int:user_id>')

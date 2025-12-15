@@ -326,14 +326,14 @@ const pushHistoryChart = new Chart(pushHistoryCtx, {
         datasets: [{
             label: 'Notifications Sent',
             data: [45, 52, 38, 67, 58, 72, 65],
-            borderColor: '#007bff',
+            borderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#007bff',
             backgroundColor: 'rgba(0, 123, 255, 0.1)',
             tension: 0.4,
             fill: true
         }, {
             label: 'Delivery Rate (%)',
             data: [95, 97, 93, 96, 98, 94, 95],
-            borderColor: '#28a745',
+            borderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
             backgroundColor: 'rgba(40, 167, 69, 0.1)',
             tension: 0.4,
             yAxisID: 'y1'
@@ -381,7 +381,12 @@ const statusDistChart = new Chart(statusDistCtx, {
         labels: ['Sent', 'Delivered', 'Failed', 'Pending'],
         datasets: [{
             data: [{{ stats.total_sent or 0 }}, {{ (stats.total_sent * 0.95)|int if stats.total_sent else 0 }}, {{ (stats.total_sent * 0.03)|int if stats.total_sent else 0 }}, {{ (stats.total_sent * 0.02)|int if stats.total_sent else 0 }}],
-            backgroundColor: ['#007bff', '#28a745', '#dc3545', '#ffc107']
+            backgroundColor: [
+                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#007bff',
+                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
+                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107'
+            ]
         }]
     },
     options: {
@@ -482,7 +487,7 @@ function deleteNotification(notificationId) {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Delete',
-        confirmButtonColor: '#dc3545'
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
             Swal.fire('Notification Deleted!', 'The notification has been removed from history.', 'success')
@@ -546,7 +551,7 @@ function cleanupOld() {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Cleanup Old',
-        confirmButtonColor: '#dc3545'
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
             Swal.fire({

@@ -52,7 +52,6 @@ def init_assets(app):
     # Components Bundle - Theme + Layout + Components
     components_css = Bundle(
         'css/components.css',            # Consolidated: theme-default.css + layout-system.css + ecs-components.css
-        'css/mobile.css',                # Mobile-first responsive system (kept as-is)
         filters='cssmin',
         output='dist/components.css'
     )
@@ -62,7 +61,6 @@ def init_assets(app):
         'vendor/fonts/fontawesome.css',          # FontAwesome (separate to preserve font paths)
         'vendor/libs/node-waves/node-waves.css', # Node Waves
         'vendor/libs/perfect-scrollbar/perfect-scrollbar.css', # Perfect Scrollbar
-        'css/vendor-overrides.css',              # Our vendor fixes (kept as-is)
         filters='cssmin',
         output='dist/vendor.css'
     )

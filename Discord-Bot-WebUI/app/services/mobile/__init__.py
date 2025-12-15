@@ -11,10 +11,12 @@ from app.services.mobile.auth_service import MobileAuthService
 from app.services.mobile.profile_service import MobileProfileService
 from app.services.mobile.team_service import MobileTeamService
 from app.services.mobile.match_service import MobileMatchService
+from app.services.mobile.admin_service import MobileAdminService
 
 __all__ = [
     'MobileAuthService',
     'MobileProfileService',
     'MobileTeamService',
     'MobileMatchService',
+    'MobileAdminService',
 ]

@@ -8,10 +8,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         :root {
-            --bs-body-bg: #0f172a;
-            --bs-body-color: #e2e8f0;
-            --bs-primary: #3b82f6;
-            --bs-primary-rgb: 59, 130, 246;
+            --bs-body-bg: var(--ecs-dark-bg-body, #0f172a);
+            --bs-body-color: var(--ecs-dark-text-primary, #e2e8f0);
+            --bs-primary: var(--ecs-primary, #3b82f6);
+            --bs-primary-rgb: var(--ecs-primary-rgb, 59, 130, 246);
         }
 
         body {
@@ -26,18 +26,18 @@
         }
 
         .card {
-            background-color: #1e293b;
-            border: 1px solid #2d3748;
+            background-color: var(--ecs-dark-bg-card, #1e293b);
+            border: 1px solid var(--ecs-dark-border, #2d3748);
             border-radius: 0.5rem;
         }
 
         .card-title {
-            color: #f8fafc;
+            color: var(--ecs-dark-text-heading, #f8fafc);
         }
 
         .success-icon {
             font-size: 4rem;
-            color: #10b981;
+            color: var(--ecs-success, #10b981);
         }
 
         #countdown {

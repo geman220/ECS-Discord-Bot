@@ -48,12 +48,6 @@
                                 </div>
                                 {% endif %}
                                 
-                                
-                                {% if player.discord_id and (has_permission('view_discord_info') or is_own_profile) %}
-                                <div class="badge bg-label-success fs-6">
-                                    <i class="fab fa-discord me-1"></i>Discord Linked
-                                </div>
-                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -69,10 +63,17 @@
                         </button>
                         {% endif %}
                         
-                        {% if player.discord_id and (is_admin or 'Pub League Coach' in user_roles) %}
-                        <a href="#" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#discordContactModal">
-                            <i class="fab fa-discord me-1"></i> Contact
-                        </a>
+                        {# Multi-channel contact button - shown to admins and coaches #}
+                        {% if is_admin or 'Pub League Coach' in user_roles %}
+                            {# Check which channels are available for this player #}
+                            {% set has_email = user.email and user.email_notifications %}
+                            {% set has_sms = player.phone and user.sms_notifications %}
+                            {% set has_discord = player.discord_id and user.discord_notifications %}
+                            {% if has_email or has_sms or has_discord %}
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#contactPlayerModal">
+                                <i class="ti ti-message me-1"></i> Contact
+                            </button>
+                            {% endif %}
                         {% endif %}
                         
                         {% if not player.discord_id and safe_current_user.is_authenticated and safe_current_user.id == player.user.id %}
@@ -920,7 +921,7 @@
                                         <h5 class="card-title mb-0">Match Stats History</h5>
                                         <div class="d-flex align-items-center">
                                             <label for="matchFilter" class="form-label me-2 mb-0">Filter:</label>
-                                            <select class="form-select form-select-sm" id="matchFilter" style="width: 250px;">
+                                            <select class="form-select form-select-sm match-filter" id="matchFilter">
                                                 <option value="">All Matches</option>
                                                 {% for match in matches %}
                                                 <option value="{{ match.id }}">
@@ -1065,7 +1066,7 @@
                         </button>
                     </div>
                     <div class="img-container d-none">
-                        <img id="imagecan" style="max-width: 100%; height: auto;">
+                        <img id="imagecan" class="img-fluid">
                     </div>
                     <input type="hidden" id="cropped_image_data" name="cropped_image_data">
                 </div>
@@ -1115,97 +1116,175 @@
     </div>
 </div>
 
-<!-- Discord Contact Modal -->
-<div class="modal fade" id="discordContactModal" tabindex="-1" aria-labelledby="discordContactModalLabel" aria-hidden="true">
+<!-- Multi-Channel Contact Modal -->
+<div class="modal fade contact-modal" id="contactPlayerModal" tabindex="-1" aria-labelledby="contactPlayerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow discord-modal">
-            <div class="modal-header bg-discord text-white border-0">
-                <div class="d-flex align-items-center">
-                    <i class="fab fa-discord fs-4 me-2"></i>
-                    <h5 class="modal-title mb-0" id="discordContactModalLabel">
-                        Discord Message
-                    </h5>
-                </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contactPlayerModalLabel">
+                    <i class="ti ti-message me-2"></i>Contact {{ player.name }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ url_for('players.contact_player_discord', player_id=player.id) }}" method="POST">
+            <form action="{{ url_for('players.contact_player', player_id=player.id) }}" method="POST" id="contactPlayerForm">
                 {{ form.csrf_token }}
-                <div class="modal-body p-0">
-                    <!-- Discord Interface Header -->
-                    <div class="discord-header p-3 border-bottom">
-                        <div class="d-flex align-items-center">
-                            {% if player.profile_picture_url %}
-                            <img src="{{ player.profile_picture_url }}?v={{ player.updated_at.timestamp() }}" 
-                                 class="rounded-circle me-3" width="40" height="40" alt="Profile picture">
-                            {% else %}
-                            <img src="{{ url_for('static', filename='img/default_player.png') }}" 
-                                 class="rounded-circle me-3" width="40" height="40" alt="Default profile picture">
-                            {% endif %}
-                            <div>
-                                <div class="fw-bold mb-0">{{ player.name }}</div>
-                                <div class="text-discord-green small">
-                                    <i class="fas fa-circle me-1" style="font-size: 8px;"></i>Online
-                                </div>
+                <div class="modal-body">
+                    <!-- Recipient Info -->
+                    <div class="recipient-info d-flex align-items-center mb-4">
+                        {% if player.profile_picture_url %}
+                        <img src="{{ player.profile_picture_url }}?v={{ player.updated_at.timestamp() }}"
+                             class="rounded-circle me-3" width="48" height="48" alt="Profile">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='img/default_player.png') }}"
+                             class="rounded-circle me-3" width="48" height="48" alt="Profile">
+                        {% endif %}
+                        <div>
+                            <div class="fw-bold">{{ player.name }}</div>
+                            <small class="text-muted">Select how to contact this player</small>
+                        </div>
+                    </div>
+
+                    <!-- Channel Selection -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Send via (select one or more):</label>
+
+                        {# Email Channel #}
+                        {% set email_available = user.email %}
+                        {% set email_enabled = user.email_notifications %}
+                        <div class="channel-checkbox d-flex align-items-center {{ '' if email_available and email_enabled else 'channel-disabled' }}">
+                            <div class="form-check mb-0 flex-grow-1">
+                                <input type="checkbox" class="form-check-input" name="contact_channels" value="email"
+                                       id="channel_email" {{ 'disabled' if not email_available or not email_enabled else '' }}>
+                                <label class="form-check-label d-flex align-items-center" for="channel_email">
+                                    <span class="channel-icon channel-email me-2">
+                                        <i class="ti ti-mail"></i>
+                                    </span>
+                                    <span>
+                                        <strong>Email</strong>
+                                        {% if not email_available %}
+                                        <small class="text-danger d-block">No email on file</small>
+                                        {% elif not email_enabled %}
+                                        <small class="text-warning d-block">Disabled by player</small>
+                                        {% else %}
+                                        <small class="text-muted d-block">{{ user.email }}</small>
+                                        {% endif %}
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        {# SMS Channel #}
+                        {% set sms_available = player.phone %}
+                        {% set sms_enabled = user.sms_notifications %}
+                        <div class="channel-checkbox d-flex align-items-center {{ '' if sms_available and sms_enabled else 'channel-disabled' }}">
+                            <div class="form-check mb-0 flex-grow-1">
+                                <input type="checkbox" class="form-check-input" name="contact_channels" value="sms"
+                                       id="channel_sms" {{ 'disabled' if not sms_available or not sms_enabled else '' }}>
+                                <label class="form-check-label d-flex align-items-center" for="channel_sms">
+                                    <span class="channel-icon channel-sms me-2">
+                                        <i class="ti ti-message-text"></i>
+                                    </span>
+                                    <span>
+                                        <strong>SMS</strong>
+                                        {% if not sms_available %}
+                                        <small class="text-danger d-block">No phone on file</small>
+                                        {% elif not sms_enabled %}
+                                        <small class="text-warning d-block">Disabled by player</small>
+                                        {% else %}
+                                        <small class="text-muted d-block">{{ player.phone }}</small>
+                                        {% endif %}
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        {# Discord Channel #}
+                        {% set discord_available = player.discord_id %}
+                        {% set discord_enabled = user.discord_notifications %}
+                        <div class="channel-checkbox d-flex align-items-center {{ '' if discord_available and discord_enabled else 'channel-disabled' }}">
+                            <div class="form-check mb-0 flex-grow-1">
+                                <input type="checkbox" class="form-check-input" name="contact_channels" value="discord"
+                                       id="channel_discord" {{ 'disabled' if not discord_available or not discord_enabled else '' }}>
+                                <label class="form-check-label d-flex align-items-center" for="channel_discord">
+                                    <span class="channel-icon channel-discord me-2">
+                                        <i class="ti ti-brand-discord"></i>
+                                    </span>
+                                    <span>
+                                        <strong>Discord</strong>
+                                        {% if not discord_available %}
+                                        <small class="text-danger d-block">Discord not linked</small>
+                                        {% elif not discord_enabled %}
+                                        <small class="text-warning d-block">Disabled by player</small>
+                                        {% else %}
+                                        <small class="text-muted d-block">Via ECS Bot DM</small>
+                                        {% endif %}
+                                    </span>
+                                </label>
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Message Area -->
-                    <div class="discord-messages p-3">
-                        <!-- Bot Message -->
-                        <div class="discord-message mb-3">
-                            <div class="d-flex">
-                                <img src="{{ url_for('static', filename='img/discord_logo.svg') }}" 
-                                     class="rounded-circle me-2" width="30" height="30" alt="Bot">
-                                <div class="discord-message-content">
-                                    <div class="d-flex align-items-center">
-                                        <span class="fw-bold text-discord-bot me-2">ECS Bot</span>
-                                        <span class="discord-bot-badge">BOT</span>
-                                        <small class="text-muted ms-2">Today</small>
-                                    </div>
-                                    <p class="mb-0">
-                                        I'll deliver your message to {{ player.name }}.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- User Input -->
-                        <div class="discord-input-container">
-                            <div class="discord-input-wrapper">
-                                <textarea class="form-control discord-textarea" 
-                                         id="discord_message" 
-                                         name="discord_message" 
-                                         rows="3" 
-                                         placeholder="Message {{ player.name }}"
-                                         required></textarea>
-                                
-                                <div class="discord-input-actions">
-                                    <button type="button" class="btn discord-emoji-btn" title="Add emoji">
-                                        <i class="far fa-smile"></i>
-                                    </button>
-                                    <button type="button" class="btn discord-upload-btn" title="Upload file">
-                                        <i class="fas fa-paperclip"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="discord-notice mt-2 text-muted small">
-                                <i class="ti ti-info-circle me-1"></i> Messages are sent via the Discord bot. The recipient will see them as coming from "ECS Bot" with your name included.
-                            </div>
-                        </div>
+
+                    <!-- Email Subject (shown only when email is selected) -->
+                    <div class="mb-3" id="emailSubjectField" style="display: none;">
+                        <label for="contactSubject" class="form-label">Email Subject</label>
+                        <input type="text" class="form-control" name="subject" id="contactSubject"
+                               value="Message from ECS" placeholder="Enter email subject">
+                    </div>
+
+                    <!-- Message -->
+                    <div class="mb-3">
+                        <label for="contactMessage" class="form-label">Message</label>
+                        <textarea class="form-control" name="message" id="contactMessage" rows="4"
+                                  required placeholder="Enter your message to {{ player.name }}..."></textarea>
+                    </div>
+
+                    <!-- Notice -->
+                    <div class="alert alert-info small mb-0">
+                        <i class="ti ti-info-circle me-1"></i>
+                        Your message will be sent to the selected channel(s). Discord messages are delivered via the ECS Bot.
                     </div>
                 </div>
-                <div class="modal-footer border-0">
+                <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-discord">
-                        <i class="fab fa-discord me-1"></i> Send Message
+                    <button type="submit" class="btn btn-primary" id="sendContactBtn">
+                        <i class="ti ti-send me-1"></i> Send Message
                     </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+// Toggle email subject field based on email checkbox
+document.addEventListener('DOMContentLoaded', function() {
+    const emailCheckbox = document.getElementById('channel_email');
+    const subjectField = document.getElementById('emailSubjectField');
+    const contactForm = document.getElementById('contactPlayerForm');
+
+    if (emailCheckbox && subjectField) {
+        emailCheckbox.addEventListener('change', function() {
+            subjectField.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+
+    // Validate at least one channel is selected
+    if (contactForm) {
+        contactForm.addEventListener('submit', function(e) {
+            const checkboxes = this.querySelectorAll('input[name="contact_channels"]:checked');
+            if (checkboxes.length === 0) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Channel Selected',
+                    text: 'Please select at least one contact channel.',
+                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-primary').trim() || '#0d6efd'
+                });
+            }
+        });
+    }
+});
+</script>
 
 <!-- Manual Review Modal -->
 {% if player.needs_manual_review and is_admin %}
@@ -1351,7 +1430,7 @@
                     showCancelButton: true,
                     confirmButtonText: 'Yes, my profile is accurate',
                     cancelButtonText: 'Cancel',
-                    confirmButtonColor: '#28a745',
+                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-success').trim() || '#28a745',
                     showLoaderOnConfirm: true,
                     preConfirm: () => {
                         return fetch("{{ url_for('players.verify_profile', player_id=player.id) }}", {
@@ -1404,8 +1483,8 @@
                     showCancelButton: true,
                     confirmButtonText: '<i class="fab fa-discord me-2"></i>Link Discord Account',
                     cancelButtonText: 'Maybe Later',
-                    confirmButtonColor: '#5865F2',
-                    cancelButtonColor: '#6c757d'
+                    confirmButtonColor: '#5865F2', // Discord brand color
+                    cancelButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--ecs-secondary').trim() || '#6c757d'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         window.location.href = '{{ url_for("auth.discord_login") }}';
@@ -1427,285 +1506,6 @@
 {% block custom_css %}
 <!-- Cropper.css -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
-<!-- Mobile optimizations -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-unified.css') }}" />
-
-<style>
-    /* Player Header Styling */
-    .player-header-wrapper {
-        position: relative;
-        min-height: 140px;
-        padding: 1.5rem !important;
-    }
-    
-    .profile-image-container {
-        position: relative;
-        width: 130px;
-        height: 130px;
-        margin-right: 1.5rem;
-    }
-    
-    .profile-image {
-        width: 130px;
-        height: 130px;
-        object-fit: cover;
-        border: 3px solid rgba(255,255,255,0.3);
-    }
-    
-    .avatar-status {
-        position: absolute;
-        bottom: 5px;
-        right: 5px;
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        border: 2px solid var(--bs-body-bg);
-    }
-    
-    /* Stats Box Styling */
-    .stat-box {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 1rem;
-        min-width: 80px;
-        flex: 1;
-        text-align: center;
-        border-radius: 8px;
-        transition: all 0.2s ease;
-        background-color: rgba(var(--bs-primary-rgb), 0.05);
-        border: 1px solid rgba(var(--bs-primary-rgb), 0.1);
-        margin: 0 5px;
-    }
-    
-    .stat-box:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    
-    .stat-icon {
-        font-size: 1.5rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .stat-value {
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin-bottom: 0.25rem;
-    }
-    
-    .stat-label {
-        font-size: 0.8rem;
-        color: var(--bs-gray-600);
-    }
-    
-    /* Team History Styling */
-    .team-history .list-group-item:hover {
-        background-color: var(--bs-body-bg);
-    }
-    
-    /* Empty State Styling */
-    .empty-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        color: var(--bs-secondary);
-    }
-    
-    .empty-state-icon {
-        font-size: 2.5rem;
-        color: var(--bs-secondary);
-    }
-    
-    .empty-state-message {
-        font-size: 0.875rem;
-        color: var(--bs-secondary);
-    }
-    
-    /* Image Container Styling */
-    .img-container {
-        width: 100%;
-        max-height: 600px;
-        overflow: hidden;
-    }
-    
-    .img-container img {
-        display: block;
-        max-width: 100%;
-        height: auto;
-    }
-    
-    /* Form Editing Control */
-    .form-group {
-        margin-bottom: 1rem;
-    }
-    
-    .view-mode, .edit-mode {
-        padding: 0.375rem 0;
-    }
-    
-    /* Collapsible Section Styling */
-    .card-header .btn-link {
-        color: inherit;
-    }
-    
-    .card-header .btn-link i {
-        transition: transform 0.2s ease;
-    }
-    
-    .card-header .btn-link[aria-expanded="true"] i {
-        transform: rotate(180deg);
-    }
-    
-    /* Tab Navigation Styling */
-    .ecs-nav-tabs {
-        border-bottom: none;
-        margin-bottom: -1px;
-    }
-    
-    .ecs-nav-link {
-        border: none;
-        position: relative;
-        padding: 0.75rem 1.25rem;
-        color: var(--bs-gray-600);
-    }
-    
-    .ecs-nav-link.active, 
-    .ecs-nav-link:hover {
-        background-color: transparent;
-        border: none;
-        color: var(--bs-primary);
-    }
-    
-    .ecs-nav-link.active::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 2px;
-        background-color: var(--bs-primary);
-    }
-    
-    /* Modal Body Centering for standard modals */
-    .modal-body:not(.p-0) {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    /* Discord Modal Styling */
-    .bg-discord {
-        background-color: #5865F2 !important;
-    }
-    
-    .text-discord-green {
-        color: #3ba55c !important;
-    }
-    
-    .text-discord-bot {
-        color: #5865F2 !important;
-    }
-    
-    .btn-discord {
-        background-color: #5865F2 !important;
-        color: white !important;
-    }
-    
-    .btn-discord:hover {
-        background-color: #4752c4 !important;
-    }
-    
-    .discord-modal {
-        background-color: #36393f;
-        color: #dcddde;
-    }
-    
-    .discord-header {
-        background-color: #2f3136;
-        color: #ffffff;
-    }
-    
-    .discord-messages {
-        background-color: #36393f;
-        max-height: 300px;
-        overflow-y: auto;
-    }
-    
-    .discord-message {
-        padding: 8px;
-        border-radius: 4px;
-    }
-    
-    .discord-message:hover {
-        background-color: #32353b;
-    }
-    
-    .discord-message-content {
-        flex-grow: 1;
-    }
-    
-    .discord-bot-badge {
-        background-color: #5865F2;
-        color: white;
-        font-size: 0.6rem;
-        padding: 0.1rem 0.35rem;
-        border-radius: 3px;
-        font-weight: bold;
-    }
-    
-    .discord-input-container {
-        background-color: #36393f;
-        padding: 10px 0;
-    }
-    
-    .discord-input-wrapper {
-        position: relative;
-        border-radius: 8px;
-        background-color: #40444b;
-        border: 1px solid #202225;
-        overflow: hidden;
-    }
-    
-    .discord-textarea {
-        background-color: transparent !important;
-        border: none !important;
-        color: #dcddde !important;
-        resize: none !important;
-        padding: 12px !important;
-        box-shadow: none !important;
-    }
-    
-    .discord-textarea::placeholder {
-        color: #72767d !important;
-    }
-    
-    .discord-input-actions {
-        position: absolute;
-        bottom: 8px;
-        right: 8px;
-        display: flex;
-        gap: 5px;
-    }
-    
-    .discord-emoji-btn,
-    .discord-upload-btn {
-        color: #b9bbbe;
-        background: none;
-        border: none;
-        padding: 5px;
-        font-size: 18px;
-        transition: color 0.2s ease;
-    }
-    
-    .discord-emoji-btn:hover,
-    .discord-upload-btn:hover {
-        color: #dcddde;
-    }
-    
-    .discord-notice {
-        color: #72767d;
-    }
-    
-</style>
+<!-- Player profile styles (mobile-unified.css already loaded in base.html) -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/features/player-profile.css') }}" />
 {% endblock %}

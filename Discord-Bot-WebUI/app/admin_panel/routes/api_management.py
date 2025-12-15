@@ -469,136 +469,327 @@ def _get_recent_api_activity(limit=10):
 
 
 def _get_api_usage_analytics():
-    """Get API usage analytics (mocked for now)"""
-    return {
-        'requests_today': 1247,
-        'requests_week': 8934,
-        'avg_response_time': 0.156,
-        'error_rate': 2.3,
-        'top_endpoints': [
-            {'path': '/api/player_profile/<int:player_id>', 'requests': 234},
-            {'path': '/api/sync_stats', 'requests': 189},
-            {'path': '/api/discord_bot_last_online', 'requests': 156}
-        ]
-    }
+    """Get API usage analytics from real data"""
+    try:
+        from app.models.api_logs import APIRequestLog
+
+        # Get stats for today and week
+        stats_today = APIRequestLog.get_stats(hours=24)
+        stats_week = APIRequestLog.get_stats(hours=168)  # 7 days
+
+        # Get top endpoints
+        top_endpoints = APIRequestLog.get_endpoint_breakdown(hours=24, limit=5)
+
+        return {
+            'requests_today': stats_today['total_requests'],
+            'requests_week': stats_week['total_requests'],
+            'avg_response_time': stats_today['avg_response_time'] / 1000,  # Convert to seconds
+            'error_rate': stats_today['error_rate'],
+            'top_endpoints': [
+                {'path': e['endpoint'], 'requests': e['count']}
+                for e in top_endpoints
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error getting API usage analytics: {e}")
+        return {
+            'requests_today': 0,
+            'requests_week': 0,
+            'avg_response_time': 0,
+            'error_rate': 0,
+            'top_endpoints': []
+        }
 
 
 def _get_detailed_api_analytics(date_from, date_to):
-    """Get detailed API analytics for date range (mocked for now)"""
-    import random
-    
-    # Generate mock daily data
-    start_date = datetime.strptime(date_from, '%Y-%m-%d')
-    end_date = datetime.strptime(date_to, '%Y-%m-%d')
-    
-    daily_requests = []
-    current_date = start_date
-    
-    while current_date <= end_date:
-        daily_requests.append({
-            'date': current_date.strftime('%Y-%m-%d'),
-            'requests': random.randint(800, 1500),
-            'errors': random.randint(10, 50),
-            'avg_response_time': random.uniform(0.1, 0.3)
-        })
-        current_date += timedelta(days=1)
-    
-    return {
-        'daily_requests': daily_requests,
-        'total_requests': sum(d['requests'] for d in daily_requests),
-        'total_errors': sum(d['errors'] for d in daily_requests),
-        'avg_response_time': sum(d['avg_response_time'] for d in daily_requests) / len(daily_requests),
-        'error_rate': (sum(d['errors'] for d in daily_requests) / sum(d['requests'] for d in daily_requests)) * 100
-    }
+    """Get detailed API analytics for date range from real data"""
+    try:
+        from app.models.api_logs import APIRequestLog
+        from sqlalchemy import func, cast, Date
+
+        start_date = datetime.strptime(date_from, '%Y-%m-%d')
+        end_date = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+
+        # Get daily aggregated data
+        daily_data = db.session.query(
+            cast(APIRequestLog.timestamp, Date).label('date'),
+            func.count(APIRequestLog.id).label('requests'),
+            func.sum(db.case((APIRequestLog.status_code >= 400, 1), else_=0)).label('errors'),
+            func.avg(APIRequestLog.response_time_ms).label('avg_response_time')
+        ).filter(
+            APIRequestLog.timestamp >= start_date,
+            APIRequestLog.timestamp < end_date
+        ).group_by(
+            cast(APIRequestLog.timestamp, Date)
+        ).order_by(
+            cast(APIRequestLog.timestamp, Date)
+        ).all()
+
+        daily_requests = []
+        total_requests = 0
+        total_errors = 0
+        total_response_time = 0
+
+        for row in daily_data:
+            requests = row.requests or 0
+            errors = row.errors or 0
+            avg_time = (row.avg_response_time or 0) / 1000  # Convert to seconds
+
+            daily_requests.append({
+                'date': row.date.strftime('%Y-%m-%d') if row.date else '',
+                'requests': requests,
+                'errors': errors,
+                'avg_response_time': round(avg_time, 3)
+            })
+            total_requests += requests
+            total_errors += errors
+            total_response_time += avg_time
+
+        return {
+            'daily_requests': daily_requests,
+            'total_requests': total_requests,
+            'total_errors': total_errors,
+            'avg_response_time': round(total_response_time / len(daily_requests), 3) if daily_requests else 0,
+            'error_rate': round((total_errors / total_requests * 100), 2) if total_requests > 0 else 0
+        }
+    except Exception as e:
+        logger.error(f"Error getting detailed API analytics: {e}")
+        return {
+            'daily_requests': [],
+            'total_requests': 0,
+            'total_errors': 0,
+            'avg_response_time': 0,
+            'error_rate': 0
+        }
 
 
 def _get_endpoint_performance_data(date_from, date_to):
-    """Get endpoint performance data (mocked for now)"""
-    import random
-    
-    endpoints = [
-        '/api/player_profile/<int:player_id>',
-        '/api/sync_stats',
-        '/api/discord_bot_last_online',
-        '/api/matches_with_rsvp_activity_since',
-        '/api/batch/get_message_info'
-    ]
-    
-    performance_data = []
-    for endpoint in endpoints:
-        performance_data.append({
-            'endpoint': endpoint,
-            'requests': random.randint(100, 500),
-            'avg_response_time': random.uniform(0.05, 0.4),
-            'error_count': random.randint(1, 20),
-            'success_rate': random.uniform(95, 99.9)
-        })
-    
-    return sorted(performance_data, key=lambda x: x['requests'], reverse=True)
+    """Get endpoint performance data from real logs"""
+    try:
+        from app.models.api_logs import APIRequestLog
+        from sqlalchemy import func
+
+        start_date = datetime.strptime(date_from, '%Y-%m-%d')
+        end_date = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+
+        results = db.session.query(
+            APIRequestLog.endpoint_path,
+            func.count(APIRequestLog.id).label('requests'),
+            func.avg(APIRequestLog.response_time_ms).label('avg_response_time'),
+            func.sum(db.case((APIRequestLog.status_code >= 400, 1), else_=0)).label('error_count')
+        ).filter(
+            APIRequestLog.timestamp >= start_date,
+            APIRequestLog.timestamp < end_date
+        ).group_by(
+            APIRequestLog.endpoint_path
+        ).order_by(
+            func.count(APIRequestLog.id).desc()
+        ).limit(20).all()
+
+        performance_data = []
+        for row in results:
+            requests = row.requests or 0
+            errors = row.error_count or 0
+            success_rate = ((requests - errors) / requests * 100) if requests > 0 else 100
+
+            performance_data.append({
+                'endpoint': row.endpoint_path,
+                'requests': requests,
+                'avg_response_time': round((row.avg_response_time or 0) / 1000, 3),
+                'error_count': errors,
+                'success_rate': round(success_rate, 1)
+            })
+
+        return performance_data
+    except Exception as e:
+        logger.error(f"Error getting endpoint performance data: {e}")
+        return []
 
 
 def _get_api_error_analysis(date_from, date_to):
-    """Get API error analysis (mocked for now)"""
-    import random
-    
-    error_types = [
-        {'type': '500 Internal Server Error', 'count': random.randint(10, 30)},
-        {'type': '404 Not Found', 'count': random.randint(5, 15)},
-        {'type': '401 Unauthorized', 'count': random.randint(8, 25)},
-        {'type': '400 Bad Request', 'count': random.randint(12, 20)},
-        {'type': '429 Too Many Requests', 'count': random.randint(3, 10)}
-    ]
-    
-    top_error_endpoints = [
-        {'endpoint': '/api/player_profile/<int:player_id>', 'errors': random.randint(5, 15)},
-        {'endpoint': '/api/batch/get_message_info', 'errors': random.randint(3, 12)},
-        {'endpoint': '/api/sync_stats', 'errors': random.randint(2, 8)}
-    ]
-    
-    return {
-        'error_types': error_types,
-        'top_error_endpoints': top_error_endpoints,
-        'total_errors': sum(e['count'] for e in error_types)
-    }
+    """Get API error analysis from real logs"""
+    try:
+        from app.models.api_logs import APIRequestLog
+        from sqlalchemy import func
+
+        start_date = datetime.strptime(date_from, '%Y-%m-%d')
+        end_date = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+
+        # Get error counts by status code
+        error_by_status = db.session.query(
+            APIRequestLog.status_code,
+            func.count(APIRequestLog.id).label('count')
+        ).filter(
+            APIRequestLog.timestamp >= start_date,
+            APIRequestLog.timestamp < end_date,
+            APIRequestLog.status_code >= 400
+        ).group_by(
+            APIRequestLog.status_code
+        ).order_by(
+            func.count(APIRequestLog.id).desc()
+        ).all()
+
+        status_names = {
+            400: '400 Bad Request',
+            401: '401 Unauthorized',
+            403: '403 Forbidden',
+            404: '404 Not Found',
+            405: '405 Method Not Allowed',
+            429: '429 Too Many Requests',
+            500: '500 Internal Server Error',
+            502: '502 Bad Gateway',
+            503: '503 Service Unavailable'
+        }
+
+        error_types = [
+            {'type': status_names.get(row.status_code, f'{row.status_code} Error'), 'count': row.count}
+            for row in error_by_status
+        ]
+
+        # Get top error endpoints
+        top_errors = db.session.query(
+            APIRequestLog.endpoint_path,
+            func.count(APIRequestLog.id).label('errors')
+        ).filter(
+            APIRequestLog.timestamp >= start_date,
+            APIRequestLog.timestamp < end_date,
+            APIRequestLog.status_code >= 400
+        ).group_by(
+            APIRequestLog.endpoint_path
+        ).order_by(
+            func.count(APIRequestLog.id).desc()
+        ).limit(10).all()
+
+        top_error_endpoints = [
+            {'endpoint': row.endpoint_path, 'errors': row.errors}
+            for row in top_errors
+        ]
+
+        return {
+            'error_types': error_types,
+            'top_error_endpoints': top_error_endpoints,
+            'total_errors': sum(e['count'] for e in error_types)
+        }
+    except Exception as e:
+        logger.error(f"Error getting API error analysis: {e}")
+        return {
+            'error_types': [],
+            'top_error_endpoints': [],
+            'total_errors': 0
+        }
 
 
 def _get_endpoint_usage_stats(endpoint_path):
-    """Get usage statistics for a specific endpoint (mocked for now)"""
-    import random
-    
-    return {
-        'total_requests': random.randint(500, 2000),
-        'avg_response_time': random.uniform(0.1, 0.5),
-        'error_count': random.randint(5, 50),
-        'success_rate': random.uniform(95, 99.8),
-        'last_24h_requests': random.randint(50, 200),
-        'peak_hour': f"{random.randint(9, 17)}:00",
-        'most_common_errors': [
-            {'error': '500 Internal Server Error', 'count': random.randint(2, 10)},
-            {'error': '404 Not Found', 'count': random.randint(1, 5)}
+    """Get usage statistics for a specific endpoint from real logs"""
+    try:
+        from app.models.api_logs import APIRequestLog
+        from sqlalchemy import func, extract
+
+        # Total stats
+        total_stats = db.session.query(
+            func.count(APIRequestLog.id).label('total'),
+            func.avg(APIRequestLog.response_time_ms).label('avg_time'),
+            func.sum(db.case((APIRequestLog.status_code >= 400, 1), else_=0)).label('errors')
+        ).filter(
+            APIRequestLog.endpoint_path == endpoint_path
+        ).first()
+
+        total_requests = total_stats.total or 0
+        error_count = total_stats.errors or 0
+        success_rate = ((total_requests - error_count) / total_requests * 100) if total_requests > 0 else 100
+
+        # Last 24h requests
+        cutoff_24h = datetime.utcnow() - timedelta(hours=24)
+        last_24h = APIRequestLog.query.filter(
+            APIRequestLog.endpoint_path == endpoint_path,
+            APIRequestLog.timestamp >= cutoff_24h
+        ).count()
+
+        # Find peak hour
+        peak_hour_result = db.session.query(
+            extract('hour', APIRequestLog.timestamp).label('hour'),
+            func.count(APIRequestLog.id).label('count')
+        ).filter(
+            APIRequestLog.endpoint_path == endpoint_path,
+            APIRequestLog.timestamp >= cutoff_24h
+        ).group_by(
+            extract('hour', APIRequestLog.timestamp)
+        ).order_by(
+            func.count(APIRequestLog.id).desc()
+        ).first()
+
+        peak_hour = f"{int(peak_hour_result.hour)}:00" if peak_hour_result else "N/A"
+
+        # Most common errors
+        error_breakdown = db.session.query(
+            APIRequestLog.status_code,
+            func.count(APIRequestLog.id).label('count')
+        ).filter(
+            APIRequestLog.endpoint_path == endpoint_path,
+            APIRequestLog.status_code >= 400
+        ).group_by(
+            APIRequestLog.status_code
+        ).order_by(
+            func.count(APIRequestLog.id).desc()
+        ).limit(5).all()
+
+        status_names = {
+            400: '400 Bad Request', 401: '401 Unauthorized', 403: '403 Forbidden',
+            404: '404 Not Found', 500: '500 Internal Server Error'
+        }
+
+        most_common_errors = [
+            {'error': status_names.get(row.status_code, f'{row.status_code} Error'), 'count': row.count}
+            for row in error_breakdown
         ]
-    }
+
+        return {
+            'total_requests': total_requests,
+            'avg_response_time': round((total_stats.avg_time or 0) / 1000, 3),
+            'error_count': error_count,
+            'success_rate': round(success_rate, 1),
+            'last_24h_requests': last_24h,
+            'peak_hour': peak_hour,
+            'most_common_errors': most_common_errors
+        }
+    except Exception as e:
+        logger.error(f"Error getting endpoint usage stats: {e}")
+        return {
+            'total_requests': 0,
+            'avg_response_time': 0,
+            'error_count': 0,
+            'success_rate': 100,
+            'last_24h_requests': 0,
+            'peak_hour': 'N/A',
+            'most_common_errors': []
+        }
 
 
 def _get_endpoint_recent_activity(endpoint_path, limit=10):
-    """Get recent activity for a specific endpoint (mocked for now)"""
-    import random
-    
-    activities = []
-    for i in range(limit):
-        activities.append({
-            'timestamp': datetime.utcnow() - timedelta(minutes=random.randint(1, 1440)),
-            'method': random.choice(['GET', 'POST', 'PUT']),
-            'status_code': random.choice([200, 200, 200, 200, 400, 404, 500]),
-            'response_time': random.uniform(0.05, 0.8),
-            'user_agent': random.choice([
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                'ECS Discord Bot/1.0',
-                'ECS Mobile App/2.1'
-            ])
-        })
-    
-    return sorted(activities, key=lambda x: x['timestamp'], reverse=True)
+    """Get recent activity for a specific endpoint from real logs"""
+    try:
+        from app.models.api_logs import APIRequestLog
+
+        recent_logs = APIRequestLog.query.filter(
+            APIRequestLog.endpoint_path == endpoint_path
+        ).order_by(
+            APIRequestLog.timestamp.desc()
+        ).limit(limit).all()
+
+        activities = []
+        for log in recent_logs:
+            activities.append({
+                'timestamp': log.timestamp,
+                'method': log.method,
+                'status_code': log.status_code,
+                'response_time': round(log.response_time_ms / 1000, 3),
+                'user_agent': log.user_agent or 'Unknown'
+            })
+
+        return activities
+    except Exception as e:
+        logger.error(f"Error getting endpoint recent activity: {e}")
+        return []
 
 
 # API Management Endpoints

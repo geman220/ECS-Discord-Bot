@@ -112,24 +112,116 @@
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="target_audience" class="form-label">Target Audience</label>
-                                <select class="form-select" id="target_audience" name="target_audience" required>
+                                <label for="target_type" class="form-label">Target Type</label>
+                                <select class="form-select" id="target_type" name="target_type" required>
                                     <option value="all">All Subscribers</option>
-                                    <option value="league_players">League Players Only</option>
-                                    <option value="coaches">Coaches Only</option>
-                                    <option value="admins">Admins Only</option>
-                                    <option value="custom">Custom Group</option>
+                                    <option value="team">By Team</option>
+                                    <option value="league">By League</option>
+                                    <option value="role">By Role</option>
+                                    <option value="pool">Substitute Pool</option>
+                                    <option value="group">Notification Group</option>
+                                    <option value="platform">By Platform</option>
                                 </select>
                             </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="platform_filter" class="form-label">Platform</label>
+                                <select class="form-select" id="platform_filter" name="platform_filter">
+                                    <option value="all">All Platforms</option>
+                                    <option value="ios">iOS Only</option>
+                                    <option value="android">Android Only</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Target Selectors (hidden by default) -->
+                        <div class="row">
+                            <div class="col-12 mb-3 d-none" id="team_selector_container">
+                                <label for="team_selector" class="form-label">Select Teams</label>
+                                <select class="form-select" id="team_selector" name="team_ids" multiple>
+                                    {% for team in teams|default([]) %}
+                                    <option value="{{ team.id }}">{{ team.name }} ({{ team.league.name if team.league else 'No league' }})</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Hold Ctrl/Cmd to select multiple teams</small>
+                            </div>
+
+                            <div class="col-12 mb-3 d-none" id="league_selector_container">
+                                <label for="league_selector" class="form-label">Select Leagues</label>
+                                <select class="form-select" id="league_selector" name="league_ids" multiple>
+                                    {% for league in leagues|default([]) %}
+                                    <option value="{{ league.id }}">{{ league.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Hold Ctrl/Cmd to select multiple leagues</small>
+                            </div>
+
+                            <div class="col-12 mb-3 d-none" id="role_selector_container">
+                                <label for="role_selector" class="form-label">Select Roles</label>
+                                <select class="form-select" id="role_selector" name="role_names" multiple>
+                                    {% for role in roles|default([]) %}
+                                    <option value="{{ role.name }}">{{ role.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Hold Ctrl/Cmd to select multiple roles</small>
+                            </div>
+
+                            <div class="col-12 mb-3 d-none" id="pool_selector_container">
+                                <label for="pool_selector" class="form-label">Select Substitute Pool</label>
+                                <select class="form-select" id="pool_selector" name="pool_type">
+                                    <option value="all">All Pools</option>
+                                    <option value="pub_league">Pub League Sub Pool</option>
+                                    <option value="ecs_fc">ECS FC Sub Pool</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 mb-3 d-none" id="notification_group_selector_container">
+                                <label for="notification_group_selector" class="form-label">Select Notification Group</label>
+                                <select class="form-select" id="notification_group_selector" name="notification_group_id">
+                                    <option value="">Select a group...</option>
+                                    {% for group in notification_groups|default([]) %}
+                                    <option value="{{ group.id }}">{{ group.name }} ({{ group.group_type }})</option>
+                                    {% endfor %}
+                                </select>
+                                <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="btn btn-sm btn-outline-primary mt-2">
+                                    <i class="ti ti-plus me-1"></i>Manage Groups
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Recipient Count Preview -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="alert alert-info d-flex align-items-center">
+                                    <i class="ti ti-users me-2"></i>
+                                    <span>Estimated recipients: <strong id="recipient_count">0</strong></span>
+                                    <span class="ms-3">
+                                        <small class="text-muted">
+                                            iOS: <span id="recipient_count_ios">0</span> |
+                                            Android: <span id="recipient_count_android">0</span>
+                                        </small>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="notification_icon" class="form-label">Icon</label>
                                 <select class="form-select" id="notification_icon" name="icon">
                                     <option value="default">Default</option>
-                                    <option value="announcement">📢 Announcement</option>
-                                    <option value="match">⚽ Match</option>
-                                    <option value="alert">⚠️ Alert</option>
-                                    <option value="info">ℹ️ Info</option>
-                                    <option value="celebration">🎉 Celebration</option>
+                                    <option value="announcement">Announcement</option>
+                                    <option value="match">Match</option>
+                                    <option value="alert">Alert</option>
+                                    <option value="info">Info</option>
+                                    <option value="celebration">Celebration</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="notification_priority" class="form-label">Priority</label>
+                                <select class="form-select" id="notification_priority" name="priority" required>
+                                    <option value="normal">Normal</option>
+                                    <option value="high">High</option>
+                                    <option value="urgent">Urgent</option>
                                 </select>
                             </div>
                         </div>
@@ -148,7 +240,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="mb-3" id="schedule_time_container" style="display: none;">
+                        <div class="mb-3 d-none" id="schedule_time_container">
                             <label for="schedule_datetime" class="form-label">Schedule Date & Time</label>
                             <input type="datetime-local" class="form-control" id="schedule_datetime" name="schedule_datetime">
                         </div>
@@ -454,13 +546,11 @@
 {% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+{# Shared component styles (card-icon) are in foundation-overrides.css #}
 
+/* Page-specific: Notification row filtering animation */
 .notification-row {
     transition: opacity 0.3s ease;
 }
@@ -469,12 +559,13 @@
     display: none;
 }
 
+/* Page-specific: Mobile responsive table adjustments */
 @media (max-width: 768px) {
     .btn-group-sm .btn {
         padding: 0.25rem 0.4rem;
         font-size: 0.75rem;
     }
-    
+
     .table-responsive {
         font-size: 0.875rem;
     }
@@ -484,16 +575,130 @@
 
 {% block custom_js %}
 <script>
+// Configuration
+const PushNotificationConfig = {
+    baseUrl: '/admin-panel',
+    totalSubscribers: {{ total_subscribers or 0 }},
+    csrfToken: '{{ csrf_token() }}'
+};
+
+// Target type selector containers mapping
+const targetContainers = {
+    'team': 'team_selector_container',
+    'league': 'league_selector_container',
+    'role': 'role_selector_container',
+    'pool': 'pool_selector_container',
+    'group': 'notification_group_selector_container'
+};
+
+// Hide all target sub-selectors
+function hideAllTargetSelectors() {
+    Object.values(targetContainers).forEach(containerId => {
+        const container = document.getElementById(containerId);
+        if (container) {
+            container.classList.add('d-none');
+        }
+    });
+}
+
+// Show specific target selector
+function showTargetSelector(targetType) {
+    hideAllTargetSelectors();
+    const containerId = targetContainers[targetType];
+    if (containerId) {
+        const container = document.getElementById(containerId);
+        if (container) {
+            container.classList.remove('d-none');
+        }
+    }
+}
+
+// Handle target type change
+document.getElementById('target_type').addEventListener('change', function() {
+    showTargetSelector(this.value);
+    updateRecipientCount();
+});
+
+// Get selected target values
+function getSelectedTargets() {
+    const targetType = document.getElementById('target_type').value;
+    const platformFilter = document.getElementById('platform_filter').value;
+
+    let targetIds = null;
+
+    switch (targetType) {
+        case 'team':
+            targetIds = Array.from(document.getElementById('team_selector').selectedOptions).map(opt => opt.value);
+            break;
+        case 'league':
+            targetIds = Array.from(document.getElementById('league_selector').selectedOptions).map(opt => opt.value);
+            break;
+        case 'role':
+            targetIds = Array.from(document.getElementById('role_selector').selectedOptions).map(opt => opt.value);
+            break;
+        case 'pool':
+            const poolValue = document.getElementById('pool_selector').value;
+            targetIds = poolValue ? [poolValue] : null;
+            break;
+        case 'group':
+            const groupValue = document.getElementById('notification_group_selector').value;
+            targetIds = groupValue ? [parseInt(groupValue)] : null;
+            break;
+    }
+
+    return {
+        target_type: targetType,
+        target_ids: targetIds && targetIds.length > 0 ? targetIds : null,
+        platform: platformFilter
+    };
+}
+
+// Update recipient count via API
+async function updateRecipientCount() {
+    const targets = getSelectedTargets();
+
+    try {
+        const response = await fetch(`${PushNotificationConfig.baseUrl}/communication/push-notifications/preview`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': PushNotificationConfig.csrfToken
+            },
+            body: JSON.stringify(targets)
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.preview) {
+            document.getElementById('recipient_count').textContent = data.preview.total_tokens || 0;
+            document.getElementById('recipient_count_ios').textContent = data.preview.breakdown?.ios || 0;
+            document.getElementById('recipient_count_android').textContent = data.preview.breakdown?.android || 0;
+        }
+    } catch (error) {
+        console.error('Error fetching recipient count:', error);
+        // Fallback to local estimate
+        document.getElementById('recipient_count').textContent = targets.target_type === 'all' ? PushNotificationConfig.totalSubscribers : '?';
+    }
+}
+
+// Add change listeners to all selectors for recipient count updates
+['team_selector', 'league_selector', 'role_selector', 'pool_selector', 'notification_group_selector', 'platform_filter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener('change', updateRecipientCount);
+    }
+});
+
 // Handle send time selection
 document.getElementById('send_time').addEventListener('change', function() {
     const scheduleContainer = document.getElementById('schedule_time_container');
     const scheduleInput = document.getElementById('schedule_datetime');
-    
+
     if (this.value === 'scheduled') {
-        scheduleContainer.style.display = 'block';
+        scheduleContainer.classList.remove('d-none');
         scheduleInput.required = true;
     } else {
-        scheduleContainer.style.display = 'none';
+        scheduleContainer.classList.add('d-none');
         scheduleInput.required = false;
     }
 });
@@ -503,7 +708,7 @@ function updateCharCounter(inputId, maxLength) {
     const input = document.getElementById(inputId);
     const remaining = maxLength - input.value.length;
     const counter = input.nextElementSibling;
-    
+
     if (counter && counter.classList.contains('form-text')) {
         counter.textContent = `${remaining} characters remaining`;
         counter.className = remaining < 10 ? 'form-text text-danger' : 'form-text text-muted';
@@ -523,48 +728,53 @@ document.querySelectorAll('input[name="history_filter"]').forEach(radio => {
     radio.addEventListener('change', function() {
         const filterValue = this.id.replace('filter_', '').replace('_history', '');
         const rows = document.querySelectorAll('.notification-row');
-        
+
         rows.forEach(row => {
             const status = row.dataset.status;
-            
+
             if (filterValue === 'all') {
-                row.style.display = '';
+                row.classList.remove('d-none');
             } else if (status === filterValue) {
-                row.style.display = '';
+                row.classList.remove('d-none');
             } else {
-                row.style.display = 'none';
+                row.classList.add('d-none');
             }
         });
     });
 });
 
+// Format target type for display
+function formatTargetType(targetType) {
+    const types = {
+        'all': 'All Subscribers',
+        'team': 'By Team',
+        'league': 'By League',
+        'role': 'By Role',
+        'pool': 'Substitute Pool',
+        'group': 'Notification Group',
+        'platform': 'By Platform'
+    };
+    return types[targetType] || targetType;
+}
+
+// Preview notification
 function previewNotification() {
     const title = document.getElementById('notification_title').value;
     const body = document.getElementById('notification_body').value;
     const priority = document.getElementById('notification_priority').value;
-    const target = document.getElementById('target_audience').value;
-    
+    const targetType = document.getElementById('target_type').value;
+
     if (!title || !body) {
         Swal.fire('Error', 'Please fill in title and body before previewing', 'error');
         return;
     }
-    
+
     document.getElementById('preview_notification_title').textContent = title;
     document.getElementById('preview_notification_body').textContent = body;
     document.getElementById('preview_priority').textContent = priority.charAt(0).toUpperCase() + priority.slice(1);
-    document.getElementById('preview_target').textContent = target.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-    
-    // Estimate recipients based on target audience
-    let recipientCount = 0;
-    switch(target) {
-        case 'all': recipientCount = {{ total_subscribers or 0 }}; break;
-        case 'league_players': recipientCount = Math.floor({{ total_subscribers or 0 }} * 0.8); break;
-        case 'coaches': recipientCount = Math.floor({{ total_subscribers or 0 }} * 0.1); break;
-        case 'admins': recipientCount = Math.floor({{ total_subscribers or 0 }} * 0.05); break;
-        default: recipientCount = 0;
-    }
-    document.getElementById('preview_recipients').textContent = recipientCount;
-    
+    document.getElementById('preview_target').textContent = formatTargetType(targetType);
+    document.getElementById('preview_recipients').textContent = document.getElementById('recipient_count').textContent;
+
     const modal = new bootstrap.Modal(document.getElementById('notificationPreviewModal'));
     modal.show();
 }
@@ -572,12 +782,12 @@ function previewNotification() {
 function viewNotificationDetails(notificationId, notificationTitle) {
     document.getElementById('notification_details_title').textContent = `Details for "${notificationTitle}"`;
     document.getElementById('notification_details_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
-    
+
     const modal = new bootstrap.Modal(document.getElementById('notificationDetailsModal'));
     modal.show();
-    
+
     // Load notification details via AJAX
-    fetch(`{{ url_for('admin_panel.get_notification_details_legacy') }}?notification_id=${notificationId}`)
+    fetch(`${PushNotificationConfig.baseUrl}/communication/push-notifications/details?notification_id=${notificationId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -597,8 +807,8 @@ function resendNotification(notificationId, notificationTitle) {
         text: `Resend the failed notification "${notificationTitle}"?`,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#6c757d',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
         confirmButtonText: 'Yes, resend!'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -606,17 +816,17 @@ function resendNotification(notificationId, notificationTitle) {
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = '{{ url_for("admin_panel.resend_notification") }}';
-            
+
             const csrfToken = document.createElement('input');
             csrfToken.type = 'hidden';
             csrfToken.name = 'csrf_token';
-            csrfToken.value = '{{ csrf_token() }}';
-            
+            csrfToken.value = PushNotificationConfig.csrfToken;
+
             const notificationIdInput = document.createElement('input');
             notificationIdInput.type = 'hidden';
             notificationIdInput.name = 'notification_id';
             notificationIdInput.value = notificationId;
-            
+
             form.appendChild(csrfToken);
             form.appendChild(notificationIdInput);
             document.body.appendChild(form);
@@ -630,29 +840,33 @@ function duplicateNotification(notificationId) {
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = `{{ url_for('admin_panel.duplicate_notification', notification_id=0) }}`.replace('0', notificationId);
-    
+
     // Add CSRF token
     const csrfToken = document.createElement('input');
     csrfToken.type = 'hidden';
     csrfToken.name = 'csrf_token';
-    csrfToken.value = '{{ csrf_token() }}';
+    csrfToken.value = PushNotificationConfig.csrfToken;
     form.appendChild(csrfToken);
-    
+
     document.body.appendChild(form);
     form.submit();
 }
 
-// Set minimum datetime to current time
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Set minimum datetime to current time
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     const hour = String(now.getHours()).padStart(2, '0');
     const minute = String(now.getMinutes()).padStart(2, '0');
-    
+
     const minDateTime = `${year}-${month}-${day}T${hour}:${minute}`;
     document.getElementById('schedule_datetime').min = minDateTime;
+
+    // Initial recipient count update
+    updateRecipientCount();
 });
 </script>
 {% endblock %}

@@ -210,52 +210,66 @@ def team_details(team_id):
 
     # Choose to display current players if available or if the season is current.
     players = current_players if current_players or (season and season.is_current) else historical_players
-    
+
     # Check Discord status for players who have Discord IDs
     # Smart checking: longer intervals for players in server, shorter for those not in server
+    # Uses fast_fail mode to avoid blocking page loads when Discord bot is unavailable
     now = datetime.utcnow()
-    
-    for player in players:
-        if not player.discord_id:
-            continue
-            
-        # Determine when to recheck based on current status
-        should_check = False
-        
-        if not player.discord_last_checked:
-            # Never checked before - always check
-            should_check = True
-            reason = "never checked"
-        elif player.discord_in_server is True:
-            # Player is in server - check every 30 days
-            check_threshold = now - timedelta(days=30)
-            should_check = player.discord_last_checked < check_threshold
-            reason = "in server, 30 day recheck"
-        elif player.discord_in_server is False:
-            # Player is NOT in server - check every 24 hours
-            check_threshold = now - timedelta(hours=24)
-            should_check = player.discord_last_checked < check_threshold
-            reason = "not in server, 24 hour recheck"
-        else:
-            # Status is unknown (null) - check every 7 days
-            check_threshold = now - timedelta(days=7)
-            should_check = player.discord_last_checked < check_threshold
-            reason = "unknown status, 7 day recheck"
-        
-        if should_check:
-            try:
-                player.check_discord_status()
-                session.add(player)  # Mark for update
-                logger.info(f"Updated Discord status for player {player.name} (ID: {player.id}) - {reason}")
-            except Exception as e:
-                logger.error(f"Failed to check Discord status for player {player.name} (ID: {player.id}): {e}")
-    
-    # Commit any Discord status updates
-    try:
-        session.commit()
-    except Exception as e:
-        logger.error(f"Failed to commit Discord status updates: {e}")
-        session.rollback()
+
+    # Check if Discord service is available before starting the loop
+    from app.utils.sync_discord_client import is_discord_service_available
+    discord_available = is_discord_service_available()
+
+    if discord_available:
+        for player in players:
+            if not player.discord_id:
+                continue
+
+            # Determine when to recheck based on current status
+            should_check = False
+
+            if not player.discord_last_checked:
+                # Never checked before - always check
+                should_check = True
+                reason = "never checked"
+            elif player.discord_in_server is True:
+                # Player is in server - check every 30 days
+                check_threshold = now - timedelta(days=30)
+                should_check = player.discord_last_checked < check_threshold
+                reason = "in server, 30 day recheck"
+            elif player.discord_in_server is False:
+                # Player is NOT in server - check every 24 hours
+                check_threshold = now - timedelta(hours=24)
+                should_check = player.discord_last_checked < check_threshold
+                reason = "not in server, 24 hour recheck"
+            else:
+                # Status is unknown (null) - check every 7 days
+                check_threshold = now - timedelta(days=7)
+                should_check = player.discord_last_checked < check_threshold
+                reason = "unknown status, 7 day recheck"
+
+            if should_check:
+                try:
+                    # Use fast_fail=True to avoid blocking page loads
+                    player.check_discord_status(fast_fail=True)
+                    session.add(player)  # Mark for update
+                    logger.info(f"Updated Discord status for player {player.name} (ID: {player.id}) - {reason}")
+                except Exception as e:
+                    logger.error(f"Failed to check Discord status for player {player.name} (ID: {player.id}): {e}")
+
+                # Check if Discord service became unavailable during the loop
+                if not is_discord_service_available():
+                    logger.info("Discord service became unavailable, stopping status checks")
+                    break
+
+        # Commit any Discord status updates
+        try:
+            session.commit()
+        except Exception as e:
+            logger.error(f"Failed to commit Discord status updates: {e}")
+            session.rollback()
+    else:
+        logger.debug("Skipping Discord status checks - service unavailable")
 
     report_form = ReportMatchForm()
 

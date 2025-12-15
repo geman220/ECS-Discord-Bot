@@ -36,6 +36,9 @@ def register_communication_routes():
         scheduled,
         push,
         push_admin,
+        push_enhanced,
+        notification_groups,
+        campaigns,
         direct_messaging,
         ajax,
     )

@@ -1,0 +1,269 @@
+{# ===== Player Profile Reusable Macros ===== #}
+{# These macros are used across player_profile.html and player_profile_wizard.html #}
+
+
+{# ----- Avatar Macro ----- #}
+{# Renders a player's profile picture with optional badge indicators #}
+{% macro render_avatar(player, size='lg', show_badges=true) %}
+{% set sizes = {'sm': 50, 'md': 80, 'lg': 130} %}
+{% set px = sizes.get(size, 130) %}
+<div class="profile-image-container" style="width: {{ px }}px; height: {{ px }}px;">
+    {% if player.profile_picture_url %}
+    <img src="{{ player.profile_picture_url }}?v={{ player.updated_at.timestamp() if player.updated_at else '0' }}"
+         class="rounded-circle profile-image"
+         style="width: {{ px }}px; height: {{ px }}px; object-fit: cover; border: 3px solid rgba(255,255,255,0.3);"
+         alt="{{ player.name }}'s Profile Picture">
+    {% else %}
+    <img src="{{ url_for('static', filename='img/default_player.png') }}"
+         class="rounded-circle profile-image"
+         style="width: {{ px }}px; height: {{ px }}px; object-fit: cover; border: 3px solid rgba(255,255,255,0.3);"
+         alt="Default Profile Picture">
+    {% endif %}
+    {% if show_badges %}
+        {% if player.is_coach %}
+        <span class="avatar-status bg-success" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
+        {% endif %}
+        {% if player.is_ref %}
+        <span class="avatar-status bg-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
+        {% endif %}
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{# ----- Info Row Macro ----- #}
+{# Renders a row with icon, label, and value - used in contact info cards #}
+{% macro render_info_row(icon, label, value, icon_color='primary') %}
+<div class="d-flex align-items-center mb-3">
+    <div class="avatar avatar-sm me-3 bg-label-{{ icon_color }}">
+        <i class="{{ icon }}"></i>
+    </div>
+    <div>
+        <h6 class="mb-0">{{ label }}</h6>
+        <span>{{ value if value else 'Not specified' }}</span>
+    </div>
+</div>
+{% endmacro %}
+
+
+{# ----- Stat Box Macro ----- #}
+{# Renders a single stat box with icon, value, and label #}
+{% macro render_stat_box(icon, value, label, color='primary') %}
+<div class="stat-box">
+    <div class="stat-icon text-{{ color }}">{{ icon }}</div>
+    <div class="stat-value">{{ value }}</div>
+    <div class="stat-label">{{ label }}</div>
+</div>
+{% endmacro %}
+
+
+{# ----- Card Header Macro ----- #}
+{# Renders a card header with optional edit button #}
+{% macro render_card_header(title, icon='', show_edit=false, edit_section='') %}
+<div class="card-header border-bottom d-flex justify-content-between align-items-center">
+    <h5 class="card-title mb-0">
+        {% if icon %}<i class="{{ icon }} me-2"></i>{% endif %}{{ title }}
+    </h5>
+    {% if show_edit %}
+    <button type="button" class="btn btn-sm btn-primary edit-toggle" data-section="{{ edit_section }}">
+        <i class="ti ti-pencil me-1"></i>Edit
+    </button>
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{# ----- Empty State Macro ----- #}
+{# Renders an empty state placeholder #}
+{% macro render_empty_state(icon, message) %}
+<div class="empty-state text-center py-4">
+    <div class="empty-state-icon mb-3">
+        <i class="{{ icon }}"></i>
+    </div>
+    <p class="empty-state-message mb-0">{{ message }}</p>
+</div>
+{% endmacro %}
+
+
+{# ----- Contact Channel Option Macro ----- #}
+{# Renders a contact channel checkbox for the contact modal #}
+{% macro render_contact_channel(channel_id, icon, label, enabled, available, description='') %}
+<div class="channel-checkbox d-flex align-items-center {{ 'channel-disabled' if not available else '' }}">
+    <div class="form-check mb-0 flex-grow-1">
+        <input type="checkbox"
+               class="form-check-input"
+               name="contact_channels"
+               value="{{ channel_id }}"
+               id="channel_{{ channel_id }}"
+               {{ 'disabled' if not available else '' }}
+               {{ 'checked' if enabled and available else '' }}>
+        <label class="form-check-label d-flex align-items-center" for="channel_{{ channel_id }}">
+            <span class="channel-icon channel-{{ channel_id }} me-2">
+                <i class="{{ icon }}"></i>
+            </span>
+            <span>
+                <strong>{{ label }}</strong>
+                {% if description %}
+                <small class="text-muted d-block">{{ description }}</small>
+                {% endif %}
+                {% if not available %}
+                <small class="text-danger d-block">Not available for this player</small>
+                {% elif not enabled %}
+                <small class="text-warning d-block">Disabled by player</small>
+                {% endif %}
+            </span>
+        </label>
+    </div>
+</div>
+{% endmacro %}
+
+
+{# ----- Team Badge Macro ----- #}
+{# Renders a team badge with link #}
+{% macro render_team_badge(team) %}
+<div class="badge bg-label-light fs-6">
+    <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="text-decoration-none">
+        <i class="ti ti-users me-1"></i>{{ team.name }}
+    </a>
+</div>
+{% endmacro %}
+
+
+{# ----- Profile Status Card Macro ----- #}
+{# Renders the profile verification status card #}
+{% macro render_profile_status(player, is_own_profile, profile_expired, format_pacific_time) %}
+<div class="card mb-4">
+    <div class="card-header border-bottom">
+        <h5 class="card-title mb-0">Profile Status</h5>
+    </div>
+    <div class="card-body">
+        {% if player.profile_last_updated %}
+        <div class="d-flex align-items-center mb-3">
+            <div class="avatar avatar-sm me-3 bg-label-success">
+                <i class="ti ti-check"></i>
+            </div>
+            <div>
+                <h6 class="mb-0">Last Updated</h6>
+                <span class="text-success">{{ format_pacific_time(player.profile_last_updated) }}</span>
+            </div>
+        </div>
+        {% else %}
+        <div class="d-flex align-items-center mb-3">
+            <div class="avatar avatar-sm me-3 bg-label-warning">
+                <i class="ti ti-alert-triangle"></i>
+            </div>
+            <div>
+                <h6 class="mb-0">Profile Status</h6>
+                <span class="text-warning">
+                    {% if is_own_profile %}Please verify your profile information{% else %}Player has not verified their profile{% endif %}
+                </span>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if is_own_profile %}
+        <div class="text-center">
+            <button type="button" class="btn btn-primary" id="verifyProfileBtn">
+                <i class="ti ti-check-circle me-1"></i>
+                {% if player.profile_last_updated %}
+                    Confirm Profile is Still Accurate
+                {% else %}
+                    Verify My Profile Information
+                {% endif %}
+            </button>
+        </div>
+
+        <small class="text-muted d-block text-center mt-2">
+            Click to confirm your profile information is current and accurate
+        </small>
+
+        {% if not player.profile_last_updated %}
+        <div class="alert alert-danger py-2 mt-3 mb-0">
+            <i class="ti ti-alert-circle me-1"></i>
+            <small>Your profile needs verification</small>
+        </div>
+        {% elif profile_expired %}
+        <div class="alert alert-warning py-2 mt-3 mb-0">
+            <i class="ti ti-alert-triangle me-1"></i>
+            <small>Your profile verification expired - please review and update your information</small>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+
+{# ----- Editable Field Macro ----- #}
+{# Field that can toggle between view and edit mode #}
+{% macro render_editable_field(field_id, label, view_value, form_field, field_type='text') %}
+<div class="form-group">
+    <label for="{{ field_id }}" class="form-label fw-semibold">{{ label }}</label>
+    <div class="view-mode">
+        <span class="form-control-plaintext">{{ view_value if view_value else 'Not specified' }}</span>
+    </div>
+    <div class="edit-mode d-none">
+        {% if field_type == 'select' %}
+        {{ form_field(class="form-select", id=field_id) }}
+        {% elif field_type == 'textarea' %}
+        {{ form_field(class="form-control", id=field_id, rows=3) }}
+        {% else %}
+        {{ form_field(class="form-control", id=field_id) }}
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+
+{# ----- Settings Tab Navigation Macro ----- #}
+{# Renders the tab navigation for settings page #}
+{% macro settings_tabs(active_tab='account') %}
+<div class="settings-tabs-wrapper">
+    <nav class="nav nav-pills settings-nav-scroll mb-4">
+        <a class="nav-link {% if active_tab == 'account' %}active{% endif %}"
+           href="#account" data-bs-toggle="tab" data-bs-target="#tab-account">
+            <i class="ti ti-user-circle me-2"></i>
+            <span class="nav-link-text">Account</span>
+        </a>
+        <a class="nav-link {% if active_tab == 'security' %}active{% endif %}"
+           href="#security" data-bs-toggle="tab" data-bs-target="#tab-security">
+            <i class="ti ti-lock me-2"></i>
+            <span class="nav-link-text">Security</span>
+        </a>
+        <a class="nav-link {% if active_tab == 'notifications' %}active{% endif %}"
+           href="#notifications" data-bs-toggle="tab" data-bs-target="#tab-notifications">
+            <i class="ti ti-bell me-2"></i>
+            <span class="nav-link-text">Notifications</span>
+        </a>
+        <a class="nav-link {% if active_tab == 'integrations' %}active{% endif %}"
+           href="#integrations" data-bs-toggle="tab" data-bs-target="#tab-integrations">
+            <i class="ti ti-plug me-2"></i>
+            <span class="nav-link-text">Integrations</span>
+        </a>
+    </nav>
+</div>
+{% endmacro %}
+
+
+{# ----- Notification Channel Card Macro ----- #}
+{# Renders a notification channel card for settings page #}
+{% macro notification_channel_card(icon, title, description, toggle_field, enabled=false, extra_content='') %}
+<div class="notification-channel card mb-3 {{ 'channel-enabled' if enabled else '' }}">
+    <div class="card-body d-flex align-items-start">
+        <div class="channel-icon-lg bg-{{ 'success' if enabled else 'secondary' }} bg-opacity-10
+                    text-{{ 'success' if enabled else 'secondary' }} me-3">
+            <i class="{{ icon }}"></i>
+        </div>
+        <div class="flex-grow-1">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">{{ title }}</h6>
+                <div class="form-check form-switch mb-0">
+                    {{ toggle_field(class="form-check-input") }}
+                </div>
+            </div>
+            <p class="text-muted small mb-0">{{ description }}</p>
+            {{ extra_content|safe }}
+        </div>
+    </div>
+</div>
+{% endmacro %}

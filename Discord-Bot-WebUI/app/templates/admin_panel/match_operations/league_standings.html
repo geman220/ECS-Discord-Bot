@@ -166,20 +166,5 @@
 {% endblock %}
 
 {% block custom_css %}
-<style>
-.team-logo {
-    flex-shrink: 0;
-}
-
-@media (max-width: 768px) {
-    .table th, .table td {
-        padding: 0.5rem 0.25rem;
-        font-size: 0.875rem;
-    }
-    
-    .team-logo {
-        display: none;
-    }
-}
-</style>
+{{ super() }}
 {% endblock %}

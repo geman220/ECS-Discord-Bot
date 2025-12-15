@@ -578,10 +578,10 @@
       statusDiv.style.boxShadow = '0 0.25rem 0.75rem rgba(0, 0, 0, 0.15)';
       
       if (isOnline) {
-        statusDiv.style.backgroundColor = '#28a745'; // Success green
+        statusDiv.style.backgroundColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754';
         statusDiv.innerHTML = '<i class="ti ti-wifi me-2"></i> Connected';
       } else {
-        statusDiv.style.backgroundColor = '#dc3545'; // Danger red
+        statusDiv.style.backgroundColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545';
         statusDiv.innerHTML = '<i class="ti ti-wifi-off me-2"></i> Disconnected';
       }
       

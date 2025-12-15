@@ -280,7 +280,7 @@
     }
 
     #player-search:focus {
-        box-shadow: 0 0 0 2px #007bff;
+        box-shadow: 0 0 0 2px var(--ecs-primary, #007bff);
     }
 
     /* Style the autocomplete dropdown with a dark background and white text */
@@ -329,17 +329,17 @@
     }
     
     .impersonation-active #roleImpersonationIcon {
-        color: #ff9f43 !important;
+        color: var(--ecs-warning, #ff9f43) !important;
     }
-    
+
     .role-status-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--ecs-primary, #667eea) 0%, var(--ecs-primary-dark, #764ba2) 100%);
         color: white;
         border: none;
     }
-    
+
     .role-status-card.impersonating {
-        background: linear-gradient(135deg, #ff9f43 0%, #ff6b35 100%);
+        background: linear-gradient(135deg, var(--ecs-warning, #ff9f43) 0%, var(--ecs-warning-dark, #ff6b35) 100%);
     }
 </style>
 

@@ -292,7 +292,7 @@ function killTask(taskId) {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Kill Task',
-        confirmButtonColor: '#dc3545'
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
             // Implement task killing
@@ -308,7 +308,7 @@ function cleanupZombies() {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Cleanup All',
-        confirmButtonColor: '#dc3545'
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
             // Implement zombie cleanup

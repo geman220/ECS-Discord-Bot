@@ -285,12 +285,12 @@
 }
 
 .status-indicator.active {
-    background-color: #28a745;
-    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+    background-color: var(--ecs-success, #198754);
+    box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.2);
 }
 
 .status-indicator.inactive {
-    background-color: #dc3545;
+    background-color: var(--ecs-danger, #dc3545);
     box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
 }
 </style>
@@ -334,8 +334,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Avg Query Time (ms)',
                     data: [{{ report.database.avg_query_time * 1000 }}, {{ report.database.avg_query_time * 1000 * 0.9 }}, {{ report.database.avg_query_time * 1000 * 1.1 }}, {{ report.database.avg_query_time * 1000 * 0.8 }}, {{ report.database.avg_query_time * 1000 * 1.2 }}, {{ report.database.avg_query_time * 1000 }}],
-                    borderColor: '#007bff',
-                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    borderColor: getComputedStyle(document.documentElement).getPropertyValue('--ecs-primary').trim() || '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
                     tension: 0.4
                 }]
             },
@@ -367,7 +367,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 labels: ['Active', 'Expired'],
                 datasets: [{
                     data: [{{ report.cache.active_entries }}, {{ report.cache.expired_entries }}],
-                    backgroundColor: ['#28a745', '#dc3545'],
+                    backgroundColor: [
+                        getComputedStyle(document.documentElement).getPropertyValue('--ecs-success').trim() || '#198754',
+                        getComputedStyle(document.documentElement).getPropertyValue('--ecs-danger').trim() || '#dc3545'
+                    ],
                     borderWidth: 0
                 }]
             },

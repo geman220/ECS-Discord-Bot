@@ -77,49 +77,49 @@
     }
     
     .bg-label-primary {
-        background-color: rgba(105, 108, 255, 0.16) !important;
-        color: #696cff !important;
+        background-color: var(--ecs-primary-subtle, rgba(105, 108, 255, 0.16)) !important;
+        color: var(--ecs-primary, #696cff) !important;
     }
-    
+
     .bg-label-indigo {
-        background-color: rgba(80, 102, 235, 0.16) !important;
-        color: #5066eb !important;
+        background-color: var(--ecs-primary-subtle, rgba(80, 102, 235, 0.16)) !important;
+        color: var(--ecs-primary, #5066eb) !important;
     }
-    
+
     .bg-label-success {
-        background-color: rgba(113, 221, 55, 0.16) !important;
-        color: #71dd37 !important;
+        background-color: var(--ecs-success-subtle, rgba(113, 221, 55, 0.16)) !important;
+        color: var(--ecs-success, #71dd37) !important;
     }
-    
+
     .bg-label-warning {
-        background-color: rgba(255, 171, 0, 0.16) !important;
-        color: #ffab00 !important;
+        background-color: var(--ecs-warning-subtle, rgba(255, 171, 0, 0.16)) !important;
+        color: var(--ecs-warning, #ffab00) !important;
     }
-    
+
     .bg-label-danger {
-        background-color: rgba(255, 62, 29, 0.16) !important;
-        color: #ff3e1d !important;
+        background-color: var(--ecs-danger-subtle, rgba(255, 62, 29, 0.16)) !important;
+        color: var(--ecs-danger, #ff3e1d) !important;
     }
-    
+
     .bg-label-info {
-        background-color: rgba(3, 195, 236, 0.16) !important;
-        color: #03c3ec !important;
+        background-color: var(--ecs-info-subtle, rgba(3, 195, 236, 0.16)) !important;
+        color: var(--ecs-info, #03c3ec) !important;
     }
-    
+
     .bg-label-secondary {
-        background-color: rgba(133, 146, 163, 0.16) !important;
-        color: #8592a3 !important;
+        background-color: var(--ecs-secondary-subtle, rgba(133, 146, 163, 0.16)) !important;
+        color: var(--ecs-secondary, #8592a3) !important;
     }
-    
+
     /* Nav tab styling */
     .nav-tabs .nav-link.active {
         background: none;
-        border-bottom-color: #696cff;
-        color: #696cff;
+        border-bottom-color: var(--ecs-primary, #696cff);
+        color: var(--ecs-primary, #696cff);
     }
-    
+
     .nav-tabs .nav-link {
-        color: #566a7f;
+        color: var(--ecs-neutral-60, #566a7f);
     }
     
     /* Mobile adaptations */
@@ -139,7 +139,7 @@
         /* Mobile-first RSVP Card System */
         .rsvp-mobile-card {
             background: white;
-            border: 1px solid #dee2e6;
+            border: 1px solid var(--ecs-neutral-20, #dee2e6);
             border-radius: 8px;
             margin-bottom: 0.75rem;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -157,8 +157,8 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
+            background: var(--ecs-neutral-5, #f8f9fa);
+            border-bottom: 1px solid var(--ecs-neutral-20, #dee2e6);
         }
         
         .rsvp-card-main {
@@ -192,7 +192,7 @@
         
         .player-meta-mobile {
             font-size: 0.875rem;
-            color: #6c757d;
+            color: var(--ecs-neutral-50, #6c757d);
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -212,7 +212,7 @@
         .expand-button {
             background: none;
             border: none;
-            color: #6c757d;
+            color: var(--ecs-neutral-50, #6c757d);
             padding: 0.5rem;
             cursor: pointer;
             border-radius: 50%;
@@ -223,10 +223,10 @@
             width: 32px;
             height: 32px;
         }
-        
+
         .expand-button:hover {
-            background: #f8f9fa;
-            color: #495057;
+            background: var(--ecs-neutral-5, #f8f9fa);
+            color: var(--ecs-neutral-60, #495057);
         }
         
         .expand-button.expanded {
@@ -318,8 +318,8 @@
         /* Enhanced desktop table */
         .table th {
             font-weight: 600;
-            color: #495057;
-            border-bottom: 2px solid #dee2e6;
+            color: var(--ecs-neutral-60, #495057);
+            border-bottom: 2px solid var(--ecs-neutral-20, #dee2e6);
         }
         
         .table td {
@@ -349,7 +349,7 @@
         }
         
         .dropdown-item:hover {
-            background-color: #f8f9fa;
+            background-color: var(--ecs-neutral-5, #f8f9fa);
         }
     }
     
@@ -376,7 +376,7 @@
     .loader-spinner {
         width: 48px;
         height: 48px;
-        border: 5px solid #696cff;
+        border: 5px solid var(--ecs-primary, #696cff);
         border-bottom-color: transparent;
         border-radius: 50%;
         display: inline-block;
@@ -399,29 +399,29 @@
         overflow: hidden;
     }
     
-    .modal-header.bg-primary, 
+    .modal-header.bg-primary,
     .btn-primary {
-        background-color: #5066eb !important;
-        border-color: #5066eb !important;
+        background-color: var(--ecs-primary, #5066eb) !important;
+        border-color: var(--ecs-primary, #5066eb) !important;
     }
     
-    .modal-header.bg-indigo, 
+    .modal-header.bg-indigo,
     .btn-indigo {
-        background-color: #7289da !important;
-        border-color: #7289da !important;
+        background-color: var(--ecs-info, #17a2b8) !important;
+        border-color: var(--ecs-info, #17a2b8) !important;
         color: white;
     }
     
     .border-indigo {
-        border-color: #7289da !important;
+        border-color: var(--ecs-info, #17a2b8) !important;
     }
     
     .text-indigo {
-        color: #7289da !important;
+        color: var(--ecs-info, #17a2b8) !important;
     }
     
     .bg-indigo {
-        background-color: #7289da !important;
+        background-color: var(--ecs-info, #17a2b8) !important;
     }
     
     textarea.form-control {
@@ -430,11 +430,11 @@
     }
     
     textarea.form-control:focus {
-        box-shadow: 0 0 0 0.25rem rgba(80, 102, 235, 0.25);
+        box-shadow: 0 0 0 0.25rem var(--ecs-primary-subtle, rgba(80, 102, 235, 0.25));
     }
-    
+
     .form-text {
-        color: #6c757d;
+        color: var(--ecs-neutral-50, #6c757d);
     }
     
     .avatar {
@@ -570,33 +570,33 @@
     
     /* Badge colors for dark mode */
     [data-style="dark"] .bg-label-success {
-        background-color: rgba(113, 221, 55, 0.2) !important;
-        color: #71dd37 !important;
+        background-color: var(--ecs-success-subtle, rgba(113, 221, 55, 0.2)) !important;
+        color: var(--ecs-success, #71dd37) !important;
     }
-    
+
     [data-style="dark"] .bg-label-warning {
-        background-color: rgba(255, 171, 0, 0.2) !important;
-        color: #ffab00 !important;
+        background-color: var(--ecs-warning-subtle, rgba(255, 171, 0, 0.2)) !important;
+        color: var(--ecs-warning, #ffab00) !important;
     }
-    
+
     [data-style="dark"] .bg-label-danger {
-        background-color: rgba(255, 62, 29, 0.2) !important;
-        color: #ff3e1d !important;
+        background-color: var(--ecs-danger-subtle, rgba(255, 62, 29, 0.2)) !important;
+        color: var(--ecs-danger, #ff3e1d) !important;
     }
-    
+
     [data-style="dark"] .bg-label-secondary {
-        background-color: rgba(133, 146, 163, 0.2) !important;
-        color: #8592a3 !important;
+        background-color: var(--ecs-secondary-subtle, rgba(133, 146, 163, 0.2)) !important;
+        color: var(--ecs-secondary, #8592a3) !important;
     }
-    
+
     [data-style="dark"] .bg-label-primary {
-        background-color: rgba(105, 108, 255, 0.2) !important;
-        color: #696cff !important;
+        background-color: var(--ecs-primary-subtle, rgba(105, 108, 255, 0.2)) !important;
+        color: var(--ecs-primary, #696cff) !important;
     }
-    
+
     [data-style="dark"] .bg-label-info {
-        background-color: rgba(3, 195, 236, 0.2) !important;
-        color: #03c3ec !important;
+        background-color: var(--ecs-info-subtle, rgba(3, 195, 236, 0.2)) !important;
+        color: var(--ecs-info, #03c3ec) !important;
     }
     
     /* Text and general elements */
@@ -901,12 +901,12 @@
                                     
                                     <div class="rsvp-card-body">
                                         <!-- Response Time -->
-                                        <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: #f8f9fa; border-radius: 6px;">
+                                        <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: var(--ecs-neutral-5, #f8f9fa); border-radius: 6px;">
                                             <small class="text-muted d-block" style="font-size: 0.75rem;">Response Time</small>
                                             {% if rsvp['responded_at'] %}
                                                 <div style="font-weight: 500;">{{ rsvp['responded_at'].strftime('%b %d, %Y at %I:%M %p') }}</div>
                                             {% else %}
-                                                <div style="color: #6c757d;">No response yet</div>
+                                                <div style="color: var(--ecs-neutral-50, #6c757d);">No response yet</div>
                                             {% endif %}
                                         </div>
                                         
@@ -924,7 +924,7 @@
                                             {% endif %}
                                             
                                             {% if has_discord %}
-                                            <button class="contact-action-btn" style="background-color: #7289da; color: white;" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
+                                            <button class="contact-action-btn bg-indigo text-white" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
                                                 <i class="ti ti-brand-discord"></i> Discord
                                             </button>
                                             {% endif %}
@@ -1181,12 +1181,12 @@
                                     
                                     <div class="rsvp-card-body">
                                         <!-- Response Time -->
-                                        <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: #f8f9fa; border-radius: 6px;">
+                                        <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: var(--ecs-neutral-5, #f8f9fa); border-radius: 6px;">
                                             <small class="text-muted d-block" style="font-size: 0.75rem;">Response Time</small>
                                             {% if rsvp['responded_at'] %}
                                                 <div style="font-weight: 500;">{{ rsvp['responded_at'].strftime('%b %d, %Y at %I:%M %p') }}</div>
                                             {% else %}
-                                                <div style="color: #6c757d;">No response yet</div>
+                                                <div style="color: var(--ecs-neutral-50, #6c757d);">No response yet</div>
                                             {% endif %}
                                         </div>
                                         
@@ -1204,7 +1204,7 @@
                                             {% endif %}
                                             
                                             {% if has_discord %}
-                                            <button class="contact-action-btn" style="background-color: #7289da; color: white;" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
+                                            <button class="contact-action-btn bg-indigo text-white" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
                                                 <i class="ti ti-brand-discord"></i> Discord
                                             </button>
                                             {% endif %}
@@ -1442,12 +1442,12 @@
                                     
                                     <div class="rsvp-card-body">
                                         <!-- Response Time -->
-                                        <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: #f8f9fa; border-radius: 6px;">
+                                        <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: var(--ecs-neutral-5, #f8f9fa); border-radius: 6px;">
                                             <small class="text-muted d-block" style="font-size: 0.75rem;">Response Time</small>
                                             {% if rsvp['responded_at'] %}
                                                 <div style="font-weight: 500;">{{ rsvp['responded_at'].strftime('%b %d, %Y at %I:%M %p') }}</div>
                                             {% else %}
-                                                <div style="color: #6c757d;">No response yet</div>
+                                                <div style="color: var(--ecs-neutral-50, #6c757d);">No response yet</div>
                                             {% endif %}
                                         </div>
                                         
@@ -1465,7 +1465,7 @@
                                             {% endif %}
                                             
                                             {% if has_discord %}
-                                            <button class="contact-action-btn" style="background-color: #7289da; color: white;" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
+                                            <button class="contact-action-btn bg-indigo text-white" data-player-id="{{ rsvp['player'].id }}" data-player-name="{{ rsvp['player'].name }}" data-discord-id="{{ rsvp['player'].discord_id }}">
                                                 <i class="ti ti-brand-discord"></i> Discord
                                             </button>
                                             {% endif %}

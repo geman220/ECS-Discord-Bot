@@ -9,7 +9,7 @@
         margin: 0;
         padding: 0;
         height: 100%;
-        background-color: #00539F; /* Sounders Blue */
+        background-color: var(--sounders-blue, #00539F); /* Sounders Blue */
     }
 
     .authentication-wrapper {
@@ -50,25 +50,25 @@
     }
 
     .btn-discord {
-        background-color: #7289DA;
-        border-color: #7289DA;
-        color: white;
+        background-color: var(--discord-blurple, #7289DA);
+        border-color: var(--discord-blurple, #7289DA);
+        color: var(--ecs-neutral-0, #ffffff);
     }
 
     .btn-discord:hover {
-        background-color: #6a7dd1;
-        border-color: #6a7dd1;
+        background-color: var(--discord-blurple-dark, #6a7dd1);
+        border-color: var(--discord-blurple-dark, #6a7dd1);
     }
 
     .btn-waitlist {
-        background-color: #ffc107;
-        border-color: #ffc107;
-        color: #212529;
+        background-color: var(--ecs-warning, #ffc107);
+        border-color: var(--ecs-warning, #ffc107);
+        color: var(--ecs-neutral-90, #212529);
     }
 
     .btn-waitlist:hover {
-        background-color: #e0a800;
-        border-color: #d39e00;
+        background-color: var(--ecs-warning-dark, #e0a800);
+        border-color: var(--ecs-warning-dark, #d39e00);
     }
 </style>
 
@@ -114,7 +114,7 @@
                             Played with us before?
                         </h6>
                         <p class="text-muted mb-3">If you already have a portal account, login to join the waitlist.</p>
-                        <a href="{{ url_for('auth.waitlist_discord_login') }}" class="btn btn-primary btn-block mb-2 d-flex align-items-center justify-content-center" style="background-color: #7289DA; border-color: #7289DA;">
+                        <a href="{{ url_for('auth.waitlist_discord_login') }}" class="btn btn-primary btn-block mb-2 d-flex align-items-center justify-content-center" style="background-color: var(--discord-blurple, #7289DA); border-color: var(--discord-blurple, #7289DA);">
                             <i class="ti ti-brand-discord me-2"></i>
                             Login with Discord
                         </a>
@@ -134,7 +134,7 @@
                         <p class="text-muted mb-3">Create a new account with Discord and join the waitlist.</p>
                         
                         <!-- Discord Registration Only -->
-                        <a href="{{ url_for('auth.waitlist_discord_register') }}" class="btn btn-primary btn-block mb-2 d-flex align-items-center justify-content-center" style="background-color: #7289DA; border-color: #7289DA;">
+                        <a href="{{ url_for('auth.waitlist_discord_register') }}" class="btn btn-primary btn-block mb-2 d-flex align-items-center justify-content-center" style="background-color: var(--discord-blurple, #7289DA); border-color: var(--discord-blurple, #7289DA);">
                             <i class="ti ti-brand-discord me-2"></i>
                             Register with Discord
                         </a>

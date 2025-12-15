@@ -31,9 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
         slotDuration: '00:15:00',
         slotLabelInterval: '01:00',
         eventDisplay: 'block',
-        eventBackgroundColor: '#4a86e8',
-        eventBorderColor: '#2c5bb8',
-        eventTextColor: '#ffffff',
+        eventBackgroundColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd',
+        eventBorderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd',
+        eventTextColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('white') : '#ffffff',
         eventTimeFormat: {
             hour: 'numeric',
             minute: '2-digit',

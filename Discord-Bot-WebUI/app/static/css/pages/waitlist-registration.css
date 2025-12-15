@@ -9,7 +9,7 @@
 /* ===== PAGE LAYOUT ===== */
 /* Match app design language */
 .section-header {
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--ecs-neutral-20, #e0e0e0);
     padding-bottom: 0.5rem;
     margin-bottom: 1rem;
 }

@@ -209,69 +209,7 @@
 {% endblock %}
 
 {% block custom_css %}
-<style>
-    /* Team Card Styling */
-    .team-card {
-        transition: all 0.2s ease;
-        border: none;
-        box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.12);
-    }
-    
-    .team-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 0.5rem 1.5rem rgba(161, 172, 184, 0.2);
-    }
-    
-    /* Avatar & Icon Styling */
-    .avatar {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-    }
-    
-    /* Empty State Styling */
-    .empty-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        color: var(--bs-secondary);
-    }
-    
-    .empty-state-icon {
-        font-size: 2.5rem;
-        color: var(--bs-secondary);
-    }
-    
-    .empty-state-message {
-        font-size: 0.875rem;
-    }
-    
-    /* Responsive Styling for Nav Pills */
-    @media (max-width: 767.98px) {
-        .nav-pills {
-            display: flex;
-            overflow-x: auto;
-            white-space: nowrap;
-            -webkit-overflow-scrolling: touch;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-        }
-        
-        .nav-pills .nav-link {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.875rem;
-        }
-        
-        .team-meta {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        
-        .team-meta > div {
-            width: 100%;
-        }
-    }
-</style>
+<!-- Styles moved to /app/static/css/core/foundation-overrides.css -->
 {% endblock %}
 
 {% block custom_js %}

@@ -5,15 +5,15 @@
 {% block page_css %}
 <style>
 .security-status-card {
-    border-left: 4px solid #28a745;
+    border-left: 4px solid var(--ecs-success, #28a745);
 }
 
 .security-status-card.warning {
-    border-left-color: #ffc107;
+    border-left-color: var(--ecs-warning, #ffc107);
 }
 
 .security-status-card.danger {
-    border-left-color: #dc3545;
+    border-left-color: var(--ecs-danger, #dc3545);
 }
 
 .feature-badge {
@@ -27,21 +27,21 @@
 }
 
 .event-item {
-    border-left: 3px solid #dee2e6;
+    border-left: 3px solid var(--ecs-neutral-20, #dee2e6);
     padding-left: 1rem;
     margin-bottom: 0.75rem;
 }
 
 .event-item.high {
-    border-left-color: #dc3545;
+    border-left-color: var(--ecs-danger, #dc3545);
 }
 
 .event-item.medium {
-    border-left-color: #ffc107;
+    border-left-color: var(--ecs-warning, #ffc107);
 }
 
 .event-item.low {
-    border-left-color: #28a745;
+    border-left-color: var(--ecs-success, #28a745);
 }
 
 .ip-list {

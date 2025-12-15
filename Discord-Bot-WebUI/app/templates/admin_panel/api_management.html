@@ -575,7 +575,7 @@ async function revokeApiKey(keyName) {
         text: `Are you sure you want to revoke the API key "${keyName}"? This action cannot be undone.`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#dc3545',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
         confirmButtonText: 'Yes, revoke it'
     });
 

@@ -13,7 +13,7 @@
         {% if ecs_type and ecs_type.foreground_color %}
         color: {{ ecs_type.foreground_color }};
         {% else %}
-        color: #fff;
+        color: var(--bs-white, #fff);
         {% endif %}
         border-radius: 12px;
         box-shadow: var(--bs-box-shadow);

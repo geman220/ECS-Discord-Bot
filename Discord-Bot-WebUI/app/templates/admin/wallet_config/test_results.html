@@ -10,21 +10,21 @@
         margin-bottom: 15px;
     }
     .test-result.passed {
-        background-color: rgba(40, 199, 111, 0.1);
-        border-left: 4px solid #28c76f;
+        background-color: var(--ecs-success-subtle, rgba(40, 199, 111, 0.1));
+        border-left: 4px solid var(--ecs-success, #28c76f);
     }
     .test-result.failed {
-        background-color: rgba(234, 84, 85, 0.1);
-        border-left: 4px solid #ea5455;
+        background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.1));
+        border-left: 4px solid var(--ecs-danger, #ea5455);
     }
     .test-result.skipped {
-        background-color: rgba(255, 159, 67, 0.1);
-        border-left: 4px solid #ff9f43;
+        background-color: var(--ecs-warning-subtle, rgba(255, 159, 67, 0.1));
+        border-left: 4px solid var(--ecs-warning, #ff9f43);
     }
     .issue-item {
         padding: 10px 15px;
-        border-left: 3px solid #ea5455;
-        background-color: rgba(234, 84, 85, 0.1);
+        border-left: 3px solid var(--ecs-danger, #ea5455);
+        background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.1));
         margin-bottom: 10px;
         border-radius: 4px;
     }

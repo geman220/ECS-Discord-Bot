@@ -3,731 +3,7 @@
 {% block title %}Substitute Pool Management{% endblock %}
 
 {% block custom_css %}
-<style>
-/* FIFA Player Card Styles - Matching Draft Design */
-.player-card {
-    transition: all 0.3s ease;
-    border-radius: 12px;
-    overflow: hidden;
-    min-height: 320px;
-    cursor: grab;
-}
-
-.player-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
-}
-
-.player-card[draggable="true"]:active {
-    transform: rotate(5deg) scale(0.95);
-    cursor: grabbing;
-}
-
-.player-card.dragging {
-    opacity: 0.5;
-    transform: rotate(5deg) scale(0.95);
-}
-
-/* League-specific backgrounds */
-.player-card[data-league="ECS FC"] .position-relative {
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-}
-
-.player-card[data-league="Classic"] .position-relative {
-    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
-}
-
-.player-card[data-league="Premier"] .position-relative {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-}
-
-/* Drop zones */
-.drop-zone {
-    border: 2px dashed #dee2e6;
-    border-radius: 12px;
-    padding: 20px;
-    min-height: 200px;
-    transition: all 0.3s ease;
-    background: #f8f9fa;
-}
-
-.drop-zone.drag-over {
-    border-color: #007bff;
-    background: #e7f3ff;
-    transform: scale(1.02);
-}
-
-.drop-zone.pending {
-    border-color: #ffc107;
-    background: #fff3cd;
-}
-
-.drop-zone.active {
-    border-color: #28a745;
-    background: #d4edda;
-}
-
-/* League sections */
-.league-section {
-    margin-bottom: 40px;
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-}
-
-.league-header {
-    padding: 25px;
-    color: white;
-    position: relative;
-    background: linear-gradient(135deg, var(--league-color) 0%, var(--league-color-dark) 100%);
-}
-
-.league-header::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
-    pointer-events: none;
-}
-
-.league-body {
-    background: white;
-    padding: 30px;
-}
-
-/* Stats cards */
-.stats-overview {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-.stat-card {
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    border-left: 4px solid var(--league-color);
-}
-
-.stat-number {
-    font-size: 2.5em;
-    font-weight: bold;
-    color: var(--league-color);
-    margin-bottom: 5px;
-}
-
-.stat-label {
-    color: #6c757d;
-    font-size: 0.9em;
-}
-
-/* Player face crop */
-.player-face-crop {
-    object-position: center 20%;
-    transition: object-position 0.3s ease;
-}
-
-/* Text shadow for better readability */
-.text-shadow-sm {
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-}
-
-/* Notification badges */
-.notification-badges {
-    display: flex;
-    gap: 4px;
-    margin-top: 8px;
-    justify-content: center;
-}
-
-.notification-badge {
-    padding: 2px 6px;
-    border-radius: 10px;
-    font-size: 0.7em;
-    font-weight: bold;
-    color: white;
-}
-
-.notification-badge.sms { background: #28a745; }
-.notification-badge.discord { background: #7289da; }
-.notification-badge.email { background: #17a2b8; }
-
-/* Empty state */
-.empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: #6c757d;
-    background: #f8f9fa;
-    border-radius: 12px;
-    margin: 20px 0;
-}
-
-.empty-state i {
-    font-size: 4em;
-    margin-bottom: 20px;
-    color: #dee2e6;
-}
-
-.empty-state h5 {
-    color: #495057;
-    margin-bottom: 10px;
-}
-
-.empty-state p {
-    color: #6c757d;
-    margin-bottom: 0;
-}
-
-/* Search container */
-.search-container {
-    margin-bottom: 30px;
-}
-
-.search-results {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    max-height: 300px;
-    overflow-y: auto;
-    z-index: 1000;
-    display: none;
-}
-
-.search-result-item {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-    transition: background 0.2s ease;
-}
-
-.search-result-item:hover {
-    background: #f8f9fa;
-}
-
-.search-result-item:last-child {
-    border-bottom: none;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-    .league-body {
-        padding: 20px;
-    }
-    
-    .stats-overview {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .drop-zones {
-        flex-direction: column;
-    }
-}
-
-/* Animation for actions */
-@keyframes approvedPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-.player-card.approved {
-    animation: approvedPulse 0.5s ease-in-out;
-}
-
-/* Dark mode styling */
-[data-bs-theme="dark"] .league-header,
-html[data-style="dark"] .league-header {
-    color: var(--ecs-neutral-10) !important;
-}
-
-[data-bs-theme="dark"] .league-header h3,
-[data-bs-theme="dark"] .league-header p,
-html[data-style="dark"] .league-header h3,
-html[data-style="dark"] .league-header p {
-    color: var(--ecs-neutral-10) !important;
-}
-
-[data-bs-theme="dark"] .league-body h5,
-html[data-style="dark"] .league-body h5 {
-    color: var(--ecs-neutral-20) !important;
-}
-
-/* Dark mode empty state */
-[data-bs-theme="dark"] .empty-state,
-html[data-style="dark"] .empty-state {
-    background: var(--ecs-bg-card) !important;
-    color: var(--ecs-text-secondary) !important;
-    border: 1px solid var(--ecs-border-color) !important;
-}
-
-[data-bs-theme="dark"] .empty-state i,
-html[data-style="dark"] .empty-state i {
-    color: var(--ecs-neutral-70) !important;
-}
-
-[data-bs-theme="dark"] .empty-state h5,
-html[data-style="dark"] .empty-state h5 {
-    color: var(--ecs-text-primary) !important;
-}
-
-[data-bs-theme="dark"] .empty-state p,
-html[data-style="dark"] .empty-state p {
-    color: var(--ecs-text-secondary) !important;
-}
-
-/* Override any inline styles on empty state elements */
-[data-bs-theme="dark"] .empty-state *[style*="color"],
-html[data-style="dark"] .empty-state *[style*="color"] {
-    color: var(--ecs-text-primary) !important;
-}
-
-[data-bs-theme="dark"] .drop-zone,
-html[data-style="dark"] .drop-zone {
-    background-color: var(--ecs-neutral-95) !important;
-    border-color: var(--ecs-neutral-80) !important;
-}
-
-[data-bs-theme="dark"] .drop-zone.pending,
-html[data-style="dark"] .drop-zone.pending {
-    background-color: rgba(255, 193, 7, 0.1) !important;
-    border-color: #ffc107 !important;
-}
-
-[data-bs-theme="dark"] .drop-zone.active,
-html[data-style="dark"] .drop-zone.active {
-    background-color: rgba(40, 167, 69, 0.1) !important;
-    border-color: #28a745 !important;
-}
-
-/* Dark mode modal styling */
-[data-bs-theme="dark"] .modal-content.ecs-modal,
-html[data-style="dark"] .modal-content.ecs-modal {
-    background-color: var(--ecs-bg-section) !important;
-    color: var(--ecs-text-primary) !important;
-}
-
-[data-bs-theme="dark"] .modal-header.ecs-modal-header,
-html[data-style="dark"] .modal-header.ecs-modal-header {
-    background-color: var(--ecs-bg-card) !important;
-    color: var(--ecs-text-primary) !important;
-    border-bottom: 1px solid var(--ecs-border-color) !important;
-}
-
-[data-bs-theme="dark"] .modal-title.ecs-modal-title,
-html[data-style="dark"] .modal-title.ecs-modal-title {
-    color: var(--ecs-text-primary) !important;
-}
-
-[data-bs-theme="dark"] .btn-close.ecs-modal-close,
-html[data-style="dark"] .btn-close.ecs-modal-close {
-    filter: invert(1) !important;
-}
-
-[data-bs-theme="dark"] .modal-body.ecs-modal-body,
-html[data-style="dark"] .modal-body.ecs-modal-body {
-    background-color: var(--ecs-bg-section) !important;
-    color: var(--ecs-text-primary) !important;
-}
-
-[data-bs-theme="dark"] .ecs-text-muted,
-html[data-style="dark"] .ecs-text-muted {
-    color: var(--ecs-text-muted) !important;
-}
-
-[data-bs-theme="dark"] .ecs-text-secondary,
-html[data-style="dark"] .ecs-text-secondary {
-    color: var(--ecs-text-secondary) !important;
-}
-
-/* Player details modal specific styles */
-.ecs-player-photo-section {
-    height: 400px;
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-}
-
-.ecs-player-face-crop {
-    object-position: center 20%;
-}
-
-.ecs-player-overlay {
-    background: rgba(0,0,0,0.3);
-}
-
-.ecs-player-info-section {
-    background-color: var(--bs-body-bg);
-    color: var(--bs-body-color);
-}
-
-.ecs-section-title {
-    color: var(--bs-secondary-color) !important;
-}
-
-.ecs-player-notes {
-    color: var(--bs-body-color);
-}
-
-.ecs-stat-number {
-    font-size: 1.5rem;
-}
-
-.ecs-error-icon {
-    font-size: 3rem;
-}
-
-/* Dark mode styles for player details */
-[data-bs-theme="dark"] .ecs-player-info-section,
-html[data-style="dark"] .ecs-player-info-section {
-    background-color: var(--ecs-bg-section) !important;
-    color: var(--ecs-text-primary) !important;
-}
-
-[data-bs-theme="dark"] .ecs-section-title,
-html[data-style="dark"] .ecs-section-title {
-    color: var(--ecs-text-secondary) !important;
-}
-
-[data-bs-theme="dark"] .ecs-player-notes,
-html[data-style="dark"] .ecs-player-notes {
-    color: var(--ecs-text-primary) !important;
-}
-
-/* List view styles */
-.player-list-item {
-    background: var(--bs-body-bg);
-    transition: all 0.2s ease;
-    cursor: grab;
-}
-
-.player-list-item:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.player-list-item.dragging {
-    opacity: 0.6;
-    transform: rotate(2deg) scale(0.98);
-    cursor: grabbing;
-}
-
-.player-grid-view .player-card {
-    transition: all 0.3s ease;
-}
-
-.player-grid-view .player-card:hover {
-    transform: translateY(-2px);
-}
-
-/* View toggle buttons */
-.view-toggle.active {
-    background-color: var(--bs-primary);
-    border-color: var(--bs-primary);
-    color: white;
-}
-
-/* Pagination items per page controls */
-.items-per-page {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-/* Dark mode for list items */
-[data-bs-theme="dark"] .player-list-item,
-html[data-style="dark"] .player-list-item {
-    background: var(--ecs-bg-card) !important;
-    border-color: var(--ecs-border-color) !important;
-    color: var(--ecs-text-primary) !important;
-}
-
-[data-bs-theme="dark"] .player-list-item:hover,
-html[data-style="dark"] .player-list-item:hover {
-    background: var(--ecs-bg-hover) !important;
-}
-
-/* Dark mode for player cards */
-[data-bs-theme="dark"] .player-card,
-html[data-style="dark"] .player-card {
-    background: var(--ecs-bg-card) !important;
-    border-color: var(--ecs-border-color) !important;
-    color: var(--ecs-text-primary) !important;
-}
-
-[data-bs-theme="dark"] .player-card .card-body,
-html[data-style="dark"] .player-card .card-body {
-    background: var(--ecs-bg-card) !important;
-    color: var(--ecs-text-primary) !important;
-}
-
-[data-bs-theme="dark"] .player-card .card-footer,
-html[data-style="dark"] .player-card .card-footer {
-    background: var(--ecs-bg-card) !important;
-    border-color: var(--ecs-border-color) !important;
-}
-
-/* Player name styling */
-[data-bs-theme="dark"] .ecs-player-name,
-html[data-style="dark"] .ecs-player-name {
-    color: var(--ecs-text-primary) !important;
-}
-
-/* Empty state styling */
-.ecs-empty-state-title {
-    color: var(--bs-body-color);
-}
-
-.ecs-empty-state-text {
-    color: var(--bs-secondary-color);
-}
-
-[data-bs-theme="dark"] .empty-state h5,
-[data-bs-theme="dark"] .ecs-empty-state-title,
-html[data-style="dark"] .empty-state h5,
-html[data-style="dark"] .ecs-empty-state-title {
-    color: var(--ecs-text-primary) !important;
-}
-
-[data-bs-theme="dark"] .empty-state p,
-[data-bs-theme="dark"] .ecs-empty-state-text,
-html[data-style="dark"] .empty-state p,
-html[data-style="dark"] .ecs-empty-state-text {
-    color: var(--ecs-text-secondary) !important;
-}
-
-[data-bs-theme="dark"] .empty-state i,
-html[data-style="dark"] .empty-state i {
-    color: var(--ecs-text-muted) !important;
-}
-
-/* Drop zone backgrounds - CRITICAL FIX */
-.drop-zone {
-    background-color: #f8f9fa;
-}
-
-[data-bs-theme="dark"] .drop-zone,
-html[data-style="dark"] .drop-zone {
-    background-color: #1a1d2e !important;
-    border-color: #2d3143 !important;
-}
-
-[data-bs-theme="dark"] .drop-zone.pending,
-html[data-style="dark"] .drop-zone.pending {
-    background-color: #1a1d2e !important;
-    border-color: #ffc107 !important;
-}
-
-[data-bs-theme="dark"] .drop-zone.active,
-html[data-style="dark"] .drop-zone.active {
-    background-color: #1a1d2e !important;
-    border-color: #28a745 !important;
-}
-
-/* Override ALL inline styles */
-[data-bs-theme="dark"] h5[style*="color"],
-[data-bs-theme="dark"] p[style*="color"],
-html[data-style="dark"] h5[style*="color"],
-html[data-style="dark"] p[style*="color"] {
-    color: var(--ecs-text-primary) !important;
-}
-
-[data-bs-theme="dark"] .empty-state h5[style],
-[data-bs-theme="dark"] .empty-state p[style],
-html[data-style="dark"] .empty-state h5[style],
-html[data-style="dark"] .empty-state p[style] {
-    color: var(--ecs-text-primary) !important;
-}
-
-[data-bs-theme="dark"] .ecs-section-header[style],
-html[data-style="dark"] .ecs-section-header[style] {
-    color: var(--ecs-text-primary) !important;
-}
-
-/* League body */
-[data-bs-theme="dark"] .league-body,
-html[data-style="dark"] .league-body {
-    background: var(--ecs-bg-section) !important;
-    color: var(--ecs-text-primary) !important;
-}
-
-/* Section headers */
-[data-bs-theme="dark"] .league-body h5,
-[data-bs-theme="dark"] .ecs-section-header,
-html[data-style="dark"] .league-body h5,
-html[data-style="dark"] .ecs-section-header {
-    color: var(--ecs-text-primary) !important;
-}
-
-/* Better dark mode overrides */
-[data-bs-theme="dark"] h5,
-[data-bs-theme="dark"] h6,
-html[data-style="dark"] h5,
-html[data-style="dark"] h6 {
-    color: var(--ecs-text-primary) !important;
-}
-
-/* League section styling */
-[data-bs-theme="dark"] .league-section,
-html[data-style="dark"] .league-section {
-    background: var(--ecs-bg-section) !important;
-}
-
-/* Stats card dark mode */
-[data-bs-theme="dark"] .stat-card,
-html[data-style="dark"] .stat-card {
-    background: var(--ecs-bg-card) !important;
-    color: var(--ecs-text-primary) !important;
-}
-
-/* League management modal */
-.modal-content.ecs-modal {
-    background-color: #ffffff !important;
-}
-
-.ecs-modal-header {
-    background-color: #f8f9fa !important;
-    border-bottom: 1px solid #dee2e6 !important;
-}
-
-.ecs-modal-body {
-    background-color: #ffffff !important;
-}
-
-.ecs-stats-section {
-    background: #f8f9fa !important;
-    border-bottom: 1px solid #dee2e6;
-}
-
-[data-bs-theme="dark"] .modal-content.ecs-modal,
-html[data-style="dark"] .modal-content.ecs-modal {
-    background-color: #1a1d2e !important;
-}
-
-[data-bs-theme="dark"] .ecs-modal-header,
-html[data-style="dark"] .ecs-modal-header {
-    background-color: #22253a !important;
-    border-bottom-color: #2d3143 !important;
-}
-
-[data-bs-theme="dark"] .ecs-modal-body,
-html[data-style="dark"] .ecs-modal-body {
-    background-color: #1a1d2e !important;
-}
-
-[data-bs-theme="dark"] .ecs-stats-section,
-html[data-style="dark"] .ecs-stats-section {
-    background: #22253a !important;
-    border-bottom-color: #2d3143 !important;
-}
-
-[data-bs-theme="dark"] .table,
-html[data-style="dark"] .table {
-    --bs-table-bg: var(--ecs-bg-card);
-    --bs-table-color: var(--ecs-text-primary);
-    color: var(--ecs-text-primary) !important;
-}
-
-[data-bs-theme="dark"] .table thead th,
-html[data-style="dark"] .table thead th {
-    border-bottom-color: var(--ecs-border-color) !important;
-    color: var(--ecs-text-primary) !important;
-}
-
-[data-bs-theme="dark"] .table td,
-html[data-style="dark"] .table td {
-    border-bottom-color: var(--ecs-border-color) !important;
-    color: var(--ecs-text-primary) !important;
-}
-
-/* ULTIMATE DARK MODE OVERRIDE - Remove all inline styles */
-@media (prefers-color-scheme: dark) {
-    .drop-zone {
-        background-color: #1a1d2e !important;
-    }
-    .empty-state h5,
-    .empty-state p,
-    .ecs-section-header {
-        color: #e1def5 !important;
-    }
-}
-
-/* Force dark mode colors with highest specificity */
-html[data-style="dark"] .drop-zone[data-status="pending"],
-html[data-style="dark"] .drop-zone[data-status="active"] {
-    background-color: #1a1d2e !important;
-}
-
-html[data-style="dark"] *[style*="color: var(--ecs-neutral-30)"] {
-    color: #e1def5 !important;
-}
-
-/* Force empty state styling with highest specificity */
-html[data-style="dark"] .empty-state.empty-state {
-    background: var(--ecs-bg-card) !important;
-    color: var(--ecs-text-secondary) !important;
-    border: 1px solid var(--ecs-border-color) !important;
-}
-
-html[data-style="dark"] .empty-state.empty-state h5.ecs-empty-state-title {
-    color: var(--ecs-text-primary) !important;
-}
-
-html[data-style="dark"] .empty-state.empty-state p.ecs-empty-state-text {
-    color: var(--ecs-text-secondary) !important;
-}
-
-html[data-style="dark"] .empty-state.empty-state i {
-    color: var(--ecs-neutral-70) !important;
-}
-
-/* Override Bootstrap text-muted in empty state */
-html[data-style="dark"] .empty-state .text-muted {
-    color: var(--ecs-text-secondary) !important;
-}
-
-/* Modal footer */
-.modal-footer {
-    background-color: #f8f9fa;
-    border-top: 1px solid #dee2e6;
-}
-
-[data-bs-theme="dark"] .modal-footer,
-html[data-style="dark"] .modal-footer {
-    background-color: #22253a !important;
-    border-top-color: #2d3143 !important;
-}
-
-/* Ensure all modal text is visible */
-.ecs-modal h5, .ecs-modal h6, .ecs-modal label {
-    color: #212529;
-}
-
-[data-bs-theme="dark"] .ecs-modal h5,
-[data-bs-theme="dark"] .ecs-modal h6,
-[data-bs-theme="dark"] .ecs-modal label,
-[data-bs-theme="dark"] .ecs-modal .text-muted,
-html[data-style="dark"] .ecs-modal h5,
-html[data-style="dark"] .ecs-modal h6,
-html[data-style="dark"] .ecs-modal label,
-html[data-style="dark"] .ecs-modal .text-muted {
-    color: #e1def5 !important;
-}
-
-/* Fix modal backdrop */
-.modal-backdrop {
-    background-color: #000;
-    opacity: 0.5;
-}
-</style>
+{{ super() }}
 {% endblock %}
 
 {% block main_content %}
@@ -759,7 +35,7 @@ html[data-style="dark"] .ecs-modal .text-muted {
             <div class="stat-label">{{ league_type }} Active</div>
         </div>
         {% endfor %}
-        <div class="stat-card" style="--league-color: #6c757d;">
+        <div class="stat-card" style="--league-color: var(--ecs-neutral-50, #6c757d);">
             <div class="stat-number">{{ pools_data.values() | map(attribute='available_players') | map('length') | sum }}</div>
             <div class="stat-label">Pending Approval</div>
         </div>
@@ -839,8 +115,8 @@ html[data-style="dark"] .ecs-modal .text-muted {
                                     <i class="ti ti-list"></i>
                                 </button>
                             </div>
-                            <input type="text" class="form-control form-control-sm pool-filter" 
-                                   placeholder="Filter..." style="width: 120px;"
+                            <input type="text" class="form-control form-control-sm pool-filter pool-filter-sm"
+                                   placeholder="Filter..."
                                    data-league="{{ league_type }}" data-section="pending">
                         </div>
                     </div>
@@ -867,10 +143,9 @@ html[data-style="dark"] .ecs-modal .text-muted {
                                     <div class="row align-items-center">
                                         <div class="col-md-6">
                                             <div class="d-flex align-items-center">
-                                                <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}" 
-                                                     alt="{{ player.name }}" 
-                                                     class="rounded-circle me-3"
-                                                     style="width: 40px; height: 40px; object-fit: cover;"
+                                                <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}"
+                                                     alt="{{ player.name }}"
+                                                     class="rounded-circle me-3 player-avatar-sm"
                                                      onerror="this.src='/static/img/default_player.png';">
                                                 <div>
                                                     <h6 class="mb-1 ecs-player-name">{{ player.name }}</h6>
@@ -907,7 +182,7 @@ html[data-style="dark"] .ecs-modal .text-muted {
                             </div>
                             
                             <!-- Grid View (Hidden by default) -->
-                            <div id="pending-grid-{{ league_type }}" class="player-grid-view" style="display: none;">
+                            <div id="pending-grid-{{ league_type }}" class="player-grid-view d-none">
                                 <div class="row g-2">
                                     {% for player in data.available_players %}
                                     <div class="col-md-6 col-lg-4">
@@ -922,10 +197,9 @@ html[data-style="dark"] .ecs-modal .text-muted {
                                             
                                             <!-- Compact Player Card -->
                                             <div class="card-body p-2 text-center">
-                                                <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}" 
-                                                     alt="{{ player.name }}" 
-                                                     class="rounded-circle mb-2"
-                                                     style="width: 50px; height: 50px; object-fit: cover;"
+                                                <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}"
+                                                     alt="{{ player.name }}"
+                                                     class="rounded-circle mb-2 player-avatar-md"
                                                      onerror="this.src='/static/img/default_player.png';">
                                                 <h6 class="mb-1 ecs-player-name">{{ player.name }}</h6>
                                                 <small class="text-muted d-block ecs-text-muted">{{ player.user.email if player.user else 'No email' }}</small>
@@ -993,8 +267,8 @@ html[data-style="dark"] .ecs-modal .text-muted {
                                     <i class="ti ti-list"></i>
                                 </button>
                             </div>
-                            <input type="text" class="form-control form-control-sm pool-filter" 
-                                   placeholder="Filter..." style="width: 120px;"
+                            <input type="text" class="form-control form-control-sm pool-filter pool-filter-sm"
+                                   placeholder="Filter..."
                                    data-league="{{ league_type }}" data-section="active">
                         </div>
                     </div>
@@ -1021,10 +295,9 @@ html[data-style="dark"] .ecs-modal .text-muted {
                                     <div class="row align-items-center">
                                         <div class="col-md-5">
                                             <div class="d-flex align-items-center">
-                                                <img src="{{ pool.player.profile_picture_url or '/static/img/default_player.png' }}" 
-                                                     alt="{{ pool.player.name }}" 
-                                                     class="rounded-circle me-3"
-                                                     style="width: 40px; height: 40px; object-fit: cover;"
+                                                <img src="{{ pool.player.profile_picture_url or '/static/img/default_player.png' }}"
+                                                     alt="{{ pool.player.name }}"
+                                                     class="rounded-circle me-3 player-avatar-sm"
                                                      onerror="this.src='/static/img/default_player.png';">
                                                 <div>
                                                     <h6 class="mb-1 ecs-player-name">{{ pool.player.name }}</h6>
@@ -1091,7 +364,7 @@ html[data-style="dark"] .ecs-modal .text-muted {
                             </div>
                             
                             <!-- Grid View (Hidden by default) -->
-                            <div id="active-grid-{{ league_type }}" class="player-grid-view" style="display: none;">
+                            <div id="active-grid-{{ league_type }}" class="player-grid-view d-none">
                                 <div class="row g-2">
                                     {% for pool in data.active_pools %}
                                     <div class="col-md-6 col-lg-4">
@@ -1106,10 +379,9 @@ html[data-style="dark"] .ecs-modal .text-muted {
                                             
                                             <!-- Compact Player Card -->
                                             <div class="card-body p-2 text-center">
-                                                <img src="{{ pool.player.profile_picture_url or '/static/img/default_player.png' }}" 
-                                                     alt="{{ pool.player.name }}" 
-                                                     class="rounded-circle mb-2"
-                                                     style="width: 50px; height: 50px; object-fit: cover;"
+                                                <img src="{{ pool.player.profile_picture_url or '/static/img/default_player.png' }}"
+                                                     alt="{{ pool.player.name }}"
+                                                     class="rounded-circle mb-2 player-avatar-md"
                                                      onerror="this.src='/static/img/default_player.png';">
                                                 <h6 class="mb-1 ecs-player-name">{{ pool.player.name }}</h6>
                                                 <small class="text-muted d-block ecs-text-muted">{{ pool.player.user.email if pool.player.user else 'No email' }}</small>
@@ -1207,7 +479,7 @@ html[data-style="dark"] .ecs-modal .text-muted {
                     </div>
                     
                     <!-- Profile Content Container -->
-                    <div id="detailsData" style="display: none;">
+                    <div id="detailsData" class="d-none">
                         <!-- Will be populated by JavaScript -->
                     </div>
                 </div>

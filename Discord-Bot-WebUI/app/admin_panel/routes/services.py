@@ -30,7 +30,8 @@ from app.utils.user_helpers import safe_current_user
 from .helpers import (_check_discord_api_status, _check_push_service_status,
                      _check_email_service_status, _check_redis_service_status,
                      _check_database_service_status, _estimate_api_calls_today,
-                     _calculate_avg_response_time, get_discord_bot_stats)
+                     _calculate_avg_response_time, get_discord_bot_stats,
+                     get_playoff_stats)
 
 # Set up the module logger
 logger = logging.getLogger(__name__)
@@ -419,14 +420,9 @@ def discord_bot_management():
 def playoff_management():
     """Playoff management hub."""
     try:
-        # TODO: Get actual playoff statistics when playoff models are available
-        stats = {
-            'active_playoffs': 0,
-            'completed_playoffs': 2,
-            'upcoming_matches': 0,
-            'playoff_teams': 8
-        }
-        
+        # Get real playoff statistics from helper function
+        stats = get_playoff_stats()
+
         return render_template('admin_panel/playoff_management.html', stats=stats)
     except Exception as e:
         logger.error(f"Error loading playoff management: {e}")
@@ -865,37 +861,73 @@ def _update_match_times():
 
 
 def _send_match_reminders():
-    """Send match reminders (placeholder)."""
+    """Send match reminders to players for upcoming matches."""
     try:
+        from app.services.notification_service import notification_service
+        from app.models.notifications import UserFCMToken
+        from app.models.communication import Notification
+        from app.models.matches import Match
+        from sqlalchemy.orm import joinedload
+
         # Send reminders for upcoming matches (within 24 hours)
         tomorrow = datetime.utcnow().date() + timedelta(days=1)
-        upcoming_matches = Match.query.filter(
+        upcoming_matches = Match.query.options(
+            joinedload(Match.home_team),
+            joinedload(Match.away_team)
+        ).filter(
             Match.date >= datetime.utcnow().date(),
             Match.date <= tomorrow,
             Match.time.isnot(None)
         ).all()
-        
+
         reminder_count = 0
+        notifications_sent = 0
+        players_notified = set()  # Track to avoid duplicate notifications
+
         for match in upcoming_matches:
             try:
-                # Create notifications for team players
-                # This would typically integrate with the notification system
+                # Prepare match data for notification
+                match_data = {
+                    'id': match.id,
+                    'opponent': '',  # Will be set per team
+                    'location': match.location or 'TBD',
+                    'time': match.time.strftime('%I:%M %p') if match.time else 'TBD',
+                    'date': match.date.strftime('%B %d') if match.date else 'TBD'
+                }
+
+                # Process home team players
                 if match.home_team and hasattr(match.home_team, 'players'):
+                    match_data['opponent'] = match.away_team.name if match.away_team else 'TBD'
                     for player in match.home_team.players:
-                        # Would create notification here
-                        pass
+                        if player.user and player.user.id not in players_notified:
+                            sent = _send_player_match_reminder(
+                                player, match, match_data, notification_service
+                            )
+                            if sent:
+                                notifications_sent += 1
+                                players_notified.add(player.user.id)
+
+                # Process away team players
                 if match.away_team and hasattr(match.away_team, 'players'):
+                    match_data['opponent'] = match.home_team.name if match.home_team else 'TBD'
                     for player in match.away_team.players:
-                        # Would create notification here
-                        pass
+                        if player.user and player.user.id not in players_notified:
+                            sent = _send_player_match_reminder(
+                                player, match, match_data, notification_service
+                            )
+                            if sent:
+                                notifications_sent += 1
+                                players_notified.add(player.user.id)
+
                 reminder_count += 1
             except Exception as e:
                 logger.warning(f"Error sending reminder for match {match.id}: {e}")
-        
+
         return {
             'success': True,
-            'message': f'Processed reminders for {reminder_count} upcoming matches',
-            'count': reminder_count
+            'message': f'Processed {reminder_count} matches, sent {notifications_sent} notifications',
+            'count': reminder_count,
+            'notifications_sent': notifications_sent
         }
     except Exception as e:
         logger.error(f"Error in send match reminders: {e}")
@@ -904,6 +936,56 @@ def _send_match_reminders():
             'message': f'Error sending reminders: {str(e)}',
             'count': 0
         }
+
+
+def _send_player_match_reminder(player, match, match_data, notification_service):
+    """
+    Send match reminder to a single player.
+
+    Returns True if at least one notification was sent, False otherwise.
+    """
+    try:
+        from app.models.notifications import UserFCMToken
+        from app.models.communication import Notification
+
+        if not player.user:
+            return False
+
+        # Get active FCM tokens for this user
+        user_tokens = UserFCMToken.query.filter_by(
+            user_id=player.user.id,
+            is_active=True
+        ).all()
+
+        tokens = [t.fcm_token for t in user_tokens if t.fcm_token]
+
+        # Create in-app notification regardless of push tokens
+        notification = Notification(
+            user_id=player.user.id,
+            type='match_reminder',
+            title='Match Reminder',
+            message=f"Your match against {match_data['opponent']} is coming up at {match_data['time']} on {match_data['date']}",
+            link=f"/matches/{match.id}",
+            read=False
+        )
+        db.session.add(notification)
+
+        # Send push notification if user has tokens
+        if tokens:
+            try:
+                result = notification_service.send_match_reminder(tokens, match_data)
+                if result.get('success', 0) > 0:
+                    db.session.commit()
+                    return True
+            except Exception as push_err:
+                logger.warning(f"Push notification failed for user {player.user.id}: {push_err}")
+
+        db.session.commit()
+        return True  # In-app notification was created
+    except Exception as e:
+        logger.error(f"Error sending reminder to player {player.id}: {e}")
+        db.session.rollback()
+        return False
 
 
 def _cleanup_old_notifications():

@@ -896,9 +896,9 @@ class DraftSystemV2 {
                 <!-- Action Buttons -->
                 <div class="card-footer bg-transparent border-0 p-2">
                     <div class="d-grid gap-1">
-                        <button class="btn btn-success btn-sm fw-bold" 
+                        <button class="btn btn-success btn-sm fw-bold"
                                 onclick="confirmDraftPlayer(${player.id}, '${player.name.replace(/'/g, "\\'")}')"
-                                style="background: linear-gradient(45deg, #28a745, #20c997);">
+                                style="background: linear-gradient(45deg, var(--ecs-success, #28a745), var(--ecs-success-light, #20c997));">
                             <i class="ti ti-user-plus me-1"></i>Draft Player
                         </button>
                         <button class="btn btn-outline-info btn-sm" 
@@ -1264,16 +1264,18 @@ class DraftSystemV2 {
         dropZone.classList.add('drag-over');
         
         // Different visual feedback for different drop zones
+        const successColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754';
+        const primaryColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd';
         if (dropZone.id === 'available-players') {
-            dropZone.style.borderColor = '#28a745';
-            dropZone.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+            dropZone.style.borderColor = successColor;
+            dropZone.style.backgroundColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success-light-bg') : 'rgba(25, 135, 84, 0.1)';
         } else if (dropZone.id && dropZone.id.startsWith('teamSection')) {
-            dropZone.style.borderColor = '#007bff';
-            dropZone.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+            dropZone.style.borderColor = primaryColor;
+            dropZone.style.backgroundColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary-light-bg') : 'rgba(13, 110, 253, 0.1)';
         } else if (dropZone.classList.contains('team-drop-zone')) {
             // Handle team drop zones (accordion items)
-            dropZone.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
-            dropZone.style.borderLeft = '4px solid #007bff';
+            dropZone.style.backgroundColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary-light-bg') : 'rgba(13, 110, 253, 0.1)';
+            dropZone.style.borderLeft = `4px solid ${primaryColor}`;
         }
     }
     
@@ -1283,11 +1285,12 @@ class DraftSystemV2 {
         dropZone.classList.remove('drag-over');
         
         // Reset visual styles
+        const borderColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('border') : '#dee2e6';
         if (dropZone.id === 'available-players') {
             dropZone.style.borderColor = 'transparent';
             dropZone.style.backgroundColor = '';
         } else if (dropZone.id && dropZone.id.startsWith('teamSection')) {
-            dropZone.style.borderColor = '#dee2e6';
+            dropZone.style.borderColor = borderColor;
             dropZone.style.backgroundColor = '';
         } else if (dropZone.classList.contains('team-drop-zone')) {
             // Reset team drop zone styles
@@ -1304,11 +1307,12 @@ class DraftSystemV2 {
         dropZone.classList.remove('drag-over');
         
         // Reset styles based on element type
+        const resetBorderColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('border') : '#dee2e6';
         if (dropZone.classList.contains('team-drop-zone')) {
             dropZone.style.backgroundColor = '';
             dropZone.style.borderLeft = '';
         } else {
-            dropZone.style.borderColor = '#dee2e6';
+            dropZone.style.borderColor = resetBorderColor;
             dropZone.style.backgroundColor = '';
         }
         

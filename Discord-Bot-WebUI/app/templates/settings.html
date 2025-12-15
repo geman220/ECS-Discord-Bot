@@ -3,57 +3,7 @@
 
 {% block head %}
 {{ super() }}
-<style>
-    /* SMS verification styles */
-    #smsVerificationSection {
-        transition: all 0.3s ease;
-    }
-    #verificationCodeInput {
-        transition: all 0.3s ease;
-    }
-    .verification-code-input {
-        letter-spacing: 2px;
-        font-weight: bold;
-        text-align: center;
-    }
-    
-    /* Checkbox alignment fix */
-    .form-check.form-switch {
-        padding-left: 0;
-    }
-    .form-check-input[type="checkbox"] {
-        margin-left: 0;
-    }
-    .form-check-label {
-        margin-left: 1.5rem;
-    }
-    
-    /* Ensure consistent positioning of form switches */
-    .form-switch .form-check-input {
-        margin-left: 0;
-        position: relative;
-    }
-    
-    /* Card hover effect */
-    .settings-card {
-        transition: all 0.2s ease-in-out;
-    }
-    .settings-card:hover {
-        box-shadow: 0 0.125rem 0.25rem rgba(165, 163, 174, 0.3);
-        transform: translateY(-2px);
-    }
-    
-    /* Icon styles */
-    .settings-icon {
-        font-size: 1.5rem;
-        width: 42px;
-        height: 42px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 0.375rem;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/features/settings.css') }}" />
 {% endblock %}
 
 {% block main_content %}
@@ -65,578 +15,56 @@
                 <i class="ti ti-settings-cog me-2 text-primary"></i>
                 <span class="text-muted fw-light">Account /</span> Settings
             </h4>
-            <p class="mb-2">Manage your account settings and preferences</p>
+            <p class="mb-0">Manage your account settings and preferences</p>
         </div>
     </div>
 
-    <div class="row">
-        <!-- Account Settings Section -->
-        <div class="col-md-6 col-12 mb-md-0 mb-4">
-            <div class="card settings-card mb-4">
-                <div class="card-header d-flex align-items-center pb-2 border-bottom">
-                    <div class="settings-icon bg-primary bg-opacity-10 text-primary me-3">
-                        <i class="ti ti-user-circle"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-0">Account Information</h5>
-                        <small class="text-muted">Update your personal information</small>
-                    </div>
-                </div>
-                <div class="card-body pt-3">
-                    <form id="accountInfoForm" action="{{ url_for('account.update_account_info') }}" method="POST">
-                        {{ notification_form.hidden_tag() }}
-                        <div class="mb-3">
-                            <label class="form-label">Name</label>
-                            <input type="text" class="form-control" name="name"
-                                   value="{{ safe_current_user.player.name if safe_current_user.player else '' }}">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" name="email"
-                                   value="{{ safe_current_user.email }}">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" name="phone"
-                                   value="{{ safe_current_user.player.phone if safe_current_user.player else '' }}">
-                        </div>
-
-                        <button type="submit" class="btn btn-primary mt-2">
-                            <i class="ti ti-save me-2"></i>Save Changes
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="card settings-card mb-4">
-                <div class="card-header d-flex align-items-center pb-2 border-bottom">
-                    <div class="settings-icon bg-warning bg-opacity-10 text-warning me-3">
-                        <i class="ti ti-lock"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-0">Security</h5>
-                        <small class="text-muted">Manage your password and 2FA</small>
+    <!-- Tab Navigation -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav class="navbar navbar-expand navbar-light bg-body-tertiary rounded-3 shadow-sm p-2 p-lg-3">
+                <div class="container-fluid px-0">
+                    <div class="settings-nav-scroll w-100">
+                        <ul class="navbar-nav flex-row flex-nowrap" role="tablist">
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#account" data-bs-toggle="tab" data-bs-target="#tab-account" role="tab" aria-selected="true">
+                                    <i class="ti ti-user-circle me-1"></i><span class="nav-link-text">Account</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#appearance" data-bs-toggle="tab" data-bs-target="#tab-appearance" role="tab" aria-selected="false">
+                                    <i class="ti ti-palette me-1"></i><span class="nav-link-text">Appearance</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#security" data-bs-toggle="tab" data-bs-target="#tab-security" role="tab" aria-selected="false">
+                                    <i class="ti ti-lock me-1"></i><span class="nav-link-text">Security</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#notifications" data-bs-toggle="tab" data-bs-target="#tab-notifications" role="tab" aria-selected="false">
+                                    <i class="ti ti-bell me-1"></i><span class="nav-link-text">Notifications</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#integrations" data-bs-toggle="tab" data-bs-target="#tab-integrations" role="tab" aria-selected="false">
+                                    <i class="ti ti-plug me-1"></i><span class="nav-link-text">Integrations</span>
+                                </a>
+                            </li>
+                        </ul>
                     </div>
                 </div>
-                <div class="card-body pt-3">
-                    <h6 class="fw-semibold">Change Password</h6>
-                    <form id="passwordChangeForm" action="{{ url_for('account.change_password') }}" method="POST">
-                        {{ password_form.hidden_tag() }}
-                        <div class="mb-3">
-                            <label class="form-label">Current Password</label>
-                            {{ password_form.current_password(class="form-control", id="current_password", placeholder="Enter your current password") }}
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">New Password</label>
-                            {{ password_form.new_password(class="form-control", id="new_password", placeholder="Choose a new password") }}
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Confirm New Password</label>
-                            {{ password_form.confirm_password(class="form-control", id="confirm_password", placeholder="Confirm your new password") }}
-                        </div>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="ti ti-refresh me-2"></i>Update Password
-                        </button>
-                    </form>
-                    
-                    <hr class="my-4">
-                    
-                    <h6 class="fw-semibold">Two-Factor Authentication (2FA)</h6>
-                    <p class="text-muted small mb-3">Add an extra layer of security to your account</p>
-                    
-                    {% if safe_current_user.is_2fa_enabled %}
-                    <div class="alert alert-success d-flex align-items-center mb-3">
-                        <i class="ti ti-shield-check me-2"></i>
-                        <div>
-                            Two-Factor Authentication is enabled on your account
-                        </div>
-                    </div>
-                    <form id="disable2FAForm" action="{{ url_for('account.disable_2fa') }}" method="POST">
-                        {{ disable_2fa_form.hidden_tag() }}
-                        {{ disable_2fa_form.submit_disable_2fa(class="btn btn-outline-danger") }}
-                    </form>
-                    {% else %}
-                    <div class="alert alert-warning d-flex align-items-center mb-3">
-                        <i class="ti ti-shield-off me-2"></i>
-                        <div>
-                            Your account is not protected with 2FA
-                        </div>
-                    </div>
-                    <button id="enable2FABtn" type="button" class="btn btn-primary">
-                        <i class="ti ti-shield-plus me-2"></i>Enable 2FA
-                    </button>
-                    {% endif %}
-                </div>
-            </div>
+            </nav>
         </div>
-        
-        <!-- Notification Settings Section -->
-        <div class="col-md-6 col-12">
-            <div class="card settings-card mb-4">
-                <div class="card-header d-flex align-items-center pb-2 border-bottom">
-                    <div class="settings-icon bg-info bg-opacity-10 text-info me-3">
-                        <i class="ti ti-bell"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-0">Notification Preferences</h5>
-                        <small class="text-muted">Manage how you receive notifications</small>
-                    </div>
-                </div>
-                <div class="card-body pt-3">
-                    <form id="notificationForm" action="{{ url_for('account.update_notifications') }}" method="POST">
-                        {{ notification_form.hidden_tag() }}
-                        
-                        <div class="mb-4">
-                            <h6 class="fw-semibold mb-3">Communication Channels</h6>
-                            <div class="d-flex flex-column gap-3">
-                                <div class="form-check form-switch ms-0 ps-0">
-                                    {{ notification_form.email_notifications(class="form-check-input ms-0") }}
-                                    <label class="form-check-label ms-4" for="email_notifications">
-                                        <i class="ti ti-mail me-1 text-primary"></i>Email Notifications
-                                    </label>
-                                </div>
-                                <div class="form-check form-switch ms-0 ps-0">
-                                    {{ notification_form.discord_notifications(class="form-check-input ms-0") }}
-                                    <label class="form-check-label ms-4" for="discord_notifications">
-                                        <i class="ti ti-brand-discord me-1 text-primary"></i>Discord Notifications
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <h6 class="fw-semibold mb-2">Profile Visibility</h6>
-                            <label class="form-label small text-muted">Control who can see your profile information</label>
-                            {{ notification_form.profile_visibility(class="form-select") }}
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary mt-2">
-                            <i class="ti ti-device-floppy me-2"></i>Save Preferences
-                        </button>
-                    </form>
-                </div>
-            </div>
-            
-            <div class="card settings-card mb-4">
-                <div class="card-header d-flex align-items-center pb-2 border-bottom">
-                    <div class="settings-icon bg-success bg-opacity-10 text-success me-3">
-                        <i class="ti ti-message-text"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-0">SMS Notifications</h5>
-                        <small class="text-muted">Manage text message notifications</small>
-                    </div>
-                </div>
-                <div class="card-body pt-3">
-                    {% if safe_current_user.sms_notifications %}
-                    <div class="alert alert-success d-flex align-items-center mb-3">
-                        <i class="ti ti-check-circle me-2"></i>
-                        <div>
-                            SMS notifications are currently enabled for your account
-                            {% if safe_current_user.player and safe_current_user.player.phone %}
-                            <div class="small">Verified phone: {{ safe_current_user.player.phone }}</div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <button id="smsOptOutBtn" class="btn btn-outline-danger">
-                        <i class="ti ti-bell-off me-2"></i>Disable SMS Notifications
-                    </button>
-                    {% else %}
-                    <div class="alert alert-light d-flex align-items-center mb-3">
-                        <i class="ti ti-bell-off me-2"></i>
-                        <div>
-                            SMS notifications are currently disabled
-                            {% if safe_current_user.player and safe_current_user.player.sms_opt_out_timestamp %}
-                            <div class="small">Disabled on {{ safe_current_user.player.sms_opt_out_timestamp.strftime('%Y-%m-%d %H:%M') }}</div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <button id="smsOptInBtn" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#smsOptInModal">
-                        <i class="ti ti-bell-plus me-2"></i>Enable SMS Notifications
-                    </button>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <div class="card settings-card mb-4">
-                <div class="card-header d-flex align-items-center pb-2 border-bottom">
-                    <div class="settings-icon bg-danger bg-opacity-10 text-danger me-3">
-                        <i class="ti ti-brand-discord"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-0">Discord Integration</h5>
-                        <small class="text-muted">Connect your Discord account</small>
-                    </div>
-                </div>
-                <div class="card-body pt-3">
-                    {% if safe_current_user.player and safe_current_user.player.discord_id %}
-                    <div class="alert alert-success d-flex align-items-center mb-3">
-                        <i class="ti ti-check-circle me-2"></i>
-                        <div>
-                            <strong>Discord Connected</strong>
-                            <div class="small">Discord ID: {{ safe_current_user.player.discord_id }}</div>
-                        </div>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <form id="syncDiscordRolesForm" action="{{ url_for('auth.sync_discord_roles') }}" method="POST">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="ti ti-refresh me-2"></i>Sync Discord Roles
-                            </button>
-                        </form>
-                        <form id="unlinkDiscordForm" action="{{ url_for('account.unlink_discord') }}" method="POST">
-                            <button type="submit" class="btn btn-outline-danger">
-                                <i class="ti ti-link-off me-2"></i>Disconnect Discord
-                            </button>
-                        </form>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-warning d-flex align-items-center mb-3">
-                        <i class="ti ti-alert-triangle me-2"></i>
-                        <div>
-                            <strong>Not Connected</strong>
-                            <div class="small">Link your Discord to access more features</div>
-                        </div>
-                    </div>
-                    <a href="{{ url_for('account.link_discord') }}" class="btn btn-primary">
-                        <i class="ti ti-brand-discord me-2"></i>Connect Discord Account
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
+    </div>
 
-            <!-- Calendar Subscription Card -->
-            <div class="card settings-card mb-4" id="calendarSubscriptionCard">
-                <div class="card-header d-flex align-items-center pb-2 border-bottom">
-                    <div class="settings-icon bg-info bg-opacity-10 text-info me-3">
-                        <i class="ti ti-calendar-share"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-0">Calendar Subscription</h5>
-                        <small class="text-muted">Sync your schedule to Google, Apple, or Outlook</small>
-                    </div>
-                </div>
-                <div class="card-body pt-3">
-                    <!-- Loading State -->
-                    <div id="subscriptionLoading" class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="text-muted mt-2 mb-0">Loading subscription...</p>
-                    </div>
-
-                    <!-- Error State -->
-                    <div id="subscriptionError" class="alert alert-danger" style="display: none;"></div>
-
-                    <!-- Content -->
-                    <div id="subscriptionContent" style="display: none;">
-                        <!-- Subscription URL -->
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Your Subscription URL</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="subscriptionUrl" readonly
-                                       placeholder="Loading...">
-                                <button class="btn btn-outline-primary" type="button" id="copySubscriptionUrl">
-                                    <i class="ti ti-copy me-1"></i>Copy
-                                </button>
-                            </div>
-                            <small class="text-muted">This is your personal calendar feed URL. Keep it private.</small>
-                        </div>
-
-                        <!-- Quick Subscribe Buttons -->
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Quick Subscribe</label>
-                            <div class="d-flex gap-2 flex-wrap">
-                                <button type="button" class="btn btn-outline-secondary" id="subscribeWebcal">
-                                    <i class="ti ti-device-mobile me-1"></i>iOS / macOS
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary" id="subscribeGoogle">
-                                    <i class="ti ti-brand-google me-1"></i>Google Calendar
-                                </button>
-                            </div>
-                            <small class="text-muted d-block mt-2">
-                                For Outlook: Copy the URL above and add it as a subscription calendar.
-                            </small>
-                        </div>
-
-                        <!-- Preferences -->
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Include in Calendar</label>
-                            <div class="form-check form-switch mb-2">
-                                <input class="form-check-input" type="checkbox" id="subIncludeMatches" checked>
-                                <label class="form-check-label" for="subIncludeMatches">
-                                    <i class="ti ti-ball-football me-1"></i>Team Matches
-                                </label>
-                            </div>
-                            <div class="form-check form-switch mb-2">
-                                <input class="form-check-input" type="checkbox" id="subIncludeLeagueEvents" checked>
-                                <label class="form-check-label" for="subIncludeLeagueEvents">
-                                    <i class="ti ti-calendar-event me-1"></i>League Events
-                                </label>
-                            </div>
-                            {% if is_referee %}
-                            <div class="form-check form-switch mb-2">
-                                <input class="form-check-input" type="checkbox" id="subIncludeRefAssignments" checked>
-                                <label class="form-check-label" for="subIncludeRefAssignments">
-                                    <i class="ti ti-whistle me-1"></i>Referee Assignments
-                                </label>
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Stats -->
-                        <div class="row g-3 mb-4">
-                            <div class="col-6">
-                                <div class="bg-light rounded p-3 text-center">
-                                    <small class="text-muted d-block">Last Synced</small>
-                                    <span class="fw-semibold" id="subLastAccessed">Never</span>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="bg-light rounded p-3 text-center">
-                                    <small class="text-muted d-block">Total Syncs</small>
-                                    <span class="fw-semibold" id="subAccessCount">0</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Security -->
-                        <div class="border-top pt-3">
-                            <h6 class="fw-semibold text-muted small text-uppercase mb-2">Security</h6>
-                            <p class="text-muted small mb-3">
-                                If you believe your subscription URL has been compromised, regenerate it below.
-                                This will invalidate your current URL.
-                            </p>
-                            <button type="button" class="btn btn-outline-danger btn-sm" id="regenerateSubscriptionToken">
-                                <i class="ti ti-refresh me-1"></i>Regenerate URL
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Player Status & Team Info (Debug/Info Section) -->
-            {% if safe_current_user.player %}
-            <div class="card settings-card mb-4">
-                <div class="card-header d-flex align-items-center pb-2 border-bottom">
-                    <div class="settings-icon bg-success bg-opacity-10 text-success me-3">
-                        <i class="ti ti-shield-check"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-0">Player Status</h5>
-                        <small class="text-muted">Your current team and season information</small>
-                    </div>
-                </div>
-                <div class="card-body pt-3">
-                    <div class="row g-3 mb-3">
-                        <div class="col-sm-6">
-                            <small class="text-muted">Player Status:</small>
-                            <div class="fw-semibold">
-                                {% if safe_current_user.player.is_current_player %}
-                                <span class="badge bg-success">Active</span>
-                                {% else %}
-                                <span class="badge bg-danger">Inactive</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <small class="text-muted">User Status:</small>
-                            <div class="fw-semibold">
-                                {% if safe_current_user.is_authenticated %}
-                                <span class="badge bg-success">Authenticated</span>
-                                {% else %}
-                                <span class="badge bg-danger">Not Authenticated</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row g-3 mb-3">
-                        <div class="col-sm-6">
-                            <small class="text-muted">Primary Team:</small>
-                            <div class="fw-semibold">
-                                {% if safe_current_user.player.primary_team %}
-                                {{ safe_current_user.player.primary_team.name }}
-                                {% else %}
-                                <span class="text-muted">No primary team</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <small class="text-muted">League:</small>
-                            <div class="fw-semibold">
-                                {% if safe_current_user.player.league %}
-                                {{ safe_current_user.player.league.name }}
-                                {% else %}
-                                <span class="text-muted">No league</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {% if user_team and user_team|length > 0 %}
-                    <div class="mb-3">
-                        <small class="text-muted">Current Teams:</small>
-                        <div class="d-flex flex-wrap gap-1 mt-1">
-                            {% for team in user_team %}
-                            <span class="badge bg-primary">{{ team.name }}</span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if safe_current_user.player.teams and safe_current_user.player.teams|length > 0 %}
-                    <div class="mb-3">
-                        <small class="text-muted">All Teams:</small>
-                        <div class="d-flex flex-wrap gap-1 mt-1">
-                            {% for team in safe_current_user.player.teams %}
-                            <span class="badge bg-outline-primary">{{ team.name }}</span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    <!-- Wallet Eligibility Check -->
-                    <div class="mt-3 p-3 border rounded">
-                        <small class="fw-semibold d-block mb-2">Apple Wallet Eligibility:</small>
-                        <div class="small">
-                            <div class="d-flex align-items-center mb-1">
-                                {% if safe_current_user.player %}
-                                <i class="ti ti-check text-success me-2"></i><span class="text-success">Has player profile</span>
-                                {% else %}
-                                <i class="ti ti-x text-danger me-2"></i><span class="text-danger">Missing player profile</span>
-                                {% endif %}
-                            </div>
-                            <div class="d-flex align-items-center mb-1">
-                                {% if safe_current_user.player and safe_current_user.player.is_current_player %}
-                                <i class="ti ti-check text-success me-2"></i><span class="text-success">Player is active</span>
-                                {% else %}
-                                <i class="ti ti-x text-danger me-2"></i><span class="text-danger">Player is not active</span>
-                                {% endif %}
-                            </div>
-                            <div class="d-flex align-items-center mb-1">
-                                {% if safe_current_user.is_authenticated %}
-                                <i class="ti ti-check text-success me-2"></i><span class="text-success">User is authenticated</span>
-                                {% else %}
-                                <i class="ti ti-x text-danger me-2"></i><span class="text-danger">User not authenticated</span>
-                                {% endif %}
-                            </div>
-                            <div class="d-flex align-items-center">
-                                {% set has_any_team = (safe_current_user.player.primary_team) or (user_team and user_team|length > 0) or (safe_current_user.player.teams and safe_current_user.player.teams|length > 0) %}
-                                {% if has_any_team %}
-                                <i class="ti ti-check text-success me-2"></i><span class="text-success">Has team assignment (primary, current season, or any team)</span>
-                                {% else %}
-                                <i class="ti ti-x text-danger me-2"></i><span class="text-danger">No team assignments found</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-            
-            <!-- Apple Wallet Pass Section -->
-            {% set has_any_team = (safe_current_user.player.primary_team) or (user_team and user_team|length > 0) or (safe_current_user.player.teams and safe_current_user.player.teams|length > 0) %}
-            {% if safe_current_user.player and safe_current_user.player.is_current_player and safe_current_user.is_authenticated and has_any_team %}
-            <div class="card settings-card mb-4">
-                <div class="card-header d-flex align-items-center pb-2 border-bottom">
-                    <div class="settings-icon bg-info bg-opacity-10 text-info me-3">
-                        <i class="ti ti-device-mobile"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-0">Apple Wallet</h5>
-                        <small class="text-muted">Download your ECS FC membership pass</small>
-                    </div>
-                </div>
-                <div class="card-body pt-3">
-                    <div class="text-center mb-4">
-                        <div class="mb-3">
-                            <i class="ti ti-device-mobile text-info mb-2" style="font-size: 3rem;"></i>
-                            <h5 class="mb-1">ECS FC Membership Pass</h5>
-                            <p class="text-muted mb-0">
-                                Add your membership card to Apple Wallet for easy access during games and events.
-                            </p>
-                        </div>
-                        
-                        <!-- Official Apple Wallet Badge -->
-                        <a href="{{ url_for('wallet.get_wallet_pass', user_id=safe_current_user.id) }}" 
-                           class="d-inline-block wallet-badge">
-                            <svg width="180" height="50" viewBox="0 0 180 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <!-- Black background with rounded corners -->
-                                <rect width="180" height="50" rx="8" fill="#000000"/>
-                                
-                                <!-- Apple logo -->
-                                <g transform="translate(12, 12)">
-                                    <path d="M16.23 9.5c0-1.95.8-3.74 2.1-5.02A7.5 7.5 0 0 0 12.77 2c-1.41 0-2.94.83-3.7.83-.76 0-1.94-.81-3.19-.79a5.87 5.87 0 0 0-4.94 3.01c-2.1 3.65-.54 9.05 1.51 12.01 1 1.45 2.2 3.08 3.77 3.02 1.53-.06 2.1-.99 3.94-.99s2.35.99 3.95.96c1.63-.03 2.69-1.47 3.69-2.93a12.85 12.85 0 0 0 1.68-3.43 7.18 7.18 0 0 1-4.36-6.59zm-2.52-7.47c.83-1 1.39-2.38 1.24-3.76-1.2.05-2.66.8-3.52 1.8-.77.89-1.45 2.31-1.27 3.67 1.34.1 2.72-.68 3.55-1.71z" fill="white"/>
-                                </g>
-                                
-                                <!-- Text -->
-                                <text x="45" y="20" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="9" font-weight="400" fill="white">Add to</text>
-                                <text x="45" y="35" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="500" fill="white">Apple Wallet</text>
-                            </svg>
-                        </a>
-
-                        <style>
-                        .wallet-badge {
-                            transition: transform 0.2s ease, opacity 0.2s ease;
-                        }
-                        .wallet-badge:hover {
-                            transform: scale(1.05);
-                            opacity: 0.9;
-                        }
-                        .wallet-badge svg {
-                            border-radius: 8px;
-                            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-                        }
-                        
-                        /* Mobile responsive */
-                        @media (max-width: 576px) {
-                            .wallet-badge svg {
-                                width: 160px;
-                                height: 44px;
-                            }
-                        }
-                        </style>
-                    </div>
-                    
-                    <div class="row g-3 mb-3">
-                        <div class="col-sm-6">
-                            <div class="text-center p-2 border rounded">
-                                <small class="text-muted d-block">Player</small>
-                                <div class="fw-semibold">{{ safe_current_user.player.name }}</div>
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="text-center p-2 border rounded">
-                                <small class="text-muted d-block">Team</small>
-                                <div class="fw-semibold">
-                                    {% if safe_current_user.player.primary_team %}
-                                    {{ safe_current_user.player.primary_team.name }}
-                                    {% elif user_team and user_team|length > 0 %}
-                                    {{ user_team[0].name }}
-                                    {% elif safe_current_user.player.teams and safe_current_user.player.teams|length > 0 %}
-                                    {{ safe_current_user.player.teams[0].name }}
-                                    {% else %}
-                                    Team Member
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="alert alert-info border-0 bg-light">
-                        <div class="d-flex align-items-start">
-                            <i class="ti ti-info-circle me-2 mt-1"></i>
-                            <div class="small">
-                                <strong>How it works:</strong> Your membership pass will be added to Apple Wallet on your iPhone. 
-                                Use it for easy check-in at games and events. The pass updates automatically when your team or league information changes.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
+    <!-- Tab Content -->
+    <div class="tab-content">
+        {% include 'settings/_account_tab.html' %}
+        {% include 'settings/_appearance_tab.html' %}
+        {% include 'settings/_security_tab.html' %}
+        {% include 'settings/_notifications_tab.html' %}
+        {% include 'settings/_integrations_tab.html' %}
     </div>
 </div>
 
@@ -693,7 +121,7 @@
                     <form id="smsOptInForm">
                         <div class="mb-3">
                             <label for="phoneNumber" class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" id="phoneNumber" required 
+                            <input type="tel" class="form-control" id="phoneNumber" required
                                    value="{{ safe_current_user.player.phone if safe_current_user.player else '' }}"
                                    placeholder="Enter your phone number">
                             <div class="form-text">Format: +1XXXXXXXXXX or just 10 digits for US</div>
@@ -701,7 +129,7 @@
                         <div class="mb-3 form-check ms-0 ps-0">
                             <input type="checkbox" class="form-check-input ms-0" id="smsConsent" required>
                             <label class="form-check-label ms-4" for="smsConsent">
-                                I consent to receive text messages from ECS FC about team updates, schedule changes, and important announcements. 
+                                I consent to receive text messages from ECS FC about team updates, schedule changes, and important announcements.
                                 Standard message and data rates may apply. You can opt out at any time by texting STOP or updating your preferences.
                             </label>
                         </div>
@@ -755,6 +183,7 @@
 
 {% block custom_js %}
 {{ super() }}
+<script src="{{ url_for('static', filename='custom_js/settings-tabs.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/settings.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/handle_2fa.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/sms-verification.js') }}"></script>

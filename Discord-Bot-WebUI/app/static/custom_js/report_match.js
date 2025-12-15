@@ -340,8 +340,8 @@ window.removeEvent = function(button) {
             text: "Do you want to remove this event?",
             icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd',
+            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
             confirmButtonText: 'Yes, remove it'
         }).then((result) => {
             if (result.isConfirmed) {
@@ -1382,8 +1382,8 @@ $(document).on('submit', '.report-match-form', function (e) {
         text: "Are you sure you want to submit this match report?",
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
         confirmButtonText: 'Yes, submit it!'
     }).then((result) => {
         if (result.isConfirmed) {

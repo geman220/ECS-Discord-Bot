@@ -682,6 +682,72 @@ def mobile_profile_success(player_id):
     )
 
 
+@players_bp.route('/profile/wizard', endpoint='profile_wizard', methods=['GET', 'POST'])
+@login_required
+def profile_wizard():
+    """
+    Multi-step profile verification wizard.
+    Entry point for QR code scanning at registration events.
+    Requires login - redirects to login page if not authenticated.
+    """
+    session = g.db_session
+
+    # Get the player record for the current user
+    player = session.query(Player).filter_by(user_id=safe_current_user.id).first()
+
+    if not player:
+        show_error('No player profile found for your account.')
+        return redirect(url_for('main.index'))
+
+    user = player.user
+
+    # Build jersey size choices from existing data
+    jersey_sizes = session.query(Player.jersey_size).distinct().all()
+    jersey_size_choices = [(size[0], size[0]) for size in jersey_sizes if size[0]]
+
+    form = PlayerProfileForm(obj=player)
+    form.jersey_size.choices = jersey_size_choices
+
+    # Handle wizard completion (POST)
+    if request.method == 'POST' and 'complete_wizard' in request.form:
+        try:
+            from app.profile_helpers import handle_wizard_completion
+            return handle_wizard_completion(form, player, user)
+        except Exception as e:
+            logger.exception(f"Error completing profile wizard for player {player.id}: {str(e)}")
+            show_error('Error saving profile. Please try again.')
+            return redirect(url_for('players.profile_wizard'))
+
+    # Initialize form data on GET
+    if request.method == 'GET':
+        form.email.data = user.email
+        form.other_positions.data = (
+            player.other_positions.strip('{}').split(',')
+            if player.other_positions else []
+        )
+        form.positions_not_to_play.data = (
+            player.positions_not_to_play.strip('{}').split(',')
+            if player.positions_not_to_play else []
+        )
+
+    # Check if profile is expired (5 months)
+    profile_expired = False
+    if player.profile_last_updated:
+        five_months_ago = datetime.utcnow() - timedelta(days=150)
+        profile_expired = player.profile_last_updated < five_months_ago
+
+    session.commit()
+
+    return render_template(
+        'player_profile_wizard.html',
+        title='Profile Verification',
+        player=player,
+        user=user,
+        form=form,
+        profile_expired=profile_expired
+    )
+
+
 @players_bp.route('/profile/<int:player_id>/verify', endpoint='verify_profile', methods=['POST'])
 @login_required
 def verify_profile(player_id):
@@ -1039,6 +1105,145 @@ def contact_player_discord(player_id):
     except Exception as e:
         show_error(f"Error contacting Discord bot: {str(e)}")
     
+    return redirect(url_for('players.player_profile', player_id=player_id))
+
+
+@players_bp.route('/contact_player/<int:player_id>', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
+def contact_player(player_id):
+    """
+    Send a message to a player via multiple channels (email, SMS, Discord).
+    Supports broadcast to multiple channels simultaneously.
+    """
+    from app.email import send_email
+    from app.sms_helpers import send_sms
+
+    # Get form data
+    channels = request.form.getlist('contact_channels')
+    message_text = request.form.get('message', '').strip()
+    subject = request.form.get('subject', 'Message from ECS').strip()
+
+    if not channels:
+        show_error("Please select at least one contact channel.")
+        return redirect(url_for('players.player_profile', player_id=player_id))
+
+    if not message_text:
+        show_error("Message cannot be empty.")
+        return redirect(url_for('players.player_profile', player_id=player_id))
+
+    player = Player.query.get_or_404(player_id)
+    user = User.query.get(player.user_id)
+
+    if not user:
+        show_error("Could not find user associated with this player.")
+        return redirect(url_for('players.player_profile', player_id=player_id))
+
+    # Track results for each channel
+    results = {'success': [], 'failed': []}
+
+    # Commit session before making external calls
+    g.db_session.commit()
+
+    # Process each selected channel
+    for channel in channels:
+        if channel == 'email':
+            # Send email
+            if not user.email:
+                results['failed'].append('Email: No email address on file')
+                continue
+            if not user.email_notifications:
+                results['failed'].append('Email: Player has disabled email notifications')
+                continue
+
+            try:
+                # Create HTML email body
+                email_body = f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <div style="background-color: #7367f0; color: white; padding: 20px; text-align: center;">
+                        <h2 style="margin: 0;">Message from ECS</h2>
+                    </div>
+                    <div style="padding: 20px; background-color: #f8f9fa;">
+                        <p style="white-space: pre-wrap;">{message_text}</p>
+                    </div>
+                    <div style="padding: 15px; background-color: #e9ecef; font-size: 12px; color: #666;">
+                        <p style="margin: 0;">This message was sent by an ECS administrator or coach.</p>
+                        <p style="margin: 5px 0 0;">If you have questions, please contact the league directly.</p>
+                    </div>
+                </div>
+                """
+                result = send_email(user.email, subject, email_body)
+                if result:
+                    results['success'].append('Email')
+                else:
+                    results['failed'].append('Email: Failed to send')
+            except Exception as e:
+                current_app.logger.error(f"Error sending email to player {player_id}: {str(e)}")
+                results['failed'].append(f'Email: {str(e)[:50]}')
+
+        elif channel == 'sms':
+            # Send SMS
+            if not player.phone:
+                results['failed'].append('SMS: No phone number on file')
+                continue
+            if not user.sms_notifications:
+                results['failed'].append('SMS: Player has disabled SMS notifications')
+                continue
+
+            try:
+                # Prepend sender info to SMS message
+                sms_message = f"[ECS] {message_text}"
+                success, sms_result = send_sms(player.phone, sms_message)
+                if success:
+                    results['success'].append('SMS')
+                else:
+                    results['failed'].append(f'SMS: {sms_result[:50]}')
+            except Exception as e:
+                current_app.logger.error(f"Error sending SMS to player {player_id}: {str(e)}")
+                results['failed'].append(f'SMS: {str(e)[:50]}')
+
+        elif channel == 'discord':
+            # Send Discord DM
+            if not player.discord_id:
+                results['failed'].append('Discord: No Discord account linked')
+                continue
+            if not user.discord_notifications:
+                results['failed'].append('Discord: Player has disabled Discord notifications')
+                continue
+
+            try:
+                payload = {
+                    "message": message_text,
+                    "discord_id": player.discord_id
+                }
+                bot_api_url = current_app.config.get('BOT_API_URL', 'http://localhost:5001') + '/send_discord_dm'
+                response = requests.post(bot_api_url, json=payload, timeout=10)
+
+                if response.status_code == 200:
+                    results['success'].append('Discord')
+                else:
+                    try:
+                        error_data = response.json()
+                        error_detail = error_data.get('detail', 'Unknown error')
+                        results['failed'].append(f'Discord: {error_detail[:50]}')
+                    except ValueError:
+                        results['failed'].append(f'Discord: Status {response.status_code}')
+            except requests.exceptions.Timeout:
+                results['failed'].append('Discord: Service timed out')
+            except requests.exceptions.ConnectionError:
+                results['failed'].append('Discord: Cannot connect to bot service')
+            except Exception as e:
+                current_app.logger.error(f"Error sending Discord to player {player_id}: {str(e)}")
+                results['failed'].append(f'Discord: {str(e)[:50]}')
+
+    # Show appropriate message based on results
+    if results['success'] and not results['failed']:
+        show_success(f"Message sent successfully via: {', '.join(results['success'])}")
+    elif results['success'] and results['failed']:
+        show_warning(f"Message sent via {', '.join(results['success'])}. Failed: {'; '.join(results['failed'])}")
+    else:
+        show_error(f"Failed to send message: {'; '.join(results['failed'])}")
+
     return redirect(url_for('players.player_profile', player_id=player_id))
 
 

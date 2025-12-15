@@ -261,8 +261,8 @@ function revokeTask(taskId, matchId, taskType) {
         text: `Are you sure you want to revoke this ${taskType} task?`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#6c757d',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
         confirmButtonText: 'Yes, revoke it!'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -300,8 +300,8 @@ function rescheduleTask(matchId, taskType) {
         text: `This will reschedule the ${taskType} task for match ${matchId}`,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#6c757d',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
         confirmButtonText: 'Yes, reschedule!'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -732,7 +732,7 @@ function clearAllMatches() {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Yes, clear all!',
-        confirmButtonColor: '#d33'
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
             fetch('/admin/match_management/clear-all', {
@@ -771,7 +771,7 @@ function removeMatch(matchId) {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Yes, remove it!',
-        confirmButtonColor: '#d33'
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
             fetch(`/admin/match_management/remove/${matchId}`, {

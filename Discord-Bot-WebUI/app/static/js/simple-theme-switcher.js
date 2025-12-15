@@ -9,14 +9,25 @@
 class SimpleThemeSwitcher {
   constructor() {
     this.themes = ['light', 'dark', 'system'];
+    this.variants = ['classic', 'modern'];
     this.currentTheme = 'light';
+    this.currentVariant = 'modern';
     this.init();
   }
-  
+
   init() {
     // Don't load theme here - it's handled in DOMContentLoaded to prevent FOUC
     this.setupEventListeners();
     this.setupSystemThemeDetection();
+    this.loadSavedVariant();
+  }
+
+  /**
+   * Load variant from localStorage
+   */
+  loadSavedVariant() {
+    const savedVariant = localStorage.getItem('theme-variant') || 'modern';
+    this.currentVariant = this.variants.includes(savedVariant) ? savedVariant : 'modern';
   }
   
   /**
@@ -231,13 +242,136 @@ class SimpleThemeSwitcher {
   getEffectiveTheme() {
     return this.resolveSystemTheme(this.currentTheme);
   }
+
+  // ========================================================================
+  // THEME VARIANT METHODS (Classic / Modern)
+  // ========================================================================
+
+  /**
+   * Set the theme variant (classic or modern)
+   * @param {string} variant - 'classic' or 'modern'
+   * @param {boolean} save - Whether to save to localStorage and server
+   */
+  setVariant(variant, save = true) {
+    if (!this.variants.includes(variant)) {
+      console.warn(`Invalid variant: ${variant}. Using modern instead.`);
+      variant = 'modern';
+    }
+
+    console.log('Setting variant to:', variant);
+    this.currentVariant = variant;
+
+    // Apply variant to document
+    document.documentElement.setAttribute('data-theme-variant', variant);
+
+    // Update variant class
+    document.documentElement.classList.remove('theme-classic', 'theme-modern');
+    document.documentElement.classList.add(`theme-${variant}`);
+
+    if (save) {
+      // Save to localStorage
+      localStorage.setItem('theme-variant', variant);
+
+      // Save to server
+      this.saveVariantToServer(variant);
+    }
+
+    // Dispatch custom event for other components
+    document.dispatchEvent(new CustomEvent('variantChanged', {
+      detail: { variant: variant }
+    }));
+
+    // If switching to modern, we need to reload to load the CSS files
+    // (since they're conditionally loaded server-side)
+    if (save) {
+      // Show a brief notification then reload
+      this.notifyAndReload(variant);
+    }
+
+    console.log('Variant applied successfully');
+  }
+
+  /**
+   * Show notification and reload page to apply variant CSS
+   */
+  notifyAndReload(variant) {
+    // Use SweetAlert2 if available, otherwise just reload
+    if (typeof Swal !== 'undefined') {
+      Swal.fire({
+        title: 'Applying Theme',
+        text: `Switching to ${variant} theme...`,
+        icon: 'info',
+        timer: 1500,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        allowOutsideClick: false
+      }).then(() => {
+        window.location.reload();
+      });
+    } else {
+      window.location.reload();
+    }
+  }
+
+  /**
+   * Save variant preference to server
+   */
+  saveVariantToServer(variant) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (!csrfToken) {
+      console.warn('CSRF token not found, variant not saved to server');
+      return;
+    }
+
+    fetch('/set-theme-variant', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Csrftoken': csrfToken.getAttribute('content')
+      },
+      body: JSON.stringify({ variant: variant })
+    }).then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    }).then(data => {
+      if (!data.success) {
+        console.error('Variant save failed:', data.message);
+      }
+    }).catch(error => {
+      console.error('Failed to save variant to server:', error);
+    });
+  }
+
+  /**
+   * Get current variant
+   */
+  getCurrentVariant() {
+    return this.currentVariant;
+  }
+
+  /**
+   * Check if modern theme is active
+   */
+  isModern() {
+    return this.currentVariant === 'modern';
+  }
+
+  /**
+   * Toggle between classic and modern
+   */
+  toggleVariant() {
+    const newVariant = this.currentVariant === 'classic' ? 'modern' : 'classic';
+    this.setVariant(newVariant);
+  }
 }
 
 // Initialize theme switcher when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   // Create global instance
   window.themeSwitcher = new SimpleThemeSwitcher();
-  
+
   // Check if theme sync is needed (set by early script)
   if (window._themeNeedsSync) {
     // Theme was already applied at top of page, just sync to server
@@ -246,17 +380,25 @@ document.addEventListener('DOMContentLoaded', () => {
     window.themeSwitcher.updateThemeIcon(window._themeNeedsSync.theme);
     window.themeSwitcher.updateActiveMenuItem(window._themeNeedsSync.theme);
     delete window._themeNeedsSync; // Clean up
-    return;
   }
-  
+
+  // Check if variant sync is needed (set by early script)
+  if (window._variantNeedsSync) {
+    window.themeSwitcher.currentVariant = window._variantNeedsSync.variant;
+    window.themeSwitcher.saveVariantToServer(window._variantNeedsSync.variant);
+    delete window._variantNeedsSync; // Clean up
+  }
+
   // Get current theme (already set by early script)
   const currentTheme = document.documentElement.getAttribute('data-style') || 'light';
-  
+  const currentVariant = document.documentElement.getAttribute('data-theme-variant') || 'modern';
+
   // Just update the UI to match what's already applied
   window.themeSwitcher.currentTheme = currentTheme;
+  window.themeSwitcher.currentVariant = currentVariant;
   window.themeSwitcher.updateThemeIcon(currentTheme);
   window.themeSwitcher.updateActiveMenuItem(currentTheme);
-  
+
   // No need to call setTheme() - theme is already applied correctly
 });
 

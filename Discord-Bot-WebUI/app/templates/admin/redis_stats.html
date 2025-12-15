@@ -5,8 +5,8 @@
 {% block extra_css %}
 <style>
     .stat-card {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
+        background: var(--ecs-neutral-5, #f8f9fa);
+        border: 1px solid var(--ecs-neutral-20, #dee2e6);
         border-radius: 0.375rem;
         padding: 1rem;
         margin-bottom: 1rem;
@@ -14,10 +14,10 @@
     .stat-value {
         font-size: 1.5rem;
         font-weight: bold;
-        color: #495057;
+        color: var(--ecs-neutral-60, #495057);
     }
     .stat-label {
-        color: #6c757d;
+        color: var(--ecs-secondary, #6c757d);
         font-size: 0.875rem;
     }
     .health-indicator {
@@ -27,11 +27,11 @@
         border-radius: 50%;
         margin-right: 8px;
     }
-    .health-healthy { background-color: #28a745; }
-    .health-unhealthy { background-color: #dc3545; }
-    .health-warning { background-color: #ffc107; }
+    .health-healthy { background-color: var(--ecs-success, #28a745); }
+    .health-unhealthy { background-color: var(--ecs-danger, #dc3545); }
+    .health-warning { background-color: var(--ecs-warning, #ffc107); }
     .auto-refresh {
-        background: #e9ecef;
+        background: var(--ecs-neutral-10, #e9ecef);
         padding: 10px;
         border-radius: 5px;
         margin-bottom: 20px;

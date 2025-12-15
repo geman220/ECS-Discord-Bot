@@ -28,7 +28,7 @@
 
 .season-section {
     border-left: 4px solid var(--bs-info);
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: linear-gradient(135deg, var(--ecs-neutral-5, #f8f9fa) 0%, var(--ecs-neutral-10, #e9ecef) 100%);
 }
 
 .league-section {
@@ -94,7 +94,7 @@
     transform: rotate(3deg) scale(1.05);
     z-index: 1000;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    border: 2px dashed #007bff;
+    border: 2px dashed var(--ecs-primary, #007bff);
 }
 
 .sortable-item {
@@ -113,7 +113,7 @@
     top: -15px;
     left: 50%;
     transform: translateX(-50%);
-    background: linear-gradient(135deg, #28a745, #20c997);
+    background: linear-gradient(135deg, var(--ecs-success, #28a745), var(--ecs-success-light, #20c997));
     color: white;
     padding: 8px 16px;
     border-radius: 20px;
@@ -132,7 +132,7 @@
 }
 
 .sortable-item.drag-over .card {
-    border: 2px solid #28a745;
+    border: 2px solid var(--ecs-success, #28a745);
     background: rgba(40,167,69,0.05);
 }
 

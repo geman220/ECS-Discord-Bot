@@ -211,47 +211,15 @@ def task_monitoring_page():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def database_monitor():
-    """Database monitoring page."""
+    """Database monitoring page with real database statistics."""
     try:
-        # Create placeholder data for database monitoring
-        db_stats = {
-            'status': 'connected',
-            'active_connections': 5,
-            'max_connections': 20,
-            'queries_per_sec': 12,
-            'avg_query_time': '45ms',
-            'timeout': '30s',
-            'overflow': 5,
-            'failed_connections': 0
-        }
-        
-        db_info = {
-            'type': 'PostgreSQL',
-            'version': '13.x',
-            'size': '45MB',
-            'table_count': 12,
-            'uptime': '7d 3h'
-        }
-        
-        query_stats = {
-            'total_queries': 1250,
-            'avg_time': '45ms',
-            'slow_queries': 3,
-            'failed_queries': 0
-        }
-        
-        health_check = {
-            'connection': True,
-            'query_test': True,
-            'table_check': True,
-            'performance': True,
-            'query_time': '25ms',
-            'last_run': datetime.utcnow()
-        }
-        
+        db_stats = _get_database_connection_stats()
+        db_info = _get_database_info()
+        query_stats = _get_query_statistics()
+        health_check = _perform_database_health_check()
         slow_queries = _get_slow_queries()
         recent_activity = _get_database_activity()
-        
+
         return render_template('admin_panel/monitoring/database_monitor.html',
                              db_stats=db_stats,
                              db_info=db_info,
@@ -853,7 +821,255 @@ def _get_database_activity():
             ])
         
         return activities[:10]  # Return max 10 activities
-        
+
     except Exception as e:
         logger.error(f"Error getting database activity: {e}")
         return []
+
+
+def _get_database_connection_stats():
+    """Get real database connection pool statistics."""
+    try:
+        from sqlalchemy import text
+
+        pool = db.engine.pool
+
+        # Get connection pool stats
+        pool_size = getattr(pool, 'size', lambda: 5)
+        pool_size = pool_size() if callable(pool_size) else pool_size
+
+        checked_in = getattr(pool, 'checkedin', lambda: 0)
+        checked_in = checked_in() if callable(checked_in) else checked_in
+
+        checked_out = getattr(pool, 'checkedout', lambda: 0)
+        checked_out = checked_out() if callable(checked_out) else checked_out
+
+        overflow = getattr(pool, 'overflow', lambda: 0)
+        overflow = overflow() if callable(overflow) else overflow
+
+        # Query PostgreSQL for active connections if possible
+        active_connections = checked_out
+        try:
+            result = db.session.execute(text(
+                "SELECT count(*) FROM pg_stat_activity WHERE state = 'active'"
+            ))
+            active_connections = result.scalar() or checked_out
+        except Exception:
+            pass
+
+        return {
+            'status': 'connected',
+            'active_connections': active_connections,
+            'max_connections': pool_size,
+            'pool_checked_in': checked_in,
+            'pool_checked_out': checked_out,
+            'queries_per_sec': _estimate_queries_per_second(),
+            'avg_query_time': _estimate_avg_query_time(),
+            'timeout': '30s',
+            'overflow': overflow,
+            'failed_connections': 0
+        }
+    except Exception as e:
+        logger.error(f"Error getting database connection stats: {e}")
+        return {
+            'status': 'error',
+            'active_connections': 0,
+            'max_connections': 0,
+            'queries_per_sec': 0,
+            'avg_query_time': 'N/A',
+            'timeout': 'N/A',
+            'overflow': 0,
+            'failed_connections': 1
+        }
+
+
+def _get_database_info():
+    """Get database server information."""
+    try:
+        from sqlalchemy import text, inspect
+
+        # Get database type and version
+        db_type = 'PostgreSQL'
+        version = 'Unknown'
+        try:
+            result = db.session.execute(text("SELECT version()"))
+            version_str = result.scalar()
+            if version_str:
+                # Extract version number (e.g., "PostgreSQL 13.4")
+                parts = version_str.split()
+                if len(parts) >= 2:
+                    version = parts[1].split()[0] if parts[1] else parts[1]
+        except Exception:
+            pass
+
+        # Get database size
+        size = 'Unknown'
+        try:
+            result = db.session.execute(text(
+                "SELECT pg_size_pretty(pg_database_size(current_database()))"
+            ))
+            size = result.scalar() or 'Unknown'
+        except Exception:
+            pass
+
+        # Get table count
+        table_count = 0
+        try:
+            inspector = inspect(db.engine)
+            table_count = len(inspector.get_table_names())
+        except Exception:
+            pass
+
+        # Get uptime
+        uptime = 'Unknown'
+        try:
+            result = db.session.execute(text(
+                "SELECT pg_postmaster_start_time()"
+            ))
+            start_time = result.scalar()
+            if start_time:
+                uptime_delta = datetime.utcnow() - start_time.replace(tzinfo=None)
+                days = uptime_delta.days
+                hours = uptime_delta.seconds // 3600
+                uptime = f"{days}d {hours}h"
+        except Exception:
+            pass
+
+        return {
+            'type': db_type,
+            'version': version,
+            'size': size,
+            'table_count': table_count,
+            'uptime': uptime
+        }
+    except Exception as e:
+        logger.error(f"Error getting database info: {e}")
+        return {
+            'type': 'Unknown',
+            'version': 'Unknown',
+            'size': 'Unknown',
+            'table_count': 0,
+            'uptime': 'Unknown'
+        }
+
+
+def _get_query_statistics():
+    """Get database query statistics."""
+    try:
+        from app.models.admin_config import AdminAuditLog
+
+        # Count operations in last 24 hours as a proxy for queries
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+        total_queries = AdminAuditLog.query.filter(
+            AdminAuditLog.created_at >= cutoff
+        ).count()
+
+        # Estimate slow queries (any operation taking multiple DB calls)
+        slow_queries = 0
+        try:
+            # Count complex operations that might involve slow queries
+            complex_ops = AdminAuditLog.query.filter(
+                AdminAuditLog.created_at >= cutoff,
+                AdminAuditLog.action.in_(['bulk_update', 'sync', 'migration', 'report'])
+            ).count()
+            slow_queries = complex_ops
+        except Exception:
+            pass
+
+        return {
+            'total_queries': total_queries,
+            'avg_time': _estimate_avg_query_time(),
+            'slow_queries': slow_queries,
+            'failed_queries': 0
+        }
+    except Exception as e:
+        logger.error(f"Error getting query statistics: {e}")
+        return {
+            'total_queries': 0,
+            'avg_time': 'N/A',
+            'slow_queries': 0,
+            'failed_queries': 0
+        }
+
+
+def _perform_database_health_check():
+    """Perform a health check on the database."""
+    import time
+
+    health = {
+        'connection': False,
+        'query_test': False,
+        'table_check': False,
+        'performance': False,
+        'query_time': 'N/A',
+        'last_run': datetime.utcnow()
+    }
+
+    try:
+        from sqlalchemy import text, inspect
+
+        # Test 1: Connection
+        try:
+            db.session.execute(text("SELECT 1"))
+            health['connection'] = True
+        except Exception:
+            return health
+
+        # Test 2: Query test with timing
+        try:
+            start_time = time.time()
+            db.session.execute(text("SELECT COUNT(*) FROM users"))
+            query_time = (time.time() - start_time) * 1000  # Convert to ms
+            health['query_test'] = True
+            health['query_time'] = f"{query_time:.0f}ms"
+            health['performance'] = query_time < 1000  # Pass if under 1 second
+        except Exception:
+            pass
+
+        # Test 3: Table check
+        try:
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
+            health['table_check'] = len(tables) > 0
+        except Exception:
+            pass
+
+    except Exception as e:
+        logger.error(f"Error performing database health check: {e}")
+
+    return health
+
+
+def _estimate_queries_per_second():
+    """Estimate queries per second based on recent activity."""
+    try:
+        from app.models.admin_config import AdminAuditLog
+
+        # Count operations in last minute
+        cutoff = datetime.utcnow() - timedelta(minutes=1)
+        recent_ops = AdminAuditLog.query.filter(
+            AdminAuditLog.created_at >= cutoff
+        ).count()
+
+        # Each operation might involve multiple queries, estimate ~3 per operation
+        return recent_ops * 3 // 60  # Per second
+
+    except Exception:
+        return 0
+
+
+def _estimate_avg_query_time():
+    """Estimate average query time."""
+    import time
+
+    try:
+        from sqlalchemy import text
+
+        # Run a representative query and time it
+        start_time = time.time()
+        db.session.execute(text("SELECT COUNT(*) FROM users"))
+        query_time = (time.time() - start_time) * 1000
+
+        return f"{query_time:.0f}ms"
+    except Exception:
+        return "N/A"

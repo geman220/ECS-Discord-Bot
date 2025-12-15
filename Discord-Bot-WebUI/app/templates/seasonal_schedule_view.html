@@ -886,8 +886,8 @@ function deleteMatch(matchId) {
         text: 'Are you sure you want to delete this match? This action cannot be undone.',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#6c757d',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
         confirmButtonText: 'Yes, delete it',
         cancelButtonText: 'Cancel'
     }).then((result) => {
@@ -940,8 +940,8 @@ function deleteWeek(weekNum) {
         text: 'Are you sure you want to delete this entire week and all its matches? This action cannot be undone.',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#6c757d',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
         confirmButtonText: 'Yes, delete it',
         cancelButtonText: 'Cancel'
     }).then((result) => {

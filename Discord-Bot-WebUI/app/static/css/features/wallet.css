@@ -1,0 +1,41 @@
+/* Wallet Feature Styles */
+
+/* Wallet Pass Info */
+.wallet-qr-container {
+    text-align: center;
+}
+
+.wallet-qr-code {
+    width: 200px;
+    height: 200px;
+}
+
+.wallet-info-section {
+    margin-bottom: 2rem;
+}
+
+.wallet-feature-icon {
+    font-size: 3rem;
+}
+
+.wallet-success-icon {
+    width: 80px;
+    height: 80px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wallet-success-icon i {
+    font-size: 2.5rem;
+}
+
+.wallet-branding-logo {
+    height: 40px;
+    opacity: 0.7;
+}
+
+/* Dark mode support */
+[data-bs-theme="dark"] .wallet-qr-code {
+    background-color: var(--ecs-dark-bg-card, #25282f);
+}

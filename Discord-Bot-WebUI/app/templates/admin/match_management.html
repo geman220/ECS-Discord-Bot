@@ -665,7 +665,7 @@
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(135deg, #666CFF 0%, #4C63D2 100%);
+    background: linear-gradient(135deg, var(--ecs-primary, #666CFF) 0%, var(--ecs-primary-dark, #4C63D2) 100%);
     opacity: 0;
     transition: opacity 0.3s ease;
 }
@@ -715,15 +715,15 @@
 
 .task-card:hover {
     background: rgba(67, 89, 113, 0.02);
-    border-left-color: #666CFF;
+    border-left-color: var(--ecs-primary, #666CFF);
 }
 
 .task-card.thread {
-    border-left-color: #28c76f;
+    border-left-color: var(--ecs-success, #28c76f);
 }
 
 .task-card.reporting {
-    border-left-color: #ff9f43;
+    border-left-color: var(--ecs-warning, #ff9f43);
 }
 
 .no-task-card {
@@ -771,7 +771,7 @@
 
 .table th {
     font-weight: 600;
-    color: #5a6c7d;
+    color: var(--ecs-neutral-50, #5a6c7d);
     border-bottom: 2px solid rgba(67, 89, 113, 0.1);
 }
 
@@ -816,7 +816,7 @@
 /* Filter active states */
 .form-select:focus,
 .form-control:focus {
-    border-color: #666CFF;
+    border-color: var(--ecs-primary, #666CFF);
     box-shadow: 0 0 0 0.2rem rgba(102, 108, 255, 0.15);
 }
 
@@ -831,7 +831,7 @@
 
 /* Dark mode support */
 [data-theme="dark"] .match-card {
-    background-color: #2b2c40;
+    background-color: var(--ecs-dark-bg-card, #2b2c40);
     border-color: rgba(255, 255, 255, 0.1);
 }
 

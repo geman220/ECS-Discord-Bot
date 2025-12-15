@@ -1,31 +1,65 @@
 'use strict';
 
-// JS global variables
+/**
+ * ECS Theme Configuration
+ * Colors are read from CSS variables defined in core/variables.css
+ * This ensures JS and CSS stay in sync with the admin color customization
+ */
+
+// Utility function to get CSS variable value
+function getCSSVariable(name, fallback) {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+}
+
+// Initialize colors from CSS variables (called after DOM ready)
+function initConfigColors() {
+  config.colors = {
+    primary: getCSSVariable('--ecs-primary', '#7C3AED'),
+    success: getCSSVariable('--ecs-success', '#10B981'),
+    danger: getCSSVariable('--ecs-danger', '#EF4444'),
+    warning: getCSSVariable('--ecs-warning', '#F59E0B'),
+    info: getCSSVariable('--ecs-info', '#3B82F6'),
+    secondary: getCSSVariable('--ecs-secondary', '#64748B'),
+    light: getCSSVariable('--ecs-neutral-5', '#FAFAFA'),
+    dark: getCSSVariable('--ecs-neutral-90', '#18181B'),
+  };
+
+  config.colors_label = { ...config.colors };
+
+  config.colors_dark = {
+    cardBg: getCSSVariable('--ecs-dark-bg-card', '#18181B'),
+    bodyBg: getCSSVariable('--ecs-dark-bg-body', '#09090B'),
+    headerBg: getCSSVariable('--ecs-dark-bg-elevated', '#27272A'),
+  };
+}
+
+// JS global variables - initial values (will be updated by initConfigColors)
 let config = {
   colors: {
-    primary: '#7367F0',
-    success: '#28C76F',
-    danger: '#EA5455',
-    warning: '#FF9F43',
-    info: '#00cfe8',
-    secondary: '#82868b',
-    light: '#f4f5fa',
-    dark: '#4b4b4b',
+    primary: '#7C3AED',
+    success: '#10B981',
+    danger: '#EF4444',
+    warning: '#F59E0B',
+    info: '#3B82F6',
+    secondary: '#64748B',
+    light: '#FAFAFA',
+    dark: '#18181B',
   },
   colors_label: {
-    primary: '#7367F0',
-    success: '#28C76F',
-    danger: '#EA5455',
-    warning: '#FF9F43',
-    info: '#00cfe8',
-    secondary: '#82868b',
-    light: '#f4f5fa',
-    dark: '#4b4b4b',
+    primary: '#7C3AED',
+    success: '#10B981',
+    danger: '#EF4444',
+    warning: '#F59E0B',
+    info: '#3B82F6',
+    secondary: '#64748B',
+    light: '#FAFAFA',
+    dark: '#18181B',
   },
   colors_dark: {
-    cardBg: '#2d2d39',
-    bodyBg: '#25293c',
-    headerBg: '#1e2029',
+    cardBg: '#18181B',
+    bodyBg: '#09090B',
+    headerBg: '#27272A',
   },
   enableMenuLocalStorage: true, // Enable menu state with local storage support
 
@@ -57,7 +91,9 @@ let assetsPath = document.documentElement.getAttribute('data-assets-path'),
   templateName = document.documentElement.getAttribute('data-template'),
   rtlSupport = true; // set to true for RTL support, false otherwise.
 
-// Set the default content layout to 'wide' (replaces TemplateCustomizer)
+// Set the default content layout to 'wide' and initialize colors from CSS variables
 document.addEventListener('DOMContentLoaded', function() {
   document.documentElement.setAttribute('data-content', 'wide');
+  // Initialize colors from CSS variables after DOM is ready
+  initConfigColors();
 });

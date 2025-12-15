@@ -379,7 +379,7 @@ document.querySelectorAll('input[data-feature]').forEach(toggle => {
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, Disable',
-                confirmButtonColor: '#dc3545'
+                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
             }).then((result) => {
                 if (result.isConfirmed) {
                     toggleFeature(feature, enabled);
@@ -507,7 +507,7 @@ function emergencyKillSwitch() {
         icon: 'error',
         showCancelButton: true,
         confirmButtonText: 'EMERGENCY DISABLE',
-        confirmButtonColor: '#dc3545',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {

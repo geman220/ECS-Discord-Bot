@@ -77,8 +77,8 @@
 
     .markdown-modal-header {
         padding: 0.75rem 1rem;
-        background: #f5f5f5;
-        border-bottom: 1px solid #ddd;
+        background: var(--ecs-neutral-5, #f5f5f5);
+        border-bottom: 1px solid var(--ecs-neutral-20, #ddd);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -109,11 +109,11 @@
 
     /* ---------- EasyMDE & CodeMirror Styling ---------- */
     .CodeMirror {
-        border: 1px solid #ced4da;
+        border: 1px solid var(--ecs-neutral-30, #ced4da);
         border-radius: 0.25rem;
         min-height: 300px;
         font-size: 1rem;
-        background: #fff !important;
+        background: var(--bs-white, #fff) !important;
     }
 
     .CodeMirror-cursor {
@@ -136,8 +136,8 @@
 
     /* ---------- Toolbar Styling ---------- */
     .markdown-modal-content .editor-toolbar {
-        background: #f5f5f5 !important;
-        border-bottom: 1px solid #ddd !important;
+        background: var(--ecs-neutral-5, #f5f5f5) !important;
+        border-bottom: 1px solid var(--ecs-neutral-20, #ddd) !important;
         display: flex;
         flex-wrap: wrap;
         gap: 4px;
@@ -159,13 +159,13 @@
         }
 
     .editor-toolbar button:hover {
-        background: #e9ecef !important;
+        background: var(--ecs-neutral-10, #e9ecef) !important;
     }
 
     .editor-toolbar button.active {
-        background: #e9ecef !important;
-        border-color: #80bdff !important;
-        box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+        background: var(--ecs-neutral-10, #e9ecef) !important;
+        border-color: var(--ecs-primary-light, #80bdff) !important;
+        box-shadow: 0 0 0 0.2rem rgba(var(--ecs-primary-rgb, 0, 123, 255), 0.25);
     }
 
     .editor-statusbar {

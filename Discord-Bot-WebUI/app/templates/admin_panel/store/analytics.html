@@ -260,7 +260,7 @@ new Chart(ordersCtx, {
         datasets: [{
             label: 'Orders',
             data: ordersData.map(d => d.count),
-            borderColor: '#0d6efd',
+            borderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd',
             backgroundColor: 'rgba(13, 110, 253, 0.1)',
             tension: 0.4,
             fill: true
@@ -290,11 +290,11 @@ const statusData = {{ analytics.status_stats | tojson }};
 const statusLabels = Object.keys(statusData);
 const statusValues = Object.values(statusData);
 const statusColors = {
-    'PENDING': '#ffc107',
-    'PROCESSING': '#0dcaf0', 
-    'ORDERED': '#0d6efd',
-    'DELIVERED': '#198754',
-    'CANCELLED': '#dc3545'
+    'PENDING': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107',
+    'PROCESSING': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : '#0dcaf0',
+    'ORDERED': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd',
+    'DELIVERED': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754',
+    'CANCELLED': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
 };
 
 const statusCtx = document.getElementById('statusChart').getContext('2d');

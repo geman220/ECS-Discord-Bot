@@ -266,24 +266,189 @@
 function createTeam() {
     Swal.fire({
         title: 'Create New Team',
-        text: 'Team creation functionality coming soon!',
-        icon: 'info'
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">Team Name <span class="text-danger">*</span></label>
+                    <input type="text" id="teamName" class="form-control" placeholder="e.g., FC United">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">League</label>
+                    <select id="teamLeagueId" class="form-select">
+                        <option value="">No League</option>
+                        {% for league in leagues %}
+                        <option value="{{ league.id }}">{{ league.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Create Team',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const name = document.getElementById('teamName').value;
+            if (!name) {
+                Swal.showValidationMessage('Team name is required');
+                return false;
+            }
+            return {
+                name: name,
+                league_id: document.getElementById('teamLeagueId').value
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const formData = new FormData();
+            formData.append('name', result.value.name);
+            if (result.value.league_id) {
+                formData.append('league_id', result.value.league_id);
+            }
+
+            fetch('{{ url_for("admin_panel.create_team") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            })
+            .catch(() => Swal.fire('Error', 'Failed to create team', 'error'));
+        }
     });
 }
 
 function viewTeam(teamId) {
-    Swal.fire({
-        title: 'View Team Details',
-        text: 'Team details functionality coming soon!',
-        icon: 'info'
-    });
+    fetch(`/admin-panel/match-operations/teams/${teamId}/details`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const team = data.team;
+                Swal.fire({
+                    title: team.name,
+                    html: `
+                        <div class="text-start">
+                            <p><strong>Team ID:</strong> ${team.id}</p>
+                            <p><strong>League:</strong> ${team.league_name || 'No League'}</p>
+                            <p><strong>Players:</strong> ${team.player_count}</p>
+                        </div>
+                    `,
+                    icon: 'info'
+                });
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        })
+        .catch(() => Swal.fire('Error', 'Failed to load team details', 'error'));
 }
 
 function editTeam(teamId) {
+    // First fetch the team details
+    fetch(`/admin-panel/match-operations/teams/${teamId}/details`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const team = data.team;
+                Swal.fire({
+                    title: 'Edit Team',
+                    html: `
+                        <div class="text-start">
+                            <div class="mb-3">
+                                <label class="form-label">Team Name <span class="text-danger">*</span></label>
+                                <input type="text" id="editTeamName" class="form-control" value="${team.name}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">League</label>
+                                <select id="editTeamLeagueId" class="form-select">
+                                    <option value="">No League</option>
+                                    {% for league in leagues %}
+                                    <option value="{{ league.id }}">${team.league_id == {{ league.id }} ? 'selected' : ''}>{{ league.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <p class="text-muted small mb-0">Players: ${team.player_count}</p>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    showDenyButton: true,
+                    confirmButtonText: 'Save Changes',
+                    denyButtonText: 'Delete Team',
+                    denyButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : 'var(--ecs-danger)',
+                    cancelButtonText: 'Cancel',
+                    didOpen: () => {
+                        document.getElementById('editTeamLeagueId').value = team.league_id || '';
+                    },
+                    preConfirm: () => {
+                        const name = document.getElementById('editTeamName').value;
+                        if (!name) {
+                            Swal.showValidationMessage('Team name is required');
+                            return false;
+                        }
+                        return {
+                            name: name,
+                            league_id: document.getElementById('editTeamLeagueId').value
+                        };
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const formData = new FormData();
+                        formData.append('name', result.value.name);
+                        if (result.value.league_id) {
+                            formData.append('league_id', result.value.league_id);
+                        }
+
+                        fetch(`/admin-panel/match-operations/teams/${teamId}/update`, {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                            } else {
+                                Swal.fire('Error', data.message, 'error');
+                            }
+                        })
+                        .catch(() => Swal.fire('Error', 'Failed to update team', 'error'));
+                    } else if (result.isDenied) {
+                        deleteTeam(teamId, team.name);
+                    }
+                });
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        })
+        .catch(() => Swal.fire('Error', 'Failed to load team details', 'error'));
+}
+
+function deleteTeam(teamId, teamName) {
     Swal.fire({
-        title: 'Edit Team',
-        text: 'Team editing functionality coming soon!',
-        icon: 'info'
+        title: 'Delete Team?',
+        text: `Are you sure you want to delete "${teamName}"? This cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : 'var(--ecs-danger)',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/admin-panel/match-operations/teams/${teamId}/delete`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Deleted', data.message, 'success').then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            })
+            .catch(() => Swal.fire('Error', 'Failed to delete team', 'error'));
+        }
     });
 }
 
@@ -295,30 +460,5 @@ function manageRoster(teamId) {
 {% endblock %}
 
 {% block custom_css %}
-<style>
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.team-logo {
-    flex-shrink: 0;
-}
-
-@media (max-width: 768px) {
-    .d-flex.justify-content-between {
-        flex-direction: column;
-        align-items: flex-start !important;
-    }
-    
-    .d-flex.justify-content-between > div:last-child {
-        margin-top: 0.25rem;
-    }
-    
-    .team-logo {
-        display: none;
-    }
-}
-</style>
+{{ super() }}
 {% endblock %}

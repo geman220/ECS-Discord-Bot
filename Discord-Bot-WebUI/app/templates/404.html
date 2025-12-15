@@ -7,7 +7,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #f5f7fa 0%, #e4edf9 100%);
+        background: linear-gradient(135deg, var(--ecs-neutral-5, #f8f9fa) 0%, var(--ecs-neutral-20, #e9ecef) 100%);
     }
     
     .error-container {
@@ -23,7 +23,7 @@
         font-size: 8rem;
         font-weight: 800;
         line-height: 1;
-        background: linear-gradient(90deg, #00539F, #50C878);
+        background: linear-gradient(90deg, var(--sounders-blue, #00539F), #50C878);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         margin-bottom: 1rem;
@@ -43,7 +43,7 @@
     }
     
     .error-joke {
-        background-color: #f8f9fa;
+        background-color: var(--ecs-neutral-5, #f8f9fa);
         padding: 1.5rem;
         border-radius: 10px;
         margin-bottom: 2rem;
@@ -51,7 +51,7 @@
         color: #555;
         font-size: 1.1rem;
         position: relative;
-        border-left: 4px solid #00539F;
+        border-left: 4px solid var(--sounders-blue, #00539F);
     }
     
     .error-joke:before {
@@ -66,7 +66,7 @@
     .home-button {
         padding: 0.75rem 2rem;
         font-weight: 600;
-        background-color: #00539F;
+        background-color: var(--sounders-blue, #00539F);
         color: white;
         border-radius: 8px;
         transition: all 0.3s;
@@ -74,7 +74,7 @@
         display: inline-block;
         box-shadow: 0 4px 10px rgba(0, 83, 159, 0.2);
     }
-    
+
     .home-button:hover {
         background-color: #0066CC;
         transform: translateY(-2px);

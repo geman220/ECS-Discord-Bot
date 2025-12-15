@@ -520,7 +520,7 @@
                 <div class="image-position-container">
                     <!-- Preview that matches header exactly -->
                     <div class="header-preview-container mb-3" style="width: 100%; max-width: 750px; margin: 0 auto;">
-                        <div class="header-preview" id="headerPreview" style="width: 100%; padding-bottom: 30%; height: 0; background-color: #f0f0f0; border: 2px solid #0d6efd; border-radius: 8px; overflow: hidden; position: relative;">
+                        <div class="header-preview" id="headerPreview" style="width: 100%; padding-bottom: 30%; height: 0; background-color: var(--ecs-neutral-10, #f0f0f0); border: 2px solid var(--ecs-primary, #0d6efd); border-radius: 8px; overflow: hidden; position: relative;">
                             <div class="preview-image-wrapper" id="previewImageWrapper" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: cover; background-position: center; background-repeat: no-repeat; cursor: move;">
                                 <!-- Overlay showing it's draggable -->
                                 <div class="position-absolute top-50 start-50 translate-middle text-center" style="pointer-events: none; z-index: 10;">
@@ -708,12 +708,12 @@
     
     /* Override cropper styles for better visibility */
     .cropper-crop-box {
-        border-color: #0d6efd !important;
+        border-color: var(--ecs-primary, #0d6efd) !important;
         border-width: 2px !important;
     }
-    
+
     .cropper-view-box {
-        outline-color: #0d6efd !important;
+        outline-color: var(--ecs-primary, #0d6efd) !important;
     }
     
     
@@ -787,11 +787,11 @@
     }
     
     .card-yellow {
-        background-color: #fdac41;
+        background-color: var(--ecs-warning, #fdac41);
     }
-    
+
     .card-red {
-        background-color: #ff5b5c;
+        background-color: var(--ecs-danger, #ff5b5c);
     }
     
     /* Match List Styling */
@@ -801,7 +801,7 @@
     
     /* ECS FC Match Styling */
     .ecs-fc-match {
-        border-left: 4px solid #007bff !important;
+        border-left: 4px solid var(--ecs-primary, #007bff) !important;
         background: linear-gradient(90deg, rgba(0,123,255,0.05) 0%, transparent 100%);
     }
     
@@ -1278,8 +1278,8 @@ document.addEventListener('DOMContentLoaded', function() {
                           `<small class="text-info">This is a manual fix for the draft role assignment issue.</small>`,
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonColor: '#ffc107',
-                    cancelButtonColor: '#6c757d',
+                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-warning').trim() || '#ffc107',
+                    cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d',
                     confirmButtonText: 'Yes, Assign Roles',
                     cancelButtonText: 'Cancel',
                     focusCancel: false
@@ -1314,8 +1314,8 @@ document.addEventListener('DOMContentLoaded', function() {
                           `Players in the server will be checked every 30 days automatically.</small>`,
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonColor: '#17a2b8',
-                    cancelButtonColor: '#6c757d',
+                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-info').trim() || '#17a2b8',
+                    cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d',
                     confirmButtonText: 'Yes, Refresh Status',
                     cancelButtonText: 'Cancel',
                     focusCancel: false
@@ -1537,8 +1537,8 @@ document.addEventListener('DOMContentLoaded', function() {
                           `<small class="text-info">This will immediately check their current status.</small>`,
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonColor: '#17a2b8',
-                    cancelButtonColor: '#6c757d',
+                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-info').trim() || '#17a2b8',
+                    cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d',
                     confirmButtonText: 'Yes, Check Now',
                     cancelButtonText: 'Cancel',
                     focusCancel: false
@@ -1683,8 +1683,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     html: `Are you sure you want to delete the match against <strong>${opponentName}</strong> on <strong>${matchDate}</strong>?<br><br><small class="text-danger">This action cannot be undone.</small>`,
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#dc3545',
-                    cancelButtonColor: '#6c757d',
+                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-danger').trim() || '#dc3545',
+                    cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d',
                     confirmButtonText: 'Yes, Delete Match',
                     cancelButtonText: 'Cancel',
                     focusCancel: true

@@ -1,0 +1,132 @@
+{# Notifications Settings Tab Partial #}
+<div class="tab-pane fade" id="tab-notifications" role="tabpanel">
+    <div class="row">
+        <div class="col-lg-8">
+            <form id="notificationForm" action="{{ url_for('account.update_notifications') }}" method="POST">
+                {{ notification_form.hidden_tag() }}
+
+                <!-- Email Notifications -->
+                <div class="card settings-card mb-3">
+                    <div class="card-body d-flex align-items-start">
+                        <div class="settings-icon bg-primary bg-opacity-10 text-primary me-3 flex-shrink-0">
+                            <i class="ti ti-mail"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <h6 class="mb-0">Email Notifications</h6>
+                                    <small class="text-muted">Receive updates via email</small>
+                                </div>
+                                <div class="form-check form-switch mb-0">
+                                    {{ notification_form.email_notifications(class="form-check-input") }}
+                                </div>
+                            </div>
+                            <p class="text-muted small mb-0">
+                                Match schedules, team announcements, and league updates will be sent to {{ safe_current_user.email }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Discord Notifications -->
+                <div class="card settings-card mb-3">
+                    <div class="card-body d-flex align-items-start">
+                        <div class="settings-icon bg-discord bg-opacity-10 me-3 flex-shrink-0" style="background-color: rgba(88, 101, 242, 0.1); color: #5865F2;">
+                            <i class="ti ti-brand-discord"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <h6 class="mb-0">Discord Notifications</h6>
+                                    <small class="text-muted">Receive DMs via Discord bot</small>
+                                </div>
+                                <div class="form-check form-switch mb-0">
+                                    {{ notification_form.discord_notifications(class="form-check-input") }}
+                                </div>
+                            </div>
+                            {% if safe_current_user.player and safe_current_user.player.discord_id %}
+                            <p class="text-muted small mb-0">
+                                Direct messages will be sent to your linked Discord account
+                            </p>
+                            {% else %}
+                            <p class="text-warning small mb-0">
+                                <i class="ti ti-alert-triangle me-1"></i>
+                                Link your Discord account in the Integrations tab to receive notifications
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SMS Notifications -->
+                <div class="card settings-card mb-3">
+                    <div class="card-body d-flex align-items-start">
+                        <div class="settings-icon bg-success bg-opacity-10 text-success me-3 flex-shrink-0">
+                            <i class="ti ti-message-text"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <h6 class="mb-0">SMS Notifications</h6>
+                                    <small class="text-muted">Receive text messages</small>
+                                </div>
+                                {% if safe_current_user.sms_notifications %}
+                                <span class="badge bg-success">Enabled</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Disabled</span>
+                                {% endif %}
+                            </div>
+
+                            {% if safe_current_user.sms_notifications %}
+                            <p class="text-muted small mb-2">
+                                {% if safe_current_user.player and safe_current_user.player.phone %}
+                                Receiving texts at {{ safe_current_user.player.phone }}
+                                {% else %}
+                                SMS notifications are enabled
+                                {% endif %}
+                            </p>
+                            <button type="button" id="smsOptOutBtn" class="btn btn-outline-danger btn-sm">
+                                <i class="ti ti-bell-off me-1"></i>Disable SMS
+                            </button>
+                            {% else %}
+                            <p class="text-muted small mb-2">
+                                Get instant text alerts for last-minute schedule changes and game-day updates
+                            </p>
+                            <button type="button" id="smsOptInBtn" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#smsOptInModal">
+                                <i class="ti ti-bell-plus me-1"></i>Enable SMS Notifications
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="ti ti-device-floppy me-2"></i>Save Notification Preferences
+                </button>
+            </form>
+        </div>
+
+        <!-- Info Sidebar -->
+        <div class="col-lg-4">
+            <div class="card border-0 bg-light">
+                <div class="card-body">
+                    <h6 class="fw-semibold mb-3">
+                        <i class="ti ti-info-circle me-2"></i>About Notifications
+                    </h6>
+                    <p class="small text-muted mb-3">
+                        Control how you receive important updates from ECS FC. You can enable multiple channels to ensure you never miss a message.
+                    </p>
+
+                    <h6 class="fw-semibold mb-2 small text-uppercase text-muted">What you'll receive:</h6>
+                    <ul class="small text-muted ps-3 mb-0">
+                        <li>Match schedules and reminders</li>
+                        <li>Team announcements</li>
+                        <li>Last-minute schedule changes</li>
+                        <li>League updates and news</li>
+                        <li>Season registration reminders</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

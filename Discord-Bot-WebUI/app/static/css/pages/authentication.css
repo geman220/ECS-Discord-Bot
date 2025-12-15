@@ -28,7 +28,7 @@ body.auth-page {
 .authentication-inner {
     width: 100%;
     max-width: 600px;
-    background-color: white;
+    background-color: var(--ecs-neutral-0);
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -41,8 +41,8 @@ body.auth-page {
 
 /* ===== AUTHENTICATION BUTTONS ===== */
 .waves-button-input {
-    background-color: #00539F !important;
-    color: white !important;
+    background-color: var(--ecs-primary) !important;
+    color: var(--ecs-neutral-0) !important;
     padding: 10px 20px;
     border-radius: 5px;
     font-size: 16px;
@@ -53,12 +53,12 @@ body.auth-page {
 }
 
 .waves-button-input:hover {
-    background-color: #004080 !important;
-    color: white !important;
+    background-color: var(--ecs-primary-dark) !important;
+    color: var(--ecs-neutral-0) !important;
 }
 
 .waves-button-input:focus {
-    outline: 2px solid rgba(0, 83, 159, 0.5);
+    outline: 2px solid rgba(var(--ecs-primary-rgb), 0.5);
     outline-offset: 2px;
 }
 
@@ -73,13 +73,13 @@ body.auth-page {
 .btn-discord {
     background-color: #5865f2 !important;
     border-color: #5865f2 !important;
-    color: white !important;
+    color: var(--ecs-neutral-0) !important;
 }
 
 .btn-discord:hover {
     background-color: #4752c4 !important;
     border-color: #4752c4 !important;
-    color: white !important;
+    color: var(--ecs-neutral-0) !important;
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
@@ -135,7 +135,7 @@ html[data-style="dark"] .waves-button-input:hover {
     }
     
     .authentication-inner {
-        border: 2px solid #000;
+        border: 2px solid var(--ecs-neutral-90);
     }
 }
 

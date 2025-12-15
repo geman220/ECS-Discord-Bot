@@ -9,14 +9,14 @@
     transition: all 0.3s ease;
 }
 .issue-resolved {
-    border-left-color: #28a745 !important;
+    border-left-color: var(--ecs-success, #28a745) !important;
     background-color: rgba(40, 167, 69, 0.1);
 }
 .issue-pending {
-    border-left-color: #ffc107;
+    border-left-color: var(--ecs-warning, #ffc107);
 }
 .issue-error {
-    border-left-color: #dc3545;
+    border-left-color: var(--ecs-danger, #dc3545);
 }
 .player-assignment {
     background: var(--bs-gray-50);

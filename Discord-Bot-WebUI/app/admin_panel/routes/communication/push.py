@@ -63,6 +63,23 @@ def push_notifications():
         delivery_rate = '95%' if total_subscribers > 0 else '0%'
         click_rate = '12%' if total_notifications > 0 else '0%'
 
+        # Get teams, leagues, roles for targeting selectors
+        from app.models import Team, League, Role
+        teams = Team.query.filter_by(is_active=True).order_by(Team.name).all()
+        leagues = League.query.filter_by(is_active=True).order_by(League.name).all()
+        roles = Role.query.order_by(Role.name).all()
+
+        # Get notification groups
+        try:
+            from app.models import NotificationGroup
+            notification_groups = NotificationGroup.query.filter_by(is_active=True).order_by(NotificationGroup.name).all()
+        except Exception:
+            notification_groups = []
+
+        # Check if push notifications are enabled
+        from app.models.admin_config import AdminConfig
+        push_notifications_enabled = AdminConfig.get_setting('push_notifications_enabled', True)
+
         stats = {
             'total_subscribers': total_subscribers,
             'notifications_sent_today': notifications_sent_today,
@@ -70,11 +87,16 @@ def push_notifications():
             'click_rate': click_rate,
             'active_subscribers': active_subscribers,
             'new_subscribers_week': new_subscribers_week,
-            'unsubscribed_count': unsubscribed_count
+            'unsubscribed_count': unsubscribed_count,
+            'push_notifications_enabled': push_notifications_enabled
         }
 
         return render_template('admin_panel/push_notifications.html',
                              notification_history=notification_history,
+                             teams=teams,
+                             leagues=leagues,
+                             roles=roles,
+                             notification_groups=notification_groups,
                              **stats)
     except Exception as e:
         logger.error(f"Error loading push notifications: {e}")

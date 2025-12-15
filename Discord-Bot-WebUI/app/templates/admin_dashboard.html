@@ -674,8 +674,8 @@ async function revokeTask(taskId) {
         `,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
         confirmButtonText: '💥 DESTROY IT',
         cancelButtonText: 'No, keep it',
         width: '500px'
@@ -771,8 +771,8 @@ async function removeTask(taskId) {
         text: 'This will remove the task from the list. Are you sure?',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#6c757d',
-        cancelButtonColor: '#dc3545',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
         confirmButtonText: 'Yes, remove it',
         cancelButtonText: 'Cancel'
     });
@@ -834,8 +834,8 @@ async function cleanupOldTasks() {
         `,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#ffc107',
-        cancelButtonColor: '#6c757d',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
         confirmButtonText: '🧹 Clean Up',
         cancelButtonText: 'Cancel'
     });

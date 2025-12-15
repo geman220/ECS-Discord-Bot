@@ -1,24 +1,24 @@
 <style>
     /* Test result styling for dark mode visibility */
     .badge.bg-label-primary {
-        background-color: rgba(105, 108, 255, 0.16) !important;
-        color: #696cff !important;
+        background-color: var(--ecs-primary-subtle, rgba(105, 108, 255, 0.16)) !important;
+        color: var(--ecs-primary, #696cff) !important;
     }
     .badge.bg-label-success {
-        background-color: rgba(40, 199, 111, 0.16) !important;
-        color: #28c76f !important;
+        background-color: var(--ecs-success-subtle, rgba(40, 199, 111, 0.16)) !important;
+        color: var(--ecs-success, #28c76f) !important;
     }
     .badge.bg-label-warning {
-        background-color: rgba(255, 159, 67, 0.16) !important;
-        color: #ff9f43 !important;
+        background-color: var(--ecs-warning-subtle, rgba(255, 159, 67, 0.16)) !important;
+        color: var(--ecs-warning, #ff9f43) !important;
     }
     .badge.bg-label-danger {
-        background-color: rgba(234, 84, 85, 0.16) !important;
-        color: #ea5455 !important;
+        background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.16)) !important;
+        color: var(--ecs-danger, #ea5455) !important;
     }
     .badge.bg-label-info {
-        background-color: rgba(0, 207, 232, 0.16) !important;
-        color: #00cfe8 !important;
+        background-color: var(--ecs-info-subtle, rgba(0, 207, 232, 0.16)) !important;
+        color: var(--ecs-info, #00cfe8) !important;
     }
     .test-result {
         padding: 1rem;
@@ -26,20 +26,20 @@
         margin-bottom: 0.75rem;
     }
     .test-result.passed {
-        background-color: rgba(40, 199, 111, 0.1);
-        border-left: 3px solid #28c76f;
+        background-color: var(--ecs-success-subtle, rgba(40, 199, 111, 0.1));
+        border-left: 3px solid var(--ecs-success, #28c76f);
     }
     .test-result.failed {
-        background-color: rgba(234, 84, 85, 0.1);
-        border-left: 3px solid #ea5455;
+        background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.1));
+        border-left: 3px solid var(--ecs-danger, #ea5455);
     }
     .test-result.skipped {
-        background-color: rgba(255, 159, 67, 0.1);
-        border-left: 3px solid #ff9f43;
+        background-color: var(--ecs-warning-subtle, rgba(255, 159, 67, 0.1));
+        border-left: 3px solid var(--ecs-warning, #ff9f43);
     }
     .test-result.info {
-        background-color: rgba(0, 207, 232, 0.1);
-        border-left: 3px solid #00cfe8;
+        background-color: var(--ecs-info-subtle, rgba(0, 207, 232, 0.1));
+        border-left: 3px solid var(--ecs-info, #00cfe8);
     }
 </style>
 

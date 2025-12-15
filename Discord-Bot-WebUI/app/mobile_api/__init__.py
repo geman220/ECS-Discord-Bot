@@ -23,6 +23,7 @@ This package provides RESTful API endpoints for mobile clients, organized by dom
 - coach_rsvp: Coach RSVP dashboard for team management
 - substitutes: Substitute request and pool management
 - calendar: Calendar events (matches + league events)
+- admin: Admin role and league management
 
 All endpoints are CSRF-exempt and use JWT authentication where required.
 """
@@ -60,6 +61,7 @@ def register_mobile_api_routes():
         coach_rsvp,
         substitutes,
         calendar,
+        admin,
     )
 
 

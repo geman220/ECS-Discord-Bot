@@ -322,20 +322,21 @@
 {% endblock %}
 
 {% block custom_css %}
+{{ super() }}
 <style>
 .btn-outline-purple {
-    color: #6f42c1;
-    border-color: #6f42c1;
+    color: var(--ecs-primary, #6f42c1);
+    border-color: var(--ecs-primary, #6f42c1);
 }
 
 .btn-outline-purple:hover {
-    color: #fff;
-    background-color: #6f42c1;
-    border-color: #6f42c1;
+    color: var(--bs-white, #fff);
+    background-color: var(--ecs-primary, #6f42c1);
+    border-color: var(--ecs-primary, #6f42c1);
 }
 
 .text-purple {
-    color: #6f42c1 !important;
+    color: var(--ecs-primary, #6f42c1) !important;
 }
 </style>
 {% endblock %}
@@ -349,7 +350,7 @@ function clearAllCache() {
         text: 'This will remove all cached data from the system.',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#f39c12',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#f39c12',
         confirmButtonText: 'Clear All Cache'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -549,7 +550,7 @@ function sendEmergencyAlert() {
             </div>
         `,
         showCancelButton: true,
-        confirmButtonColor: '#dc3545',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
         confirmButtonText: 'Send Emergency Alert',
         preConfirm: () => {
             const message = document.getElementById('emergencyMessage').value;
@@ -619,7 +620,7 @@ function toggleMaintenanceMode() {
         text: 'This will enable/disable system maintenance mode for all users.',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#dc3545',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
         confirmButtonText: 'Toggle Maintenance Mode'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -635,7 +636,7 @@ function clearSystemLogs() {
         text: 'This will permanently delete all system and error logs.',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#f39c12',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#f39c12',
         confirmButtonText: 'Clear All Logs'
     }).then((result) => {
         if (result.isConfirmed) {

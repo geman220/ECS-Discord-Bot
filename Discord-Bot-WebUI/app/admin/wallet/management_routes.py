@@ -30,6 +30,7 @@ from app.models.wallet_asset import WalletAsset
 from app.decorators import role_required
 from app.wallet_pass import validate_pass_configuration, create_pass_for_player
 from app.wallet_pass.services.pass_service import pass_service
+from app.wallet_pass.services.push_service import push_service
 from app.utils.user_helpers import safe_current_user
 
 from . import wallet_admin_bp
@@ -549,18 +550,29 @@ def download_pass(pass_id, platform):
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def invalidate_player_pass(player_id):
-    """API endpoint to invalidate a player's wallet pass"""
+    """API endpoint to invalidate a player's wallet pass and send push updates"""
     try:
         player = Player.query.get_or_404(player_id)
         player.is_current_player = False
         db.session.commit()
+
+        # Send push notifications to update existing passes on user devices
+        push_results = {'apple': None, 'google': None}
+        wallet_passes = WalletPass.query.filter_by(player_id=player_id, status='active').all()
+        for wallet_pass in wallet_passes:
+            result = push_service.update_pass_status(wallet_pass, 'voided', 'Player marked inactive')
+            if result.get('apple'):
+                push_results['apple'] = result['apple']
+            if result.get('google'):
+                push_results['google'] = result['google']
 
         logger.info(f"Invalidated wallet pass for player {player.name} (ID: {player_id})")
 
         return jsonify({
             'success': True,
             'message': f'Pass invalidated for {player.name}',
-            'player_id': player_id
+            'player_id': player_id,
+            'push_updates': push_results
         })
 
     except Exception as e:
@@ -572,18 +584,30 @@ def invalidate_player_pass(player_id):
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def reactivate_player_pass(player_id):
-    """API endpoint to reactivate a player's wallet pass"""
+    """API endpoint to reactivate a player's wallet pass and send push updates"""
     try:
         player = Player.query.get_or_404(player_id)
         player.is_current_player = True
         db.session.commit()
+
+        # Send push notifications to update existing passes on user devices
+        push_results = {'apple': None, 'google': None}
+        wallet_passes = WalletPass.query.filter_by(player_id=player_id).all()
+        for wallet_pass in wallet_passes:
+            if wallet_pass.status == 'voided':
+                result = push_service.update_pass_status(wallet_pass, 'active')
+                if result.get('apple'):
+                    push_results['apple'] = result['apple']
+                if result.get('google'):
+                    push_results['google'] = result['google']
 
         logger.info(f"Reactivated wallet pass for player {player.name} (ID: {player_id})")
 
         return jsonify({
             'success': True,
             'message': f'Pass reactivated for {player.name}',
-            'player_id': player_id
+            'player_id': player_id,
+            'push_updates': push_results
         })
 
     except Exception as e:

@@ -684,3 +684,279 @@ def cleanup_expired_requests(days_old: int = 7, session=None) -> Dict[str, int]:
         logger.exception(f"Error during cleanup of expired requests: {e}")
         session.rollback()
         return {'error': str(e)}
+
+
+# ============================================================================
+# Stat Attribution Helpers for Temporary Substitutes
+# ============================================================================
+
+def get_player_team_for_match(player_id: int, match_id: int, session=None) -> Optional[int]:
+    """
+    Get the team_id for a player in a specific match.
+    Checks TemporarySubAssignment first, then falls back to regular team assignment.
+
+    This is used for attributing match events (goals, assists, cards) to substitutes.
+
+    Args:
+        player_id: Player ID
+        match_id: Match ID
+        session: Database session (optional)
+
+    Returns:
+        Team ID if found, None otherwise
+    """
+    try:
+        if not session:
+            from app.core import db
+            session = db.session
+
+        from app.models.matches import TemporarySubAssignment, Match
+
+        # First, check for temporary sub assignment
+        temp_assignment = session.query(TemporarySubAssignment).filter_by(
+            player_id=player_id,
+            match_id=match_id,
+            is_active=True
+        ).first()
+
+        if temp_assignment:
+            return temp_assignment.team_id
+
+        # Fall back to regular team assignment
+        match = session.query(Match).get(match_id)
+        if not match:
+            return None
+
+        player = session.query(Player).get(player_id)
+        if not player:
+            return None
+
+        # Check if player is on either team
+        player_team_ids = [team.id for team in player.teams]
+
+        if match.home_team_id in player_team_ids:
+            return match.home_team_id
+        elif match.away_team_id in player_team_ids:
+            return match.away_team_id
+
+        return None
+
+    except Exception as e:
+        logger.exception(f"Error getting player team for match: {e}")
+        return None
+
+
+def get_match_eligible_players(match_id: int, team_id: int, session=None) -> List[Dict[str, Any]]:
+    """
+    Get all players eligible for match events for a specific team.
+    This includes both roster players AND temporary substitutes.
+
+    Args:
+        match_id: Match ID
+        team_id: Team ID
+        session: Database session (optional)
+
+    Returns:
+        List of player dictionaries with id, name, is_sub flag
+    """
+    try:
+        if not session:
+            from app.core import db
+            session = db.session
+
+        from app.models.matches import TemporarySubAssignment
+
+        players = []
+        seen_player_ids = set()
+
+        # Get regular roster players
+        team = session.query(Team).options(
+            joinedload(Team.players)
+        ).get(team_id)
+
+        if team:
+            for player in team.players:
+                players.append({
+                    'id': player.id,
+                    'name': player.name,
+                    'is_sub': False,
+                    'pronouns': player.pronouns,
+                    'favorite_position': player.favorite_position
+                })
+                seen_player_ids.add(player.id)
+
+        # Get temporary substitutes for this match
+        temp_subs = session.query(TemporarySubAssignment).options(
+            joinedload(TemporarySubAssignment.player)
+        ).filter_by(
+            match_id=match_id,
+            team_id=team_id,
+            is_active=True
+        ).all()
+
+        for temp_sub in temp_subs:
+            if temp_sub.player_id not in seen_player_ids:
+                players.append({
+                    'id': temp_sub.player.id,
+                    'name': temp_sub.player.name,
+                    'is_sub': True,
+                    'pronouns': temp_sub.player.pronouns,
+                    'favorite_position': temp_sub.player.favorite_position
+                })
+                seen_player_ids.add(temp_sub.player_id)
+
+        # Sort alphabetically by name
+        players.sort(key=lambda x: x['name'].lower())
+
+        return players
+
+    except Exception as e:
+        logger.exception(f"Error getting eligible players for match {match_id}, team {team_id}: {e}")
+        return []
+
+
+def is_player_temp_sub_for_match(player_id: int, match_id: int, session=None) -> bool:
+    """
+    Check if a player is a temporary substitute for a specific match.
+
+    Args:
+        player_id: Player ID
+        match_id: Match ID
+        session: Database session (optional)
+
+    Returns:
+        True if player is a temp sub for this match, False otherwise
+    """
+    try:
+        if not session:
+            from app.core import db
+            session = db.session
+
+        from app.models.matches import TemporarySubAssignment
+
+        temp_assignment = session.query(TemporarySubAssignment).filter_by(
+            player_id=player_id,
+            match_id=match_id,
+            is_active=True
+        ).first()
+
+        return temp_assignment is not None
+
+    except Exception as e:
+        logger.exception(f"Error checking temp sub status: {e}")
+        return False
+
+
+def create_temp_sub_assignment(
+    match_id: int,
+    player_id: int,
+    team_id: int,
+    assigned_by: int,
+    request_id: Optional[int] = None,
+    assignment_id: Optional[int] = None,
+    notes: Optional[str] = None,
+    session=None
+) -> Optional[Any]:
+    """
+    Create a TemporarySubAssignment for a player in a match.
+    This enables match events to be attributed to the sub.
+
+    Args:
+        match_id: Match ID
+        player_id: Player ID to assign as sub
+        team_id: Team ID the sub is playing for
+        assigned_by: User ID who made the assignment
+        request_id: Optional SubstituteRequest ID for audit trail
+        assignment_id: Optional SubstituteAssignment ID for audit trail
+        notes: Optional notes about the assignment
+        session: Database session (optional)
+
+    Returns:
+        Created TemporarySubAssignment or None if failed
+    """
+    try:
+        if not session:
+            from app.core import db
+            session = db.session
+
+        from app.models.matches import TemporarySubAssignment
+
+        # Check if assignment already exists
+        existing = session.query(TemporarySubAssignment).filter_by(
+            match_id=match_id,
+            player_id=player_id
+        ).first()
+
+        if existing:
+            # Reactivate if it was deactivated
+            if not existing.is_active:
+                existing.is_active = True
+                existing.team_id = team_id
+                existing.substitute_request_id = request_id
+                existing.substitute_assignment_id = assignment_id
+                existing.notes = notes
+                session.flush()
+            return existing
+
+        # Create new assignment
+        temp_assignment = TemporarySubAssignment(
+            match_id=match_id,
+            player_id=player_id,
+            team_id=team_id,
+            assigned_by=assigned_by,
+            is_active=True,
+            substitute_request_id=request_id,
+            substitute_assignment_id=assignment_id,
+            notes=notes
+        )
+
+        session.add(temp_assignment)
+        session.flush()
+
+        logger.info(f"Created temp sub assignment: player {player_id} for team {team_id} in match {match_id}")
+        return temp_assignment
+
+    except Exception as e:
+        logger.exception(f"Error creating temp sub assignment: {e}")
+        return None
+
+
+def deactivate_temp_sub_assignment(
+    match_id: int,
+    player_id: int,
+    session=None
+) -> bool:
+    """
+    Deactivate a TemporarySubAssignment.
+
+    Args:
+        match_id: Match ID
+        player_id: Player ID
+        session: Database session (optional)
+
+    Returns:
+        True if deactivated, False otherwise
+    """
+    try:
+        if not session:
+            from app.core import db
+            session = db.session
+
+        from app.models.matches import TemporarySubAssignment
+
+        assignment = session.query(TemporarySubAssignment).filter_by(
+            match_id=match_id,
+            player_id=player_id
+        ).first()
+
+        if assignment:
+            assignment.is_active = False
+            session.flush()
+            logger.info(f"Deactivated temp sub assignment: player {player_id} in match {match_id}")
+            return True
+
+        return False
+
+    except Exception as e:
+        logger.exception(f"Error deactivating temp sub assignment: {e}")
+        return False

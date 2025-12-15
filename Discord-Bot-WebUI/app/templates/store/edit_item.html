@@ -93,7 +93,7 @@
                                         {% for color in colors %}
                                         <div class="input-group mb-2">
                                             <input type="text" class="form-control" name="colors[]" value="{{ color }}" placeholder="e.g. Red, Blue, Green">
-                                            <button type="button" class="btn btn-outline-danger remove-color" {% if loop.first and loop.last %}style="display: none;"{% endif %}>
+                                            <button type="button" class="btn btn-outline-danger remove-color {% if loop.first and loop.last %}d-none{% endif %}">
                                                 <i class="ti ti-x"></i>
                                             </button>
                                         </div>
@@ -101,7 +101,7 @@
                                         {% else %}
                                         <div class="input-group mb-2">
                                             <input type="text" class="form-control" name="colors[]" placeholder="e.g. Red, Blue, Green">
-                                            <button type="button" class="btn btn-outline-danger remove-color" style="display: none;">
+                                            <button type="button" class="btn btn-outline-danger remove-color d-none">
                                                 <i class="ti ti-x"></i>
                                             </button>
                                         </div>
@@ -122,7 +122,7 @@
                                         {% for size in sizes %}
                                         <div class="input-group mb-2">
                                             <input type="text" class="form-control" name="sizes[]" value="{{ size }}" placeholder="e.g. S, M, L, XL">
-                                            <button type="button" class="btn btn-outline-danger remove-size" {% if loop.first and loop.last %}style="display: none;"{% endif %}>
+                                            <button type="button" class="btn btn-outline-danger remove-size {% if loop.first and loop.last %}d-none{% endif %}">
                                                 <i class="ti ti-x"></i>
                                             </button>
                                         </div>
@@ -130,7 +130,7 @@
                                         {% else %}
                                         <div class="input-group mb-2">
                                             <input type="text" class="form-control" name="sizes[]" placeholder="e.g. S, M, L, XL">
-                                            <button type="button" class="btn btn-outline-danger remove-size" style="display: none;">
+                                            <button type="button" class="btn btn-outline-danger remove-size d-none">
                                                 <i class="ti ti-x"></i>
                                             </button>
                                         </div>
@@ -211,9 +211,9 @@ document.addEventListener('DOMContentLoaded', function() {
         groups.forEach((group, index) => {
             const removeBtn = group.querySelector(`.remove-${type}`);
             if (groups.length > 1) {
-                removeBtn.style.display = 'block';
+                removeBtn.classList.remove('d-none');
             } else {
-                removeBtn.style.display = 'none';
+                removeBtn.classList.add('d-none');
             }
         });
     }

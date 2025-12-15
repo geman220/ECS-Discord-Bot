@@ -396,8 +396,8 @@ function processFromWaitlist(userId, userName) {
         text: `Process "${userName}" from the waitlist and approve their registration?`,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#6c757d',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
         confirmButtonText: 'Yes, process user!'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -432,12 +432,12 @@ function processFromWaitlist(userId, userName) {
 
 function removeFromWaitlist(userId, userName) {
     Swal.fire({
-        title: 'Remove from Waitlist?',  
+        title: 'Remove from Waitlist?',
         text: `Remove "${userName}" from the waitlist? This action cannot be undone.`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
         confirmButtonText: 'Yes, remove!'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -481,8 +481,8 @@ function processAllFromWaitlist() {
             text: 'Process all users from the waitlist and approve their registrations?',
             icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: '#28a745',
-            cancelButtonColor: '#6c757d',
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
+            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
             confirmButtonText: 'Yes, process all!'
         }).then((result) => {
             if (result.isConfirmed) {
@@ -513,8 +513,8 @@ function processAllFromWaitlist() {
             text: `Process ${selectedCount} selected users from the waitlist?`,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: '#28a745',
-            cancelButtonColor: '#6c757d',
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
+            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
             confirmButtonText: 'Yes, process selected!'
         }).then((result) => {
             if (result.isConfirmed) {

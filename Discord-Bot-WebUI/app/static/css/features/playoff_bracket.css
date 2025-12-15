@@ -40,41 +40,41 @@
 .bracket-match-card {
     position: relative;
     padding: 1rem;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--ecs-neutral-20);
     border-radius: 8px;
-    background: #fff;
+    background: var(--ecs-neutral-0);
     transition: all 0.3s ease;
     cursor: pointer;
-    color: #333;
+    color: var(--ecs-neutral-90);
 }
 
 /* Dark mode support */
 [data-style="dark"] .bracket-match-card {
-    background: #2f3349;
-    border-color: #434968;
-    color: #d4d5dd;
+    background: var(--ecs-dark-bg-elevated);
+    border-color: var(--ecs-dark-border);
+    color: var(--ecs-neutral-0);
 }
 
 .bracket-match-card:hover {
-    border-color: #696cff;
-    box-shadow: 0 4px 12px rgba(105, 108, 255, 0.15);
+    border-color: var(--ecs-primary);
+    box-shadow: 0 4px 12px rgba(115, 103, 240, 0.15);
     transform: translateY(-2px);
 }
 
 .bracket-match-card.reported {
-    border-color: #28a745;
-    background-color: #f0f9f4;
+    border-color: var(--ecs-success);
+    background-color: var(--ecs-neutral-5);
 }
 
 .bracket-match-card.current-team {
-    border-color: #ffc107;
-    background-color: #fff9e6;
+    border-color: var(--ecs-warning);
+    background-color: rgba(255, 193, 7, 0.1);
     border-width: 3px;
 }
 
 [data-style="dark"] .bracket-match-card.current-team {
-    background-color: #3e3416;
-    border-color: #ffc107;
+    background-color: rgba(255, 193, 7, 0.15);
+    border-color: var(--ecs-warning);
 }
 
 .bracket-match-card .match-teams {
@@ -90,21 +90,21 @@
     align-items: center;
     padding: 0.5rem;
     border-radius: 4px;
-    background-color: #f8f9fa;
+    background-color: var(--ecs-neutral-5);
 }
 
 [data-style="dark"] .bracket-match-card .team {
-    background-color: #25293c;
+    background-color: var(--ecs-dark-bg-card);
 }
 
 .bracket-match-card .team.winner {
-    background-color: #d4edda;
+    background-color: rgba(25, 135, 84, 0.15);
     font-weight: 600;
 }
 
 [data-style="dark"] .bracket-match-card .team.winner {
-    background-color: #1e4620;
-    color: #d4edda;
+    background-color: rgba(25, 135, 84, 0.2);
+    color: var(--ecs-success);
 }
 
 .bracket-match-card .team-name {
@@ -117,13 +117,13 @@
     font-weight: 700;
     min-width: 30px;
     text-align: right;
-    color: #696cff;
+    color: var(--ecs-primary);
 }
 
 .bracket-match-card .match-divider {
     text-align: center;
     font-size: 0.8rem;
-    color: #999;
+    color: var(--ecs-neutral-50);
     margin: 0.25rem 0;
 }
 
@@ -132,7 +132,7 @@
     justify-content: space-between;
     align-items: center;
     font-size: 0.85rem;
-    color: #6c757d;
+    color: var(--ecs-secondary);
     margin-bottom: 0.5rem;
 }
 
@@ -150,11 +150,11 @@
 /* Group Standings */
 .group-standings {
     padding-top: 1rem;
-    border-top: 2px solid #e0e0e0;
+    border-top: 2px solid var(--ecs-neutral-20);
 }
 
 [data-style="dark"] .group-standings {
-    border-top-color: #434968;
+    border-top-color: var(--ecs-dark-border);
 }
 
 .standings-table {
@@ -166,29 +166,29 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--ecs-neutral-20);
     transition: background-color 0.2s ease;
 }
 
 [data-style="dark"] .standings-row {
-    border-bottom-color: #434968;
+    border-bottom-color: var(--ecs-dark-border);
 }
 
 .standings-row:hover {
-    background-color: #f8f9fa;
+    background-color: var(--ecs-neutral-5);
 }
 
 [data-style="dark"] .standings-row:hover {
-    background-color: #25293c;
+    background-color: var(--ecs-dark-bg-card);
 }
 
 .standings-row.current-team {
-    background-color: #fff9e6;
+    background-color: rgba(255, 193, 7, 0.1);
     font-weight: 600;
 }
 
 [data-style="dark"] .standings-row.current-team {
-    background-color: #3e3416;
+    background-color: rgba(255, 193, 7, 0.15);
 }
 
 .standings-row .position {
@@ -197,7 +197,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #696cff;
+    background-color: var(--ecs-primary);
     color: white;
     border-radius: 50%;
     font-weight: 700;
@@ -205,8 +205,8 @@
 }
 
 .standings-row.position-1 .position {
-    background-color: #ffc107;
-    color: #000;
+    background-color: var(--ecs-warning);
+    color: var(--ecs-neutral-90);
 }
 
 .standings-row.position-2 .position {
@@ -236,14 +236,14 @@
 }
 
 .standings-row .stat-label {
-    color: #999;
+    color: var(--ecs-neutral-50);
     font-size: 0.75rem;
     text-transform: uppercase;
 }
 
 .standings-row .stat-value {
     font-weight: 700;
-    color: #333;
+    color: var(--ecs-neutral-90);
 }
 
 /* Placement Finals */
@@ -253,25 +253,25 @@
 
 .placement-match {
     padding: 1rem;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--ecs-neutral-20);
     border-radius: 8px;
-    background: #fff;
+    background: var(--ecs-neutral-0);
     height: 100%;
 }
 
 [data-style="dark"] .placement-match {
-    background: #2f3349;
-    border-color: #434968;
+    background: var(--ecs-dark-bg-elevated);
+    border-color: var(--ecs-dark-border);
 }
 
 .placement-match.championship-match {
-    border-color: #ffc107;
-    background-color: #fff9e6;
+    border-color: var(--ecs-warning);
+    background-color: rgba(255, 193, 7, 0.1);
 }
 
 [data-style="dark"] .placement-match.championship-match {
-    background-color: #3e3416;
-    border-color: #ffc107;
+    background-color: rgba(255, 193, 7, 0.15);
+    border-color: var(--ecs-warning);
 }
 
 .placement-match .placement-label {
@@ -280,11 +280,11 @@
     gap: 0.5rem;
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 2px solid var(--ecs-neutral-20);
 }
 
 [data-style="dark"] .placement-match .placement-label {
-    border-bottom-color: #434968;
+    border-bottom-color: var(--ecs-dark-border);
 }
 
 .placement-match .placement-label strong {
@@ -304,7 +304,7 @@
     align-items: center;
     justify-content: center;
     height: 120px;
-    color: #999;
+    color: var(--ecs-neutral-50);
     font-style: italic;
 }
 
@@ -313,7 +313,7 @@
     text-align: center;
     font-size: 0.85rem;
     font-weight: 600;
-    color: #696cff;
+    color: var(--ecs-primary);
     text-transform: uppercase;
     margin-bottom: 0.5rem;
 }
@@ -377,7 +377,7 @@
 /* Animation for updates */
 @keyframes highlight-update {
     0% {
-        background-color: #fff9e6;
+        background-color: rgba(255, 193, 7, 0.2);
     }
     100% {
         background-color: transparent;
@@ -395,7 +395,7 @@
 /* Loading skeleton */
 .bracket-match-skeleton {
     height: 150px;
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background: linear-gradient(90deg, var(--ecs-neutral-5) 25%, var(--ecs-neutral-20) 50%, var(--ecs-neutral-5) 75%);
     background-size: 200% 100%;
     animation: loading 1.5s ease-in-out infinite;
     border-radius: 8px;

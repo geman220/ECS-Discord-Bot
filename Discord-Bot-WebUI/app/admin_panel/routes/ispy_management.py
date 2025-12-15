@@ -26,32 +26,33 @@ from app.decorators import role_required
 # Set up the module logger
 logger = logging.getLogger(__name__)
 
-# Try to import I-Spy models (they may not exist yet)
-try:
-    from app.models.ispy import (
-        ISpySeason, ISpyCategory, ISpyShot, ISpyShotTarget,
-        ISpyCooldown, ISpyUserJail, ISpyUserStats
-    )
-    ISPY_MODELS_AVAILABLE = True
-except ImportError:
-    logger.warning("I-Spy models not available - using mock data")
-    ISPY_MODELS_AVAILABLE = False
-    
-    # Create mock classes for development
-    class ISpySeason:
-        pass
-    class ISpyCategory:
-        pass
-    class ISpyShot:
-        pass
-    class ISpyShotTarget:
-        pass
-    class ISpyCooldown:
-        pass
-    class ISpyUserJail:
-        pass
-    class ISpyUserStats:
-        pass
+# Import I-Spy models
+from app.models.ispy import (
+    ISpySeason, ISpyCategory, ISpyShot, ISpyShotTarget,
+    ISpyCooldown, ISpyUserJail, ISpyUserStats
+)
+
+
+def _check_ispy_tables_exist():
+    """
+    Check if I-Spy database tables exist.
+
+    Returns True if tables are available for querying, False otherwise.
+    This prevents errors when models exist but migrations haven't been run.
+    """
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        required_tables = ['ispy_seasons', 'ispy_categories', 'ispy_shots']
+        return all(table in tables for table in required_tables)
+    except Exception as e:
+        logger.warning(f"Could not check I-Spy tables: {e}")
+        return False
+
+
+# Check if tables exist at module load time
+ISPY_TABLES_AVAILABLE = None  # Will be set on first access
 
 
 @admin_panel_bp.route('/ispy')
@@ -61,20 +62,26 @@ except ImportError:
 def ispy_management():
     """I-Spy game management hub."""
     try:
-        if not ISPY_MODELS_AVAILABLE:
-            # Return mock data for development
+        global ISPY_TABLES_AVAILABLE
+
+        # Check tables on first access (lazy initialization)
+        if ISPY_TABLES_AVAILABLE is None:
+            ISPY_TABLES_AVAILABLE = _check_ispy_tables_exist()
+
+        if not ISPY_TABLES_AVAILABLE:
+            # Return mock data when tables don't exist (migration not run)
             mock_stats = {
-                'total_seasons': 3,
-                'active_seasons': 1,
-                'total_categories': 8,
-                'total_shots': 45,
-                'total_players': 127,
-                'active_games': 12,
-                'completed_games': 203,
-                'players_in_jail': 3,
-                'recent_activity': 15
+                'total_seasons': 0,
+                'active_seasons': 0,
+                'total_categories': 0,
+                'total_shots': 0,
+                'total_players': 0,
+                'active_games': 0,
+                'completed_games': 0,
+                'players_in_jail': 0,
+                'recent_activity': 0
             }
-            
+            flash('I-Spy tables not found. Run database migrations to enable this feature.', 'info')
             return render_template('admin_panel/ispy/management.html',
                                  stats=mock_stats,
                                  seasons=[],
@@ -124,8 +131,8 @@ def ispy_management():
 def ispy_seasons():
     """I-Spy seasons management."""
     try:
-        if not ISPY_MODELS_AVAILABLE:
-            flash('I-Spy models not available. Please check system configuration.', 'warning')
+        if not ISPY_TABLES_AVAILABLE:
+            flash('I-Spy database tables not found. Run migrations to enable this feature.', 'warning')
             return redirect(url_for('admin_panel.ispy_management'))
         
         seasons = ISpySeason.query.order_by(desc(ISpySeason.created_at)).all()
@@ -155,8 +162,8 @@ def ispy_seasons():
 def create_ispy_season():
     """Create a new I-Spy season."""
     try:
-        if not ISPY_MODELS_AVAILABLE:
-            return jsonify({'success': False, 'message': 'I-Spy models not available'}), 500
+        if not ISPY_TABLES_AVAILABLE:
+            return jsonify({'success': False, 'message': 'I-Spy database tables not found. Run migrations.'}), 503
         
         if request.method == 'POST':
             data = request.get_json()
@@ -225,8 +232,8 @@ def create_ispy_season():
 def ispy_categories():
     """I-Spy categories management."""
     try:
-        if not ISPY_MODELS_AVAILABLE:
-            flash('I-Spy models not available. Please check system configuration.', 'warning')
+        if not ISPY_TABLES_AVAILABLE:
+            flash('I-Spy database tables not found. Run migrations to enable this feature.', 'warning')
             return redirect(url_for('admin_panel.ispy_management'))
         
         categories = ISpyCategory.query.order_by(ISpyCategory.name).all()
@@ -256,8 +263,8 @@ def ispy_categories():
 def create_ispy_category():
     """Create a new I-Spy category."""
     try:
-        if not ISPY_MODELS_AVAILABLE:
-            return jsonify({'success': False, 'message': 'I-Spy models not available'}), 500
+        if not ISPY_TABLES_AVAILABLE:
+            return jsonify({'success': False, 'message': 'I-Spy database tables not found. Run migrations.'}), 503
         
         data = request.get_json()
         
@@ -316,7 +323,7 @@ def create_ispy_category():
 def ispy_shots():
     """I-Spy shots management."""
     try:
-        if not ISPY_MODELS_AVAILABLE:
+        if not ISPY_TABLES_AVAILABLE:
             # Return mock data
             mock_shots = []
             return render_template('admin_panel/ispy/shots.html',
@@ -371,7 +378,7 @@ def ispy_shots():
 def ispy_players():
     """I-Spy player statistics and management."""
     try:
-        if not ISPY_MODELS_AVAILABLE:
+        if not ISPY_TABLES_AVAILABLE:
             # Return mock data
             mock_players = []
             mock_leaderboard = []
@@ -416,8 +423,8 @@ def ispy_players():
 def jail_ispy_user(user_id):
     """Jail or unjail an I-Spy user."""
     try:
-        if not ISPY_MODELS_AVAILABLE:
-            return jsonify({'success': False, 'message': 'I-Spy models not available'}), 500
+        if not ISPY_TABLES_AVAILABLE:
+            return jsonify({'success': False, 'message': 'I-Spy database tables not found. Run migrations.'}), 503
         
         data = request.get_json()
         action = data.get('action')  # 'jail' or 'release'
@@ -498,7 +505,7 @@ def jail_ispy_user(user_id):
 def ispy_analytics():
     """I-Spy game analytics dashboard."""
     try:
-        if not ISPY_MODELS_AVAILABLE:
+        if not ISPY_TABLES_AVAILABLE:
             # Return mock analytics
             mock_analytics = {
                 'overview': {
@@ -536,7 +543,7 @@ def ispy_analytics():
 def _get_ispy_statistics():
     """Get comprehensive I-Spy statistics."""
     try:
-        if not ISPY_MODELS_AVAILABLE:
+        if not ISPY_TABLES_AVAILABLE:
             return {
                 'total_seasons': 0,
                 'active_seasons': 0,
@@ -568,7 +575,7 @@ def _get_ispy_statistics():
 
 def _get_season_games_count(season_id):
     """Get total games count for a season."""
-    if not ISPY_MODELS_AVAILABLE:
+    if not ISPY_TABLES_AVAILABLE:
         return 0
     
     # This would count games/shots for a specific season
@@ -577,7 +584,7 @@ def _get_season_games_count(season_id):
 
 def _get_season_active_players(season_id):
     """Get active players count for a season."""
-    if not ISPY_MODELS_AVAILABLE:
+    if not ISPY_TABLES_AVAILABLE:
         return 0
     
     # This would count active players in a season
@@ -586,7 +593,7 @@ def _get_season_active_players(season_id):
 
 def _get_season_completion_rate(season_id):
     """Get completion rate for a season."""
-    if not ISPY_MODELS_AVAILABLE:
+    if not ISPY_TABLES_AVAILABLE:
         return 0.0
     
     total_shots = ISpyShot.query.filter_by(season_id=season_id).count()
@@ -603,7 +610,7 @@ def _get_season_completion_rate(season_id):
 
 def _get_category_shots_count(category_id):
     """Get shots count for a category."""
-    if not ISPY_MODELS_AVAILABLE:
+    if not ISPY_TABLES_AVAILABLE:
         return 0
     
     return ISpyShot.query.filter_by(category_id=category_id).count()
@@ -611,7 +618,7 @@ def _get_category_shots_count(category_id):
 
 def _get_category_difficulty_avg(category_id):
     """Get average difficulty for a category."""
-    if not ISPY_MODELS_AVAILABLE:
+    if not ISPY_TABLES_AVAILABLE:
         return 0.0
     
     result = db.session.query(func.avg(ISpyShot.difficulty)).filter_by(
@@ -623,7 +630,7 @@ def _get_category_difficulty_avg(category_id):
 
 def _get_category_usage_count(category_id):
     """Get usage count for a category."""
-    if not ISPY_MODELS_AVAILABLE:
+    if not ISPY_TABLES_AVAILABLE:
         return 0
     
     # This would count how many times shots from this category were played
@@ -634,7 +641,7 @@ def _get_category_usage_count(category_id):
 
 def _get_active_games_count():
     """Get count of currently active games."""
-    if not ISPY_MODELS_AVAILABLE:
+    if not ISPY_TABLES_AVAILABLE:
         return 0
     
     return ISpyShot.query.filter_by(status='active').count()
@@ -642,7 +649,7 @@ def _get_active_games_count():
 
 def _get_completed_games_count():
     """Get count of completed games."""
-    if not ISPY_MODELS_AVAILABLE:
+    if not ISPY_TABLES_AVAILABLE:
         return 0
     
     return ISpyShot.query.filter_by(status='completed').count()
@@ -650,7 +657,7 @@ def _get_completed_games_count():
 
 def _get_active_ispy_players():
     """Get count of active I-Spy players."""
-    if not ISPY_MODELS_AVAILABLE:
+    if not ISPY_TABLES_AVAILABLE:
         return 0
     
     # Players active in the last 7 days
@@ -662,7 +669,7 @@ def _get_active_ispy_players():
 
 def _get_recent_ispy_activity():
     """Get count of recent I-Spy activity."""
-    if not ISPY_MODELS_AVAILABLE:
+    if not ISPY_TABLES_AVAILABLE:
         return 0
     
     # Activity in the last 24 hours
@@ -675,7 +682,7 @@ def _get_recent_ispy_activity():
 
 def _get_ispy_analytics():
     """Get comprehensive I-Spy analytics."""
-    if not ISPY_MODELS_AVAILABLE:
+    if not ISPY_TABLES_AVAILABLE:
         return {
             'overview': {
                 'total_games': 0,

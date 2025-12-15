@@ -1,16 +1,18 @@
 /**
  * DataTables Pagination Dark Mode Fix
- * 
+ *
  * Improves visibility of pagination controls in dark mode
+ * Uses ECS design system CSS variables for theming consistency
  */
 
 /* Fix dark mode pagination colors for DataTables */
 .dark-style .dataTables_wrapper .dataTables_paginate .paginate_button,
 html.dark-style .dataTables_wrapper .dataTables_paginate .paginate_button,
-[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button {
-  color: #e1e1e3 !important;
-  border: 1px solid #44485e !important;
-  background: #343756 !important;
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button,
+[data-style="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button {
+  color: var(--ecs-neutral-20, #e9ecef) !important;
+  border: 1px solid var(--ecs-dark-border, #3f3f46) !important;
+  background: var(--ecs-dark-bg-elevated, #27272a) !important;
   margin: 0 3px;
   padding: 5px 10px !important;
   border-radius: 5px !important;
@@ -19,26 +21,29 @@ html.dark-style .dataTables_wrapper .dataTables_paginate .paginate_button,
 /* Current/active page */
 .dark-style .dataTables_wrapper .dataTables_paginate .paginate_button.current,
 html.dark-style .dataTables_wrapper .dataTables_paginate .paginate_button.current,
-[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-  color: #fff !important;
-  background: #7367f0 !important;
-  border-color: #7367f0 !important;
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+[data-style="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  color: var(--ecs-neutral-0, #ffffff) !important;
+  background: var(--ecs-primary, #7C3AED) !important;
+  border-color: var(--ecs-primary, #7C3AED) !important;
 }
 
 /* Hover state */
 .dark-style .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.disabled),
 html.dark-style .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.disabled),
-[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.disabled) {
-  color: #fff !important;
-  background-color: #4a478a !important;
-  border-color: #6d62e4 !important;
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.disabled),
+[data-style="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.disabled) {
+  color: var(--ecs-neutral-0, #ffffff) !important;
+  background-color: var(--ecs-primary-dark, #6d28d9) !important;
+  border-color: var(--ecs-primary, #7C3AED) !important;
 }
 
 /* Disabled state */
 .dark-style .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
 html.dark-style .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
-[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
-  color: #8f8fa6 !important;
-  background-color: #2f3349 !important;
-  border-color: #44485e !important;
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+[data-style="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+  color: var(--ecs-neutral-50, #6c757d) !important;
+  background-color: var(--ecs-dark-bg-card, #18181b) !important;
+  border-color: var(--ecs-dark-border, #3f3f46) !important;
 }

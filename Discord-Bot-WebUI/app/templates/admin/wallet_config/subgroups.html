@@ -163,7 +163,7 @@ function deleteSubgroup(id, name) {
         text: `Are you sure you want to delete "${name}"?`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#d33',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#d33',
         confirmButtonText: 'Yes, delete'
     }).then((result) => {
         if (result.isConfirmed) {

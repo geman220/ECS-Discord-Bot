@@ -1135,6 +1135,49 @@ def set_theme():
     return jsonify({"success": True, "message": f"Theme set to {theme}"})
 
 
+@main.route('/set-theme-variant', methods=['POST'])
+def set_theme_variant():
+    """
+    Set the user's theme variant preference (classic or modern).
+
+    This endpoint allows users to toggle between classic and modern theme variants.
+    The preference is stored in the session and persists between page loads.
+
+    Returns:
+        JSON: A JSON response indicating success or failure of the operation.
+    """
+    data = request.get_json()
+    if not data or 'variant' not in data:
+        return jsonify({"success": False, "message": "Variant not provided"}), 400
+
+    variant = data['variant']
+    if variant not in ['classic', 'modern']:
+        return jsonify({"success": False, "message": "Invalid variant"}), 400
+
+    # Store variant in session
+    session['theme_variant'] = variant
+
+    # If user is logged in, store preference in their profile
+    if current_user.is_authenticated:
+        try:
+            user = Player.query.get(current_user.id)
+            if user and hasattr(user, 'preferences'):
+                # Use preferences JSON field if it exists
+                preferences = user.preferences or {}
+                preferences['theme_variant'] = variant
+                user.preferences = preferences
+                g.db_session.add(user)
+                try:
+                    g.db_session.commit()
+                except Exception as e:
+                    g.db_session.rollback()
+                    logger.exception(f"Error saving theme variant preference for user {current_user.id}: {e}")
+        except Exception as e:
+            logger.error(f"Error saving theme variant preference for user {current_user.id}: {e}")
+
+    return jsonify({"success": True, "message": f"Theme variant set to {variant}"})
+
+
 @csrf.exempt
 @main.route('/clear_sweet_alert', methods=['POST'])
 def clear_sweet_alert():

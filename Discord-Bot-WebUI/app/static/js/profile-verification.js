@@ -411,7 +411,7 @@
           title: 'Review Required',
           html: `<p>Please review the following sections before confirming:</p><br>${sectionList}`,
           confirmButtonText: 'OK',
-          confirmButtonColor: '#f59e0b'
+          confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107'
         });
       } else {
         alert(`Please review the following sections:\n\n${uncheckedSections.join('\n')}`);

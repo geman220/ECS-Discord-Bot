@@ -15,7 +15,8 @@ This module contains models for the substitute system:
 - SubstituteAssignment: General substitute assignments
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
+import secrets
 from sqlalchemy import JSON, DateTime, Boolean, Date, Time, String, Text, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 
@@ -49,30 +50,51 @@ class EcsFcSubRequest(db.Model):
 class EcsFcSubResponse(db.Model):
     """Model for ECS FC substitute responses."""
     __tablename__ = 'ecs_fc_sub_responses'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     request_id = db.Column(db.Integer, db.ForeignKey('ecs_fc_sub_requests.id'), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
-    is_available = db.Column(db.Boolean, nullable=False)
-    response_method = db.Column(db.String(20), nullable=False)
+    is_available = db.Column(db.Boolean, nullable=True)  # None = not yet responded
+    response_method = db.Column(db.String(20), nullable=True)  # Nullable until they respond
     response_text = db.Column(db.Text, nullable=True)
     notification_sent_at = db.Column(db.DateTime, nullable=True)
     notification_methods = db.Column(db.String(100), nullable=True)
-    responded_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    
+    responded_at = db.Column(db.DateTime, nullable=True)  # Nullable until they respond
+
+    # RSVP token fields for secure response links
+    rsvp_token = db.Column(db.String(64), unique=True, nullable=True, index=True)
+    token_expires_at = db.Column(db.DateTime, nullable=True)
+    token_used_at = db.Column(db.DateTime, nullable=True)
+
     # Relationships
     request = db.relationship('EcsFcSubRequest', back_populates='responses')
     player = db.relationship('Player', backref='ecs_fc_sub_responses')
-    
+
     __table_args__ = (
         db.UniqueConstraint('request_id', 'player_id', name='uq_ecs_fc_sub_response_request_player'),
     )
+
+    def generate_token(self, expiry_hours=48):
+        """Generate a secure RSVP token."""
+        self.rsvp_token = secrets.token_urlsafe(32)
+        self.token_expires_at = datetime.utcnow() + timedelta(hours=expiry_hours)
+        return self.rsvp_token
+
+    def is_token_valid(self):
+        """Check if the token is still valid."""
+        if not self.rsvp_token or not self.token_expires_at:
+            return False
+        return datetime.utcnow() < self.token_expires_at and self.token_used_at is None
+
+    def mark_token_used(self):
+        """Mark the token as used."""
+        self.token_used_at = datetime.utcnow()
 
 
 class EcsFcSubAssignment(db.Model):
     """Model for ECS FC substitute assignments."""
     __tablename__ = 'ecs_fc_sub_assignments'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     request_id = db.Column(db.Integer, db.ForeignKey('ecs_fc_sub_requests.id'), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
@@ -82,13 +104,15 @@ class EcsFcSubAssignment(db.Model):
     notification_sent = db.Column(db.Boolean, nullable=False, default=False)
     notification_sent_at = db.Column(db.DateTime, nullable=True)
     notification_methods = db.Column(db.String(100), nullable=True)
+    # Track which methods were used for initial outreach (for confirmation routing)
+    outreach_methods = db.Column(db.String(100), nullable=True)
     assigned_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    
+
     # Relationships
     request = db.relationship('EcsFcSubRequest', back_populates='assignment')
     player = db.relationship('Player', backref='ecs_fc_sub_assignments')
     assigner = db.relationship('User', foreign_keys=[assigned_by], backref='ecs_fc_sub_assignments')
-    
+
     __table_args__ = (
         db.UniqueConstraint('request_id', 'player_id', name='uq_ecs_fc_sub_assignment_request_player'),
     )
@@ -223,30 +247,51 @@ class SubstituteRequest(db.Model):
 class SubstituteResponse(db.Model):
     """Model for general substitute responses."""
     __tablename__ = 'substitute_responses'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     request_id = db.Column(db.Integer, db.ForeignKey('substitute_requests.id'), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
-    is_available = db.Column(db.Boolean, nullable=False)
-    response_method = db.Column(db.String(20), nullable=False)
+    is_available = db.Column(db.Boolean, nullable=True)  # None = not yet responded
+    response_method = db.Column(db.String(20), nullable=True)  # Nullable until they respond
     response_text = db.Column(db.Text, nullable=True)
     notification_sent_at = db.Column(db.DateTime, nullable=True)
     notification_methods = db.Column(db.String(100), nullable=True)
-    responded_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    
+    responded_at = db.Column(db.DateTime, nullable=True)  # Nullable until they respond
+
+    # RSVP token fields for secure response links
+    rsvp_token = db.Column(db.String(64), unique=True, nullable=True, index=True)
+    token_expires_at = db.Column(db.DateTime, nullable=True)
+    token_used_at = db.Column(db.DateTime, nullable=True)
+
     # Relationships
     request = db.relationship('SubstituteRequest', back_populates='responses')
     player = db.relationship('Player', backref='substitute_responses')
-    
+
     __table_args__ = (
         db.UniqueConstraint('request_id', 'player_id', name='uq_substitute_response_request_player'),
     )
+
+    def generate_token(self, expiry_hours=48):
+        """Generate a secure RSVP token."""
+        self.rsvp_token = secrets.token_urlsafe(32)
+        self.token_expires_at = datetime.utcnow() + timedelta(hours=expiry_hours)
+        return self.rsvp_token
+
+    def is_token_valid(self):
+        """Check if the token is still valid."""
+        if not self.rsvp_token or not self.token_expires_at:
+            return False
+        return datetime.utcnow() < self.token_expires_at and self.token_used_at is None
+
+    def mark_token_used(self):
+        """Mark the token as used."""
+        self.token_used_at = datetime.utcnow()
 
 
 class SubstituteAssignment(db.Model):
     """Model for general substitute assignments."""
     __tablename__ = 'substitute_assignments'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     request_id = db.Column(db.Integer, db.ForeignKey('substitute_requests.id'), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
@@ -256,13 +301,15 @@ class SubstituteAssignment(db.Model):
     notification_sent = db.Column(db.Boolean, nullable=False, default=False)
     notification_sent_at = db.Column(db.DateTime, nullable=True)
     notification_methods = db.Column(db.String(100), nullable=True)
+    # Track which methods were used for initial outreach (for confirmation routing)
+    outreach_methods = db.Column(db.String(100), nullable=True)
     assigned_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    
+
     # Relationships
     request = db.relationship('SubstituteRequest', back_populates='assignments')
     player = db.relationship('Player', backref='substitute_assignments')
     assigner = db.relationship('User', foreign_keys=[assigned_by], backref='substitute_assignments')
-    
+
     __table_args__ = (
         db.UniqueConstraint('request_id', 'player_id', name='uq_substitute_assignment_request_player'),
     )

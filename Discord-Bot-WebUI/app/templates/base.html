@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="light-style layout-menu-fixed layout-navbar-fixed layout-content-wide" dir="ltr" data-assets-path="{{ url_for('static', filename='assets/') }}" data-template="vertical-menu-template" data-style="{{ session.get('theme', 'light') }}" data-content="wide">
+<html lang="en" class="light-style layout-menu-fixed layout-navbar-fixed layout-content-wide" dir="ltr" data-assets-path="{{ url_for('static', filename='assets/') }}" data-template="vertical-menu-template" data-style="{{ session.get('theme', 'light') }}" data-theme-variant="{{ session.get('theme_variant', 'modern') }}" data-content="wide">
 
 <head>
     <meta charset="utf-8" />
@@ -12,17 +12,30 @@
             const serverTheme = '{{ session.get('theme', 'light') }}';
             const finalTheme = storedTheme || serverTheme;
 
+            // Get theme variant (classic or modern) from localStorage or server
+            const storedVariant = localStorage.getItem('theme-variant');
+            const serverVariant = '{{ session.get('theme_variant', 'modern') }}';
+            const finalVariant = storedVariant || serverVariant;
+
             // Apply theme immediately to prevent flash
             document.documentElement.setAttribute('data-style', finalTheme);
+            document.documentElement.setAttribute('data-theme-variant', finalVariant);
 
             // Also update the class (light-style or dark-style) for CSS selectors that use class
             document.documentElement.classList.remove('light-style', 'dark-style');
             document.documentElement.classList.add(finalTheme + '-style');
 
+            // Add variant class for CSS selectors
+            document.documentElement.classList.remove('theme-classic', 'theme-modern');
+            document.documentElement.classList.add('theme-' + finalVariant);
+
             // Sync server session if needed
             if (storedTheme && storedTheme !== serverTheme) {
                 // Theme differs from server, we'll sync it after page loads
                 window._themeNeedsSync = { theme: storedTheme };
+            }
+            if (storedVariant && storedVariant !== serverVariant) {
+                window._variantNeedsSync = { variant: storedVariant };
             }
         })();
     </script>
@@ -40,53 +53,46 @@
 
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Modern theme fonts (Archivo Black for display, Barlow for body) -->
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Bootstrap CDN removed - using local core.css (Bootstrap 5.3.3) instead -->
 
     <!-- Tabler Icons loaded separately due to font path issues -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" />
 
-    <!-- CSS Asset Bundles (Phase 3A: Deep Consolidation - 14 files → 6 files) -->
-    <!-- Foundation Bundle: Bootstrap + ECS Core + Z-Index System (loads first) -->
+    <!-- ============================================
+         CSS ARCHITECTURE - Single Source of Truth
+         ============================================ -->
+
+    <!-- 1. Foundation Bundle: Bootstrap + ECS Core (vendor - unchanged) -->
     {% assets "foundation_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
-    
-    <!-- Components Bundle: Theme + Layout + Components + Utilities + Mobile -->
+
+    <!-- 2. Core Variables - THE SINGLE SOURCE OF TRUTH FOR ALL COLORS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/core/variables.css') }}" />
+
+    <!-- 3. Foundation Overrides - Fix vendor hardcoded colors -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/core/foundation-overrides.css') }}" />
+
+    <!-- 4. Components Bundle: Theme + Layout + Components (now uses CSS variables) -->
     {% assets "components_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
-    
-    <!-- Vendor Bundle: Third-party CSS + Icon fonts + Overrides -->
+
+    <!-- 5. Vendor Bundle: Third-party CSS + Icon fonts + Overrides -->
     {% assets "vendor_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
 
-    <!-- Template styles (loads BEFORE mobile CSS so mobile overrides work) -->
+    <!-- Template styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/template-styles.css') }}" />
 
-    <!-- Mobile UI System (Consolidated from 4 files) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-unified.css') }}" />
-
-    <!-- Mobile Component-Specific CSS (New Mobile Overhaul) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-modals.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-tables.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-forms.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-toggles.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-dark-mode.css') }}" />
-
-    <!-- Page-specific CSS (conditional loading) -->
-    {% block page_css %}
-    {% endblock %}
-    
-    <!-- Demo CSS Bundle (development only) -->
-    {% if config.DEBUG %}
-    {% assets "demo_css" %}
-        <link rel="stylesheet" href="{{ ASSET_URL }}" />
-    {% endassets %}
-    {% endif %}
-
-    <!-- Vendor CSS now loaded via bundles above -->
+    <!-- ============================================
+         VENDOR CDN CSS - Must load BEFORE theme CSS
+         so our theme overrides can take precedence
+         ============================================ -->
 
     <!-- Select2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -95,12 +101,8 @@
     <!-- SweetAlert2 CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.0/sweetalert2.min.css" rel="stylesheet">
 
-    <!-- Boxicons removed - using FontAwesome + Tabler icons instead -->
-
     <!-- Flatpickr CSS -->
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
-
-    <!-- Material Icons removed - using FontAwesome + Tabler icons instead -->
 
     <!-- DataTables CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
@@ -111,14 +113,169 @@
     <!-- Include Fancybox CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.5.7/jquery.fancybox.min.css">
 
-    <!-- Jquery CSS -->
+    <!-- jQuery UI CSS -->
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-    
-    <!-- ECS CSS handles all button styling and dark mode pagination -->
 
-    <!-- Additional scripts loaded in footer -->
-    <!-- Button fix scripts loaded in footer -->
-    
+    <!-- Shepherd.js CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.css') }}">
+
+    <!-- ============================================
+         6. LAYOUT - Mobile responsive styles
+         ============================================ -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/mobile.css') }}" />
+
+    <!-- ============================================
+         7. THEMES - Dark mode for each theme variant
+         ============================================ -->
+
+    <!-- Classic Theme Dark Mode (scoped to NOT modern) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/classic/classic-dark.css') }}" />
+
+    <!-- Modern Theme (scoped with [data-theme-variant="modern"]) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/modern/modern-base.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/modern/modern-dark.css') }}" />
+
+    <!-- Admin Custom Colors (if configured) - loads after theme for highest priority -->
+    {% if site_settings and site_settings.custom_colors %}
+    {% set light = site_settings.custom_colors.get('light', {}) %}
+    {% set dark = site_settings.custom_colors.get('dark', {}) %}
+    <style id="admin-custom-colors">
+    /* ===========================================
+       ADMIN CUSTOMIZED COLORS
+       These override ALL other CSS due to cascade position
+       =========================================== */
+
+    /* Light Mode - Root Variables */
+    :root {
+        {% for key, value in light.items() %}
+        --ecs-{{ key|replace('_', '-') }}: {{ value }};
+        {% endfor %}
+
+        /* Map to Bootstrap variables */
+        {% if light.primary %}--bs-primary: {{ light.primary }};{% endif %}
+        {% if light.secondary %}--bs-secondary: {{ light.secondary }};{% endif %}
+        {% if light.success %}--bs-success: {{ light.success }};{% endif %}
+        {% if light.warning %}--bs-warning: {{ light.warning }};{% endif %}
+        {% if light.danger %}--bs-danger: {{ light.danger }};{% endif %}
+        {% if light.info %}--bs-info: {{ light.info }};{% endif %}
+        {% if light.text_heading %}--bs-heading-color: {{ light.text_heading }};{% endif %}
+        {% if light.text_body %}--bs-body-color: {{ light.text_body }};{% endif %}
+        {% if light.bg_body %}--bs-body-bg: {{ light.bg_body }};{% endif %}
+    }
+
+    /* Light Mode - Card-level variables override */
+    :root .card,
+    html:not([data-style="dark"]) .card {
+        {% if light.text_heading %}--bs-card-title-color: {{ light.text_heading }};{% endif %}
+        {% if light.text_heading %}--bs-card-cap-color: {{ light.text_heading }};{% endif %}
+        {% if light.text_body %}--bs-card-color: {{ light.text_body }};{% endif %}
+    }
+
+    /* Light Mode - Direct element overrides with !important */
+    html:not([data-style="dark"]) h1,
+    html:not([data-style="dark"]) h2,
+    html:not([data-style="dark"]) h3,
+    html:not([data-style="dark"]) h4,
+    html:not([data-style="dark"]) h5,
+    html:not([data-style="dark"]) h6,
+    html:not([data-style="dark"]) .h1,
+    html:not([data-style="dark"]) .h2,
+    html:not([data-style="dark"]) .h3,
+    html:not([data-style="dark"]) .h4,
+    html:not([data-style="dark"]) .h5,
+    html:not([data-style="dark"]) .h6,
+    html:not([data-style="dark"]) .card-title,
+    html:not([data-style="dark"]) .ecs-card-title {
+        {% if light.text_heading %}color: {{ light.text_heading }} !important;{% endif %}
+    }
+
+    html:not([data-style="dark"]) .text-primary,
+    html:not([data-style="dark"]) .text-primary i,
+    html:not([data-style="dark"]) i.text-primary {
+        {% if light.primary %}color: {{ light.primary }} !important;{% endif %}
+    }
+
+    html:not([data-style="dark"]) .card-body,
+    html:not([data-style="dark"]) .card-body p,
+    html:not([data-style="dark"]) .table tbody td {
+        {% if light.text_body %}color: {{ light.text_body }} !important;{% endif %}
+    }
+
+    html:not([data-style="dark"]) .text-muted {
+        {% if light.text_muted %}color: {{ light.text_muted }} !important;{% endif %}
+    }
+
+    html:not([data-style="dark"]) .table thead th,
+    html:not([data-style="dark"]) .table-light th {
+        {% if light.text_heading %}color: {{ light.text_heading }} !important;{% endif %}
+    }
+
+    /* Dark Mode Variables */
+    [data-style="dark"] {
+        {% for key, value in dark.items() %}
+        --ecs-{{ key|replace('_', '-') }}: {{ value }};
+        {% endfor %}
+
+        /* Map to Bootstrap variables */
+        {% if dark.primary %}--bs-primary: {{ dark.primary }};{% endif %}
+        {% if dark.secondary %}--bs-secondary: {{ dark.secondary }};{% endif %}
+        {% if dark.success %}--bs-success: {{ dark.success }};{% endif %}
+        {% if dark.warning %}--bs-warning: {{ dark.warning }};{% endif %}
+        {% if dark.danger %}--bs-danger: {{ dark.danger }};{% endif %}
+        {% if dark.info %}--bs-info: {{ dark.info }};{% endif %}
+        {% if dark.text_heading %}--bs-heading-color: {{ dark.text_heading }};{% endif %}
+        {% if dark.text_body %}--bs-body-color: {{ dark.text_body }};{% endif %}
+        {% if dark.bg_body %}--bs-body-bg: {{ dark.bg_body }};{% endif %}
+    }
+
+    /* Dark Mode - Card-level variables override */
+    [data-style="dark"] .card,
+    html[data-style="dark"] .card {
+        {% if dark.text_heading %}--bs-card-title-color: {{ dark.text_heading }};{% endif %}
+        {% if dark.text_heading %}--bs-card-cap-color: {{ dark.text_heading }};{% endif %}
+        {% if dark.text_body %}--bs-card-color: {{ dark.text_body }};{% endif %}
+    }
+
+    /* Dark Mode - Direct element overrides */
+    html[data-style="dark"] h1,
+    html[data-style="dark"] h2,
+    html[data-style="dark"] h3,
+    html[data-style="dark"] h4,
+    html[data-style="dark"] h5,
+    html[data-style="dark"] h6,
+    html[data-style="dark"] .card-title,
+    html[data-style="dark"] .ecs-card-title {
+        {% if dark.text_heading %}color: {{ dark.text_heading }} !important;{% endif %}
+    }
+
+    html[data-style="dark"] .text-primary,
+    html[data-style="dark"] .text-primary i,
+    html[data-style="dark"] i.text-primary {
+        {% if dark.primary %}color: {{ dark.primary }} !important;{% endif %}
+    }
+
+    html[data-style="dark"] .card-body,
+    html[data-style="dark"] .table tbody td {
+        {% if dark.text_body %}color: {{ dark.text_body }} !important;{% endif %}
+    }
+
+    html[data-style="dark"] .text-muted {
+        {% if dark.text_muted %}color: {{ dark.text_muted }} !important;{% endif %}
+    }
+    </style>
+    {% endif %}
+
+    <!-- Page-specific CSS (conditional loading) -->
+    {% block page_css %}
+    {% endblock %}
+
+    {% block custom_css %}
+    {% endblock %}
+
+    <!-- ============================================
+         SCRIPTS
+         ============================================ -->
+
     <!-- Error prevention for browser extensions -->
     <script>
         // Prevent browser extension errors from breaking the app
@@ -130,29 +287,20 @@
             }
         });
     </script>
-    
+
     <!-- Helpers and Misc Scripts -->
     <script src="{{ url_for('static', filename='vendor/js/helpers.js') }}"></script>
     <!-- Simple theme switcher (replaces TemplateCustomizer) -->
-    <script src="{{ url_for('static', filename='js/simple-theme-switcher.js') }}" defer></script>
+    <script src="{{ asset_version('js/simple-theme-switcher.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
+    <!-- Theme Colors Utility - provides ECSTheme.getColor() for JS -->
+    <script src="{{ url_for('static', filename='js/theme-colors.js') }}"></script>
 
     <!-- CSRF Token for Forms -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    
-    <!-- Load modals via AJAX (moved to bottom of page after jQuery is loaded) -->
-
-    <link rel="stylesheet" href="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.css') }}">
 
     <!-- Flatpickr JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <!-- Inline CSS moved to vendor-overrides.css for better organization -->
-    <!-- All dropdown and responsive fixes are included in the ECS CSS architecture -->
-    
-    {% block custom_css %}
-    {% endblock %}
-    
-    <!-- Dark mode styles moved to template-styles.css -->
 </head>
 
 <body>

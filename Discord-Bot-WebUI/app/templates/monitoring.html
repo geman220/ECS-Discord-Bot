@@ -328,7 +328,7 @@
 }
 
 .bg-gradient-primary {
-    background: linear-gradient(135deg, #666CFF 0%, #4C63D2 100%);
+    background: linear-gradient(135deg, var(--ecs-primary, #666CFF) 0%, var(--ecs-primary-dark, #4C63D2) 100%);
 }
 
 .avatar {
@@ -365,15 +365,15 @@
 }
 
 .status-indicator.healthy {
-    background-color: #28c76f;
+    background-color: var(--ecs-success, #28c76f);
 }
 
 .status-indicator.warning {
-    background-color: #ff9f43;
+    background-color: var(--ecs-warning, #ff9f43);
 }
 
 .status-indicator.critical {
-    background-color: #ea5455;
+    background-color: var(--ecs-danger, #ea5455);
 }
 
 @keyframes pulse {
@@ -388,15 +388,15 @@
 }
 
 .queue-item.healthy {
-    border-left-color: #28c76f;
+    border-left-color: var(--ecs-success, #28c76f);
 }
 
 .queue-item.warning {
-    border-left-color: #ff9f43;
+    border-left-color: var(--ecs-warning, #ff9f43);
 }
 
 .queue-item.critical {
-    border-left-color: #ea5455;
+    border-left-color: var(--ecs-danger, #ea5455);
 }
 
 .task-item {
@@ -431,17 +431,17 @@
 /* Dark mode support */
 [data-theme="dark"] .card {
     border-color: rgba(255, 255, 255, 0.1);
-    background-color: #2b2c40;
+    background-color: var(--ecs-dark-bg-card, #2b2c40);
 }
 
 [data-theme="dark"] .bg-gradient-primary {
-    background: linear-gradient(135deg, #666CFF 0%, #4C63D2 100%);
+    background: linear-gradient(135deg, var(--ecs-primary, #666CFF) 0%, var(--ecs-primary-dark, #4C63D2) 100%);
 }
 
 /* Loading states */
 .skeleton {
     animation: skeleton-loading 1s linear infinite alternate;
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background: linear-gradient(90deg, var(--ecs-neutral-10, #f0f0f0) 25%, var(--ecs-neutral-20, #e0e0e0) 50%, var(--ecs-neutral-10, #f0f0f0) 75%);
     background-size: 200% 100%;
 }
 

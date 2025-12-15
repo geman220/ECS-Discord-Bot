@@ -13,11 +13,13 @@ class SimpleCropper {
         this.lastX = 0;
         this.lastY = 0;
         
-        // Default options
+        // Default options - use ECSTheme if available
+        const defaultBg = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('light') : '#f8f9fa';
+        const defaultBorder = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd';
         this.options = {
             cropSize: 300,
-            backgroundColor: '#f0f0f0',
-            borderColor: '#007bff',
+            backgroundColor: defaultBg,
+            borderColor: defaultBorder,
             ...options
         };
         

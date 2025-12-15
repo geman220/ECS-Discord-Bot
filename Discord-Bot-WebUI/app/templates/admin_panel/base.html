@@ -108,6 +108,10 @@
                                     <i class="ti ti-template me-2"></i>Message Templates</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.push_notifications') }}">
                                     <i class="ti ti-bell me-2"></i>Push Notifications</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.notification_groups_list') }}">
+                                    <i class="ti ti-users-group me-2"></i>Notification Groups</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_panel.campaigns_list') }}">
+                                    <i class="ti ti-broadcast me-2"></i>Push Campaigns</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('admin_panel.direct_messaging') }}">
                                     <i class="ti ti-send me-2"></i>Direct Messaging (SMS/DM)</a></li>
@@ -117,8 +121,8 @@
                         <!-- League Management Hub -->
                         <li class="nav-item dropdown mb-2 mb-lg-0">
                             <a class="nav-link dropdown-toggle {% if 'league_management' in request.endpoint %}active{% endif %}"
-                               href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="ti ti-tournament me-1"></i><span class="nav-link-text">League</span>
+                               href="#" role="button" data-bs-toggle="dropdown" title="League Management">
+                                <i class="ti ti-tournament me-1"></i><span class="nav-link-text">League Mgmt</span>
                             </a>
                             <ul class="dropdown-menu">
                                 <li class="dropdown-header">League Management Hub</li>
@@ -140,8 +144,8 @@
                         <!-- Pub League Operations (Premier, Classic, ECS FC) -->
                         <li class="nav-item dropdown mb-2 mb-lg-0">
                             <a class="nav-link dropdown-toggle {% if ('match' in request.endpoint and 'mls' not in request.endpoint) or 'substitute' in request.endpoint or 'playoff' in request.endpoint %}active{% endif %}"
-                               href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="ti ti-trophy me-1"></i><span class="nav-link-text">Pub</span>
+                               href="#" role="button" data-bs-toggle="dropdown" title="Pub League Operations">
+                                <i class="ti ti-trophy me-1"></i><span class="nav-link-text">Pub League Ops</span>
                             </a>
                             <ul class="dropdown-menu">
                                 <li class="dropdown-header">Pub League Operations</li>
@@ -245,6 +249,14 @@
                                 <i class="ti ti-history me-1"></i><span class="nav-link-text">Audit Logs</span>
                             </a>
                         </li>
+
+                        <!-- Appearance/Theme Settings -->
+                        <li class="nav-item mb-2 mb-lg-0">
+                            <a class="nav-link {% if 'appearance' in request.endpoint %}active{% endif %}"
+                               href="{{ url_for('admin_panel.appearance') }}">
+                                <i class="ti ti-palette me-1"></i><span class="nav-link-text">Appearance</span>
+                            </a>
+                        </li>
                             </ul>
                         </div>
                     </div>
@@ -267,26 +279,42 @@
 
     <!-- Page Content -->
     {% block panel_content %}{% endblock %}
+
+    <!-- Network Status Indicator -->
+    <div class="network-status status-indicator active" title="Online"></div>
+
+    <!-- Toast Container for Mobile Notifications -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1055;"></div>
 </div>
 {% endblock %}
 
 {% block custom_css %}
 {{ super() }}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/admin-mobile.css') }}">
+<!-- admin-mobile.css now consolidated into layout/mobile.css -->
 <style>
 /* Admin Navigation - Responsive Horizontal Scroll */
 .navbar.bg-body-tertiary {
-    overflow: hidden;
+    overflow: visible !important;
+    position: relative;
+    z-index: 1030;
 }
 
 .admin-nav-scroll {
-    overflow-x: auto;
-    overflow-y: visible;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0,0,0,0.2) transparent;
+    /* Allow dropdowns to escape on desktop */
+    overflow: visible !important;
     max-width: 100%;
     padding-bottom: 4px;
+}
+
+/* Only enable horizontal scroll on tablet where we need it */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .admin-nav-scroll {
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(0,0,0,0.2) transparent;
+    }
 }
 
 .admin-nav-scroll::-webkit-scrollbar {
@@ -317,56 +345,255 @@
 
 .admin-nav-scroll .nav-link {
     white-space: nowrap;
-    padding: 0.4rem 0.5rem;
-    font-size: 0.8rem;
+    padding: 0.35rem 0.4rem;
+    font-size: 0.75rem;
     border-radius: 0.375rem;
     transition: all 0.2s ease;
+    color: var(--bs-body-color, var(--ecs-neutral-60, #52525B));
 }
 
 .admin-nav-scroll .nav-link:hover {
-    background-color: rgba(13, 110, 253, 0.1);
+    background-color: rgba(var(--ecs-primary-rgb, 124, 58, 237), 0.1);
+    color: var(--ecs-primary, #7C3AED);
 }
 
 .admin-nav-scroll .nav-link.active,
 .admin-nav-scroll .nav-link.ecs-active {
-    background-color: #0d6efd;
-    color: white;
+    background-color: var(--ecs-primary, #7C3AED);
+    color: white !important;
 }
 
-/* Dropdown menus should appear above scroll container */
-.admin-nav-scroll .dropdown-menu {
-    position: absolute;
-    z-index: 1050;
+/* Dark mode nav link colors */
+[data-style="dark"] .admin-nav-scroll .nav-link {
+    color: var(--ecs-dark-text-muted, #A1A1AA) !important;
 }
 
-/* Default: show icons only on lg screens */
+[data-style="dark"] .admin-nav-scroll .nav-link:hover {
+    background-color: rgba(var(--ecs-primary-rgb, 167, 139, 250), 0.15);
+    color: var(--ecs-primary-light, #A78BFA) !important;
+}
+
+[data-style="dark"] .admin-nav-scroll .nav-link.active,
+[data-style="dark"] .admin-nav-scroll .nav-link.ecs-active {
+    background-color: var(--ecs-primary, #A78BFA);
+    color: var(--ecs-dark-bg-body, #09090B) !important;
+}
+
+/* =====================================================
+   ADMIN PANEL DROPDOWN STYLES - HIGH SPECIFICITY
+   These styles MUST override Bootstrap/Sneat defaults
+   ===================================================== */
+
+/* Dropdown menus - Maximum specificity selectors */
+.admin-nav-scroll .dropdown-menu,
+.admin-nav-scroll .dropdown-menu.show,
+.admin-nav-scroll ul.dropdown-menu,
+.admin-nav-scroll ul.dropdown-menu.show,
+.navbar .admin-nav-scroll .dropdown-menu,
+.navbar .admin-nav-scroll .dropdown-menu.show,
+.navbar .admin-nav-scroll ul.dropdown-menu,
+.navbar .admin-nav-scroll ul.dropdown-menu.show,
+ul.dropdown-menu[data-bs-popper],
+ul.dropdown-menu[data-bs-popper="static"],
+.admin-nav-scroll .nav-item.dropdown > .dropdown-menu {
+    position: absolute !important;
+    z-index: 9999 !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 0.5rem !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    padding: 0.5rem 0 !important;
+    min-width: 220px !important;
+    margin-top: 0.125rem !important;
+    top: 100% !important;
+    left: 0 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    opacity: 1 !important;
+}
+
+/* Dark mode dropdown backgrounds - Maximum specificity */
+[data-style="dark"] .admin-nav-scroll .dropdown-menu,
+[data-style="dark"] .admin-nav-scroll .dropdown-menu.show,
+[data-style="dark"] .admin-nav-scroll ul.dropdown-menu,
+[data-style="dark"] .admin-nav-scroll ul.dropdown-menu.show,
+[data-style="dark"] .navbar .admin-nav-scroll .dropdown-menu,
+[data-style="dark"] ul.dropdown-menu[data-bs-popper],
+[data-style="dark"] ul.dropdown-menu[data-bs-popper="static"],
+[data-style="dark"] .admin-nav-scroll .nav-item.dropdown > .dropdown-menu,
+html[data-style="dark"] .admin-nav-scroll .dropdown-menu,
+html[data-style="dark"] .admin-nav-scroll .dropdown-menu.show,
+body[data-style="dark"] .admin-nav-scroll .dropdown-menu,
+body[data-style="dark"] .admin-nav-scroll .dropdown-menu.show {
+    background: #27272a !important;
+    background-color: #27272a !important;
+    border-color: #3f3f46 !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Dropdown items styling - Light Mode */
+.admin-nav-scroll .dropdown-item,
+.admin-nav-scroll .dropdown-menu .dropdown-item,
+.admin-nav-scroll a.dropdown-item,
+.navbar .admin-nav-scroll .dropdown-item {
+    padding: 0.5rem 1rem !important;
+    color: #1f2937 !important;
+    font-weight: 500 !important;
+    font-size: 0.8125rem !important;
+    transition: all 0.15s ease !important;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+.admin-nav-scroll .dropdown-item i,
+.admin-nav-scroll .dropdown-menu .dropdown-item i {
+    color: #6b7280 !important;
+}
+
+.admin-nav-scroll .dropdown-item:hover,
+.admin-nav-scroll .dropdown-item:focus,
+.admin-nav-scroll .dropdown-menu .dropdown-item:hover,
+.admin-nav-scroll .dropdown-menu .dropdown-item:focus {
+    background: rgba(124, 58, 237, 0.1) !important;
+    background-color: rgba(124, 58, 237, 0.1) !important;
+    color: #7c3aed !important;
+}
+
+.admin-nav-scroll .dropdown-item:hover i,
+.admin-nav-scroll .dropdown-item:focus i {
+    color: #7c3aed !important;
+}
+
+/* Dark mode dropdown items - Maximum specificity */
+[data-style="dark"] .admin-nav-scroll .dropdown-item,
+[data-style="dark"] .admin-nav-scroll .dropdown-menu .dropdown-item,
+[data-style="dark"] .admin-nav-scroll a.dropdown-item,
+html[data-style="dark"] .admin-nav-scroll .dropdown-item,
+body[data-style="dark"] .admin-nav-scroll .dropdown-item {
+    color: #e5e7eb !important;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+[data-style="dark"] .admin-nav-scroll .dropdown-item i,
+[data-style="dark"] .admin-nav-scroll .dropdown-menu .dropdown-item i,
+html[data-style="dark"] .admin-nav-scroll .dropdown-item i {
+    color: #a1a1aa !important;
+}
+
+[data-style="dark"] .admin-nav-scroll .dropdown-item:hover,
+[data-style="dark"] .admin-nav-scroll .dropdown-item:focus,
+[data-style="dark"] .admin-nav-scroll .dropdown-menu .dropdown-item:hover,
+[data-style="dark"] .admin-nav-scroll .dropdown-menu .dropdown-item:focus,
+html[data-style="dark"] .admin-nav-scroll .dropdown-item:hover,
+html[data-style="dark"] .admin-nav-scroll .dropdown-item:focus {
+    background: rgba(167, 139, 250, 0.2) !important;
+    background-color: rgba(167, 139, 250, 0.2) !important;
+    color: #c4b5fd !important;
+}
+
+[data-style="dark"] .admin-nav-scroll .dropdown-item:hover i,
+[data-style="dark"] .admin-nav-scroll .dropdown-item:focus i,
+html[data-style="dark"] .admin-nav-scroll .dropdown-item:hover i {
+    color: #c4b5fd !important;
+}
+
+/* Dropdown headers - High specificity */
+.admin-nav-scroll .dropdown-header,
+.admin-nav-scroll .dropdown-menu .dropdown-header,
+.admin-nav-scroll li.dropdown-header,
+.navbar .admin-nav-scroll .dropdown-header {
+    color: #6b7280 !important;
+    font-weight: 600 !important;
+    font-size: 0.6875rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    padding: 0.5rem 1rem 0.25rem !important;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+[data-style="dark"] .admin-nav-scroll .dropdown-header,
+[data-style="dark"] .admin-nav-scroll .dropdown-menu .dropdown-header,
+[data-style="dark"] .admin-nav-scroll li.dropdown-header,
+html[data-style="dark"] .admin-nav-scroll .dropdown-header {
+    color: #a1a1aa !important;
+}
+
+/* Dropdown dividers */
+.admin-nav-scroll .dropdown-divider,
+.admin-nav-scroll .dropdown-menu .dropdown-divider,
+.admin-nav-scroll hr.dropdown-divider,
+.navbar .admin-nav-scroll .dropdown-divider {
+    border-color: #e5e7eb !important;
+    margin: 0.5rem 0 !important;
+    opacity: 1 !important;
+    background: transparent !important;
+}
+
+[data-style="dark"] .admin-nav-scroll .dropdown-divider,
+[data-style="dark"] .admin-nav-scroll .dropdown-menu .dropdown-divider,
+[data-style="dark"] .admin-nav-scroll hr.dropdown-divider,
+html[data-style="dark"] .admin-nav-scroll .dropdown-divider {
+    border-color: #3f3f46 !important;
+}
+
+/* Navbar solid background */
+.navbar.bg-body-tertiary {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+[data-style="dark"] .navbar.bg-body-tertiary,
+html[data-style="dark"] .navbar.bg-body-tertiary,
+body[data-style="dark"] .navbar.bg-body-tertiary {
+    background: #18181b !important;
+    background-color: #18181b !important;
+    border-color: #3f3f46 !important;
+}
+
+/* Dropdown parent positioning */
+.admin-nav-scroll .nav-item.dropdown {
+    position: relative !important;
+}
+
+/* lg screens (992px-1199px): compact text + icons */
 @media (min-width: 992px) {
     .admin-nav-scroll .nav-link-text {
-        display: none;
+        display: inline;
+    }
+
+    .admin-nav-scroll .nav-link {
+        padding: 0.35rem 0.45rem;
+        font-size: 0.7rem;
     }
 
     .admin-nav-scroll .nav-link i {
-        margin-right: 0 !important;
+        margin-right: 0.15rem !important;
+        font-size: 0.85rem;
     }
 }
 
-/* Show full text on xl screens */
+/* xl screens (1200px-1399px): slightly larger */
 @media (min-width: 1200px) {
     .admin-nav-scroll .nav-link-text {
         display: inline;
     }
 
     .admin-nav-scroll .nav-link i {
-        margin-right: 0.25rem !important;
+        margin-right: 0.2rem !important;
+        font-size: 0.9rem;
     }
 
     .admin-nav-scroll .nav-link {
-        padding: 0.4rem 0.6rem;
-        font-size: 0.8rem;
+        padding: 0.4rem 0.55rem;
+        font-size: 0.78rem;
     }
 }
 
-/* Show full text with more padding on xxl screens */
+/* xxl screens (1400px+): comfortable spacing */
 @media (min-width: 1400px) {
     .admin-nav-scroll .nav-link {
         padding: 0.5rem 0.75rem;
@@ -375,11 +602,37 @@
 
     .admin-nav-scroll .nav-link i {
         margin-right: 0.25rem !important;
+        font-size: 1rem;
+    }
+}
+
+/* Tablet: horizontal scroll with indicator (768px-991px) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .admin-nav-scroll {
+        position: relative;
+    }
+
+    .admin-nav-scroll::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 24px;
+        background: linear-gradient(to right, transparent, var(--bs-body-bg, #fff));
+        pointer-events: none;
+        opacity: 0.8;
+    }
+
+    .admin-nav-scroll .nav-link {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
     }
 }
 
 /* Mobile collapsed menu styling */
-@media (max-width: 991.98px) {
+@media (max-width: 767.98px) {
     .admin-nav-scroll {
         overflow-x: visible;
         overflow-y: visible;
@@ -388,6 +641,7 @@
 
     .admin-nav-scroll .navbar-nav {
         flex-direction: column;
+        flex-wrap: wrap;
         gap: 0.5rem;
         width: 100%;
         min-width: auto;
@@ -396,6 +650,10 @@
     .admin-nav-scroll .nav-link {
         padding: 0.75rem 1rem;
         font-size: 0.9rem;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        white-space: normal;
     }
 
     .admin-nav-scroll .nav-link-text {
@@ -404,12 +662,45 @@
 
     .admin-nav-scroll .nav-link i {
         margin-right: 0.5rem !important;
+        flex-shrink: 0;
+    }
+
+    /* Dropdown menus full-width on mobile */
+    .admin-nav-scroll .dropdown-menu,
+    .admin-nav-scroll .dropdown-menu.show {
+        position: static !important;
+        width: 100%;
+        margin-top: 0.25rem;
+        box-shadow: none !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 0.375rem !important;
+        /* Ensure solid background on mobile too */
+        background-color: #f9fafb !important;
+        z-index: auto !important;
+    }
+
+    [data-style="dark"] .admin-nav-scroll .dropdown-menu,
+    [data-style="dark"] .admin-nav-scroll .dropdown-menu.show {
+        background-color: #262626 !important;
+        border-color: #3F3F46 !important;
+    }
+
+    .admin-nav-scroll .dropdown-item {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        padding: 0.625rem 1rem;
+        color: #374151 !important;
+    }
+
+    [data-style="dark"] .admin-nav-scroll .dropdown-item {
+        color: #d1d5db !important;
     }
 }
 
 /* Enhanced navigation styling */
 .nav-pills .nav-link {
-    color: #6c757d;
+    color: var(--ecs-muted, #6c757d);
     border-radius: 0.5rem;
     padding: 0.75rem 1rem;
     transition: all 0.2s ease;
@@ -417,11 +708,11 @@
 
 .nav-pills .nav-link:hover {
     background-color: rgba(13, 110, 253, 0.1);
-    color: #0d6efd;
+    color: var(--ecs-primary, #0d6efd);
 }
 
 .nav-pills .nav-link.active {
-    background-color: #0d6efd;
+    background-color: var(--ecs-primary, #0d6efd);
     color: white;
 }
 
@@ -450,24 +741,17 @@
 }
 
 .status-indicator.active {
-    background-color: #28a745;
+    background-color: var(--ecs-success, #28a745);
     box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.2);
 }
 
 .status-indicator.inactive {
-    background-color: #dc3545;
+    background-color: var(--ecs-danger, #dc3545);
     box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
 }
 
 /* Additional page-specific styles can go here */
 </style>
-
-<!-- Network Status Indicator -->
-<div class="network-status status-indicator active" title="Online"></div>
-
-<!-- Toast Container for Mobile Notifications -->
-<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1055;"></div>
-
 {% endblock %}
 
 {% block custom_js %}
@@ -639,13 +923,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // Smooth scrolling for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
+            const href = this.getAttribute('href');
+            // Skip empty hash links (href="#") - they're not valid selectors
+            if (!href || href === '#') {
+                return;
+            }
             e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
+            try {
+                const target = document.querySelector(href);
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            } catch (err) {
+                // Invalid selector, ignore
+                console.debug('Invalid anchor selector:', href);
             }
         });
     });

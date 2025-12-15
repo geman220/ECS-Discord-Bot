@@ -304,7 +304,7 @@ function verifyMatch(matchId, team) {
         text: `Are you sure you want to verify this match for ${teamText}?`,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#198754',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754',
         confirmButtonText: 'Yes, Verify',
         cancelButtonText: 'Cancel'
     }).then((result) => {

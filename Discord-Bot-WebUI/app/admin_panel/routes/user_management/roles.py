@@ -19,7 +19,7 @@ from sqlalchemy.orm import joinedload
 from app.admin_panel import admin_panel_bp
 from app.core import db
 from app.models.admin_config import AdminAuditLog
-from app.models.core import User, Role
+from app.models.core import User, Role, Permission
 from app.decorators import role_required
 from app.tasks.tasks_discord import assign_roles_to_player_task
 
@@ -35,6 +35,9 @@ def roles_management():
         roles = Role.query.order_by(Role.name).all()
         users = User.query.order_by(User.username).all()
 
+        # Get all permissions from database
+        permissions = Permission.query.order_by(Permission.name).all()
+
         # Get statistics
         users_with_roles = User.query.join(User.roles).distinct().count()
         admin_roles = len([r for r in roles if 'Admin' in r.name])
@@ -42,7 +45,7 @@ def roles_management():
         return render_template('admin_panel/users/roles.html',
                                roles=roles,
                                users=users,
-                               permissions=[],  # TODO: Get from permissions if available
+                               permissions=permissions,
                                users_with_roles=users_with_roles,
                                admin_roles=admin_roles)
     except Exception as e:

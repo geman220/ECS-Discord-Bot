@@ -198,10 +198,10 @@
       statusDiv.style.transition = 'opacity 0.3s ease-in-out';
       
       if (isOnline) {
-        statusDiv.style.backgroundColor = '#28a745';
+        statusDiv.style.backgroundColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754';
         statusDiv.innerHTML = '<i class="ti ti-wifi me-1"></i> Back online';
       } else {
-        statusDiv.style.backgroundColor = '#dc3545';
+        statusDiv.style.backgroundColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545';
         statusDiv.innerHTML = '<i class="ti ti-wifi-off me-1"></i> You are offline';
       }
       

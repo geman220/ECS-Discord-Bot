@@ -369,7 +369,7 @@ function voidPass() {
         html: '<p class="mb-3">The member will no longer be able to use this pass for check-ins.</p><input id="void-reason" class="form-control" placeholder="Reason for voiding (optional)">',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#dc3545',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
         confirmButtonText: '<i class="ti ti-ban me-1"></i>Void Pass',
         cancelButtonText: 'Cancel'
     }).then((result) => {
@@ -400,7 +400,7 @@ function reactivatePass() {
         text: 'The pass will become valid again and can be used for check-ins.',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#28a745',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
         confirmButtonText: '<i class="ti ti-refresh me-1"></i>Reactivate',
         cancelButtonText: 'Cancel'
     }).then((result) => {

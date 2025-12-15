@@ -413,7 +413,7 @@ function deactivateDevice(tokenId) {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Deactivate',
-        confirmButtonColor: '#dc3545'
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
             fetch('{{ url_for("admin_panel.deactivate_device_token") }}', {
@@ -554,7 +554,7 @@ function bulkDeactivateDevices() {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Deactivate All',
-        confirmButtonColor: '#dc3545'
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
             Swal.fire('Devices Deactivated!', 'All devices for selected users have been deactivated.', 'success');

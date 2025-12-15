@@ -1,0 +1,894 @@
+{% extends "admin_panel/base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Push Campaigns - Admin Panel{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('admin_panel.communication_hub') }}">Communication</a>
+</li>
+<li class="breadcrumb-item active">Push Campaigns</li>
+{% endblock %}
+
+{% block panel_content %}
+
+    <!-- Campaigns Overview -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ status_counts.all }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Total Campaigns</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-broadcast" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ status_counts.scheduled }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Scheduled</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-clock" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ status_counts.sent }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Sent</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-check" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title text-white mb-1">{{ status_counts.draft }}</h5>
+                            <p class="card-text small opacity-75 mb-0">Drafts</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-file-text" style="font-size: 2rem; opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Campaigns Management -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-broadcast me-2"></i>Push Campaigns
+                    </h5>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <!-- Status Filter -->
+                        <div class="btn-group" role="group">
+                            <a href="{{ url_for('admin_panel.campaigns_list') }}" class="btn btn-sm btn-{% if not status_filter %}primary{% else %}outline-primary{% endif %}">
+                                All ({{ status_counts.all }})
+                            </a>
+                            <a href="{{ url_for('admin_panel.campaigns_list', status='draft') }}" class="btn btn-sm btn-{% if status_filter == 'draft' %}secondary{% else %}outline-secondary{% endif %}">
+                                Drafts ({{ status_counts.draft }})
+                            </a>
+                            <a href="{{ url_for('admin_panel.campaigns_list', status='scheduled') }}" class="btn btn-sm btn-{% if status_filter == 'scheduled' %}warning{% else %}outline-warning{% endif %}">
+                                Scheduled ({{ status_counts.scheduled }})
+                            </a>
+                            <a href="{{ url_for('admin_panel.campaigns_list', status='sent') }}" class="btn btn-sm btn-{% if status_filter == 'sent' %}success{% else %}outline-success{% endif %}">
+                                Sent ({{ status_counts.sent }})
+                            </a>
+                        </div>
+
+                        <button class="btn btn-outline-secondary" onclick="window.history.back()">
+                            <i class="ti ti-arrow-left me-1"></i>Back
+                        </button>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCampaignModal">
+                            <i class="ti ti-plus me-1"></i>New Campaign
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if campaigns.items %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Campaign</th>
+                                    <th>Target</th>
+                                    <th>Status</th>
+                                    <th>Schedule</th>
+                                    <th>Analytics</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for campaign in campaigns.items %}
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <strong>{{ campaign.name }}</strong>
+                                            <br><small class="text-muted">{{ campaign.title }}</small>
+                                            {% if campaign.priority == 'urgent' %}
+                                            <br><span class="badge bg-danger badge-sm">Urgent</span>
+                                            {% elif campaign.priority == 'high' %}
+                                            <br><span class="badge bg-warning badge-sm">High</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ campaign.target_type|title }}</span>
+                                        <br><small class="text-muted">{{ campaign.target_count or 0 }} recipients</small>
+                                    </td>
+                                    <td>
+                                        {% set status = campaign.status %}
+                                        <span class="badge bg-{% if status == 'sent' %}success{% elif status == 'scheduled' %}warning{% elif status == 'sending' %}info{% elif status == 'failed' %}danger{% elif status == 'cancelled' %}secondary{% else %}dark{% endif %}">
+                                            {{ status|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if campaign.scheduled_send_time %}
+                                        <small>{{ campaign.scheduled_send_time.strftime('%Y-%m-%d %H:%M') }}</small>
+                                        {% elif campaign.actual_send_time %}
+                                        <small>Sent: {{ campaign.actual_send_time.strftime('%Y-%m-%d %H:%M') }}</small>
+                                        {% else %}
+                                        <small class="text-muted">Not scheduled</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-2">
+                                            <div title="Sent">
+                                                <i class="ti ti-send text-info"></i>
+                                                <small>{{ campaign.sent_count or 0 }}</small>
+                                            </div>
+                                            <div title="Delivered">
+                                                <i class="ti ti-check text-success"></i>
+                                                <small>{{ campaign.delivered_count or 0 }}</small>
+                                            </div>
+                                            <div title="Clicked">
+                                                <i class="ti ti-click text-primary"></i>
+                                                <small>{{ campaign.click_count or 0 }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-info" onclick="viewCampaign({{ campaign.id }})" title="View Details">
+                                                <i class="ti ti-eye"></i>
+                                            </button>
+                                            {% if campaign.status == 'draft' %}
+                                            <button class="btn btn-outline-warning" onclick="editCampaign({{ campaign.id }})" title="Edit">
+                                                <i class="ti ti-edit"></i>
+                                            </button>
+                                            <button class="btn btn-outline-success" onclick="sendCampaign({{ campaign.id }}, '{{ campaign.name }}')" title="Send Now">
+                                                <i class="ti ti-send"></i>
+                                            </button>
+                                            <button class="btn btn-outline-primary" onclick="scheduleCampaign({{ campaign.id }}, '{{ campaign.name }}')" title="Schedule">
+                                                <i class="ti ti-clock"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" onclick="deleteCampaign({{ campaign.id }}, '{{ campaign.name }}')" title="Delete">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                            {% elif campaign.status == 'scheduled' %}
+                                            <button class="btn btn-outline-danger" onclick="cancelCampaign({{ campaign.id }}, '{{ campaign.name }}')" title="Cancel">
+                                                <i class="ti ti-x"></i>
+                                            </button>
+                                            {% endif %}
+                                            <button class="btn btn-outline-secondary" onclick="duplicateCampaign({{ campaign.id }}, '{{ campaign.name }}')" title="Duplicate">
+                                                <i class="ti ti-copy"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if campaigns.pages > 1 %}
+                    <nav class="d-flex justify-content-center mt-3">
+                        <ul class="pagination">
+                            {% if campaigns.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_panel.campaigns_list', page=campaigns.prev_num, status=status_filter) }}">Previous</a>
+                            </li>
+                            {% endif %}
+
+                            {% for page_num in campaigns.iter_pages() %}
+                                {% if page_num %}
+                                <li class="page-item {% if page_num == campaigns.page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('admin_panel.campaigns_list', page=page_num, status=status_filter) }}">{{ page_num }}</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if campaigns.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_panel.campaigns_list', page=campaigns.next_num, status=status_filter) }}">Next</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="ti ti-broadcast-off text-muted" style="font-size: 4rem;"></i>
+                        <h5 class="text-muted mt-3">No campaigns found</h5>
+                        <p class="text-muted">Create your first push notification campaign to get started.</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createCampaignModal">
+                            <i class="ti ti-plus me-1"></i>Create Campaign
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Campaign Modal -->
+    <div class="modal fade" id="createCampaignModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="ti ti-plus me-2"></i>Create Push Campaign
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="createCampaignForm" onsubmit="return submitCreateCampaign(event)">
+                    <div class="modal-body">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <!-- Campaign Details -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="campaign_name" class="form-label">Campaign Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="campaign_name" name="name" required
+                                       placeholder="e.g., Spring Season Launch">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="campaign_priority" class="form-label">Priority</label>
+                                <select class="form-select" id="campaign_priority" name="priority">
+                                    <option value="normal">Normal</option>
+                                    <option value="high">High</option>
+                                    <option value="urgent">Urgent</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="campaign_title" class="form-label">Notification Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="campaign_title" name="title" required maxlength="50"
+                                   placeholder="e.g., New Season Starting!">
+                            <small class="form-text text-muted">Max 50 characters</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="campaign_body" class="form-label">Message Body <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="campaign_body" name="body" rows="3" required maxlength="200"
+                                      placeholder="The notification message..."></textarea>
+                            <small class="form-text text-muted">Max 200 characters</small>
+                        </div>
+
+                        <hr>
+                        <h6 class="mb-3"><i class="ti ti-target me-2"></i>Targeting</h6>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="campaign_target_type" class="form-label">Target Type</label>
+                                <select class="form-select" id="campaign_target_type" name="target_type" onchange="toggleCampaignTargetOptions()">
+                                    <option value="all">All Subscribers</option>
+                                    <option value="team">By Team</option>
+                                    <option value="league">By League</option>
+                                    <option value="role">By Role</option>
+                                    <option value="pool">Substitute Pool</option>
+                                    <option value="group">Notification Group</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="campaign_platform" class="form-label">Platform</label>
+                                <select class="form-select" id="campaign_platform" name="platform_filter">
+                                    <option value="all">All Platforms</option>
+                                    <option value="ios">iOS Only</option>
+                                    <option value="android">Android Only</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Target Selectors -->
+                        <div id="campaignTeamSelector" class="mb-3 d-none">
+                            <label for="campaign_teams" class="form-label">Select Teams</label>
+                            <select class="form-select" id="campaign_teams" name="team_ids" multiple>
+                                {% for team in teams %}
+                                <option value="{{ team.id }}">{{ team.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div id="campaignLeagueSelector" class="mb-3 d-none">
+                            <label for="campaign_leagues" class="form-label">Select Leagues</label>
+                            <select class="form-select" id="campaign_leagues" name="league_ids" multiple>
+                                {% for league in leagues %}
+                                <option value="{{ league.id }}">{{ league.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div id="campaignRoleSelector" class="mb-3 d-none">
+                            <label for="campaign_roles" class="form-label">Select Roles</label>
+                            <select class="form-select" id="campaign_roles" name="role_names" multiple>
+                                {% for role in roles %}
+                                <option value="{{ role.name }}">{{ role.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div id="campaignPoolSelector" class="mb-3 d-none">
+                            <label for="campaign_pool" class="form-label">Select Pool</label>
+                            <select class="form-select" id="campaign_pool" name="pool_types">
+                                <option value="all">All Pools</option>
+                                <option value="pub_league">Pub League Sub Pool</option>
+                                <option value="ecs_fc">ECS FC Sub Pool</option>
+                            </select>
+                        </div>
+
+                        <div id="campaignGroupSelector" class="mb-3 d-none">
+                            <label for="campaign_group" class="form-label">Select Group</label>
+                            <select class="form-select" id="campaign_group" name="notification_group_id">
+                                <option value="">Select a group...</option>
+                                {% for group in groups %}
+                                <option value="{{ group.id }}">{{ group.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <hr>
+                        <h6 class="mb-3"><i class="ti ti-clock me-2"></i>Scheduling</h6>
+
+                        <div class="mb-3">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="send_type" id="send_immediately" value="immediate" checked onchange="toggleCampaignSchedule()">
+                                <label class="form-check-label" for="send_immediately">Save as Draft</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="send_type" id="send_now" value="send_now" onchange="toggleCampaignSchedule()">
+                                <label class="form-check-label" for="send_now">Send Immediately</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="send_type" id="send_scheduled" value="scheduled" onchange="toggleCampaignSchedule()">
+                                <label class="form-check-label" for="send_scheduled">Schedule for Later</label>
+                            </div>
+                        </div>
+
+                        <div id="campaignScheduleContainer" class="mb-3 d-none">
+                            <label for="campaign_schedule_time" class="form-label">Send Date & Time</label>
+                            <input type="datetime-local" class="form-control" id="campaign_schedule_time" name="scheduled_send_time">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="campaign_action_url" class="form-label">Action URL (Optional)</label>
+                            <input type="url" class="form-control" id="campaign_action_url" name="action_url"
+                                   placeholder="https://example.com/action">
+                            <small class="form-text text-muted">URL to open when notification is clicked</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ti ti-plus me-1"></i>Create Campaign
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Campaign Modal -->
+    <div class="modal fade" id="viewCampaignModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewCampaignTitle">Campaign Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="viewCampaignContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border" role="status"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Campaign Modal -->
+    <div class="modal fade" id="scheduleCampaignModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="ti ti-clock me-2"></i>Schedule Campaign
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="schedule_campaign_id">
+                    <p>Schedule <strong id="schedule_campaign_name"></strong> for delivery:</p>
+                    <div class="mb-3">
+                        <label for="schedule_send_time" class="form-label">Send Date & Time</label>
+                        <input type="datetime-local" class="form-control" id="schedule_send_time" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmScheduleCampaign()">
+                        <i class="ti ti-clock me-1"></i>Schedule
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<style>
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.badge-sm {
+    font-size: 0.65rem;
+}
+
+@media (max-width: 768px) {
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.75rem;
+    }
+
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+const CampaignsConfig = {
+    baseUrl: '/admin-panel',
+    csrfToken: '{{ csrf_token() }}'
+};
+
+// Toggle target options based on type
+function toggleCampaignTargetOptions() {
+    const targetType = document.getElementById('campaign_target_type').value;
+
+    // Hide all
+    document.getElementById('campaignTeamSelector').classList.add('d-none');
+    document.getElementById('campaignLeagueSelector').classList.add('d-none');
+    document.getElementById('campaignRoleSelector').classList.add('d-none');
+    document.getElementById('campaignPoolSelector').classList.add('d-none');
+    document.getElementById('campaignGroupSelector').classList.add('d-none');
+
+    // Show selected
+    switch (targetType) {
+        case 'team':
+            document.getElementById('campaignTeamSelector').classList.remove('d-none');
+            break;
+        case 'league':
+            document.getElementById('campaignLeagueSelector').classList.remove('d-none');
+            break;
+        case 'role':
+            document.getElementById('campaignRoleSelector').classList.remove('d-none');
+            break;
+        case 'pool':
+            document.getElementById('campaignPoolSelector').classList.remove('d-none');
+            break;
+        case 'group':
+            document.getElementById('campaignGroupSelector').classList.remove('d-none');
+            break;
+    }
+}
+
+// Toggle schedule container
+function toggleCampaignSchedule() {
+    const sendType = document.querySelector('input[name="send_type"]:checked').value;
+    const scheduleContainer = document.getElementById('campaignScheduleContainer');
+
+    if (sendType === 'scheduled') {
+        scheduleContainer.classList.remove('d-none');
+    } else {
+        scheduleContainer.classList.add('d-none');
+    }
+}
+
+// Submit create campaign form
+async function submitCreateCampaign(event) {
+    event.preventDefault();
+
+    const form = document.getElementById('createCampaignForm');
+    const formData = new FormData(form);
+    const sendType = document.querySelector('input[name="send_type"]:checked').value;
+
+    const data = {
+        name: formData.get('name'),
+        title: formData.get('title'),
+        body: formData.get('body'),
+        target_type: formData.get('target_type'),
+        platform_filter: formData.get('platform_filter'),
+        priority: formData.get('priority'),
+        action_url: formData.get('action_url'),
+        send_immediately: sendType === 'send_now'
+    };
+
+    // Add target-specific data
+    const targetType = data.target_type;
+    if (targetType === 'team') {
+        data.team_ids = Array.from(document.getElementById('campaign_teams').selectedOptions).map(opt => parseInt(opt.value));
+    } else if (targetType === 'league') {
+        data.league_ids = Array.from(document.getElementById('campaign_leagues').selectedOptions).map(opt => parseInt(opt.value));
+    } else if (targetType === 'role') {
+        data.role_names = Array.from(document.getElementById('campaign_roles').selectedOptions).map(opt => opt.value);
+    } else if (targetType === 'pool') {
+        data.pool_types = [formData.get('pool_types')];
+    } else if (targetType === 'group') {
+        const groupId = formData.get('notification_group_id');
+        if (groupId) data.notification_group_id = parseInt(groupId);
+    }
+
+    // Scheduling
+    if (sendType === 'scheduled') {
+        data.send_immediately = false;
+        data.scheduled_send_time = formData.get('scheduled_send_time');
+    }
+
+    try {
+        const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CampaignsConfig.csrfToken
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            Swal.fire('Success', 'Campaign created successfully!', 'success').then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire('Error', result.error || 'Failed to create campaign', 'error');
+        }
+    } catch (error) {
+        console.error('Error creating campaign:', error);
+        Swal.fire('Error', 'Failed to create campaign. Please try again.', 'error');
+    }
+
+    return false;
+}
+
+// View campaign details
+async function viewCampaign(campaignId) {
+    const modal = new bootstrap.Modal(document.getElementById('viewCampaignModal'));
+    modal.show();
+
+    document.getElementById('viewCampaignContent').innerHTML = '<div class="text-center py-4"><div class="spinner-border" role="status"></div></div>';
+
+    try {
+        const response = await fetch(`${CampaignsConfig.baseUrl}/api/campaigns/${campaignId}`);
+        const data = await response.json();
+
+        if (data.success) {
+            const c = data.campaign;
+            document.getElementById('viewCampaignTitle').textContent = c.name;
+            document.getElementById('viewCampaignContent').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Status:</strong> <span class="badge bg-${getStatusColor(c.status)}">${c.status}</span></p>
+                        <p><strong>Priority:</strong> ${c.priority || 'Normal'}</p>
+                        <p><strong>Target Type:</strong> ${c.target_type}</p>
+                        <p><strong>Platform:</strong> ${c.platform_filter || 'All'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Created:</strong> ${c.created_at || 'N/A'}</p>
+                        <p><strong>Scheduled:</strong> ${c.scheduled_send_time || 'Not scheduled'}</p>
+                        <p><strong>Sent:</strong> ${c.actual_send_time || 'Not sent yet'}</p>
+                    </div>
+                </div>
+                <hr>
+                <h6>Notification Content</h6>
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <strong>${c.title}</strong>
+                        <p class="mb-0">${c.body}</p>
+                    </div>
+                </div>
+                <hr>
+                <h6>Analytics</h6>
+                <div class="row text-center">
+                    <div class="col-3">
+                        <h4>${c.target_count || 0}</h4>
+                        <small class="text-muted">Targeted</small>
+                    </div>
+                    <div class="col-3">
+                        <h4>${c.sent_count || 0}</h4>
+                        <small class="text-muted">Sent</small>
+                    </div>
+                    <div class="col-3">
+                        <h4>${c.delivered_count || 0}</h4>
+                        <small class="text-muted">Delivered</small>
+                    </div>
+                    <div class="col-3">
+                        <h4>${c.click_count || 0}</h4>
+                        <small class="text-muted">Clicked</small>
+                    </div>
+                </div>
+            `;
+        } else {
+            document.getElementById('viewCampaignContent').innerHTML = '<div class="alert alert-danger">Failed to load campaign details</div>';
+        }
+    } catch (error) {
+        console.error('Error loading campaign:', error);
+        document.getElementById('viewCampaignContent').innerHTML = '<div class="alert alert-danger">Failed to load campaign details</div>';
+    }
+}
+
+function getStatusColor(status) {
+    const colors = {
+        'sent': 'success',
+        'scheduled': 'warning',
+        'sending': 'info',
+        'failed': 'danger',
+        'cancelled': 'secondary',
+        'draft': 'dark'
+    };
+    return colors[status] || 'secondary';
+}
+
+// Edit campaign (redirect to form)
+function editCampaign(campaignId) {
+    window.location.href = `${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}`;
+}
+
+// Send campaign now
+function sendCampaign(campaignId, campaignName) {
+    Swal.fire({
+        title: 'Send Campaign Now?',
+        text: `Send "${campaignName}" immediately to all targeted recipients?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+        confirmButtonText: 'Yes, send now!'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}/send`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': CampaignsConfig.csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire('Sent!', `Campaign sent to ${data.sent_count || 0} devices.`, 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.error || 'Failed to send campaign', 'error');
+                }
+            } catch (error) {
+                console.error('Error sending campaign:', error);
+                Swal.fire('Error', 'Failed to send campaign. Please try again.', 'error');
+            }
+        }
+    });
+}
+
+// Schedule campaign
+function scheduleCampaign(campaignId, campaignName) {
+    document.getElementById('schedule_campaign_id').value = campaignId;
+    document.getElementById('schedule_campaign_name').textContent = campaignName;
+
+    // Set minimum time
+    const now = new Date();
+    const minTime = now.toISOString().slice(0, 16);
+    document.getElementById('schedule_send_time').min = minTime;
+
+    const modal = new bootstrap.Modal(document.getElementById('scheduleCampaignModal'));
+    modal.show();
+}
+
+async function confirmScheduleCampaign() {
+    const campaignId = document.getElementById('schedule_campaign_id').value;
+    const sendTime = document.getElementById('schedule_send_time').value;
+
+    if (!sendTime) {
+        Swal.fire('Error', 'Please select a send time', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}/schedule`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CampaignsConfig.csrfToken
+            },
+            body: JSON.stringify({ send_time: sendTime })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            Swal.fire('Scheduled!', 'Campaign has been scheduled.', 'success').then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire('Error', data.error || 'Failed to schedule campaign', 'error');
+        }
+    } catch (error) {
+        console.error('Error scheduling campaign:', error);
+        Swal.fire('Error', 'Failed to schedule campaign. Please try again.', 'error');
+    }
+}
+
+// Cancel campaign
+function cancelCampaign(campaignId, campaignName) {
+    Swal.fire({
+        title: 'Cancel Campaign?',
+        text: `Are you sure you want to cancel "${campaignName}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+        confirmButtonText: 'Yes, cancel it!'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': CampaignsConfig.csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire('Cancelled!', 'Campaign has been cancelled.', 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.error || 'Failed to cancel campaign', 'error');
+                }
+            } catch (error) {
+                console.error('Error cancelling campaign:', error);
+                Swal.fire('Error', 'Failed to cancel campaign. Please try again.', 'error');
+            }
+        }
+    });
+}
+
+// Delete campaign
+function deleteCampaign(campaignId, campaignName) {
+    Swal.fire({
+        title: 'Delete Campaign?',
+        text: `Are you sure you want to delete "${campaignName}"? This cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+        confirmButtonText: 'Yes, delete it!'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': CampaignsConfig.csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire('Deleted!', 'Campaign has been deleted.', 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.error || 'Failed to delete campaign', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting campaign:', error);
+                Swal.fire('Error', 'Failed to delete campaign. Please try again.', 'error');
+            }
+        }
+    });
+}
+
+// Duplicate campaign
+function duplicateCampaign(campaignId, campaignName) {
+    Swal.fire({
+        title: 'Duplicate Campaign',
+        input: 'text',
+        inputLabel: 'New campaign name',
+        inputValue: `${campaignName} (Copy)`,
+        showCancelButton: true,
+        confirmButtonText: 'Duplicate'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}/duplicate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': CampaignsConfig.csrfToken
+                    },
+                    body: JSON.stringify({ name: result.value })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire('Duplicated!', 'Campaign has been duplicated.', 'success').then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', data.error || 'Failed to duplicate campaign', 'error');
+                }
+            } catch (error) {
+                console.error('Error duplicating campaign:', error);
+                Swal.fire('Error', 'Failed to duplicate campaign. Please try again.', 'error');
+            }
+        }
+    });
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    // Set minimum datetime for schedule input
+    const now = new Date();
+    const minTime = now.toISOString().slice(0, 16);
+    const scheduleInput = document.getElementById('campaign_schedule_time');
+    if (scheduleInput) {
+        scheduleInput.min = minTime;
+    }
+});
+</script>
+{% endblock %}

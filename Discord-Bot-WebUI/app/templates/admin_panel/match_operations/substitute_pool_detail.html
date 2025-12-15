@@ -405,7 +405,7 @@ async function removeFromPool(playerId, playerName) {
         text: `Are you sure you want to remove ${playerName} from the ${leagueType} substitute pool?`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#dc3545',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
         confirmButtonText: 'Yes, remove'
     });
 
@@ -445,7 +445,7 @@ async function rejectPlayer(playerId, playerName) {
         text: `Are you sure you want to reject ${playerName} from being added to the ${leagueType} substitute pool? They will no longer appear in the available players list.`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#dc3545',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
         confirmButtonText: 'Yes, reject',
         input: 'text',
         inputLabel: 'Reason (optional)',

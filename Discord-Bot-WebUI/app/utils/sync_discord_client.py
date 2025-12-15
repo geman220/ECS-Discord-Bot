@@ -7,11 +7,79 @@ Eliminates ThreadPoolExecutor usage that causes queue buildup.
 
 import logging
 import requests
+import time
 from typing import Dict, Any, Optional
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
+
+
+# Circuit breaker state for Discord bot service
+_circuit_breaker = {
+    'is_open': False,
+    'failure_count': 0,
+    'last_failure_time': 0,
+    'cooldown_seconds': 60,  # Wait 60 seconds before retrying after circuit opens
+    'failure_threshold': 2,  # Open circuit after 2 consecutive failures
+}
+
+
+def _check_circuit_breaker() -> bool:
+    """
+    Check if requests should be allowed through the circuit breaker.
+
+    Returns:
+        True if requests should proceed, False if circuit is open.
+    """
+    global _circuit_breaker
+
+    if not _circuit_breaker['is_open']:
+        return True
+
+    # Check if cooldown period has passed
+    elapsed = time.time() - _circuit_breaker['last_failure_time']
+    if elapsed >= _circuit_breaker['cooldown_seconds']:
+        # Allow a test request through (half-open state)
+        logger.info("Circuit breaker cooldown elapsed, allowing test request")
+        return True
+
+    return False
+
+
+def _record_success():
+    """Record a successful request, resetting the circuit breaker."""
+    global _circuit_breaker
+    if _circuit_breaker['is_open'] or _circuit_breaker['failure_count'] > 0:
+        logger.info("Discord bot service recovered, resetting circuit breaker")
+    _circuit_breaker['is_open'] = False
+    _circuit_breaker['failure_count'] = 0
+
+
+def _record_failure():
+    """Record a failed request, potentially opening the circuit breaker."""
+    global _circuit_breaker
+    _circuit_breaker['failure_count'] += 1
+    _circuit_breaker['last_failure_time'] = time.time()
+
+    if _circuit_breaker['failure_count'] >= _circuit_breaker['failure_threshold']:
+        if not _circuit_breaker['is_open']:
+            logger.warning(
+                f"Circuit breaker opened after {_circuit_breaker['failure_count']} failures. "
+                f"Discord bot requests will be skipped for {_circuit_breaker['cooldown_seconds']} seconds."
+            )
+        _circuit_breaker['is_open'] = True
+
+
+def is_discord_service_available() -> bool:
+    """
+    Check if the Discord bot service is currently available.
+    Use this to skip Discord checks when the service is known to be down.
+
+    Returns:
+        True if service is likely available, False if circuit breaker is open.
+    """
+    return _check_circuit_breaker()
 
 
 class SyncDiscordClient:
@@ -494,30 +562,46 @@ class SyncDiscordClient:
                 'error': str(e)
             }
     
-    def check_member_in_server(self, server_id: str, discord_id: str) -> Dict[str, Any]:
+    def check_member_in_server(self, server_id: str, discord_id: str, fast_fail: bool = False) -> Dict[str, Any]:
         """
         Check if a user is a member of the Discord server.
-        
+
         Args:
             server_id: Discord server ID.
             discord_id: Discord user ID.
-            
+            fast_fail: If True, use shorter timeout and check circuit breaker.
+                       Use this for web request contexts to avoid blocking page loads.
+
         Returns:
             Dictionary with success status and member info.
         """
+        # Check circuit breaker first
+        if not _check_circuit_breaker():
+            logger.debug(f"Circuit breaker open, skipping Discord check for user {discord_id}")
+            return {
+                'success': False,
+                'message': 'Discord service temporarily unavailable',
+                'circuit_breaker': True
+            }
+
         discord_bot_url = f"http://discord-bot:5001/api/server/guilds/{server_id}/members/{discord_id}"
-        
+
+        # Use shorter timeout for fast_fail mode (web requests)
+        timeout = 3 if fast_fail else self.timeout
+
         try:
             logger.info(f"Checking if user {discord_id} is in server {server_id} (synchronous)")
-            
-            response = self.session.get(
-                discord_bot_url,
-                timeout=self.timeout
-            )
-            
+
+            # For fast_fail mode, create a session without retries
+            if fast_fail:
+                response = requests.get(discord_bot_url, timeout=timeout)
+            else:
+                response = self.session.get(discord_bot_url, timeout=timeout)
+
             if response.status_code == 200:
                 result = response.json()
                 logger.info(f"User {discord_id} found in server")
+                _record_success()
                 return {
                     'success': True,
                     'in_server': True,
@@ -525,6 +609,7 @@ class SyncDiscordClient:
                 }
             elif response.status_code == 404:
                 logger.info(f"User {discord_id} not found in server")
+                _record_success()
                 return {
                     'success': True,
                     'in_server': False
@@ -537,14 +622,24 @@ class SyncDiscordClient:
                     'message': error_msg,
                     'status_code': response.status_code
                 }
-                
+
         except requests.Timeout:
-            error_msg = f"Discord API call timed out after {self.timeout} seconds"
+            error_msg = f"Discord API call timed out after {timeout} seconds"
             logger.error(error_msg)
+            _record_failure()
             return {
                 'success': False,
                 'message': error_msg,
                 'timeout': True
+            }
+        except requests.ConnectionError as e:
+            error_msg = f"Error checking member status: {str(e)}"
+            logger.error(error_msg)
+            _record_failure()
+            return {
+                'success': False,
+                'message': error_msg,
+                'error': str(e)
             }
         except Exception as e:
             error_msg = f"Error checking member status: {str(e)}"

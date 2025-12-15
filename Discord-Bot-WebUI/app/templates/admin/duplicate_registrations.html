@@ -4,29 +4,29 @@
 
 {% block custom_css %}
 <style>
-    .confidence-high { color: #ea5455; font-weight: bold; }
-    .confidence-medium { color: #ff9f43; font-weight: bold; }
-    .confidence-low { color: #28c76f; font-weight: bold; }
-    
-    .match-type-phone { background-color: rgba(234, 84, 85, 0.16); color: #ea5455; }
-    .match-type-name { background-color: rgba(255, 159, 67, 0.16); color: #ff9f43; }
-    .match-type-email { background-color: rgba(105, 108, 255, 0.16); color: #696cff; }
-    
+    .confidence-high { color: var(--ecs-danger, #ea5455); font-weight: bold; }
+    .confidence-medium { color: var(--ecs-warning, #ff9f43); font-weight: bold; }
+    .confidence-low { color: var(--ecs-success, #28c76f); font-weight: bold; }
+
+    .match-type-phone { background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.16)); color: var(--ecs-danger, #ea5455); }
+    .match-type-name { background-color: var(--ecs-warning-subtle, rgba(255, 159, 67, 0.16)); color: var(--ecs-warning, #ff9f43); }
+    .match-type-email { background-color: var(--ecs-primary-subtle, rgba(105, 108, 255, 0.16)); color: var(--ecs-primary, #696cff); }
+
     .duplicate-card {
         transition: all 0.2s ease;
         border-left: 4px solid transparent;
     }
-    
+
     .duplicate-card.high-confidence {
-        border-left-color: #ea5455;
+        border-left-color: var(--ecs-danger, #ea5455);
     }
-    
+
     .duplicate-card.medium-confidence {
-        border-left-color: #ff9f43;
+        border-left-color: var(--ecs-warning, #ff9f43);
     }
-    
+
     .duplicate-card.low-confidence {
-        border-left-color: #28c76f;
+        border-left-color: var(--ecs-success, #28c76f);
     }
     
     .duplicate-card:hover {

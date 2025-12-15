@@ -245,9 +245,9 @@ $(document).ready(function() {
             datasets: [{
                 data: [{{ response_counts.yes }}, {{ response_counts.no }}, {{ response_counts.maybe }}],
                 backgroundColor: [
-                    '#28a745',  // Success green
-                    '#dc3545',  // Danger red
-                    '#ffc107'   // Warning yellow
+                    (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
+                    (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+                    (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107'
                 ],
                 borderWidth: 2,
                 borderColor: '#fff'

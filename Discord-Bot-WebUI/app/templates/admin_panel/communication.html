@@ -267,39 +267,6 @@
 {% endblock %}
 
 {% block custom_css %}
-<style>
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Ensure all text and icons in list group items are white in dark mode */
-[data-bs-theme="dark"] .list-group-item-action {
-    color: #ffffff !important;
-}
-
-[data-bs-theme="dark"] .list-group-item-action:hover {
-    color: #ffffff !important;
-}
-
-[data-bs-theme="dark"] .list-group-item-action i {
-    color: #ffffff !important;
-}
-
-[data-bs-theme="dark"] .list-group-item-action * {
-    color: #ffffff !important;
-}
-
-@media (max-width: 768px) {
-    .d-flex.justify-content-between {
-        flex-direction: column;
-        align-items: flex-start !important;
-    }
-    
-    .d-flex.justify-content-between > div:last-child {
-        margin-top: 0.25rem;
-    }
-}
-</style>
+{{ super() }}
+{# Shared component styles (card-icon, list-group dark mode) are in foundation-overrides.css #}
 {% endblock %}

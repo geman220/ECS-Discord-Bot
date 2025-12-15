@@ -1,5 +1,135 @@
 /* Soccer Pitch View Styles */
 
+/* ===== Team Navigation Bar ===== */
+.team-nav-scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--ecs-neutral-90-rgb), 0.2) transparent;
+    max-width: 100%;
+    padding-bottom: 4px;
+}
+
+.team-nav-scroll::-webkit-scrollbar {
+    height: 4px;
+}
+
+.team-nav-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.team-nav-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(var(--ecs-neutral-90-rgb), 0.2);
+    border-radius: 4px;
+}
+
+.team-nav-scroll .navbar-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.25rem;
+    width: max-content;
+    min-width: 100%;
+}
+
+.team-nav-scroll .nav-item {
+    flex-shrink: 0;
+}
+
+.team-nav-scroll .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    color: var(--ecs-neutral-50);
+    font-weight: 500;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    border: none;
+    background: transparent;
+}
+
+.team-nav-scroll .nav-link:hover {
+    background-color: rgba(var(--ecs-primary-rgb), 0.1);
+    color: var(--ecs-primary);
+}
+
+.team-nav-scroll .nav-link.active {
+    background-color: var(--ecs-primary);
+    color: var(--ecs-neutral-0);
+}
+
+.team-nav-scroll .nav-link .badge {
+    font-size: 0.7rem;
+}
+
+/* Desktop screens */
+@media (min-width: 992px) {
+    .team-nav-scroll .nav-link {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* Tablet screens */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .team-nav-scroll .nav-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8125rem;
+    }
+}
+
+/* Mobile screens */
+@media (max-width: 767.98px) {
+    .team-nav-scroll .nav-link {
+        padding: 0.5rem 0.625rem;
+        font-size: 0.75rem;
+    }
+
+    .team-nav-scroll .nav-link .team-name {
+        max-width: 80px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .team-nav-scroll .nav-link .badge {
+        font-size: 0.65rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .team-nav-scroll .nav-link {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.7rem;
+    }
+
+    .team-nav-scroll .nav-link .team-name {
+        max-width: 60px;
+    }
+}
+
+/* Dark mode for team nav */
+[data-style="dark"] .navbar.bg-body-tertiary {
+    background-color: var(--ecs-dark-bg-card, #25282f) !important;
+}
+
+[data-style="dark"] .team-nav-scroll .nav-link {
+    color: var(--ecs-dark-text-muted, #9ca3af);
+}
+
+[data-style="dark"] .team-nav-scroll .nav-link:hover {
+    background: rgba(var(--ecs-primary-rgb), 0.15);
+    color: var(--ecs-primary-light);
+}
+
+[data-style="dark"] .team-nav-scroll .nav-link.active {
+    background: var(--ecs-primary);
+    color: var(--ecs-neutral-0);
+}
+
+/* ===== Available Players List ===== */
+
 /* Available Players List */
 .available-players-list {
     max-height: 600px;
@@ -38,7 +168,7 @@
     background: var(--bs-primary-bg-subtle);
     border-color: var(--bs-primary);
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(var(--ecs-neutral-90-rgb), 0.1);
 }
 
 .player-item.dragging {
@@ -124,8 +254,8 @@
             0deg,
             transparent,
             transparent 2px,
-            rgba(0,0,0,0.03) 2px,
-            rgba(0,0,0,0.03) 4px
+            rgba(var(--ecs-neutral-90-rgb), 0.03) 2px,
+            rgba(var(--ecs-neutral-90-rgb), 0.03) 4px
         ),
         /* Stadium lighting effect */
         radial-gradient(
@@ -142,14 +272,14 @@
             #2d7a42 75%,
             #1a4d26 100%
         );
-    border: 3px solid rgba(255,255,255,0.1);
+    border: 3px solid rgba(var(--ecs-neutral-0-rgb), 0.1);
     border-radius: 8px;
     overflow: hidden;
     margin: 0 auto;
     /* Enhanced shadow for depth */
     box-shadow:
-        inset 0 0 100px rgba(0,0,0,0.3),
-        0 10px 40px rgba(0,0,0,0.2);
+        inset 0 0 100px rgba(var(--ecs-neutral-90-rgb), 0.3),
+        0 10px 40px rgba(var(--ecs-neutral-90-rgb), 0.2);
 }
 
 /* Spotlight effect overlay */
@@ -163,7 +293,7 @@
     height: 200%;
     background: radial-gradient(
         ellipse at center,
-        rgba(255, 255, 255, 0.15) 0%,
+        rgba(var(--ecs-neutral-0-rgb), 0.15) 0%,
         transparent 40%
     );
     pointer-events: none;
@@ -186,11 +316,11 @@
     left: 0;
     right: 0;
     height: 2px;
-    background: rgba(255, 255, 255, 0.6);
+    background: rgba(var(--ecs-neutral-0-rgb), 0.6);
     transform: translateY(-50%);
     box-shadow:
-        0 0 10px rgba(255,255,255,0.3),
-        0 0 20px rgba(255,255,255,0.1);
+        0 0 10px rgba(var(--ecs-neutral-0-rgb), 0.3),
+        0 0 20px rgba(var(--ecs-neutral-0-rgb), 0.1);
 }
 
 .center-circle {
@@ -199,7 +329,7 @@
     left: 50%;
     width: 120px;
     height: 120px;
-    border: 2px solid #ffffff;
+    border: 2px solid var(--ecs-neutral-0);
     border-radius: 50%;
     transform: translate(-50%, -50%);
 }
@@ -209,8 +339,8 @@
     left: 50%;
     width: 80px;
     height: 25px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid #ffffff;
+    background: rgba(var(--ecs-neutral-0-rgb), 0.1);
+    border: 2px solid var(--ecs-neutral-0);
     border-radius: 4px;
     transform: translateX(-50%);
 }
@@ -230,10 +360,10 @@
     left: 50%;
     width: 200px;
     height: 80px;
-    border: 2px solid #ffffff;
+    border: 2px solid var(--ecs-neutral-0);
     border-radius: 8px;
     transform: translateX(-50%);
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(var(--ecs-neutral-0-rgb), 0.05);
 }
 
 .penalty-area-top {
@@ -249,10 +379,10 @@
 /* Position Zones - Phase 4: Glassmorphism */
 .position-zone {
     position: absolute;
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(var(--ecs-neutral-0-rgb), 0.15);
     border-radius: 12px;
     /* Glassmorphism effect */
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(var(--ecs-neutral-0-rgb), 0.08);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -263,50 +393,50 @@
     min-height: 80px;
     /* Enhanced shadow for depth */
     box-shadow:
-        0 4px 16px rgba(0,0,0,0.2),
-        inset 0 1px 0 rgba(255,255,255,0.1);
+        0 4px 16px rgba(var(--ecs-neutral-90-rgb), 0.2),
+        inset 0 1px 0 rgba(var(--ecs-neutral-0-rgb), 0.1);
 }
 
 .position-zone:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(100, 200, 255, 0.4);
+    background: rgba(var(--ecs-neutral-0-rgb), 0.12);
+    border-color: rgba(var(--ecs-primary-rgb), 0.4);
     transform: translateY(-2px);
     box-shadow:
-        0 8px 24px rgba(0,0,0,0.3),
-        0 0 20px rgba(100, 200, 255, 0.2);
+        0 8px 24px rgba(var(--ecs-neutral-90-rgb), 0.3),
+        0 0 20px rgba(var(--ecs-primary-rgb), 0.2);
 }
 
 .position-zone.drag-over {
     /* Enhanced drag-over state with blue glow */
     background: linear-gradient(
         135deg,
-        rgba(100, 200, 255, 0.25) 0%,
-        rgba(50, 150, 255, 0.25) 100%
+        rgba(var(--ecs-primary-rgb), 0.25) 0%,
+        rgba(var(--ecs-primary-rgb), 0.25) 100%
     ) !important;
-    border: 3px solid rgba(100, 200, 255, 0.8) !important;
+    border: 3px solid rgba(var(--ecs-primary-rgb), 0.8) !important;
     border-style: solid !important;
     transform: scale(1.03);
     box-shadow:
-        0 0 30px rgba(100, 200, 255, 0.5),
-        0 8px 24px rgba(0,0,0,0.4);
+        0 0 30px rgba(var(--ecs-primary-rgb), 0.5),
+        0 8px 24px rgba(var(--ecs-neutral-90-rgb), 0.4);
     animation: pulse-glow 1.5s ease-in-out infinite;
 }
 
 @keyframes pulse-glow {
     0%, 100% {
-        box-shadow: 0 0 30px rgba(100, 200, 255, 0.5);
+        box-shadow: 0 0 30px rgba(var(--ecs-primary-rgb), 0.5);
     }
     50% {
-        box-shadow: 0 0 50px rgba(100, 200, 255, 0.8);
+        box-shadow: 0 0 50px rgba(var(--ecs-primary-rgb), 0.8);
     }
 }
 
 .position-label {
-    color: #ffffff;
+    color: var(--ecs-neutral-0);
     font-weight: bold;
     font-size: 0.75rem;
     margin-bottom: 4px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    text-shadow: 1px 1px 2px rgba(var(--ecs-neutral-90-rgb), 0.5);
 }
 
 .position-players {
@@ -328,8 +458,8 @@
     width: 80px;
     height: 65px;
     transform: translateX(-50%);
-    background: rgba(255, 193, 7, 0.2);
-    border-color: rgba(255, 193, 7, 0.5);
+    background: rgba(var(--ecs-warning-rgb), 0.2);
+    border-color: rgba(var(--ecs-warning-rgb), 0.5);
 }
 
 /* Defense Line */
@@ -338,8 +468,8 @@
     left: 15%;
     width: 70px;
     height: 60px;
-    background: rgba(220, 53, 69, 0.15);
-    border-color: rgba(220, 53, 69, 0.4);
+    background: rgba(var(--ecs-danger-rgb), 0.15);
+    border-color: rgba(var(--ecs-danger-rgb), 0.4);
 }
 
 .centerback-zone {
@@ -348,8 +478,8 @@
     transform: translateX(-50%);
     width: 140px;
     height: 60px;
-    background: rgba(220, 53, 69, 0.15);
-    border-color: rgba(220, 53, 69, 0.4);
+    background: rgba(var(--ecs-danger-rgb), 0.15);
+    border-color: rgba(var(--ecs-danger-rgb), 0.4);
 }
 
 .rightback-zone {
@@ -357,8 +487,8 @@
     right: 15%;
     width: 70px;
     height: 60px;
-    background: rgba(220, 53, 69, 0.15);
-    border-color: rgba(220, 53, 69, 0.4);
+    background: rgba(var(--ecs-danger-rgb), 0.15);
+    border-color: rgba(var(--ecs-danger-rgb), 0.4);
 }
 
 /* Wing Backs (more advanced) */
@@ -367,8 +497,8 @@
     left: 8%;
     width: 70px;
     height: 60px;
-    background: rgba(255, 102, 204, 0.15);
-    border-color: rgba(255, 102, 204, 0.4);
+    background: rgba(var(--ecs-primary-rgb), 0.15);
+    border-color: rgba(var(--ecs-primary-rgb), 0.4);
 }
 
 .rightwingback-zone {
@@ -376,8 +506,8 @@
     right: 8%;
     width: 70px;
     height: 60px;
-    background: rgba(255, 102, 204, 0.15);
-    border-color: rgba(255, 102, 204, 0.4);
+    background: rgba(var(--ecs-primary-rgb), 0.15);
+    border-color: rgba(var(--ecs-primary-rgb), 0.4);
 }
 
 /* Defensive Midfield */
@@ -387,8 +517,8 @@
     transform: translateX(-50%);
     width: 110px;
     height: 60px;
-    background: rgba(102, 51, 153, 0.15);
-    border-color: rgba(102, 51, 153, 0.4);
+    background: rgba(var(--ecs-primary-rgb), 0.15);
+    border-color: rgba(var(--ecs-primary-rgb), 0.4);
 }
 
 /* Central Midfield */
@@ -398,8 +528,8 @@
     transform: translateX(-50%);
     width: 160px;
     height: 60px;
-    background: rgba(0, 123, 255, 0.15);
-    border-color: rgba(0, 123, 255, 0.4);
+    background: rgba(var(--ecs-info-rgb), 0.15);
+    border-color: rgba(var(--ecs-info-rgb), 0.4);
 }
 
 /* Attacking Midfield */
@@ -409,8 +539,8 @@
     transform: translateX(-50%);
     width: 110px;
     height: 60px;
-    background: rgba(51, 204, 102, 0.15);
-    border-color: rgba(51, 204, 102, 0.4);
+    background: rgba(var(--ecs-success-rgb), 0.15);
+    border-color: rgba(var(--ecs-success-rgb), 0.4);
 }
 
 /* Wings */
@@ -419,8 +549,8 @@
     left: 12%;
     width: 70px;
     height: 60px;
-    background: rgba(255, 165, 0, 0.15);
-    border-color: rgba(255, 165, 0, 0.4);
+    background: rgba(var(--ecs-warning-rgb), 0.15);
+    border-color: rgba(var(--ecs-warning-rgb), 0.4);
 }
 
 .rightwing-zone {
@@ -428,8 +558,8 @@
     right: 12%;
     width: 70px;
     height: 60px;
-    background: rgba(255, 165, 0, 0.15);
-    border-color: rgba(255, 165, 0, 0.4);
+    background: rgba(var(--ecs-warning-rgb), 0.15);
+    border-color: rgba(var(--ecs-warning-rgb), 0.4);
 }
 
 /* Strikers */
@@ -439,8 +569,8 @@
     transform: translateX(-50%);
     width: 140px;
     height: 60px;
-    background: rgba(40, 167, 69, 0.15);
-    border-color: rgba(40, 167, 69, 0.4);
+    background: rgba(var(--ecs-success-rgb), 0.15);
+    border-color: rgba(var(--ecs-success-rgb), 0.4);
 }
 
 /* Bench */
@@ -449,8 +579,8 @@
     right: 10px;
     width: 130px;
     height: 120px;
-    background: rgba(108, 117, 125, 0.15);
-    border-color: rgba(108, 117, 125, 0.4);
+    background: rgba(var(--ecs-neutral-50-rgb), 0.15);
+    border-color: rgba(var(--ecs-neutral-50-rgb), 0.4);
     flex-wrap: wrap;
     justify-content: flex-start;
     align-content: flex-start;
@@ -465,10 +595,10 @@
     /* Gradient background for depth */
     background: linear-gradient(
         135deg,
-        rgba(255,255,255,0.95) 0%,
-        rgba(240,245,250,0.95) 100%
+        rgba(var(--ecs-neutral-0-rgb), 0.95) 0%,
+        rgba(var(--ecs-neutral-5-rgb), 0.95) 100%
     );
-    border: 2px solid rgba(255,255,255,0.3);
+    border: 2px solid rgba(var(--ecs-neutral-0-rgb), 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -477,27 +607,27 @@
     position: relative;
     /* Multiple shadow layers for depth */
     box-shadow:
-        0 4px 12px rgba(0,0,0,0.3),
-        0 1px 3px rgba(0,0,0,0.2),
-        inset 0 1px 0 rgba(255,255,255,0.8);
+        0 4px 12px rgba(var(--ecs-neutral-90-rgb), 0.3),
+        0 1px 3px rgba(var(--ecs-neutral-90-rgb), 0.2),
+        inset 0 1px 0 rgba(var(--ecs-neutral-0-rgb), 0.8);
     position: relative;
     margin: 2px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 8px rgba(var(--ecs-neutral-90-rgb), 0.3);
 }
 
 .positioned-player:hover {
     transform: translateY(-3px) scale(1.02);
     z-index: 10;
     box-shadow:
-        0 8px 20px rgba(0,0,0,0.4),
-        0 0 15px rgba(100,150,255,0.3);
+        0 8px 20px rgba(var(--ecs-neutral-90-rgb), 0.4),
+        0 0 15px rgba(var(--ecs-primary-rgb), 0.3);
 }
 
 .positioned-player.dragging {
     opacity: 0.7;
     cursor: grabbing;
     transform: rotate(8deg) scale(0.95);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 30px rgba(var(--ecs-neutral-90-rgb), 0.5);
 }
 
 /* Entrance animation for newly added players */
@@ -591,7 +721,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(var(--ecs-neutral-90-rgb), 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -710,30 +840,15 @@
 }
 
 .position-zone:hover .position-label {
-    color: #ffffff;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+    color: var(--ecs-neutral-0);
+    text-shadow: 2px 2px 4px rgba(var(--ecs-neutral-90-rgb), 0.7);
 }
 
-/* Team tabs styling */
-.nav-pills .nav-link {
-    border-radius: 8px;
-    margin-right: 4px;
-    transition: all 0.2s ease;
-}
-
-.nav-pills .nav-link:hover {
-    background-color: var(--bs-primary-bg-subtle);
-}
-
-.nav-pills .nav-link.active {
-    background-color: var(--bs-primary);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-}
 
 /* Empty state for position zones */
 .position-zone:empty::after {
     content: "Drop players here";
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(var(--ecs-neutral-0-rgb), 0.6);
     font-size: 0.7rem;
     text-align: center;
     margin-top: 20px;
@@ -747,7 +862,7 @@
     bottom: -25px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(var(--ecs-neutral-90-rgb), 0.8);
     color: white;
     padding: 2px 6px;
     border-radius: 4px;
@@ -768,49 +883,49 @@
 /* Capacity indicator in position labels */
 .capacity-indicator {
     font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(var(--ecs-neutral-0-rgb), 0.7);
     margin-left: 6px;
     font-weight: 500;
 }
 
 .capacity-indicator .current {
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(var(--ecs-neutral-0-rgb), 0.9);
 }
 
 .capacity-indicator .recommended {
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(var(--ecs-neutral-0-rgb), 0.6);
 }
 
 /* At capacity state */
 .capacity-indicator.at-capacity {
-    color: #ffc107;
+    color: var(--ecs-warning);
     font-weight: 700;
 }
 
 .capacity-indicator.at-capacity .current {
-    color: #ffc107;
+    color: var(--ecs-warning);
 }
 
 .position-zone.at-capacity {
-    border-color: rgba(255, 193, 7, 0.4);
-    background-color: rgba(255, 193, 7, 0.05);
+    border-color: rgba(var(--ecs-warning-rgb), 0.4);
+    background-color: rgba(var(--ecs-warning-rgb), 0.05);
 }
 
 /* Over capacity state */
 .capacity-indicator.over-capacity {
-    color: #dc3545;
+    color: var(--ecs-danger);
     font-weight: 700;
     animation: pulse-warning 2s infinite;
 }
 
 .capacity-indicator.over-capacity .current {
-    color: #dc3545;
+    color: var(--ecs-danger);
 }
 
 .position-zone.over-capacity {
-    border: 2px solid rgba(220, 53, 69, 0.5);
-    background-color: rgba(220, 53, 69, 0.08);
+    border: 2px solid rgba(var(--ecs-danger-rgb), 0.5);
+    background-color: rgba(var(--ecs-danger-rgb), 0.08);
 }
 
 @keyframes pulse-warning {
@@ -827,11 +942,11 @@
     position: fixed;
     top: 80px;
     right: 20px;
-    background: linear-gradient(135deg, #fff 0%, #fef9e7 100%);
-    border-left: 4px solid #ffc107;
+    background: linear-gradient(135deg, var(--ecs-neutral-0) 0%, var(--ecs-neutral-5) 100%);
+    border-left: 4px solid var(--ecs-warning);
     border-radius: 8px;
     padding: 14px 18px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 20px rgba(var(--ecs-neutral-90-rgb), 0.15);
     z-index: 10000;
     display: flex;
     align-items: flex-start;
@@ -847,7 +962,7 @@
 }
 
 .position-warning-toast strong {
-    color: #000;
+    color: var(--ecs-neutral-90);
     font-size: 0.9rem;
     display: block;
     margin-bottom: 2px;
@@ -855,7 +970,7 @@
 
 .position-warning-toast .small {
     font-size: 0.75rem;
-    color: #666;
+    color: var(--ecs-neutral-50);
 }
 
 @keyframes slideInRight {
@@ -883,16 +998,16 @@
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
     .position-warning-toast {
-        background: linear-gradient(135deg, #2c2c2c 0%, #3a3a3a 100%);
-        border-left-color: #ffc107;
+        background: linear-gradient(135deg, var(--ecs-dark-bg-card) 0%, var(--ecs-dark-bg-elevated) 100%);
+        border-left-color: var(--ecs-warning);
     }
 
     .position-warning-toast strong {
-        color: #fff;
+        color: var(--ecs-neutral-0);
     }
 
     .position-warning-toast .small {
-        color: #aaa;
+        color: var(--ecs-dark-text-muted);
     }
 }
 

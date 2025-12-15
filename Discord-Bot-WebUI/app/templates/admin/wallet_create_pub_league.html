@@ -13,7 +13,7 @@
         {% if pub_type and pub_type.foreground_color %}
         color: {{ pub_type.foreground_color }};
         {% else %}
-        color: #fff;
+        color: var(--bs-white, #fff);
         {% endif %}
         border-radius: 12px;
         box-shadow: var(--bs-box-shadow);

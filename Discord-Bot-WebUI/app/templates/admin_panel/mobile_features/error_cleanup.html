@@ -211,7 +211,7 @@ async function executeCleanup() {
         `,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#d33',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
         confirmButtonText: 'Yes, delete data',
         cancelButtonText: 'Cancel'
     });

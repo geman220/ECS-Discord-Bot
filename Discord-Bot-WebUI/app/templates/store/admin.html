@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block page_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/features/store.css') }}" />
+{% endblock %}
+
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Page Header -->
@@ -59,7 +63,7 @@
                                 <td>
                                     <div class="d-flex align-items-center">
                                         {% if item.image_url %}
-                                        <img src="{{ item.image_url }}" alt="{{ item.name }}" class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                        <img src="{{ item.image_url }}" alt="{{ item.name }}" class="rounded me-3 store-admin-item-image">
                                         {% else %}
                                         <div class="avatar avatar-md bg-label-secondary me-3">
                                             <i class="ti ti-photo"></i>
@@ -148,7 +152,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">Recent Orders</h5>
                         <div class="d-flex gap-2">
-                            <select id="bulk-status-select" class="form-select form-select-sm" style="width: auto;">
+                            <select id="bulk-status-select" class="form-select form-select-sm bulk-status-select">
                                 <option value="">Bulk Update Status</option>
                                 <option value="PENDING">Mark as Pending</option>
                                 <option value="PROCESSING">Mark as Processing</option>
@@ -322,7 +326,7 @@
                                 <div id="colors-container">
                                     <div class="input-group mb-2">
                                         <input type="text" class="form-control" name="colors[]" placeholder="e.g. Navy, Black, White">
-                                        <button type="button" class="btn btn-outline-danger remove-color" style="display: none;">
+                                        <button type="button" class="btn btn-outline-danger remove-color d-none">
                                             <i class="ti ti-x"></i>
                                         </button>
                                     </div>
@@ -339,7 +343,7 @@
                                 <div id="sizes-container">
                                     <div class="input-group mb-2">
                                         <input type="text" class="form-control" name="sizes[]" placeholder="e.g. YXS, YS, YM, YL, AS, AM, AL">
-                                        <button type="button" class="btn btn-outline-danger remove-size" style="display: none;">
+                                        <button type="button" class="btn btn-outline-danger remove-size d-none">
                                             <i class="ti ti-x"></i>
                                         </button>
                                     </div>
@@ -467,9 +471,9 @@ document.addEventListener('DOMContentLoaded', function() {
             groups.forEach((group, index) => {
                 const removeBtn = group.querySelector(`.remove-${type}`);
                 if (groups.length > 1) {
-                    removeBtn.style.display = 'block';
+                    removeBtn.classList.remove('d-none');
                 } else {
-                    removeBtn.style.display = 'none';
+                    removeBtn.classList.add('d-none');
                 }
             });
         }
@@ -541,7 +545,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showCancelButton: true,
                 confirmButtonText: 'Yes, delete it!',
                 cancelButtonText: 'Cancel',
-                confirmButtonColor: '#dc3545'
+                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : 'var(--ecs-danger)'
             }).then((result) => {
                 if (result.isConfirmed) {
                     fetch(`{{ url_for('store.delete_item', item_id=0) }}`.replace('0', itemId), {
@@ -711,7 +715,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showCancelButton: true,
             confirmButtonText: 'Yes, update them!',
             cancelButtonText: 'Cancel',
-            confirmButtonColor: '#007bff'
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : 'var(--ecs-primary)'
         }).then((result) => {
             if (result.isConfirmed) {
                 performBulkUpdate(orderIds, newStatus);
@@ -786,7 +790,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showCancelButton: true,
                 confirmButtonText: 'Yes, reset it!',
                 cancelButtonText: 'Cancel',
-                confirmButtonColor: '#ffc107'
+                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : 'var(--ecs-warning)'
             }).then((result) => {
                 if (result.isConfirmed) {
                     performSeasonReset(resetType, modal);
@@ -859,7 +863,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showCancelButton: true,
             confirmButtonText: 'Yes, delete them!',
             cancelButtonText: 'Cancel',
-            confirmButtonColor: '#dc3545'
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : 'var(--ecs-danger)'
         }).then((result) => {
             if (result.isConfirmed) {
                 performBulkDelete(orderIds);
@@ -931,7 +935,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showCancelButton: true,
                 confirmButtonText: 'Yes, delete it!',
                 cancelButtonText: 'Cancel',
-                confirmButtonColor: '#dc3545'
+                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : 'var(--ecs-danger)'
             }).then((result) => {
                 if (result.isConfirmed) {
                     performSingleDelete(orderId, orderInfo);

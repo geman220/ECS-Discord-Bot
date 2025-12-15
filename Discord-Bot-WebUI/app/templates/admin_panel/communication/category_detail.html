@@ -369,8 +369,8 @@ function toggleTemplate(id, name, currentStatus) {
         text: `Are you sure you want to ${action} "${name}"?`,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: newStatus ? '#28a745' : '#ffc107',
-        cancelButtonColor: '#6c757d',
+        confirmButtonColor: newStatus ? (getComputedStyle(document.documentElement).getPropertyValue('--ecs-success').trim() || '#198754') : (getComputedStyle(document.documentElement).getPropertyValue('--ecs-warning').trim() || '#ffc107'),
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : (getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d'),
         confirmButtonText: `Yes, ${action} it!`
     }).then((result) => {
         if (result.isConfirmed) {
@@ -403,8 +403,8 @@ function deleteTemplate(id, name) {
         text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : (getComputedStyle(document.documentElement).getPropertyValue('--ecs-danger').trim() || '#dc3545'),
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : (getComputedStyle(document.documentElement).getPropertyValue('--ecs-info').trim() || '#0dcaf0'),
         confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
         if (result.isConfirmed) {

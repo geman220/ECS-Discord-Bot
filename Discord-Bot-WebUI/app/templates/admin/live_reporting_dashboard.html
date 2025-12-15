@@ -12,20 +12,20 @@
 {{ super() }}
 <style>
 .status-card {
-    border-left: 4px solid #007bff;
+    border-left: 4px solid var(--ecs-primary, #007bff);
     margin-bottom: 20px;
 }
 
 .status-healthy {
-    border-left-color: #28a745 !important;
+    border-left-color: var(--ecs-success, #28a745) !important;
 }
 
 .status-degraded {
-    border-left-color: #ffc107 !important;
+    border-left-color: var(--ecs-warning, #ffc107) !important;
 }
 
 .status-offline {
-    border-left-color: #dc3545 !important;
+    border-left-color: var(--ecs-danger, #dc3545) !important;
 }
 
 .service-indicator {
@@ -36,9 +36,9 @@
     margin-right: 8px;
 }
 
-.service-healthy { background-color: #28a745; }
-.service-degraded { background-color: #ffc107; }
-.service-offline { background-color: #dc3545; }
+.service-healthy { background-color: var(--ecs-success, #28a745); }
+.service-degraded { background-color: var(--ecs-warning, #ffc107); }
+.service-offline { background-color: var(--ecs-danger, #dc3545); }
 
 .stats-grid {
     display: grid;
@@ -62,7 +62,7 @@
 }
 
 .auto-refresh {
-    color: #6c757d;
+    color: var(--ecs-secondary, #6c757d);
     font-size: 0.9em;
 }
 </style>

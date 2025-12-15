@@ -188,28 +188,47 @@ class Availability(db.Model):
 
 
 class TemporarySubAssignment(db.Model):
-    """Model representing a temporary substitute assignment for a match."""
+    """Model representing a temporary substitute assignment for a match.
+
+    This model links a substitute player to a team for a specific match,
+    allowing match events (goals, assists, cards) to be attributed to subs
+    and count toward their season and career stats.
+    """
     __tablename__ = 'temporary_sub_assignments'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id', ondelete='CASCADE'), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id', ondelete='CASCADE'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     assigned_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    
+
+    # Enhanced tracking fields
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    # Link to substitute request/assignment for audit trail
+    substitute_request_id = db.Column(db.Integer, db.ForeignKey('substitute_requests.id'), nullable=True)
+    substitute_assignment_id = db.Column(db.Integer, db.ForeignKey('substitute_assignments.id'), nullable=True)
+
     # Define relationships
     match = db.relationship('Match', backref=db.backref('temp_sub_assignments', lazy='dynamic'))
     player = db.relationship('Player', backref=db.backref('temp_sub_assignments', lazy='dynamic'))
     team = db.relationship('Team', backref=db.backref('temp_sub_assignments', lazy='dynamic'))
     assigner = db.relationship('User', backref=db.backref('assigned_subs', lazy='dynamic'))
-    
+    substitute_request = db.relationship('SubstituteRequest', backref=db.backref('temp_assignments', lazy='dynamic'))
+    substitute_assignment = db.relationship('SubstituteAssignment', backref=db.backref('temp_assignment', uselist=False))
+
     __table_args__ = (
         db.UniqueConstraint('match_id', 'player_id', name='uq_temp_sub_match_player'),
+        db.Index('idx_temp_sub_match_active', 'match_id', 'is_active'),
     )
-    
+
     def __repr__(self):
         return f"<TemporarySubAssignment: {self.player_id} for {self.team_id} in match {self.match_id}>"
+
+    def deactivate(self):
+        """Deactivate this temporary assignment."""
+        self.is_active = False
 
 
 class AutoScheduleConfig(db.Model):

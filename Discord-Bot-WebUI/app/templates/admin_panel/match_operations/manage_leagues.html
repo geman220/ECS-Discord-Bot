@@ -173,27 +173,191 @@
 
 {% block custom_js %}
 <script>
+// Store seasons for the dropdown
+let availableSeasons = [];
+
+// Fetch seasons on page load
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/admin-panel/match-operations/seasons')
+        .then(response => response.text())
+        .then(html => {
+            // We'll use a simpler approach - just provide season selection in forms
+        })
+        .catch(() => console.log('Could not preload seasons'));
+});
+
 function createLeague() {
     Swal.fire({
         title: 'Create New League',
-        text: 'League creation functionality coming soon!',
-        icon: 'info'
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label class="form-label">League Name <span class="text-danger">*</span></label>
+                    <input type="text" id="leagueName" class="form-control" placeholder="e.g., Division A">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Season ID (optional)</label>
+                    <input type="number" id="leagueSeasonId" class="form-control" placeholder="Enter season ID">
+                    <small class="text-muted">Leave blank for no season association</small>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Create League',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const name = document.getElementById('leagueName').value;
+            if (!name) {
+                Swal.showValidationMessage('League name is required');
+                return false;
+            }
+            return {
+                name: name,
+                season_id: document.getElementById('leagueSeasonId').value
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const formData = new FormData();
+            formData.append('name', result.value.name);
+            if (result.value.season_id) {
+                formData.append('season_id', result.value.season_id);
+            }
+
+            fetch('{{ url_for("admin_panel.create_league") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            })
+            .catch(() => Swal.fire('Error', 'Failed to create league', 'error'));
+        }
     });
 }
 
 function viewLeague(leagueId) {
-    Swal.fire({
-        title: 'View League Details',
-        text: 'League details functionality coming soon!',
-        icon: 'info'
-    });
+    fetch(`/admin-panel/match-operations/leagues/${leagueId}/details`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const league = data.league;
+                Swal.fire({
+                    title: league.name,
+                    html: `
+                        <div class="text-start">
+                            <p><strong>League ID:</strong> ${league.id}</p>
+                            <p><strong>Season ID:</strong> ${league.season_id || 'None'}</p>
+                        </div>
+                    `,
+                    icon: 'info'
+                });
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        })
+        .catch(() => Swal.fire('Error', 'Failed to load league details', 'error'));
 }
 
 function editLeague(leagueId) {
+    // First fetch the league details
+    fetch(`/admin-panel/match-operations/leagues/${leagueId}/details`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const league = data.league;
+                Swal.fire({
+                    title: 'Edit League',
+                    html: `
+                        <div class="text-start">
+                            <div class="mb-3">
+                                <label class="form-label">League Name <span class="text-danger">*</span></label>
+                                <input type="text" id="editLeagueName" class="form-control" value="${league.name}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Season ID (optional)</label>
+                                <input type="number" id="editLeagueSeasonId" class="form-control" value="${league.season_id || ''}">
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    showDenyButton: true,
+                    confirmButtonText: 'Save Changes',
+                    denyButtonText: 'Delete League',
+                    denyButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+                    cancelButtonText: 'Cancel',
+                    preConfirm: () => {
+                        const name = document.getElementById('editLeagueName').value;
+                        if (!name) {
+                            Swal.showValidationMessage('League name is required');
+                            return false;
+                        }
+                        return {
+                            name: name,
+                            season_id: document.getElementById('editLeagueSeasonId').value
+                        };
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const formData = new FormData();
+                        formData.append('name', result.value.name);
+                        if (result.value.season_id) {
+                            formData.append('season_id', result.value.season_id);
+                        }
+
+                        fetch(`/admin-panel/match-operations/leagues/${leagueId}/update`, {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                            } else {
+                                Swal.fire('Error', data.message, 'error');
+                            }
+                        })
+                        .catch(() => Swal.fire('Error', 'Failed to update league', 'error'));
+                    } else if (result.isDenied) {
+                        deleteLeague(leagueId, league.name);
+                    }
+                });
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        })
+        .catch(() => Swal.fire('Error', 'Failed to load league details', 'error'));
+}
+
+function deleteLeague(leagueId, leagueName) {
     Swal.fire({
-        title: 'Edit League',
-        text: 'League editing functionality coming soon!',
-        icon: 'info'
+        title: 'Delete League?',
+        text: `Are you sure you want to delete "${leagueName}"? This cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/admin-panel/match-operations/leagues/${leagueId}/delete`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Deleted', data.message, 'success').then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            })
+            .catch(() => Swal.fire('Error', 'Failed to delete league', 'error'));
+        }
     });
 }
 
@@ -236,22 +400,5 @@ function toggleLeagueStatus(leagueId) {
 {% endblock %}
 
 {% block custom_css %}
-<style>
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-@media (max-width: 768px) {
-    .d-flex.justify-content-between {
-        flex-direction: column;
-        align-items: flex-start !important;
-    }
-    
-    .d-flex.justify-content-between > div:last-child {
-        margin-top: 0.25rem;
-    }
-}
-</style>
+{{ super() }}
 {% endblock %}

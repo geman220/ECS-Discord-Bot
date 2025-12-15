@@ -329,7 +329,7 @@ function bindEventHandlers() {
             showCancelButton: true,
             confirmButtonText: 'Yes, update it',
             cancelButtonText: 'Cancel',
-            confirmButtonColor: '#696cff',
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd',
             customClass: {
               confirmButton: 'btn btn-primary',
               cancelButton: 'btn btn-outline-secondary'

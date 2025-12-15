@@ -119,7 +119,7 @@
                         <div class="text-center mb-3">
                             <h6>CPU Usage</h6>
                             <div class="progress mx-auto" style="width: 80px; height: 80px; border-radius: 50%;">
-                                <div class="progress-bar" style="width: {{ performance_metrics.cpu_usage }}%; background: conic-gradient(#007bff {{ performance_metrics.cpu_usage * 3.6 }}deg, #e9ecef 0deg);"></div>
+                                <div class="progress-bar" style="width: {{ performance_metrics.cpu_usage }}%; background: conic-gradient(var(--ecs-primary, #0d6efd) {{ performance_metrics.cpu_usage * 3.6 }}deg, var(--ecs-neutral-20, #e9ecef) 0deg);"></div>
                             </div>
                             <small class="text-muted">{{ performance_metrics.cpu_usage }}%</small>
                         </div>
@@ -128,7 +128,7 @@
                         <div class="text-center mb-3">
                             <h6>Memory Usage</h6>
                             <div class="progress mx-auto" style="width: 80px; height: 80px; border-radius: 50%;">
-                                <div class="progress-bar bg-info" style="width: {{ performance_metrics.memory_usage }}%; background: conic-gradient(#17a2b8 {{ performance_metrics.memory_usage * 3.6 }}deg, #e9ecef 0deg);"></div>
+                                <div class="progress-bar bg-info" style="width: {{ performance_metrics.memory_usage }}%; background: conic-gradient(var(--ecs-info, #0dcaf0) {{ performance_metrics.memory_usage * 3.6 }}deg, var(--ecs-neutral-20, #e9ecef) 0deg);"></div>
                             </div>
                             <small class="text-muted">{{ performance_metrics.memory_usage }}%</small>
                         </div>
@@ -228,7 +228,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #e9ecef;
+    background: var(--ecs-neutral-20, #e9ecef);
 }
 
 .progress[style*="border-radius: 50%"] .progress-bar {
@@ -252,8 +252,8 @@ const responseTimeChart = new Chart(responseTimeCtx, {
         datasets: [{
             label: 'Response Time (ms)',
             data: {{ historical_data.response_time.data | tojson | safe }},
-            borderColor: '#007bff',
-            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+            borderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-primary').trim() || '#0d6efd',
+            backgroundColor: 'rgba(13, 110, 253, 0.1)',
             tension: 0.4
         }]
     },
@@ -276,7 +276,13 @@ const requestDistChart = new Chart(requestDistCtx, {
         labels: {{ historical_data.request_distribution.labels | tojson | safe }},
         datasets: [{
             data: {{ historical_data.request_distribution.data | tojson | safe }},
-            backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6c757d']
+            backgroundColor: [
+                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-primary').trim() || '#0d6efd',
+                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-success').trim() || '#198754',
+                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-warning').trim() || '#ffc107',
+                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-danger').trim() || '#dc3545',
+                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d'
+            ]
         }]
     },
     options: {
@@ -300,15 +306,15 @@ const historicalChart = new Chart(historicalCtx, {
             {
                 label: 'Response Time (ms)',
                 data: {{ historical_data.timeline.response_time | tojson | safe }},
-                borderColor: '#007bff',
-                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                borderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-primary').trim() || '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
                 yAxisID: 'y'
             },
             {
                 label: 'Requests/min',
                 data: {{ historical_data.timeline.requests | tojson | safe }},
-                borderColor: '#28a745',
-                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                borderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-success').trim() || '#198754',
+                backgroundColor: 'rgba(25, 135, 84, 0.1)',
                 yAxisID: 'y1'
             }
         ]

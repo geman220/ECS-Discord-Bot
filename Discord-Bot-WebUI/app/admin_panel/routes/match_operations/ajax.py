@@ -14,10 +14,12 @@ import logging
 
 from flask import request, jsonify
 from flask_login import login_required, current_user
+from sqlalchemy.orm import joinedload
 
 from app.admin_panel import admin_panel_bp
 from app.core import db
 from app.models.admin_config import AdminAuditLog
+from app.models.matches import Match
 from app.decorators import role_required
 
 logger = logging.getLogger(__name__)
@@ -34,31 +36,86 @@ def get_match_details():
         if not match_id:
             return jsonify({'success': False, 'message': 'Match ID is required'})
 
-        # TODO: Get actual match details from database
+        # Query match with related data using eager loading to avoid N+1
+        match = Match.query.options(
+            joinedload(Match.home_team),
+            joinedload(Match.away_team),
+            joinedload(Match.ref),
+            joinedload(Match.schedule)
+        ).get(match_id)
+
+        if not match:
+            return jsonify({'success': False, 'message': 'Match not found'})
+
+        # Get league and season info from schedule relationship
+        league_name = 'N/A'
+        season_name = 'N/A'
+        if match.schedule and match.schedule.season:
+            season_name = match.schedule.season.name
+            # Get league from team relationship
+            if match.home_team and match.home_team.league:
+                league_name = match.home_team.league.name
+
+        # Format date and time
+        date_str = match.date.strftime('%B %d, %Y') if match.date else 'Not scheduled'
+        time_str = match.time.strftime('%I:%M %p') if match.time else 'Not scheduled'
+
+        # Get match status
+        if match.fully_verified:
+            status = 'Verified'
+            status_class = 'text-success'
+        elif match.reported:
+            status = 'Reported (Pending Verification)'
+            status_class = 'text-warning'
+        else:
+            status = 'Scheduled'
+            status_class = 'text-info'
+
+        # Get referee name
+        ref_name = match.ref.name if match.ref else 'Not assigned'
+
+        # Get scores if reported
+        score_html = ''
+        if match.reported:
+            score_html = f"""
+            <div class="row mt-3">
+                <div class="col-12">
+                    <strong>Score:</strong>
+                    <div class="score-info p-2 bg-light rounded">
+                        {match.home_team.name}: {match.home_team_score} -
+                        {match.away_team.name}: {match.away_team_score}
+                    </div>
+                </div>
+            </div>
+            """
+
         details_html = f"""
         <div class="match-details">
             <div class="row">
                 <div class="col-md-6">
-                    <strong>Match ID:</strong> {match_id}<br>
-                    <strong>Date:</strong> TBD<br>
-                    <strong>Time:</strong> TBD<br>
-                    <strong>Status:</strong> Scheduled
+                    <strong>Match ID:</strong> {match.id}<br>
+                    <strong>Date:</strong> {date_str}<br>
+                    <strong>Time:</strong> {time_str}<br>
+                    <strong>Status:</strong> <span class="{status_class}">{status}</span>
                 </div>
                 <div class="col-md-6">
-                    <strong>League:</strong> TBD<br>
-                    <strong>Season:</strong> TBD<br>
-                    <strong>Venue:</strong> TBD<br>
-                    <strong>Referee:</strong> TBD
+                    <strong>League:</strong> {league_name}<br>
+                    <strong>Season:</strong> {season_name}<br>
+                    <strong>Venue:</strong> {match.location or 'Not specified'}<br>
+                    <strong>Referee:</strong> {ref_name}
                 </div>
             </div>
             <div class="row mt-3">
                 <div class="col-12">
                     <strong>Teams:</strong><br>
                     <div class="teams-info p-2 bg-light rounded">
-                        Match details will be implemented when match model is available.
+                        <strong>Home:</strong> {match.home_team.name if match.home_team else 'Unknown'}<br>
+                        <strong>Away:</strong> {match.away_team.name if match.away_team else 'Unknown'}
                     </div>
                 </div>
             </div>
+            {score_html}
+            {f'<div class="row mt-2"><div class="col-12"><small class="text-muted">Week Type: {match.week_type}</small></div></div>' if match.week_type != 'REGULAR' else ''}
         </div>
         """
 
@@ -171,10 +228,15 @@ def rename_team():
             user_agent=request.headers.get('User-Agent')
         )
 
-        # TODO: Trigger Discord automation for team name change
-        # This would involve updating Discord role names, channel names, etc.
-        # from app.tasks.tasks_discord import update_team_discord_automation
-        # update_team_discord_automation.delay(team_id=team_id, old_name=old_name, new_name=new_name)
+        # Trigger Discord automation for team name change
+        # Updates Discord role names, channel names, etc.
+        try:
+            from app.tasks.tasks_discord import update_team_discord_resources_task
+            update_team_discord_resources_task.delay(team_id=int(team_id), new_team_name=new_name)
+            logger.info(f"Discord automation task queued for team {team_id} rename")
+        except Exception as discord_err:
+            logger.warning(f"Could not queue Discord automation task: {discord_err}")
+            # Don't fail the rename if Discord task fails to queue
 
         logger.info(f"Team {team_id} renamed from '{old_name}' to '{new_name}' by user {current_user.id}")
 

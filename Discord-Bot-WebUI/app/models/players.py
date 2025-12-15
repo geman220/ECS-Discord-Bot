@@ -463,33 +463,44 @@ class Player(db.Model):
         from app.models.stats import PlayerEvent
         return PlayerEvent.query.filter_by(player_id=self.id).all()
 
-    def check_discord_status(self):
-        """Check if player is in Discord server and update username via Discord bot API."""
+    def check_discord_status(self, fast_fail: bool = False):
+        """
+        Check if player is in Discord server and update username via Discord bot API.
+
+        Args:
+            fast_fail: If True, use shorter timeout and skip if service is unavailable.
+                       Use this for web request contexts to avoid blocking page loads.
+        """
         if not self.discord_id:
             return False
-        
+
         try:
             import os
             from web_config import Config
-            from app.utils.sync_discord_client import get_sync_discord_client
-            
+            from app.utils.sync_discord_client import get_sync_discord_client, is_discord_service_available
+
+            # Check circuit breaker first in fast_fail mode
+            if fast_fail and not is_discord_service_available():
+                logger.debug(f"Skipping Discord check for player {self.id} - service unavailable")
+                return False
+
             guild_id = os.getenv('SERVER_ID')
             bot_api_url = Config.BOT_API_URL
-            
+
             if not guild_id or not bot_api_url:
                 logger.warning("Server ID or Bot API URL not configured")
                 return False
-                
+
             # Check Discord member status via synchronous Discord client
             discord_client = get_sync_discord_client()
-            
+
             # Check if user is in Discord server
-            member_check = discord_client.check_member_in_server(guild_id, self.discord_id)
-            
+            member_check = discord_client.check_member_in_server(guild_id, self.discord_id, fast_fail=fast_fail)
+
             if member_check.get('success'):
                 # Update player information from Discord response
                 self.discord_in_server = member_check.get('in_server', False)
-                
+
                 # If we got member data, update username
                 member_data = member_check.get('member_data', {})
                 if member_data:
@@ -497,14 +508,17 @@ class Player(db.Model):
                         self.discord_username = member_data.get('username')
                     elif member_data.get('display_name'):
                         self.discord_username = member_data.get('display_name')
-                
+
                 self.discord_last_checked = datetime.utcnow()
                 return True
             else:
-                # API call failed
-                logger.warning(f"Discord bot API failed to check status for user {self.discord_id}")
+                # API call failed - check if it was due to circuit breaker
+                if member_check.get('circuit_breaker'):
+                    logger.debug(f"Discord check skipped for user {self.discord_id} - circuit breaker open")
+                else:
+                    logger.warning(f"Discord bot API failed to check status for user {self.discord_id}")
                 return False
-                
+
         except Exception as e:
             logger.error(f"Error checking Discord status for player {self.id}: {str(e)}")
             return False

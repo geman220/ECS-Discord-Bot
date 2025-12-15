@@ -233,15 +233,15 @@
     flex-wrap: wrap;
     gap: 10px;
     min-height: 60px;
-    border: 2px dashed #ddd;
+    border: 2px dashed var(--ecs-neutral-20, #dee2e6);
     border-radius: 5px;
     padding: 15px;
-    background: #f8f9fa;
+    background: var(--ecs-neutral-5, #f8f9fa);
 }
 
 .week-card {
-    background: white;
-    border: 1px solid #dee2e6;
+    background: var(--ecs-neutral-0, #ffffff);
+    border: 1px solid var(--ecs-neutral-20, #dee2e6);
     border-radius: 8px;
     padding: 10px;
     min-width: 120px;
@@ -255,17 +255,17 @@
     transform: translateY(-1px);
 }
 
-.week-card.regular { border-left: 4px solid #28a745; }
-.week-card.practice { border-left: 4px solid #17a2b8; }
-.week-card.fun { border-left: 4px solid #ffc107; }
-.week-card.tst { border-left: 4px solid #fd7e14; }
-.week-card.bye { border-left: 4px solid #6c757d; }
-.week-card.playoff { border-left: 4px solid #dc3545; }
+.week-card.regular { border-left: 4px solid var(--ecs-success, #198754); }
+.week-card.practice { border-left: 4px solid var(--ecs-info, #0dcaf0); }
+.week-card.fun { border-left: 4px solid var(--ecs-warning, #ffc107); }
+.week-card.tst { border-left: 4px solid var(--ecs-warning-dark, #fd7e14); }
+.week-card.bye { border-left: 4px solid var(--ecs-secondary, #6c757d); }
+.week-card.playoff { border-left: 4px solid var(--ecs-danger, #dc3545); }
 
 .week-header {
     font-weight: bold;
     font-size: 0.9em;
-    color: #495057;
+    color: var(--ecs-neutral-60, #6c757d);
 }
 
 .week-type {
@@ -430,17 +430,18 @@ function addWeekConfig(weekType = 'REGULAR') {
     weekCard.setAttribute('data-week-order', weekConfigCount + 1);
     
     const weekTypeColor = {
-        'REGULAR': '#28a745',
-        'PRACTICE': '#17a2b8', 
-        'FUN': '#ffc107',
-        'TST': '#fd7e14',
-        'BYE': '#6c757d',
-        'PLAYOFF': '#dc3545'
+        'REGULAR': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-success').trim() || '#198754',
+        'PRACTICE': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-info').trim() || '#0dcaf0',
+        'FUN': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-warning').trim() || '#ffc107',
+        'TST': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warningDark') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-warning-dark').trim() || '#fd7e14',
+        'BYE': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d',
+        'PLAYOFF': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-danger').trim() || '#dc3545'
     };
-    
+    const defaultTextColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('neutral60') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d';
+
     weekCard.innerHTML = `
         <div class="week-header">Week ${weekConfigCount + 1}</div>
-        <div class="week-type" style="color: ${weekTypeColor[weekType] || '#495057'}">
+        <div class="week-type" style="color: ${weekTypeColor[weekType] || defaultTextColor}">
             ${weekType}
         </div>
         <select class="form-control form-control-sm mt-2 week-type-select" 
@@ -481,15 +482,16 @@ function updateWeekCard(select) {
     
     // Update color
     const weekTypeColor = {
-        'REGULAR': '#28a745',
-        'PRACTICE': '#17a2b8', 
-        'FUN': '#ffc107',
-        'TST': '#fd7e14',
-        'BYE': '#6c757d',
-        'PLAYOFF': '#dc3545'
+        'REGULAR': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-success').trim() || '#198754',
+        'PRACTICE': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-info').trim() || '#0dcaf0',
+        'FUN': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-warning').trim() || '#ffc107',
+        'TST': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warningDark') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-warning-dark').trim() || '#fd7e14',
+        'BYE': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d',
+        'PLAYOFF': (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-danger').trim() || '#dc3545'
     };
-    
-    weekTypeDisplay.style.color = weekTypeColor[weekType] || '#495057';
+    const defaultTextColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('neutral60') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d';
+
+    weekTypeDisplay.style.color = weekTypeColor[weekType] || defaultTextColor;
 }
 
 function removeWeekCard(button) {

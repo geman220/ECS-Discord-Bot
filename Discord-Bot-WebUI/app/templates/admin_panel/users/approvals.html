@@ -426,8 +426,8 @@ function approveUser(userId, userName) {
         text: `Are you sure you want to approve "${userName}"?`,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#6c757d',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
         confirmButtonText: 'Yes, approve!'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -442,8 +442,8 @@ function rejectUser(userId, userName) {
         text: `Are you sure you want to reject "${userName}"?`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
         confirmButtonText: 'Yes, reject!'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -459,8 +459,8 @@ function approveAllPending() {
         text: `This will approve ${pendingCount} pending users. This action cannot be undone.`,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#6c757d',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
         confirmButtonText: 'Yes, approve all!'
     }).then((result) => {
         if (result.isConfirmed) {

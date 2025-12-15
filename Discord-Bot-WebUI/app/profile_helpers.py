@@ -527,3 +527,68 @@ def handle_profile_update_mobile(form, player, user):
         logger.error(f"Error updating player profile: {str(e)}", exc_info=True)
         show_error('Error updating profile.')
         raise
+
+
+def handle_wizard_completion(form, player, user):
+    """
+    Handle the completion of the profile verification wizard.
+    Updates player profile and redirects to success page.
+
+    Args:
+        form: The submitted PlayerProfileForm
+        player: The player object to update
+        user: The user object associated with the player
+
+    Returns:
+        A redirect response to the success page.
+    """
+    try:
+        logger.debug(f"Entering handle_wizard_completion for player {player.id}")
+
+        # Check email uniqueness if changed
+        if form.email.data and check_email_uniqueness(form.email.data, user.id):
+            logger.debug("Email not unique. Aborting update.")
+            show_error('Email is already in use by another account.')
+            return redirect(url_for('players.profile_wizard'))
+
+        # Update email if provided
+        if form.email.data:
+            new_email = form.email.data.lower()
+            user.email = new_email
+            player.email = new_email
+
+        # Update player fields
+        player.name = form.name.data.strip() if form.name.data else player.name
+        player.phone = form.phone.data.strip() if form.phone.data else player.phone
+        player.jersey_size = form.jersey_size.data
+        player.pronouns = form.pronouns.data
+        player.expected_weeks_available = form.expected_weeks_available.data
+        player.favorite_position = form.favorite_position.data
+        player.frequency_play_goal = form.frequency_play_goal.data
+        player.willing_to_referee = form.willing_to_referee.data
+
+        # Update array fields
+        player.other_positions = ','.join(form.other_positions.data) if form.other_positions.data else None
+        player.positions_not_to_play = ','.join(form.positions_not_to_play.data) if form.positions_not_to_play.data else None
+
+        # Update player notes
+        player.player_notes = form.player_notes.data.strip() if form.player_notes.data else None
+
+        # Update verification timestamp
+        from datetime import datetime
+        player.profile_last_updated = datetime.utcnow()
+
+        session = g.db_session
+        session.add(player)
+        session.add(user)
+        session.commit()
+
+        logger.info(f"Profile wizard completed for player {player.id}")
+        return redirect(url_for('players.mobile_profile_success', player_id=player.id, action='verified'))
+
+    except Exception as e:
+        session = g.db_session
+        session.rollback()
+        logger.error(f"Error completing profile wizard: {str(e)}", exc_info=True)
+        show_error('Error saving profile. Please try again.')
+        raise

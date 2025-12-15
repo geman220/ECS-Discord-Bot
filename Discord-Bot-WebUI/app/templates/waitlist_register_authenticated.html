@@ -11,10 +11,10 @@
                     <!-- Header -->
                     <div class="text-center mb-4">
                         <div class="app-brand justify-content-center mb-4">
-                            <span class="app-brand-logo demo">
+                            <span class="app-brand-logo">
                                 <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" style="height: 40px;">
                             </span>
-                            <span class="app-brand-text demo text-body fw-bolder ms-2">ECS FC Pub League</span>
+                            <span class="app-brand-text text-body fw-bolder ms-2">ECS FC Pub League</span>
                         </div>
                         <h4 class="mb-2">Join the Waitlist</h4>
                         <p class="mb-4">Welcome back, {{ user.username }}! The current season is full, but you can join our waitlist.</p>
@@ -429,7 +429,7 @@
             showCancelButton: true,
             confirmButtonText: isEditing ? 'Save & Verify' : 'Yes, my profile is accurate',
             cancelButtonText: 'Cancel',
-            confirmButtonColor: '#28a745',
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
             showLoaderOnConfirm: true,
             preConfirm: () => {
                 const url = isEditing ? "{{ url_for('players.update_profile_modal', player_id=player.id) if player else '#' }}" : "{{ url_for('players.verify_profile', player_id=player.id) if player else '#' }}";

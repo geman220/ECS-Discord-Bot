@@ -5,19 +5,29 @@
         background: linear-gradient(to bottom, #fff, rgba(255, 255, 255, 0)) !important;
     }
 
-    /* Dark mode variant */
+    /* Classic dark mode variant */
     [data-style="dark"] .menu-inner-shadow {
-        background: linear-gradient(to bottom, #2f3349, rgba(47, 51, 73, 0)) !important;
+        background: linear-gradient(to bottom, var(--ecs-dark-bg-card, #2f3349), rgba(47, 51, 73, 0)) !important;
+    }
+
+    /* Modern theme light mode - use neutral gradient */
+    [data-theme-variant="modern"] .menu-inner-shadow {
+        background: linear-gradient(to bottom, var(--ecs-neutral-5, #FAFAFA), rgba(250, 250, 250, 0)) !important;
+    }
+
+    /* Modern theme dark mode - hide completely */
+    [data-theme-variant="modern"][data-style="dark"] .menu-inner-shadow {
+        display: none !important;
     }
 
 </style>
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
-    <div class="app-brand demo">
+    <div class="app-brand">
         <a href="{{ url_for('main.index') }}" class="app-brand-link">
-            <span class="app-brand-logo demo">
+            <span class="app-brand-logo">
                 <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="logo" height="23">
             </span>
-            <span class="app-brand-text demo menu-text fw-bold">ECS</span>
+            <span class="app-brand-text menu-text fw-bold">ECS</span>
         </a>
 
         <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">

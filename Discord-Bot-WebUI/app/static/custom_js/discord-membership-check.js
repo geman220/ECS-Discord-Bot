@@ -113,8 +113,8 @@ class DiscordMembershipChecker {
             showCancelButton: true,
             confirmButtonText: '<i class="ti ti-brand-discord me-2"></i>Join Discord Now',
             cancelButtonText: isUrgent ? 'I\'ll Join Later' : 'Maybe Later',
-            confirmButtonColor: '#5865F2',
-            cancelButtonColor: '#6c757d',
+            confirmButtonColor: '#5865F2', // Discord brand color - intentional
+            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
             allowOutsideClick: !isUrgent,
             customClass: {
                 popup: 'swal2-discord-popup',
@@ -154,18 +154,18 @@ class DiscordMembershipChecker {
                 `,
                 icon: 'info',
                 confirmButtonText: 'Got it!',
-                confirmButtonColor: '#198754'
+                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754'
             });
         }, 2000);
     }
-    
+
     showReminderMessage() {
         Swal.fire({
             title: 'Important Reminder',
             text: 'Remember to join our Discord server soon! You won\'t receive waitlist notifications without it.',
             icon: 'info',
             confirmButtonText: 'I Understand',
-            confirmButtonColor: '#198754',
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754',
             timer: 5000,
             timerProgressBar: true
         });
@@ -266,27 +266,27 @@ class DiscordMembershipChecker {
 const discordStyles = document.createElement('style');
 discordStyles.textContent = `
     @keyframes discord-pulse {
-        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
-        50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
-        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(var(--ecs-warning-rgb, 245, 158, 11), 0.7); }
+        50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(var(--ecs-warning-rgb, 245, 158, 11), 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(var(--ecs-warning-rgb, 245, 158, 11), 0); }
     }
-    
+
     .swal2-discord-popup .swal2-html-container {
         text-align: left !important;
     }
-    
+
     .btn-discord-join {
-        background-color: #5865F2 !important;
+        background-color: #5865F2 !important; /* Discord brand color - intentional */
         border-color: #5865F2 !important;
     }
-    
+
     .swal2-discord-popup code {
-        background-color: #f8f9fa;
+        background-color: var(--ecs-neutral-5, #f8f9fa);
         padding: 2px 4px;
         border-radius: 3px;
         font-family: monospace;
         font-size: 0.9em;
-        color: #495057;
+        color: var(--ecs-neutral-60, #495057);
     }
 `;
 document.head.appendChild(discordStyles);

@@ -119,28 +119,73 @@ def substitute_management():
 def assign_substitute():
     """Assign a substitute to a match."""
     try:
-        from app.models.substitutes import SubstituteAssignment
+        from app.models.substitutes import SubstituteAssignment, SubstituteRequest, SubstituteResponse
+        from app.utils.substitute_helpers import create_temp_sub_assignment
+        from app.services.substitute_notification_service import get_notification_service
 
-        match_id = request.form.get('match_id')
-        team_id = request.form.get('team_id')
-        player_id = request.form.get('player_id')
+        match_id = request.form.get('match_id', type=int)
+        team_id = request.form.get('team_id', type=int)
+        player_id = request.form.get('player_id', type=int)
+        request_id = request.form.get('request_id', type=int)
+        position_assigned = request.form.get('position_assigned')
+        notes = request.form.get('notes')
+        send_confirmation = request.form.get('send_confirmation', 'true').lower() == 'true'
 
         if not all([match_id, team_id, player_id]):
             flash('Missing required information for substitute assignment.', 'error')
             return redirect(url_for('admin_panel.substitute_management'))
 
+        # Get the outreach methods from the response if available
+        outreach_methods = None
+        if request_id:
+            response = db.session.query(SubstituteResponse).filter_by(
+                request_id=request_id,
+                player_id=player_id
+            ).first()
+            if response and response.notification_methods:
+                outreach_methods = response.notification_methods
+
         # Create substitute assignment
         assignment = SubstituteAssignment(
-            match_id=match_id,
-            team_id=team_id,
+            request_id=request_id,
             player_id=player_id,
             assigned_by=current_user.id,
             assigned_at=datetime.utcnow(),
-            status='ASSIGNED'
+            position_assigned=position_assigned,
+            notes=notes,
+            outreach_methods=outreach_methods
         )
 
         db.session.add(assignment)
+        db.session.flush()  # Get the assignment ID
+
+        # Create TemporarySubAssignment for stat attribution
+        temp_assignment = create_temp_sub_assignment(
+            match_id=match_id,
+            player_id=player_id,
+            team_id=team_id,
+            assigned_by=current_user.id,
+            request_id=request_id,
+            assignment_id=assignment.id,
+            notes=notes,
+            session=db.session
+        )
+
+        # Update the substitute request status if all spots filled
+        if request_id:
+            sub_request = db.session.query(SubstituteRequest).get(request_id)
+            if sub_request:
+                assignments_count = len(sub_request.assignments)
+                if assignments_count >= sub_request.substitutes_needed:
+                    sub_request.status = 'FILLED'
+                    sub_request.filled_at = datetime.utcnow()
+
         db.session.commit()
+
+        # Send confirmation notification if requested
+        if send_confirmation:
+            notification_service = get_notification_service()
+            notification_service.send_confirmation(assignment.id)
 
         # Log the action
         AdminAuditLog.log_action(
@@ -158,5 +203,6 @@ def assign_substitute():
 
     except Exception as e:
         logger.error(f"Error assigning substitute: {e}")
+        db.session.rollback()
         flash('Substitute assignment failed. Check database connectivity and input validation.', 'error')
         return redirect(url_for('admin_panel.substitute_management'))

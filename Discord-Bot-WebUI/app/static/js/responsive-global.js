@@ -365,10 +365,10 @@
       statusDiv.style.pointerEvents = 'none';
       
       if (isOnline) {
-        statusDiv.style.backgroundColor = '#198754'; // Success green
+        statusDiv.style.backgroundColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754';
         statusDiv.innerHTML = '<i class="ti ti-wifi me-2"></i> Connected';
       } else {
-        statusDiv.style.backgroundColor = '#dc3545'; // Danger red
+        statusDiv.style.backgroundColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545';
         statusDiv.innerHTML = '<i class="ti ti-wifi-off me-2"></i> Disconnected';
       }
       

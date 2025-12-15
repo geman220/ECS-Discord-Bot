@@ -203,7 +203,7 @@ const AssetCropper = {
         );
 
         // Draw crop border
-        this.ctx.strokeStyle = '#007bff';
+        this.ctx.strokeStyle = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd';
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(1, 1, this.canvas.width - 2, this.canvas.height - 2);
     },
@@ -215,7 +215,10 @@ const AssetCropper = {
         const size = 10;
         for (let x = 0; x < this.canvas.width; x += size) {
             for (let y = 0; y < this.canvas.height; y += size) {
-                this.ctx.fillStyle = ((Math.floor(x / size) + Math.floor(y / size)) % 2 === 0) ? '#e0e0e0' : '#f5f5f5';
+                // Checkerboard pattern - neutral grays for transparency indication
+                const checkerLight = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('neutral-10') : '#e0e0e0';
+                const checkerDark = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('neutral-5') : '#f5f5f5';
+                this.ctx.fillStyle = ((Math.floor(x / size) + Math.floor(y / size)) % 2 === 0) ? checkerLight : checkerDark;
                 this.ctx.fillRect(x, y, size, size);
             }
         }
@@ -492,7 +495,7 @@ const AssetCropper = {
             text: `Are you sure you want to remove the ${this.DIMENSIONS[this.currentAssetType]?.label || this.currentAssetType} image?`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#dc3545',
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
             confirmButtonText: 'Yes, remove it',
             cancelButtonText: 'Cancel'
         });

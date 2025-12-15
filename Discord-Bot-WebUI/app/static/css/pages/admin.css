@@ -1,0 +1,860 @@
+/**
+ * Admin Panel Styles
+ * ==================
+ * Centralized styles for admin templates
+ * Extracted from inline <style> blocks in admin/*.html templates
+ *
+ * USAGE: Loaded via base.html for all admin pages
+ */
+
+/* ============================================
+   COMMON COMPONENTS
+   ============================================ */
+
+/* Card hover effects */
+.shadow-sm {
+    transition: all 0.2s ease;
+}
+
+.shadow-sm:hover {
+    box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
+}
+
+/* Avatar sizing utilities */
+.player-avatar-sm {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+}
+
+.player-avatar-md {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+}
+
+/* Pool filter width */
+.pool-filter-sm {
+    width: 120px;
+}
+
+/* Empty state icons */
+.empty-state-icon {
+    font-size: 3rem;
+}
+
+.empty-state-icon-lg {
+    font-size: 4rem;
+}
+
+/* ============================================
+   BADGE STYLING
+   ============================================ */
+
+.badge {
+    font-weight: 500;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+}
+
+.badge.bg-label-primary {
+    background-color: var(--ecs-primary-subtle, rgba(105, 108, 255, 0.16)) !important;
+    color: var(--ecs-primary) !important;
+}
+
+.badge.bg-label-success {
+    background-color: var(--ecs-success-subtle, rgba(40, 199, 111, 0.16)) !important;
+    color: var(--ecs-success) !important;
+}
+
+.badge.bg-label-warning {
+    background-color: var(--ecs-warning-subtle, rgba(255, 159, 67, 0.16)) !important;
+    color: var(--ecs-warning) !important;
+}
+
+.badge.bg-label-danger {
+    background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.16)) !important;
+    color: var(--ecs-danger) !important;
+}
+
+.badge.bg-label-info {
+    background-color: var(--ecs-info-subtle, rgba(3, 195, 236, 0.16)) !important;
+    color: var(--ecs-info) !important;
+}
+
+.badge.bg-label-secondary {
+    background-color: var(--ecs-secondary-subtle, rgba(133, 146, 163, 0.16)) !important;
+    color: var(--ecs-secondary) !important;
+}
+
+.badge.bg-label-indigo {
+    background-color: var(--ecs-primary-subtle, rgba(80, 102, 235, 0.16)) !important;
+    color: var(--ecs-primary) !important;
+}
+
+/* Status badges */
+.status-pending {
+    background-color: var(--ecs-warning-subtle, rgba(255, 171, 0, 0.16)) !important;
+    color: var(--ecs-warning) !important;
+}
+
+.status-approved {
+    background-color: var(--ecs-info-subtle, rgba(3, 195, 236, 0.16)) !important;
+    color: var(--ecs-info) !important;
+}
+
+.status-denied {
+    background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.16)) !important;
+    color: var(--ecs-danger) !important;
+}
+
+/* ============================================
+   TABLE STYLING
+   ============================================ */
+
+.table th {
+    border-top: none;
+    font-weight: 500;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* ============================================
+   MODAL STYLING
+   ============================================ */
+
+.modal-header {
+    background-color: var(--bs-gray-100);
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.modal-footer {
+    background-color: var(--bs-gray-100);
+    border-top: 1px solid var(--bs-border-color);
+}
+
+/* Dark mode modal styling */
+html[data-style="dark"] .modal-header {
+    background-color: var(--bs-gray-800);
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+html[data-style="dark"] .modal-footer {
+    background-color: var(--bs-gray-800);
+    border-top: 1px solid var(--bs-border-color);
+}
+
+html[data-style="dark"] .modal-content {
+    background-color: var(--bs-gray-900);
+    color: var(--bs-body-color);
+}
+
+.modal-content {
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.modal-header.bg-primary,
+.btn-primary {
+    background-color: var(--ecs-primary) !important;
+    border-color: var(--ecs-primary) !important;
+}
+
+.modal-header.bg-indigo,
+.btn-indigo {
+    background-color: var(--ecs-info) !important;
+    border-color: var(--ecs-info) !important;
+    color: white;
+}
+
+.border-indigo {
+    border-color: var(--ecs-info) !important;
+}
+
+.text-indigo {
+    color: var(--ecs-info) !important;
+}
+
+.bg-indigo {
+    background-color: var(--ecs-info) !important;
+}
+
+textarea.form-control {
+    resize: none;
+    transition: all 0.2s ease;
+}
+
+textarea.form-control:focus {
+    box-shadow: 0 0 0 0.25rem var(--ecs-primary-subtle, rgba(80, 102, 235, 0.25));
+}
+
+.form-text {
+    color: var(--ecs-neutral-50);
+}
+
+/* ============================================
+   BUTTON STYLING
+   ============================================ */
+
+/* Action buttons */
+.btn-approve {
+    background-color: var(--ecs-success);
+    border-color: var(--ecs-success);
+    color: white;
+}
+
+.btn-approve:hover {
+    background-color: var(--ecs-success-dark);
+    border-color: var(--ecs-success-dark);
+    color: white;
+}
+
+.btn-deny {
+    background-color: var(--ecs-danger);
+    border-color: var(--ecs-danger);
+    color: white;
+}
+
+.btn-deny:hover {
+    background-color: var(--ecs-danger-dark);
+    border-color: var(--ecs-danger-dark);
+    color: white;
+}
+
+/* ============================================
+   USER INFO COMPONENTS
+   ============================================ */
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--ecs-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.user-avatar:hover {
+    border-color: var(--ecs-primary);
+    transform: scale(1.1);
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-details h6 {
+    margin: 0;
+    font-weight: 500;
+}
+
+.user-details small {
+    color: var(--ecs-neutral-50);
+}
+
+.user-name-link {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.2s ease;
+}
+
+.user-name-link:hover {
+    color: var(--ecs-primary);
+    text-decoration: underline;
+}
+
+/* ============================================
+   PLAYER PROFILE COMPONENTS
+   ============================================ */
+
+.player-profile-image {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.profile-info-item:last-child {
+    border-bottom: none;
+}
+
+.profile-info-label {
+    font-weight: 500;
+    color: var(--bs-secondary);
+}
+
+.profile-info-value {
+    color: var(--bs-body-color);
+}
+
+.player-details-header {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.player-details-image {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.player-details-avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background-color: var(--ecs-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 4rem;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.player-details-info h3 {
+    margin-bottom: 0.5rem;
+    color: var(--bs-body-color);
+}
+
+.player-details-info .text-muted {
+    font-size: 1.1rem;
+}
+
+.player-details-section {
+    margin-bottom: 2rem;
+}
+
+.player-details-section h5 {
+    margin-bottom: 1rem;
+    color: var(--bs-secondary);
+    font-weight: 600;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.info-item {
+    padding: 0.75rem;
+    background-color: var(--bs-gray-100);
+    border-radius: 0.375rem;
+    border-left: 3px solid var(--ecs-primary);
+}
+
+html[data-style="dark"] .info-item {
+    background-color: var(--bs-gray-800);
+}
+
+.info-label {
+    font-size: 0.875rem;
+    color: var(--bs-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.info-value {
+    font-weight: 500;
+    color: var(--bs-body-color);
+}
+
+/* ============================================
+   STATS CARDS
+   ============================================ */
+
+.stats-card {
+    background: linear-gradient(135deg, var(--ecs-primary) 0%, var(--ecs-primary-dark) 100%);
+    color: white;
+    border-radius: 0.375rem;
+    padding: 1.5rem;
+}
+
+.stats-card.pending {
+    background: linear-gradient(135deg, var(--ecs-warning) 0%, var(--ecs-warning-dark) 100%);
+}
+
+.stats-card.approved {
+    background: linear-gradient(135deg, var(--ecs-success) 0%, var(--ecs-success-dark) 100%);
+}
+
+.stats-card.denied {
+    background: linear-gradient(135deg, var(--ecs-danger) 0%, var(--ecs-danger-dark) 100%);
+}
+
+.stats-card.total {
+    background: linear-gradient(135deg, var(--ecs-primary) 0%, var(--ecs-primary-dark) 100%);
+}
+
+.stats-card.in-server {
+    background: linear-gradient(135deg, var(--ecs-success) 0%, var(--ecs-success-dark) 100%);
+}
+
+.stats-card.not-in-server {
+    background: linear-gradient(135deg, var(--ecs-danger) 0%, var(--ecs-danger-dark) 100%);
+}
+
+.stats-card.unknown {
+    background: linear-gradient(135deg, var(--ecs-warning) 0%, var(--ecs-warning-dark) 100%);
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    text-decoration: none;
+    color: var(--ecs-neutral-0);
+}
+
+.stats-card.active {
+    border: 3px solid var(--ecs-neutral-0);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.stats-number {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.stats-label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+/* ============================================
+   MATCH VERIFICATION PAGE STYLES
+   ============================================ */
+
+/* Sortable columns */
+.sortable-column {
+    display: flex;
+    align-items: center;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.sortable-column:hover {
+    color: var(--ecs-primary);
+    text-decoration: none;
+}
+
+.sortable-column.active {
+    color: var(--ecs-primary);
+    font-weight: 600;
+}
+
+.sort-icon {
+    font-size: 1rem;
+    margin-left: 0.25rem;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.sortable-column:hover .sort-icon,
+.sortable-column.active .sort-icon {
+    opacity: 1;
+}
+
+/* Dropdown form fix */
+.dropdown-item-form {
+    display: block;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+.dropdown-item-form .dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    clear: both;
+    font-weight: 400;
+    text-align: inherit;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+}
+
+.dropdown-item-form .dropdown-item:hover,
+.dropdown-item-form .dropdown-item:focus {
+    color: var(--ecs-neutral-90);
+    text-decoration: none;
+    background-color: var(--ecs-neutral-5);
+}
+
+/* ============================================
+   DISCORD MANAGEMENT PAGE STYLES
+   ============================================ */
+
+/* Compact player rows */
+.player-row {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+    background: var(--bs-body-bg);
+}
+
+.player-row:hover {
+    border-color: var(--bs-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.player-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.player-main-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.player-avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--ecs-primary) 0%, var(--ecs-primary-dark) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ecs-neutral-0);
+    font-weight: bold;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+
+.player-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.player-name {
+    font-weight: 600;
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--bs-body-color);
+}
+
+.player-meta {
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+    margin-top: 0.125rem;
+}
+
+.discord-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.discord-status.not-in-server {
+    color: var(--ecs-danger);
+}
+
+.discord-status.unknown {
+    color: var(--ecs-warning);
+}
+
+.discord-status.in-server {
+    color: var(--ecs-success);
+}
+
+.player-actions {
+    display: flex;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+.btn-action {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: all 0.2s ease;
+    min-width: auto;
+    white-space: nowrap;
+}
+
+.btn-action i {
+    font-size: 0.875rem;
+}
+
+.btn-email {
+    background-color: var(--ecs-success);
+    color: var(--ecs-neutral-0);
+    border: 1px solid var(--ecs-success);
+}
+
+.btn-discord {
+    background-color: #7289da; /* Discord brand color - intentional */
+    color: var(--ecs-neutral-0);
+    border: 1px solid #7289da; /* Discord brand color - intentional */
+}
+
+.btn-profile {
+    background-color: var(--ecs-primary);
+    color: var(--ecs-neutral-0);
+    border: 1px solid var(--ecs-primary);
+}
+
+.btn-refresh {
+    background-color: transparent;
+    color: var(--bs-primary);
+    border: 1px solid var(--bs-primary);
+}
+
+.team-badge {
+    background-color: var(--bs-primary-bg-subtle);
+    color: var(--bs-primary);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.625rem;
+    margin-right: 0.25rem;
+    display: inline-block;
+}
+
+.last-checked {
+    font-size: 0.625rem;
+    color: var(--bs-secondary);
+    font-style: italic;
+}
+
+/* Filter and pagination */
+.filter-controls {
+    background: var(--bs-gray-50);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.pagination-info {
+    font-size: 0.875rem;
+    color: var(--bs-secondary);
+}
+
+.per-page-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.per-page-selector select {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+}
+
+/* Contact information styling */
+.contact-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+    background-color: var(--bs-gray-100);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--bs-border-color);
+}
+
+.contact-item i {
+    font-size: 0.875rem;
+    color: var(--bs-primary);
+}
+
+.contact-item span {
+    color: var(--bs-body-color);
+    font-weight: 500;
+}
+
+/* ============================================
+   DARK MODE OVERRIDES
+   ============================================ */
+
+html[data-style="dark"] .player-row {
+    background: var(--bs-gray-900);
+    border-color: var(--bs-gray-700);
+}
+
+html[data-style="dark"] .filter-controls {
+    background: var(--bs-gray-800);
+}
+
+html[data-style="dark"] .player-row:hover {
+    border-color: var(--bs-primary);
+    background: var(--bs-gray-800);
+}
+
+html[data-style="dark"] .contact-item {
+    background-color: var(--bs-gray-800);
+    border-color: var(--bs-gray-700);
+}
+
+/* ============================================
+   RESPONSIVE STYLES
+   ============================================ */
+
+/* Mobile-specific styles */
+@media (max-width: 767.98px) {
+    /* Compact filter section on mobile */
+    .card-header .d-flex {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* Mobile-optimized season selector */
+    #seasonSelectorCollapse .col-md-3 {
+        width: 50%;
+        padding: 4px;
+    }
+
+    /* Compact filter form */
+    .form-label {
+        font-size: var(--mobile-text-sm);
+        margin-bottom: 4px;
+    }
+
+    /* Make dropdown menu full width on mobile */
+    .dropdown-menu {
+        min-width: 200px;
+    }
+
+    /* Hide sorting icons on mobile to save space */
+    .sort-icon {
+        display: none;
+    }
+
+    /* Mobile table header */
+    .sortable-column {
+        font-size: var(--mobile-text-xs);
+        letter-spacing: 0;
+    }
+
+    /* Compact badge display in table */
+    #match-verification-table .badge {
+        display: block;
+        margin-top: 4px;
+    }
+
+    /* Team names on separate lines on mobile */
+    #match-verification-table td[data-label="Home Team"],
+    #match-verification-table td[data-label="Away Team"] {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .player-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .player-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .stats-number {
+        font-size: 1.5rem;
+    }
+
+    .filter-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .contact-info {
+        width: 100%;
+        margin-top: 0.25rem;
+    }
+
+    .contact-item {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
+
+    .contact-item i {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .btn-action span {
+        display: none;
+    }
+}
+
+/* Desktop styles */
+@media (min-width: 768px) {
+    /* Restore table header styling */
+    .table-light th {
+        font-weight: 500;
+        color: var(--ecs-neutral-60);
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
+
+    /* Show sorting icons */
+    .sort-icon {
+        display: inline-block;
+    }
+}

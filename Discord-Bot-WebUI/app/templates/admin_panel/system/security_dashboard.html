@@ -461,7 +461,7 @@ async function clearAllBans() {
         text: 'This will remove ALL IP bans. Are you sure?',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#d33',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
         confirmButtonText: 'Yes, clear all'
     });
 

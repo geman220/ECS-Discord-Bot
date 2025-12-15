@@ -78,38 +78,38 @@
     
     /* Label backgrounds */
     .bg-label-primary {
-        background-color: rgba(105, 108, 255, 0.16) !important;
-        color: #696cff !important;
+        background-color: var(--ecs-primary-subtle, rgba(105, 108, 255, 0.16)) !important;
+        color: var(--ecs-primary, #696cff) !important;
     }
-    
+
     .bg-label-indigo {
-        background-color: rgba(80, 102, 235, 0.16) !important;
-        color: #5066eb !important;
+        background-color: var(--ecs-primary-subtle, rgba(80, 102, 235, 0.16)) !important;
+        color: var(--ecs-primary-dark, #5066eb) !important;
     }
-    
+
     .bg-label-success {
-        background-color: rgba(113, 221, 55, 0.16) !important;
-        color: #71dd37 !important;
+        background-color: var(--ecs-success-subtle, rgba(113, 221, 55, 0.16)) !important;
+        color: var(--ecs-success, #71dd37) !important;
     }
-    
+
     .bg-label-warning {
-        background-color: rgba(255, 171, 0, 0.16) !important;
-        color: #ffab00 !important;
+        background-color: var(--ecs-warning-subtle, rgba(255, 171, 0, 0.16)) !important;
+        color: var(--ecs-warning, #ffab00) !important;
     }
-    
+
     .bg-label-danger {
-        background-color: rgba(255, 62, 29, 0.16) !important;
-        color: #ff3e1d !important;
+        background-color: var(--ecs-danger-subtle, rgba(255, 62, 29, 0.16)) !important;
+        color: var(--ecs-danger, #ff3e1d) !important;
     }
-    
+
     .bg-label-info {
-        background-color: rgba(3, 195, 236, 0.16) !important;
-        color: #03c3ec !important;
+        background-color: var(--ecs-info-subtle, rgba(3, 195, 236, 0.16)) !important;
+        color: var(--ecs-info, #03c3ec) !important;
     }
-    
+
     .bg-label-secondary {
-        background-color: rgba(133, 146, 163, 0.16) !important;
-        color: #8592a3 !important;
+        background-color: var(--ecs-secondary-subtle, rgba(133, 146, 163, 0.16)) !important;
+        color: var(--ecs-secondary, #8592a3) !important;
     }
     
     /* Mobile adaptations */
@@ -150,7 +150,7 @@
     .loader-spinner {
         width: 48px;
         height: 48px;
-        border: 5px solid #696cff;
+        border: 5px solid var(--ecs-primary, #696cff);
         border-bottom-color: transparent;
         border-radius: 50%;
         display: inline-block;

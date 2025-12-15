@@ -8,7 +8,7 @@
 }
 
 #editRoles option:checked {
-    background-color: #0d6efd !important;
+    background-color: var(--ecs-primary, #0d6efd) !important;
     color: white !important;
 }
 
@@ -664,7 +664,7 @@
             showCancelButton: true,
             confirmButtonText: 'Yes, remove it!',
             cancelButtonText: 'No, cancel',
-            confirmButtonColor: '#ff9800'
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ff9800'
         }).then((result) => {
             if (result.isConfirmed) {
                 // Create a form to submit the POST request
@@ -709,7 +709,7 @@
             showCancelButton: true,
             confirmButtonText: 'Yes, permanently delete',
             cancelButtonText: 'No, cancel',
-            confirmButtonColor: '#dc3545',
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
             focusCancel: true,
             showLoaderOnConfirm: true,
             preConfirm: () => {
@@ -863,7 +863,7 @@
                 showCancelButton: true,
                 confirmButtonText: 'Yes, reset compliance',
                 cancelButtonText: 'Cancel',
-                confirmButtonColor: '#ff9800',
+                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ff9800',
                 showLoaderOnConfirm: true,
                 preConfirm: () => {
                     return fetch("{{ url_for('user_management.reset_profile_compliance') }}", {

@@ -80,7 +80,7 @@
                     <div id="announcementsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="8000">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0 me-3">
-                                <i class="ti ti-bell text-primary" style="font-size: 2rem;"></i>
+                                <i class="ti ti-bell text-primary icon-2xl"></i>
                             </div>
                             <div class="carousel-inner flex-grow-1">
                                 {% for announcement in announcements %}
@@ -113,8 +113,8 @@
             <div class="card shadow">
                 <div class="card-body text-center p-4">
                     <div class="mb-3">
-                        <img src="{{ url_for('static', filename='img/undraw_profile_details_re_ch9r.svg') }}" 
-                             alt="Create Profile" style="height: 150px;">
+                        <img src="{{ url_for('static', filename='img/undraw_profile_details_re_ch9r.svg') }}"
+                             alt="Create Profile" class="image-150">
                     </div>
                     <h3>Get Started</h3>
                     <p class="mb-4">Create your player profile to access team information, match scheduling, and more.</p>
@@ -288,8 +288,8 @@
                     {% else %}
                         <div class="card shadow-sm">
                             <div class="card-body text-center p-4">
-                                <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}" 
-                                     alt="No Matches" style="height: 150px; margin-bottom: 1rem;">
+                                <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}"
+                                     alt="No Matches" class="image-150-mb">
                                 <h5>No Upcoming Matches</h5>
                                 <p class="text-muted">There are no upcoming matches scheduled for {{ t.name }}.</p>
                             </div>
@@ -300,8 +300,8 @@
                 {% else %}
                 <div class="card shadow-sm">
                     <div class="card-body text-center p-4">
-                        <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}" 
-                             alt="No Matches" style="height: 150px; margin-bottom: 1rem;">
+                        <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}"
+                             alt="No Matches" class="image-150-mb">
                         <h5>No Upcoming Matches</h5>
                         <p class="text-muted">You are not currently assigned to any teams.</p>
                     </div>
@@ -435,8 +435,8 @@
                     {% else %}
                         <div class="card shadow-sm">
                             <div class="card-body text-center p-4">
-                                <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}" 
-                                     alt="No Matches" style="height: 150px; margin-bottom: 1rem;">
+                                <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}"
+                                     alt="No Matches" class="image-150-mb">
                                 <h5>No Recent Matches</h5>
                                 <p class="text-muted">There are no recent matches for {{ t.name }}.</p>
                             </div>
@@ -447,8 +447,8 @@
                 {% else %}
                 <div class="card shadow-sm">
                     <div class="card-body text-center p-4">
-                        <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}" 
-                             alt="No Matches" style="height: 150px; margin-bottom: 1rem;">
+                        <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}"
+                             alt="No Matches" class="image-150-mb">
                         <h5>No Recent Matches</h5>
                         <p class="text-muted">You are not currently assigned to any teams.</p>
                     </div>
@@ -478,241 +478,7 @@
 {% endblock %}
 
 {% block custom_css %}
-<style>
-    /* Match badge styling */
-    .match-badge {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        color: white;
-        font-weight: bold;
-        font-size: 0.8rem;
-    }
-    
-    /* Card hover effect */
-    .shadow-sm {
-        transition: all 0.2s ease;
-    }
-    
-    .shadow-sm:hover {
-        box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
-    }
-    
-    /* Tabs styling */
-    .nav-pills .nav-link {
-        font-size: 0.875rem;
-        padding: 0.4rem 0.8rem;
-        white-space: nowrap;
-        margin: 0 2px;
-    }
-    
-    /* Small tabs for mobile */
-    .small-tabs {
-        margin-bottom: 0.5rem;
-    }
-    
-    .small-tabs .nav-link {
-        padding: 0.35rem 0.7rem;
-        font-size: 0.8rem;
-    }
-    
-    /* Scrollable tabs on small screens */
-    .overflow-auto::-webkit-scrollbar {
-        height: 4px;
-    }
-    
-    .overflow-auto::-webkit-scrollbar-thumb {
-        background-color: rgba(0,0,0,0.2);
-        border-radius: 4px;
-    }
-    
-    /* RSVP controls */
-    .rsvp-controls .btn-group label {
-        padding: 0.25rem 0.5rem;
-    }
-    
-    /* Carousel indicators position */
-    .carousel-indicators {
-        bottom: -5px;
-    }
-    
-    /* Remove all custom modal styling to avoid conflicts */
-    
-    /* Prevent buttons from growing too large when clicked */
-    .btn {
-        transition: none !important;
-        transform: none !important;
-    }
-    
-    .btn:active, .btn.active, .btn:focus {
-        transform: none !important;
-        box-shadow: none !important;
-    }
-    
-    /* Mobile adaptations */
-    @media (max-width: 767.98px) {
-        .card-header .card-title {
-            font-size: 1rem;
-        }
-        
-        .action-buttons .btn {
-            padding: 0.25rem 0.5rem;
-        }
-        
-        /* Touch-friendly controls - fixed to prevent growing */
-        .btn-group > .btn {
-            padding: 0.4rem 0.6rem;
-            min-height: 44px;
-            max-height: 44px;
-        }
-        
-        /* Adjust spacing on mobile */
-        .mb-md-0 {
-            margin-bottom: 0.5rem !important;
-        }
-        
-        /* Fix for iOS devices */
-        .nav-pills {
-            display: flex;
-            overflow-x: auto;
-            white-space: nowrap;
-            -webkit-overflow-scrolling: touch;
-            margin-bottom: 1rem;
-            scrollbar-width: none; /* Firefox */
-            position: relative;
-            z-index: 1;
-        }
-        
-        .nav-pills::-webkit-scrollbar {
-            display: none; /* Chrome, Safari, Edge */
-        }
-        
-        /* Remove fade-out gradient that causes white fade */
-        .nav-pills:after {
-            display: none;
-        }
-        
-        /* Better match-item layout for mobile */
-        .list-group-item {
-            padding: 0.75rem 0.5rem !important;
-        }
-        
-        .list-group-item .d-flex {
-            flex-direction: column;
-            align-items: flex-start !important;
-        }
-        
-        .list-group-item .d-flex > div:first-child {
-            margin-bottom: 0.5rem;
-            width: 100%;
-        }
-        
-        .list-group-item .d-flex > div:last-child {
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        /* RSVP controls on mobile - bigger touch targets */
-        .rsvp-controls {
-            width: 65%;
-        }
-        
-        .rsvp-controls .btn-group {
-            width: 100%;
-        }
-        
-        .rsvp-controls .btn-group label {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.2rem;
-            min-height: 44px;
-        }
-        
-        /* Button enhancements for mobile */
-        .btn {
-            min-height: 44px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .btn-sm {
-            min-height: 38px;
-        }
-        
-        /* Improved welcome header for mobile */
-        .welcome-header h2 {
-            font-size: 1.5rem;
-        }
-        
-        .welcome-content {
-            text-align: center;
-        }
-        
-        .team-info {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 0.25rem;
-        }
-        
-        /* Improved tab styling on mobile */
-        .nav-link {
-            padding: 0.75rem 1rem;
-            min-height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 2px;
-            border-radius: 0.25rem;
-        }
-    }
-    
-    /* Fix for iOS 100vh issue */
-    :root {
-        --vh: 1vh;
-    }
-    
-    .full-height {
-        height: calc(var(--vh, 1vh) * 100);
-    }
-    
-    /* iOS Specific Styles */
-    @supports (-webkit-touch-callout: none) {
-        /* Safari/iOS specific style adjustments */
-        input[type="radio"], 
-        input[type="checkbox"] {
-            -webkit-appearance: none;
-        }
-        
-        /* Fix for iOS button styles */
-        .btn {
-            -webkit-appearance: none;
-        }
-        
-        /* Prevent unwanted zoom on input focus */
-        input[type="text"],
-        input[type="email"],
-        input[type="password"],
-        select,
-        textarea {
-            font-size: 16px !important;
-        }
-    }
-    
-    /* Active state for tabs */
-    .nav-pills .nav-link.active {
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        transform: translateY(-1px);
-    }
-</style>
+<!-- Styles moved to /app/static/css/core/foundation-overrides.css -->
 {% endblock %}
 
 {% block custom_js %}
@@ -939,8 +705,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 showCancelButton: true,
                 confirmButtonText: '<i class="fab fa-discord me-2"></i>Connect Discord',
                 cancelButtonText: 'Maybe Later',
-                confirmButtonColor: '#5865F2',
-                cancelButtonColor: '#6c757d'
+                confirmButtonColor: '#5865F2', // Discord brand color
+                cancelButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--ecs-secondary').trim() || '#6c757d'
             }).then((result) => {
                 if (result.isConfirmed) {
                     window.location.href = '{{ url_for("auth.discord_login") }}';

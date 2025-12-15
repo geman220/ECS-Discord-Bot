@@ -1,0 +1,644 @@
+/**
+ * Settings Tabs - Modern navbar-style navigation
+ * Follows admin panel design patterns for consistency
+ */
+
+/* Navbar Container Override */
+.navbar.bg-body-tertiary {
+    overflow: visible;
+}
+
+/* Light mode navbar background - matches admin panel */
+[data-theme-variant="modern"]:not([data-style="dark"]) .navbar.bg-body-tertiary {
+    background-color: #ffffff !important;
+    border: 1px solid var(--ecs-neutral-20) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Scrollable Nav */
+.settings-nav-scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--ecs-neutral-90-rgb), 0.2) transparent;
+    max-width: 100%;
+    padding-bottom: 4px;
+}
+
+.settings-nav-scroll::-webkit-scrollbar {
+    height: 4px;
+}
+
+.settings-nav-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.settings-nav-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(var(--ecs-neutral-90-rgb), 0.2);
+    border-radius: 4px;
+}
+
+.settings-nav-scroll .navbar-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.125rem;
+    width: max-content;
+    min-width: 100%;
+}
+
+/* Nav item styling */
+.settings-nav-scroll .nav-item {
+    flex-shrink: 0;
+}
+
+/* Nav Links - Aligned with admin panel */
+.settings-nav-scroll .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.375rem;
+    color: var(--ecs-neutral-50);
+    font-weight: 500;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.settings-nav-scroll .nav-link:hover {
+    background-color: rgba(var(--ecs-primary-rgb), 0.1);
+    color: var(--ecs-primary);
+}
+
+.settings-nav-scroll .nav-link.active {
+    background-color: var(--ecs-primary);
+    color: var(--ecs-neutral-0) !important;
+}
+
+.settings-nav-scroll .nav-link i {
+    font-size: 1rem;
+    margin-right: 0.2rem;
+}
+
+.settings-nav-scroll .nav-link .nav-link-text {
+    /* Text is inline with icon */
+}
+
+/* Light mode specific styles for settings nav */
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-nav-scroll .nav-link {
+    color: var(--ecs-neutral-60) !important;
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-nav-scroll .nav-link:hover {
+    background-color: rgba(var(--ecs-primary-rgb), 0.08) !important;
+    color: var(--ecs-primary) !important;
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-nav-scroll .nav-link.active {
+    background-color: var(--ecs-primary) !important;
+    color: #ffffff !important;
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-nav-scroll .nav-link i {
+    color: inherit !important;
+}
+
+/* Settings Card Styles */
+.settings-card {
+    transition: all 0.2s ease-in-out;
+    border-radius: 0.75rem;
+}
+
+.settings-card:hover {
+    box-shadow: 0 0.125rem 0.5rem rgba(var(--ecs-neutral-50-rgb), 0.2);
+}
+
+/* Settings Icon */
+.settings-icon {
+    font-size: 1.25rem;
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+}
+
+/* Form Controls in Settings */
+.settings-card .form-label.fw-semibold {
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.settings-card .form-control,
+.settings-card .form-select {
+    border-radius: 0.5rem;
+}
+
+/* Wallet Badge */
+.wallet-badge {
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    display: inline-block;
+}
+
+.wallet-badge:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
+}
+
+.wallet-badge svg {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(var(--ecs-neutral-90-rgb), 0.2);
+}
+
+/* Verification Code Input */
+.verification-code-input {
+    letter-spacing: 4px;
+    font-weight: 600;
+    text-align: center;
+    font-size: 1.25rem;
+}
+
+/* Desktop/Large screens - lg (992px-1199px) */
+@media (min-width: 992px) {
+    .settings-nav-scroll .nav-link {
+        padding: 0.35rem 0.45rem;
+        font-size: 0.7rem;
+    }
+
+    .settings-nav-scroll .nav-link i {
+        margin-right: 0.15rem !important;
+        font-size: 0.85rem;
+    }
+
+    .settings-nav-scroll .nav-link-text {
+        display: inline;
+    }
+}
+
+/* Extra large screens - xl (1200px-1399px) */
+@media (min-width: 1200px) {
+    .settings-nav-scroll .nav-link {
+        padding: 0.4rem 0.55rem;
+        font-size: 0.78rem;
+    }
+
+    .settings-nav-scroll .nav-link i {
+        margin-right: 0.2rem !important;
+        font-size: 0.9rem;
+    }
+}
+
+/* XXL screens (1400px+) */
+@media (min-width: 1400px) {
+    .settings-nav-scroll .nav-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .settings-nav-scroll .nav-link i {
+        margin-right: 0.25rem !important;
+        font-size: 1rem;
+    }
+}
+
+/* Tablet screens - (768px-991px) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .settings-nav-scroll {
+        position: relative;
+    }
+
+    .settings-nav-scroll .nav-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8125rem;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+
+    .settings-nav-scroll .nav-link i {
+        font-size: 1rem;
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 767.98px) {
+    .settings-nav-scroll .nav-link {
+        padding: 0.5rem 0.625rem;
+        font-size: 0.75rem;
+    }
+
+    .settings-nav-scroll .nav-link .nav-link-text {
+        display: none;
+    }
+
+    .settings-nav-scroll .nav-link i {
+        margin-right: 0 !important;
+        font-size: 1.1rem;
+    }
+
+    .settings-icon {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        font-size: 1.1rem;
+    }
+
+    .settings-card .card-header {
+        padding: 1rem;
+    }
+
+    .settings-card .card-body {
+        padding: 1rem;
+    }
+
+    .wallet-badge svg {
+        width: 140px;
+        height: 38px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .settings-nav-scroll .nav-link {
+        padding: 0.5rem;
+    }
+
+    .settings-nav-scroll .navbar-nav {
+        justify-content: space-around;
+        width: 100%;
+    }
+}
+
+/* Tab Content Transitions */
+.tab-pane {
+    animation: fadeInTab 0.3s ease;
+}
+
+@keyframes fadeInTab {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Quick Actions Card */
+.card.border-0.bg-light .btn {
+    justify-content: flex-start;
+}
+
+/* Form Switch Alignment Fixes */
+.form-check.form-switch {
+    padding-left: 0;
+}
+
+.form-switch .form-check-input {
+    margin-left: 0;
+}
+
+/* ========================================
+   Light Mode Support (Modern Theme)
+   ======================================== */
+
+/* Settings Cards - Light Mode */
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card {
+    background-color: #ffffff !important;
+    border: 1px solid var(--ecs-neutral-20) !important;
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .card-header {
+    background-color: transparent !important;
+    border-bottom: 1px solid var(--ecs-neutral-20) !important;
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .card-title {
+    color: var(--ecs-neutral-90) !important;
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .card-body {
+    color: var(--ecs-neutral-60) !important;
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .form-label {
+    color: var(--ecs-neutral-90) !important;
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .form-text {
+    color: var(--ecs-neutral-50) !important;
+}
+
+/* Settings Icon - Light Mode */
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-icon {
+    background-color: rgba(var(--ecs-primary-rgb), 0.1) !important;
+    color: var(--ecs-primary) !important;
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-icon.bg-warning {
+    background-color: rgba(var(--ecs-warning-rgb), 0.1) !important;
+    color: var(--ecs-warning) !important;
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-icon.bg-success {
+    background-color: rgba(var(--ecs-success-rgb), 0.1) !important;
+    color: var(--ecs-success) !important;
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-icon.bg-info {
+    background-color: rgba(var(--ecs-info-rgb), 0.1) !important;
+    color: var(--ecs-info) !important;
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .settings-icon.bg-danger {
+    background-color: rgba(var(--ecs-danger-rgb), 0.1) !important;
+    color: var(--ecs-danger) !important;
+}
+
+/* Alert Light in Light Mode */
+[data-theme-variant="modern"]:not([data-style="dark"]) .alert.alert-light {
+    background: var(--ecs-neutral-5) !important;
+    border-color: var(--ecs-neutral-20) !important;
+    color: var(--ecs-neutral-60) !important;
+}
+
+/* Quick Actions Card - Light Mode */
+[data-theme-variant="modern"]:not([data-style="dark"]) .card.border-0.bg-light {
+    background: var(--ecs-neutral-5) !important;
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .card.border-0.bg-light h6 {
+    color: var(--ecs-neutral-90) !important;
+}
+
+/* Status boxes - Light Mode */
+[data-theme-variant="modern"]:not([data-style="dark"]) .bg-light.rounded {
+    background: var(--ecs-neutral-5) !important;
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .bg-light.rounded .text-muted {
+    color: var(--ecs-neutral-50) !important;
+}
+
+[data-theme-variant="modern"]:not([data-style="dark"]) .bg-light.rounded .fw-semibold {
+    color: var(--ecs-neutral-90) !important;
+}
+
+/* ========================================
+   Dark Mode Support
+   ======================================== */
+
+/* Navbar Container Dark Mode */
+[data-style="dark"] .navbar.bg-body-tertiary {
+    background-color: var(--ecs-dark-bg-card, #25282f) !important;
+}
+
+/* Tab Navigation */
+[data-style="dark"] .settings-nav-scroll .nav-link {
+    color: var(--ecs-dark-text-muted, #9ca3af);
+}
+
+[data-style="dark"] .settings-nav-scroll .nav-link:hover {
+    background: rgba(var(--ecs-primary-rgb), 0.15);
+    color: var(--ecs-primary-light);
+}
+
+[data-style="dark"] .settings-nav-scroll .nav-link.active {
+    background: var(--ecs-primary);
+    color: var(--ecs-neutral-0);
+}
+
+/* Settings Cards */
+[data-style="dark"] .settings-card {
+    background: var(--ecs-dark-bg-card, #25282f);
+    border-color: var(--ecs-dark-border, #2d3139);
+}
+
+[data-style="dark"] .settings-card:hover {
+    box-shadow: 0 0.125rem 0.5rem rgba(var(--ecs-neutral-90-rgb), 0.3);
+}
+
+[data-style="dark"] .settings-card .card-header {
+    background: var(--ecs-dark-bg-body, #1f2228);
+    border-bottom-color: var(--ecs-dark-border, #2d3139);
+}
+
+[data-style="dark"] .settings-card .card-title {
+    color: var(--ecs-dark-text-primary, #f3f4f6);
+}
+
+/* Settings Icon Backgrounds */
+[data-style="dark"] .settings-icon {
+    background-color: rgba(var(--ecs-primary-rgb), 0.15) !important;
+}
+
+[data-style="dark"] .settings-icon.bg-primary.bg-opacity-10 {
+    background-color: rgba(var(--ecs-primary-rgb), 0.15) !important;
+    color: var(--ecs-primary-light) !important;
+}
+
+[data-style="dark"] .settings-icon.bg-warning.bg-opacity-10 {
+    background-color: rgba(var(--ecs-warning-rgb), 0.15) !important;
+    color: var(--ecs-warning-light) !important;
+}
+
+[data-style="dark"] .settings-icon.bg-success.bg-opacity-10 {
+    background-color: rgba(var(--ecs-success-rgb), 0.15) !important;
+    color: var(--ecs-success-light) !important;
+}
+
+[data-style="dark"] .settings-icon.bg-info.bg-opacity-10 {
+    background-color: rgba(var(--ecs-info-rgb), 0.15) !important;
+    color: var(--ecs-info-light) !important;
+}
+
+[data-style="dark"] .settings-icon.bg-dark.bg-opacity-10 {
+    background-color: rgba(var(--ecs-neutral-60-rgb), 0.3) !important;
+    color: var(--ecs-dark-text-secondary) !important;
+}
+
+/* Quick Actions Card */
+[data-style="dark"] .card.border-0.bg-light {
+    background: var(--ecs-dark-bg-body, #1f2228) !important;
+}
+
+[data-style="dark"] .card.border-0.bg-light h6 {
+    color: var(--ecs-dark-text-primary, #f3f4f6);
+}
+
+/* Status/Info Boxes */
+[data-style="dark"] .bg-light.rounded {
+    background: var(--ecs-dark-bg-body, #1f2228) !important;
+}
+
+[data-style="dark"] .bg-light.rounded .text-muted {
+    color: var(--ecs-dark-text-muted, #9ca3af) !important;
+}
+
+[data-style="dark"] .bg-light.rounded .fw-semibold {
+    color: var(--ecs-dark-text-secondary, #e5e7eb);
+}
+
+/* Alert Light in Dark Mode */
+[data-style="dark"] .alert.alert-light {
+    background: var(--ecs-dark-bg-body, #1f2228);
+    border-color: var(--ecs-dark-border, #2d3139);
+    color: var(--ecs-dark-text-secondary, #e5e7eb);
+}
+
+[data-style="dark"] .alert.alert-light.border {
+    border-color: var(--ecs-dark-border, #2d3139) !important;
+}
+
+/* 2FA Status Circle */
+[data-style="dark"] .rounded-circle.bg-success.bg-opacity-10 {
+    background-color: rgba(var(--ecs-success-rgb), 0.15) !important;
+}
+
+[data-style="dark"] .rounded-circle.bg-warning.bg-opacity-10 {
+    background-color: rgba(var(--ecs-warning-rgb), 0.15) !important;
+}
+
+[data-style="dark"] .rounded-circle.bg-light {
+    background: var(--ecs-dark-bg-elevated) !important;
+}
+
+/* Security Tips Card */
+[data-style="dark"] .card.border-0.bg-light .small {
+    color: var(--ecs-dark-text-muted, #9ca3af);
+}
+
+/* Verification Code Input */
+[data-style="dark"] .verification-code-input {
+    background: var(--ecs-dark-bg-body, #1f2228);
+    border-color: var(--ecs-dark-border, #2d3139);
+    color: var(--ecs-dark-text-primary, #f3f4f6);
+}
+
+/* Wallet Badge */
+[data-style="dark"] .wallet-badge svg rect {
+    fill: var(--ecs-dark-text-primary, #f3f4f6);
+}
+
+/* Calendar Subscription Stats */
+[data-style="dark"] #subscriptionContent .bg-light {
+    background: var(--ecs-dark-bg-body, #1f2228) !important;
+}
+
+/* Form Controls */
+[data-style="dark"] .settings-card .form-control,
+[data-style="dark"] .settings-card .form-select {
+    background: var(--ecs-dark-bg-body, #1f2228);
+    border-color: var(--ecs-dark-border, #2d3139);
+    color: var(--ecs-dark-text-secondary, #e5e7eb);
+}
+
+[data-style="dark"] .settings-card .form-control:focus,
+[data-style="dark"] .settings-card .form-select:focus {
+    border-color: var(--ecs-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--ecs-primary-rgb), 0.25);
+}
+
+[data-style="dark"] .settings-card .form-control::placeholder {
+    color: var(--ecs-dark-text-muted);
+}
+
+/* Notification Channel Cards */
+[data-style="dark"] .notification-channel {
+    background: var(--ecs-dark-bg-card, #25282f);
+    border-color: var(--ecs-dark-border, #2d3139);
+}
+
+[data-style="dark"] .notification-channel.channel-enabled {
+    border-color: var(--ecs-success);
+}
+
+[data-style="dark"] .channel-icon-lg {
+    background-color: rgba(var(--ecs-neutral-60-rgb), 0.15) !important;
+}
+
+/* ========================================
+   Appearance Tab - Theme Selection
+   ======================================== */
+
+/* Theme Selection Card */
+.theme-selection-card {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.theme-selection-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.25rem 0.75rem rgba(var(--ecs-neutral-90-rgb), 0.1);
+}
+
+/* Theme Preview Mockups */
+.theme-preview-mockup {
+    height: 120px;
+    position: relative;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+/* Default Theme (Purple) */
+.theme-preview-default {
+    background: linear-gradient(135deg, var(--ecs-primary) 0%, var(--ecs-primary-light) 100%);
+}
+
+/* Emerald Coast Theme */
+.theme-preview-emerald {
+    background: linear-gradient(135deg, var(--ecs-primary) 0%, var(--ecs-primary-light) 100%);
+}
+
+/* Mockup Elements - Shared */
+.theme-preview-nav {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    height: 20px;
+    background: rgba(var(--ecs-neutral-0-rgb), 0.2);
+    border-radius: 4px;
+}
+
+.theme-preview-sidebar {
+    position: absolute;
+    top: 40px;
+    left: 10px;
+    width: 40px;
+    height: 70px;
+    background: rgba(var(--ecs-neutral-0-rgb), 0.15);
+    border-radius: 4px;
+}
+
+.theme-preview-card {
+    position: absolute;
+    top: 40px;
+    left: 60px;
+    right: 10px;
+    height: 30px;
+    background: rgba(var(--ecs-neutral-0-rgb), 0.3);
+    border-radius: 4px;
+}
+
+.theme-preview-button {
+    position: absolute;
+    bottom: 10px;
+    left: 60px;
+    right: 10px;
+    height: 25px;
+    background: rgba(var(--ecs-neutral-0-rgb), 0.2);
+    border-radius: 4px;
+}
+
+/* Emerald Coast specific button color */
+.theme-preview-emerald .theme-preview-button {
+    background: rgba(var(--ecs-warning-rgb), 0.7);
+}
+
+/* Dark Mode Support for Theme Previews */
+[data-style="dark"] .theme-selection-card:hover {
+    box-shadow: 0 0.25rem 0.75rem rgba(var(--ecs-neutral-90-rgb), 0.3);
+}

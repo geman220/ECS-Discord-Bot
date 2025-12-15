@@ -1,0 +1,149 @@
+{# Account Settings Tab Partial #}
+<div class="tab-pane fade show active" id="tab-account" role="tabpanel">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card settings-card mb-4">
+                <div class="card-header d-flex align-items-center pb-2 border-bottom">
+                    <div class="settings-icon bg-primary bg-opacity-10 text-primary me-3">
+                        <i class="ti ti-user-circle"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Personal Information</h5>
+                        <small class="text-muted">Update your account details</small>
+                    </div>
+                </div>
+                <div class="card-body pt-3">
+                    <form id="accountInfoForm" action="{{ url_for('account.update_account_info') }}" method="POST">
+                        {{ notification_form.hidden_tag() }}
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Name</label>
+                                <input type="text" class="form-control" name="name"
+                                       value="{{ safe_current_user.player.name if safe_current_user.player else '' }}"
+                                       placeholder="Your full name">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Email</label>
+                                <input type="email" class="form-control" name="email"
+                                       value="{{ safe_current_user.email }}"
+                                       placeholder="your@email.com">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Phone Number</label>
+                                <input type="tel" class="form-control" name="phone"
+                                       value="{{ safe_current_user.player.phone if safe_current_user.player else '' }}"
+                                       placeholder="(555) 123-4567">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Profile Visibility</label>
+                                {{ notification_form.profile_visibility(class="form-select") }}
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ti ti-device-floppy me-2"></i>Save Changes
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Player Status Info (if player exists) -->
+            {% if safe_current_user.player %}
+            <div class="card settings-card">
+                <div class="card-header d-flex align-items-center pb-2 border-bottom">
+                    <div class="settings-icon bg-success bg-opacity-10 text-success me-3">
+                        <i class="ti ti-shield-check"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Player Status</h5>
+                        <small class="text-muted">Your current team and season information</small>
+                    </div>
+                </div>
+                <div class="card-body pt-3">
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6 col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <small class="text-muted d-block mb-1">Status</small>
+                                {% if safe_current_user.player.is_current_player %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <small class="text-muted d-block mb-1">Primary Team</small>
+                                <span class="fw-semibold">
+                                    {% if safe_current_user.player.primary_team %}
+                                    {{ safe_current_user.player.primary_team.name }}
+                                    {% else %}
+                                    <span class="text-muted">None</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <small class="text-muted d-block mb-1">League</small>
+                                <span class="fw-semibold">
+                                    {% if safe_current_user.player.league %}
+                                    {{ safe_current_user.player.league.name }}
+                                    {% else %}
+                                    <span class="text-muted">None</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <small class="text-muted d-block mb-1">Teams</small>
+                                <span class="fw-semibold">
+                                    {% set team_count = safe_current_user.player.teams|length if safe_current_user.player.teams else 0 %}
+                                    {{ team_count }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if user_team and user_team|length > 0 %}
+                    <div class="mb-0">
+                        <small class="text-muted d-block mb-2">Current Season Teams:</small>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for team in user_team %}
+                            <span class="badge bg-primary">{{ team.name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Actions Sidebar -->
+        <div class="col-lg-4">
+            <div class="card border-0 bg-light">
+                <div class="card-body">
+                    <h6 class="fw-semibold mb-3">
+                        <i class="ti ti-bolt me-2"></i>Quick Actions
+                    </h6>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) if safe_current_user.player else '#' }}"
+                           class="btn btn-outline-primary btn-sm {% if not safe_current_user.player %}disabled{% endif %}">
+                            <i class="ti ti-user me-2"></i>View My Profile
+                        </a>
+                        <a href="{{ url_for('players.profile_wizard') }}"
+                           class="btn btn-outline-primary btn-sm {% if not safe_current_user.player %}disabled{% endif %}">
+                            <i class="ti ti-clipboard-check me-2"></i>Verify Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

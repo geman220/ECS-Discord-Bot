@@ -13,23 +13,23 @@
     
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--ecs-primary, #667eea) 0%, var(--ecs-primary-dark, #764ba2) 100%);
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         .mobile-container {
             max-width: 100%;
             padding: 0;
             margin: 0;
         }
-        
+
         .card {
             border: none;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             border-radius: 15px;
         }
-        
+
         .btn {
             border-radius: 12px;
             padding: 15px 20px;
@@ -37,27 +37,27 @@
             text-transform: none;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-        
+
         .btn-lg {
             padding: 18px 25px;
             font-size: 1.1rem;
         }
-        
+
         .form-control, .form-select {
             border-radius: 12px;
             padding: 15px;
-            border: 2px solid #e9ecef;
+            border: 2px solid var(--ecs-neutral-10, #e9ecef);
             font-size: 16px; /* Prevents zoom on iOS */
         }
-        
+
         .form-control:focus, .form-select:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            border-color: var(--ecs-primary, #667eea);
+            box-shadow: 0 0 0 0.2rem rgba(var(--ecs-primary-rgb, 102, 126, 234), 0.25);
         }
-        
+
         .form-label {
             font-weight: 600;
-            color: #495057;
+            color: var(--ecs-neutral-60, #495057);
             margin-bottom: 8px;
         }
         
@@ -107,28 +107,28 @@
                         icon: 'error',
                         title: 'Error',
                         text: '{{ message }}',
-                        confirmButtonColor: '#dc3545'
+                        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
                     });
                 {% elif category == 'warning' %}
                     Swal.fire({
                         icon: 'warning',
                         title: 'Warning',
                         text: '{{ message }}',
-                        confirmButtonColor: '#ffc107'
+                        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107'
                     });
                 {% elif category == 'success' %}
                     Swal.fire({
                         icon: 'success',
                         title: 'Success',
                         text: '{{ message }}',
-                        confirmButtonColor: '#28a745'
+                        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745'
                     });
                 {% else %}
                     Swal.fire({
                         icon: 'info',
                         title: 'Info',
                         text: '{{ message }}',
-                        confirmButtonColor: '#17a2b8'
+                        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : '#17a2b8'
                     });
                 {% endif %}
             {% endfor %}

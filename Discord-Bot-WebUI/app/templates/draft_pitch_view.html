@@ -6,7 +6,7 @@
 <!-- Draft System Styles -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/draft-system.css') }}?v={{ range(1, 1000000) | random }}">
 <!-- Pitch View Styles -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pitch-view.css') }}?v={{ range(1, 1000000) | random }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/features/pitch-view.css') }}?v={{ range(1, 1000000) | random }}">
 {% endblock %}
 
 {% block main_content %}
@@ -51,24 +51,28 @@
     <!-- Team Selection / Current Team View -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <div class="nav nav-pills" id="team-tabs" role="tablist">
-                        {% for team in teams %}
-                        <button class="nav-link {% if loop.first %}active{% endif %}" 
-                                id="team-{{ team.id }}-tab" data-bs-toggle="pill" 
-                                data-bs-target="#team-{{ team.id }}-pitch" type="button" 
-                                role="tab" aria-selected="{% if loop.first %}true{% else %}false{% endif %}"
-                                data-team-id="{{ team.id }}">
-                            {{ team.name }}
-                            <span class="badge bg-secondary ms-2" id="teamPitchCount{{ team.id }}">
-                                {{ drafted_players_by_team[team.id]|length if drafted_players_by_team[team.id] else 0 }}
-                            </span>
-                        </button>
-                        {% endfor %}
+            <nav class="navbar navbar-expand navbar-light bg-body-tertiary rounded-3 shadow-sm p-2 p-lg-3">
+                <div class="container-fluid px-0">
+                    <div class="team-nav-scroll w-100">
+                        <ul class="navbar-nav flex-row flex-nowrap" id="team-tabs" role="tablist">
+                            {% for team in teams %}
+                            <li class="nav-item">
+                                <button class="nav-link {% if loop.first %}active{% endif %}"
+                                        id="team-{{ team.id }}-tab" data-bs-toggle="pill"
+                                        data-bs-target="#team-{{ team.id }}-pitch" type="button"
+                                        role="tab" aria-selected="{% if loop.first %}true{% else %}false{% endif %}"
+                                        data-team-id="{{ team.id }}">
+                                    <span class="team-name">{{ team.name }}</span>
+                                    <span class="badge bg-secondary ms-1" id="teamPitchCount{{ team.id }}">
+                                        {{ drafted_players_by_team[team.id]|length if drafted_players_by_team[team.id] else 0 }}
+                                    </span>
+                                </button>
+                            </li>
+                            {% endfor %}
+                        </ul>
                     </div>
                 </div>
-            </div>
+            </nav>
         </div>
     </div>
 

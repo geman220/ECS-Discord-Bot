@@ -21,43 +21,43 @@
     }
     
     .badge.bg-label-primary {
-        background-color: rgba(105, 108, 255, 0.16) !important;
-        color: #696cff !important;
+        background-color: var(--ecs-primary-subtle, rgba(105, 108, 255, 0.16)) !important;
+        color: var(--ecs-primary, #696cff) !important;
     }
-    
+
     .badge.bg-label-success {
-        background-color: rgba(40, 199, 111, 0.16) !important;
-        color: #28c76f !important;
+        background-color: var(--ecs-success-subtle, rgba(40, 199, 111, 0.16)) !important;
+        color: var(--ecs-success, #28c76f) !important;
     }
-    
+
     .badge.bg-label-warning {
-        background-color: rgba(255, 159, 67, 0.16) !important;
-        color: #ff9f43 !important;
+        background-color: var(--ecs-warning-subtle, rgba(255, 159, 67, 0.16)) !important;
+        color: var(--ecs-warning, #ff9f43) !important;
     }
-    
+
     .badge.bg-label-danger {
-        background-color: rgba(234, 84, 85, 0.16) !important;
-        color: #ea5455 !important;
+        background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.16)) !important;
+        color: var(--ecs-danger, #ea5455) !important;
     }
-    
+
     .status-waitlist {
-        background-color: rgba(255, 171, 0, 0.16) !important;
-        color: #ffab00 !important;
+        background-color: var(--ecs-warning-subtle, rgba(255, 171, 0, 0.16)) !important;
+        color: var(--ecs-warning, #ffab00) !important;
     }
-    
+
     .status-pending {
-        background-color: rgba(255, 171, 0, 0.16) !important;
-        color: #ffab00 !important;
+        background-color: var(--ecs-warning-subtle, rgba(255, 171, 0, 0.16)) !important;
+        color: var(--ecs-warning, #ffab00) !important;
     }
-    
+
     .status-approved {
-        background-color: rgba(3, 195, 236, 0.16) !important;
-        color: #03c3ec !important;
+        background-color: var(--ecs-info-subtle, rgba(3, 195, 236, 0.16)) !important;
+        color: var(--ecs-info, #03c3ec) !important;
     }
-    
+
     .status-denied {
-        background-color: rgba(234, 84, 85, 0.16) !important;
-        color: #ea5455 !important;
+        background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.16)) !important;
+        color: var(--ecs-danger, #ea5455) !important;
     }
     
     /* Table styling */
@@ -99,60 +99,60 @@
     
     /* Action buttons */
     .btn-remove {
-        background-color: #ea5455;
-        border-color: #ea5455;
+        background-color: var(--ecs-danger, #ea5455);
+        border-color: var(--ecs-danger, #ea5455);
         color: white;
     }
-    
+
     .btn-remove:hover {
-        background-color: #d63384;
-        border-color: #d63384;
+        background-color: var(--ecs-danger-dark, #d63384);
+        border-color: var(--ecs-danger-dark, #d63384);
         color: white;
     }
-    
+
     .btn-contact {
-        background-color: #03c3ec;
-        border-color: #03c3ec;
+        background-color: var(--ecs-info, #03c3ec);
+        border-color: var(--ecs-info, #03c3ec);
         color: white;
     }
-    
+
     .btn-contact:hover {
-        background-color: #0099cc;
-        border-color: #0099cc;
+        background-color: var(--ecs-info-dark, #0099cc);
+        border-color: var(--ecs-info-dark, #0099cc);
         color: white;
     }
     
     /* Stats cards */
     .stats-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--ecs-primary, #667eea) 0%, var(--ecs-primary-dark, #764ba2) 100%);
         color: white;
         border-radius: 10px;
         padding: 1.5rem;
         margin-bottom: 1rem;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
-    
+
     .stats-card h3 {
         margin-bottom: 0.5rem;
         font-size: 2rem;
         font-weight: 600;
     }
-    
+
     .stats-card p {
         margin-bottom: 0;
         opacity: 0.9;
     }
-    
+
     .stats-card.waitlist {
-        background: linear-gradient(135deg, #ffab00 0%, #ff6b35 100%);
+        background: linear-gradient(135deg, var(--ecs-warning, #ffab00) 0%, var(--ecs-warning-dark, #ff6b35) 100%);
     }
-    
+
     .stats-card.registered {
-        background: linear-gradient(135deg, #28c76f 0%, #06d6a0 100%);
+        background: linear-gradient(135deg, var(--ecs-success, #28c76f) 0%, var(--ecs-success-dark, #06d6a0) 100%);
     }
-    
+
     .stats-card.approved {
-        background: linear-gradient(135deg, #03c3ec 0%, #0077be 100%);
+        background: linear-gradient(135deg, var(--ecs-info, #03c3ec) 0%, var(--ecs-info-dark, #0077be) 100%);
     }
     
     /* Player profile styling */
@@ -177,16 +177,16 @@
     
     .player-profile .player-email {
         font-size: 0.875rem;
-        color: #6c757d;
+        color: var(--ecs-neutral-50, #6c757d);
         margin-bottom: 0;
     }
-    
+
     /* Avatar fallback */
     .avatar-fallback {
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background-color: #696cff;
+        background-color: var(--ecs-primary, #696cff);
         display: flex;
         align-items: center;
         justify-content: center;

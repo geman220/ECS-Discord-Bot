@@ -794,14 +794,15 @@ function handleCalendarDragOver(e) {
         // Calculate drop position based on mouse position
         const rect = weekItem.getBoundingClientRect();
         const midPoint = rect.top + rect.height / 2;
-        
+
+        const highlightColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd';
         if (e.clientY < midPoint) {
             // Drop above
-            weekItem.style.borderTop = '3px solid #007bff';
+            weekItem.style.borderTop = `3px solid ${highlightColor}`;
             weekItem.dataset.dropPosition = 'before';
         } else {
             // Drop below
-            weekItem.style.borderBottom = '3px solid #007bff';
+            weekItem.style.borderBottom = `3px solid ${highlightColor}`;
             weekItem.dataset.dropPosition = 'after';
         }
     }
@@ -1195,22 +1196,22 @@ function addCalendarCSS() {
         }
         
         .week-card {
-            border: 2px solid #e9ecef;
+            border: 2px solid var(--ecs-border, #e9ecef);
             border-radius: 8px;
             overflow: hidden;
             transition: all 0.2s ease;
             background: white;
         }
-        
+
         .draggable-week {
             cursor: grab;
             position: relative;
         }
-        
+
         .draggable-week:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border-color: #007bff;
+            border-color: var(--ecs-primary, #7C3AED);
         }
         
         .drag-handle {
@@ -1255,28 +1256,28 @@ function addCalendarCSS() {
         
         .week-date {
             font-size: 13px;
-            color: #6c757d;
+            color: var(--ecs-muted, #6c757d);
             margin-bottom: 4px;
         }
-        
+
         .week-type {
             font-weight: 600;
-            color: #495057;
+            color: var(--ecs-dark, #495057);
             margin-bottom: 6px;
         }
-        
+
         .divisions {
             font-size: 11px;
-            color: #6c757d;
-            background: #f8f9fa;
+            color: var(--ecs-muted, #6c757d);
+            background: var(--ecs-neutral-5, #f8f9fa);
             padding: 2px 6px;
             border-radius: 12px;
             display: inline-block;
         }
-        
+
         .drop-zone {
-            border: 2px dashed #007bff !important;
-            background: rgba(0, 123, 255, 0.1) !important;
+            border: 2px dashed var(--ecs-primary, #7C3AED) !important;
+            background: var(--ecs-primary-light-bg, rgba(124, 58, 237, 0.1)) !important;
         }
     `;
     document.head.appendChild(style);

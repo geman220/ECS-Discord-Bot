@@ -900,3 +900,88 @@ def is_admin_panel_feature_enabled(feature_key):
     """Check if an admin panel feature is enabled."""
     from app.models.admin_config import AdminConfig
     return AdminConfig.get_setting(feature_key, default=True)
+
+
+def get_playoff_stats():
+    """
+    Get real playoff statistics from the database.
+
+    Returns:
+        dict: Playoff statistics including active, completed, upcoming matches and teams
+    """
+    try:
+        from app.models.matches import Match
+        from app.models.core import Season
+        from datetime import datetime, timedelta
+
+        # Get current season for context
+        current_season = Season.query.filter_by(
+            is_current=True
+        ).first()
+
+        if not current_season:
+            # No current season, return zeros
+            return {
+                'active_playoffs': 0,
+                'completed_playoffs': 0,
+                'upcoming_matches': 0,
+                'playoff_teams': 0
+            }
+
+        # Query all playoff matches
+        playoff_matches = Match.query.filter(
+            Match.is_playoff_game == True
+        ).all()
+
+        if not playoff_matches:
+            return {
+                'active_playoffs': 0,
+                'completed_playoffs': 0,
+                'upcoming_matches': 0,
+                'playoff_teams': 0
+            }
+
+        today = datetime.utcnow().date()
+        next_week = today + timedelta(days=7)
+
+        # Active playoffs (scheduled but not yet played - no scores)
+        active_playoffs = len([
+            m for m in playoff_matches
+            if m.home_team_score is None and m.away_team_score is None
+        ])
+
+        # Completed playoffs (have scores)
+        completed_playoffs = len([
+            m for m in playoff_matches
+            if m.home_team_score is not None and m.away_team_score is not None
+        ])
+
+        # Upcoming matches (within next 7 days, not yet played)
+        upcoming_matches = len([
+            m for m in playoff_matches
+            if m.date and m.date >= today and m.date <= next_week
+            and m.home_team_score is None
+        ])
+
+        # Count unique teams in playoffs
+        playoff_team_ids = set()
+        for match in playoff_matches:
+            if match.home_team_id:
+                playoff_team_ids.add(match.home_team_id)
+            if match.away_team_id:
+                playoff_team_ids.add(match.away_team_id)
+
+        return {
+            'active_playoffs': active_playoffs,
+            'completed_playoffs': completed_playoffs,
+            'upcoming_matches': upcoming_matches,
+            'playoff_teams': len(playoff_team_ids)
+        }
+    except Exception as e:
+        logger.error(f"Error getting playoff stats: {e}")
+        return {
+            'active_playoffs': 0,
+            'completed_playoffs': 0,
+            'upcoming_matches': 0,
+            'playoff_teams': 0
+        }

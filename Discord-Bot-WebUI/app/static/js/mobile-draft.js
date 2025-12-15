@@ -321,7 +321,7 @@
                 showCancelButton: true,
                 confirmButtonText: 'Yes, remove',
                 cancelButtonText: 'Cancel',
-                confirmButtonColor: '#dc3545'
+                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
               }).then((result) => {
                 if (result.isConfirmed) {
                   if (originalOnclick) originalOnclick.call(btn, e);

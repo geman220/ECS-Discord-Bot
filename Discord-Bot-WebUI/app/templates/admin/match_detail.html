@@ -14,7 +14,7 @@
 {{ super() }}
 <style>
 .info-card {
-    border-left: 4px solid #007bff;
+    border-left: 4px solid var(--ecs-primary, #007bff);
 }
 
 .teams-display {
@@ -38,7 +38,7 @@
     justify-content: center;
     font-size: 1.5rem;
     font-weight: bold;
-    color: #6c757d;
+    color: var(--ecs-secondary, #6c757d);
 }
 
 .status-indicator {
@@ -49,9 +49,9 @@
     margin-right: 8px;
 }
 
-.status-active { background-color: #28a745; }
-.status-inactive { background-color: #6c757d; }
-.status-error { background-color: #dc3545; }
+.status-active { background-color: var(--ecs-success, #28a745); }
+.status-inactive { background-color: var(--ecs-secondary, #6c757d); }
+.status-error { background-color: var(--ecs-danger, #dc3545); }
 
 .detail-section {
     background: var(--bs-body-bg);

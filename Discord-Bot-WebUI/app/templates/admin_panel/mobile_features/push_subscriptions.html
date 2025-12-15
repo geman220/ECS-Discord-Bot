@@ -436,7 +436,7 @@ function deactivateToken(tokenId) {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Deactivate',
-        confirmButtonColor: '#dc3545'
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
             fetch('{{ url_for("admin_panel.deactivate_device_token") }}', {
@@ -469,7 +469,7 @@ function deleteToken(tokenId) {
         icon: 'error',
         showCancelButton: true,
         confirmButtonText: 'Delete Token',
-        confirmButtonColor: '#dc3545'
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
             Swal.fire('Token Deleted!', 'Device token has been permanently removed.', 'success')
@@ -514,7 +514,7 @@ function bulkDeactivate() {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Deactivate All',
-        confirmButtonColor: '#dc3545'
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
             Swal.fire('Tokens Deactivated!', `${selectedTokens.length} device tokens have been deactivated.`, 'success')
@@ -530,7 +530,7 @@ function cleanupInactive() {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Cleanup Inactive',
-        confirmButtonColor: '#dc3545'
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
             Swal.fire({

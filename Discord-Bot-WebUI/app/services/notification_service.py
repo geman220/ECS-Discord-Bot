@@ -151,7 +151,7 @@ class NotificationService:
             'location': location,
             'match_time': match_time,
             'click_action': 'FLUTTER_NOTIFICATION_CLICK',
-            'deep_link': f"ecsfc://match/{match_data.get('id', '')}",
+            'deep_link': f"ecs-fc-scheme://match/{match_data.get('id', '')}",
             'priority': 'high'
         }
         
@@ -172,7 +172,7 @@ class NotificationService:
             'opponent': opponent,
             'match_date': match_date,
             'click_action': 'FLUTTER_NOTIFICATION_CLICK',
-            'deep_link': f"ecsfc://rsvp/{match_data.get('id', '')}",
+            'deep_link': f"ecs-fc-scheme://rsvp/{match_data.get('id', '')}",
             'priority': 'normal',
             'category': 'rsvp'
         }

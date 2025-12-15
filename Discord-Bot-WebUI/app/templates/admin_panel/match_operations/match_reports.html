@@ -423,10 +423,10 @@ function initializeCharts() {
                     {{ reports_data.cancelled_matches if reports_data else 0 }}
                 ],
                 backgroundColor: [
-                    '#28a745',
-                    '#ffc107',
-                    '#007bff',
-                    '#dc3545'
+                    (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
+                    (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107',
+                    (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#007bff',
+                    (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
                 ]
             }]
         },
@@ -450,7 +450,7 @@ function initializeCharts() {
             datasets: [{
                 label: 'Matches Played',
                 data: [12, 19, 3, 5, 2, 15],
-                borderColor: '#007bff',
+                borderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#007bff',
                 backgroundColor: 'rgba(0, 123, 255, 0.1)',
                 tension: 0.4
             }]

@@ -5,38 +5,38 @@
 {% block custom_css %}
 <style>
     .comparison-card {
-        border: 2px solid #e7eaf3;
+        border: 2px solid var(--ecs-neutral-10, #e7eaf3);
         transition: all 0.2s ease;
     }
-    
+
     .comparison-card:hover {
-        border-color: #696cff;
+        border-color: var(--ecs-primary, #696cff);
         box-shadow: 0 0.25rem 1rem rgba(105, 108, 255, 0.25);
     }
-    
+
     .field-comparison {
-        background: #f8f9fa;
+        background: var(--ecs-neutral-5, #f8f9fa);
         border-radius: 8px;
         padding: 1rem;
         margin-bottom: 1rem;
     }
-    
+
     .confidence-meter {
         height: 8px;
-        background: #e7eaf3;
+        background: var(--ecs-neutral-10, #e7eaf3);
         border-radius: 4px;
         overflow: hidden;
     }
-    
+
     .confidence-fill {
         height: 100%;
         transition: width 0.3s ease;
     }
-    
-    .confidence-high { background: linear-gradient(90deg, #ea5455, #ff6b6c); }
-    .confidence-medium { background: linear-gradient(90deg, #ff9f43, #ffb976); }
-    .confidence-low { background: linear-gradient(90deg, #28c76f, #48da89); }
-    
+
+    .confidence-high { background: linear-gradient(90deg, var(--ecs-danger, #ea5455), var(--ecs-danger-light, #ff6b6c)); }
+    .confidence-medium { background: linear-gradient(90deg, var(--ecs-warning, #ff9f43), var(--ecs-warning-light, #ffb976)); }
+    .confidence-low { background: linear-gradient(90deg, var(--ecs-success, #28c76f), var(--ecs-success-light, #48da89)); }
+
     .action-button {
         min-width: 120px;
     }

@@ -279,7 +279,7 @@ function showEmptyTableMessage() {
     if (cardBody) {
         cardBody.innerHTML = `
             <div class="text-center py-4">
-                <i class="ti ti-users" style="font-size: 3rem; color: #6c757d;"></i>
+                <i class="ti ti-users" style="font-size: 3rem; color: var(--ecs-secondary);"></i>
                 <h6 class="mt-3">No pending approvals</h6>
                 <p class="text-muted">All users have been processed</p>
             </div>

@@ -144,8 +144,8 @@
 }
 
 .form-switch .form-check-input:checked {
-    background-color: #198754;
-    border-color: #198754;
+    background-color: var(--ecs-success, #198754);
+    border-color: var(--ecs-success, #198754);
 }
 
 .nav-toggle {
@@ -248,8 +248,8 @@ function resetToDefaults() {
         text: 'This will enable all navigation items. Are you sure?',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : '#3085d6',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
         confirmButtonText: 'Yes, reset'
     }).then((result) => {
         if (result.isConfirmed) {

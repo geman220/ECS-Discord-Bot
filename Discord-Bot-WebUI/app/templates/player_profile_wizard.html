@@ -1,0 +1,571 @@
+{% extends "mobile_base.html" %}
+
+{% block title %}Profile Verification - {{ player.name }}{% endblock %}
+
+{% block custom_css %}
+<style>
+/* Wizard Progress Indicator */
+.wizard-progress {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 10px;
+    margin-bottom: 24px;
+    position: relative;
+}
+
+.wizard-progress::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    left: 15%;
+    right: 15%;
+    height: 3px;
+    background: var(--ecs-neutral-10);
+    z-index: 0;
+}
+
+.wizard-progress-bar {
+    position: absolute;
+    top: 18px;
+    left: 15%;
+    height: 3px;
+    background: var(--bs-primary);
+    transition: width 0.3s ease;
+    z-index: 1;
+}
+
+.wizard-step-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.wizard-step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--ecs-neutral-10);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--ecs-neutral-50);
+    transition: all 0.3s ease;
+}
+
+.wizard-step-indicator.active .wizard-step-number {
+    background: var(--bs-primary);
+    color: white;
+    transform: scale(1.1);
+}
+
+.wizard-step-indicator.completed .wizard-step-number {
+    background: var(--ecs-success);
+    color: white;
+}
+
+.wizard-step-indicator.completed .wizard-step-number::after {
+    content: '\2713';
+    font-size: 18px;
+}
+
+.wizard-step-indicator.completed .wizard-step-number span {
+    display: none;
+}
+
+.wizard-step-label {
+    font-size: 11px;
+    margin-top: 6px;
+    color: var(--ecs-neutral-50);
+    text-align: center;
+    max-width: 60px;
+}
+
+.wizard-step-indicator.active .wizard-step-label {
+    color: var(--bs-primary);
+    font-weight: 600;
+}
+
+/* Wizard Step Content */
+.wizard-step-content {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.wizard-step-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* Navigation Buttons */
+.wizard-nav {
+    display: flex;
+    gap: 12px;
+    padding: 16px 0;
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(transparent, var(--ecs-neutral-0) 30%);
+    padding-top: 40px;
+}
+
+.wizard-nav .btn {
+    flex: 1;
+    min-height: 50px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* Touch-friendly form elements */
+.wizard-form-group {
+    margin-bottom: 20px;
+}
+
+.wizard-form-group .form-label {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.wizard-form-group .form-control,
+.wizard-form-group .form-select {
+    min-height: 50px;
+    font-size: 16px;
+    border-radius: 12px;
+}
+
+/* Review Step Styles */
+.review-section {
+    background: var(--ecs-neutral-5);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.review-section h6 {
+    color: var(--bs-primary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.review-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--ecs-neutral-10);
+}
+
+.review-item:last-child {
+    border-bottom: none;
+}
+
+.review-item-label {
+    color: var(--ecs-neutral-50);
+    font-size: 14px;
+}
+
+.review-item-value {
+    font-weight: 500;
+    text-align: right;
+    max-width: 60%;
+    word-break: break-word;
+}
+
+/* Swipe hint */
+.swipe-hint {
+    text-align: center;
+    color: var(--ecs-neutral-50);
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+/* Shake animation for validation errors */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.shake-invalid {
+    animation: shake 0.3s ease-in-out;
+}
+
+/* ===== Dark Mode Support ===== */
+[data-style="dark"] .wizard-progress::before {
+    background: var(--ecs-neutral-80);
+}
+
+[data-style="dark"] .wizard-step-number {
+    background: var(--ecs-neutral-70);
+    color: var(--ecs-neutral-40);
+}
+
+[data-style="dark"] .wizard-step-indicator.active .wizard-step-number {
+    background: var(--ecs-primary);
+    color: white;
+}
+
+[data-style="dark"] .wizard-step-indicator.completed .wizard-step-number {
+    background: var(--ecs-success);
+}
+
+[data-style="dark"] .wizard-step-label {
+    color: var(--ecs-neutral-40);
+}
+
+[data-style="dark"] .wizard-step-indicator.active .wizard-step-label {
+    color: var(--ecs-primary-light);
+}
+
+[data-style="dark"] .wizard-nav {
+    background: linear-gradient(transparent, var(--ecs-dark-bg-body) 30%);
+}
+
+[data-style="dark"] .wizard-form-group .form-label {
+    color: var(--ecs-neutral-20);
+}
+
+[data-style="dark"] .wizard-form-group .form-control,
+[data-style="dark"] .wizard-form-group .form-select {
+    background: var(--ecs-dark-bg-card);
+    border-color: var(--ecs-neutral-80);
+    color: var(--ecs-neutral-20);
+}
+
+[data-style="dark"] .wizard-form-group .form-control:focus,
+[data-style="dark"] .wizard-form-group .form-select:focus {
+    border-color: var(--ecs-primary);
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+}
+
+[data-style="dark"] .wizard-form-group .form-control::placeholder {
+    color: var(--ecs-neutral-50);
+}
+
+[data-style="dark"] .review-section {
+    background: var(--ecs-dark-bg-card);
+}
+
+[data-style="dark"] .review-section h6 {
+    color: var(--ecs-primary-light);
+}
+
+[data-style="dark"] .review-item {
+    border-bottom-color: var(--ecs-neutral-80);
+}
+
+[data-style="dark"] .review-item-label {
+    color: var(--ecs-neutral-40);
+}
+
+[data-style="dark"] .review-item-value {
+    color: var(--ecs-neutral-20);
+}
+
+[data-style="dark"] .swipe-hint {
+    color: var(--ecs-neutral-50);
+}
+
+[data-style="dark"] .card.border-success {
+    border-color: var(--ecs-success) !important;
+}
+
+[data-style="dark"] .card-header.bg-success {
+    background-color: var(--ecs-success) !important;
+}
+
+[data-style="dark"] .text-muted {
+    color: var(--ecs-neutral-40) !important;
+}
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="container-fluid py-3">
+    <!-- Header Card (compact) -->
+    <div class="card bg-primary mb-3">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-center">
+                {% if player.profile_picture_url %}
+                <img src="{{ player.profile_picture_url }}?v={{ player.updated_at.timestamp() if player.updated_at else '0' }}"
+                     class="rounded-circle me-3"
+                     style="width: 50px; height: 50px; object-fit: cover;"
+                     alt="Profile Picture">
+                {% else %}
+                <img src="{{ url_for('static', filename='img/default_player.png') }}"
+                     class="rounded-circle me-3"
+                     style="width: 50px; height: 50px; object-fit: cover;"
+                     alt="Default Profile Picture">
+                {% endif %}
+                <div class="text-white">
+                    <h5 class="mb-0 text-white">{{ player.name }}</h5>
+                    <small class="text-white-50">Profile Verification</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome Message (only if profile expired) -->
+    {% if profile_expired %}
+    <div class="alert alert-warning mb-3" role="alert">
+        <h6 class="alert-heading mb-2">
+            <i class="ti ti-alert-circle me-2"></i>Profile Review Required
+        </h6>
+        <p class="mb-0 small">Your profile hasn't been updated in over 5 months. Please review and confirm your information.</p>
+    </div>
+    {% else %}
+    <div class="card mb-3" style="background: linear-gradient(135deg, var(--ecs-primary) 0%, var(--ecs-primary) 100%);">
+        <div class="card-body py-3 text-center text-white">
+            <h5 class="mb-1 text-white">
+                <i class="ti ti-trophy me-2"></i>Welcome to the New Season!
+            </h5>
+            <p class="mb-0 small text-white-50">Please review your profile information.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Progress Indicator -->
+    <div class="wizard-progress">
+        <div class="wizard-progress-bar" id="progressBar" style="width: 0%;"></div>
+        <div class="wizard-step-indicator active" data-step="1">
+            <div class="wizard-step-number"><span>1</span></div>
+            <span class="wizard-step-label">Contact</span>
+        </div>
+        <div class="wizard-step-indicator" data-step="2">
+            <div class="wizard-step-number"><span>2</span></div>
+            <span class="wizard-step-label">Positions</span>
+        </div>
+        <div class="wizard-step-indicator" data-step="3">
+            <div class="wizard-step-number"><span>3</span></div>
+            <span class="wizard-step-label">Availability</span>
+        </div>
+        <div class="wizard-step-indicator" data-step="4">
+            <div class="wizard-step-number"><span>4</span></div>
+            <span class="wizard-step-label">Review</span>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('players.profile_wizard') }}" id="wizardForm">
+        {{ form.hidden_tag() }}
+
+        <!-- Step 1: Contact Information -->
+        <div class="wizard-step-content active" data-step="1">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-user me-2"></i>Contact Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="wizard-form-group">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control", placeholder="Your full name") }}
+                    </div>
+                    <div class="wizard-form-group">
+                        {{ form.email.label(class="form-label") }}
+                        {{ form.email(class="form-control", placeholder="your@email.com") }}
+                    </div>
+                    <div class="wizard-form-group">
+                        {{ form.phone.label(class="form-label") }}
+                        {{ form.phone(class="form-control", placeholder="(555) 123-4567") }}
+                    </div>
+                    <div class="wizard-form-group">
+                        {{ form.jersey_size.label(class="form-label") }}
+                        {{ form.jersey_size(class="form-select") }}
+                    </div>
+                    <div class="wizard-form-group">
+                        {{ form.pronouns.label(class="form-label") }}
+                        {{ form.pronouns(class="form-select") }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Position Preferences -->
+        <div class="wizard-step-content" data-step="2">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-ball-football me-2"></i>Position Preferences
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="wizard-form-group">
+                        {{ form.favorite_position.label(class="form-label") }}
+                        {{ form.favorite_position(class="form-select") }}
+                    </div>
+                    <div class="wizard-form-group">
+                        {{ form.frequency_play_goal.label(class="form-label") }}
+                        <small class="text-muted d-block mb-2">How often would you like to play goalkeeper?</small>
+                        {{ form.frequency_play_goal(class="form-select") }}
+                    </div>
+                    <div class="wizard-form-group">
+                        {{ form.other_positions.label(class="form-label") }}
+                        <small class="text-muted d-block mb-2">Select all positions you enjoy playing</small>
+                        {{ form.other_positions(class="form-select", multiple=True, style="height: 120px;") }}
+                    </div>
+                    <div class="wizard-form-group">
+                        {{ form.positions_not_to_play.label(class="form-label") }}
+                        <small class="text-muted d-block mb-2">Select positions you prefer not to play</small>
+                        {{ form.positions_not_to_play(class="form-select", multiple=True, style="height: 120px;") }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Availability & Notes -->
+        <div class="wizard-step-content" data-step="3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-calendar me-2"></i>Availability & Notes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="wizard-form-group">
+                        {{ form.expected_weeks_available.label(class="form-label") }}
+                        {{ form.expected_weeks_available(class="form-select") }}
+                    </div>
+                    <div class="wizard-form-group">
+                        {{ form.willing_to_referee.label(class="form-label") }}
+                        {{ form.willing_to_referee(class="form-select") }}
+                    </div>
+                    <div class="wizard-form-group">
+                        {{ form.player_notes.label(class="form-label") }}
+                        <small class="text-muted d-block mb-2">Any additional information about your playing preferences or availability</small>
+                        {{ form.player_notes(class="form-control", rows=4, placeholder="E.g., I can't play on specific dates, injury concerns, etc.") }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Review & Confirm -->
+        <div class="wizard-step-content" data-step="4">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0 text-white">
+                        <i class="ti ti-clipboard-check me-2"></i>Review Your Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Please review all your information before confirming.</p>
+
+                    <!-- Contact Summary -->
+                    <div class="review-section">
+                        <h6><i class="ti ti-user"></i> Contact Information</h6>
+                        <div class="review-item">
+                            <span class="review-item-label">Name</span>
+                            <span class="review-item-value" id="review-name">-</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-item-label">Email</span>
+                            <span class="review-item-value" id="review-email">-</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-item-label">Phone</span>
+                            <span class="review-item-value" id="review-phone">-</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-item-label">Jersey Size</span>
+                            <span class="review-item-value" id="review-jersey">-</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-item-label">Pronouns</span>
+                            <span class="review-item-value" id="review-pronouns">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Positions Summary -->
+                    <div class="review-section">
+                        <h6><i class="ti ti-ball-football"></i> Position Preferences</h6>
+                        <div class="review-item">
+                            <span class="review-item-label">Favorite Position</span>
+                            <span class="review-item-value" id="review-favorite-position">-</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-item-label">Goal Frequency</span>
+                            <span class="review-item-value" id="review-goal-frequency">-</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-item-label">Other Positions</span>
+                            <span class="review-item-value" id="review-other-positions">-</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-item-label">Avoid Positions</span>
+                            <span class="review-item-value" id="review-avoid-positions">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Availability Summary -->
+                    <div class="review-section">
+                        <h6><i class="ti ti-calendar"></i> Availability</h6>
+                        <div class="review-item">
+                            <span class="review-item-label">Weeks Available</span>
+                            <span class="review-item-value" id="review-weeks">-</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-item-label">Referee Interest</span>
+                            <span class="review-item-value" id="review-referee">-</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-item-label">Notes</span>
+                            <span class="review-item-value" id="review-notes">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="wizard-nav">
+            <button type="button" class="btn btn-outline-secondary" id="prevBtn" style="display: none;">
+                <i class="ti ti-chevron-left me-1"></i>Back
+            </button>
+            <button type="button" class="btn btn-primary" id="nextBtn">
+                Next<i class="ti ti-chevron-right ms-1"></i>
+            </button>
+            <button type="submit" name="complete_wizard" class="btn btn-success" id="submitBtn" style="display: none;">
+                <i class="ti ti-shield-check me-1"></i>Confirm Profile
+            </button>
+        </div>
+
+        <div class="swipe-hint">
+            <i class="ti ti-hand-finger me-1"></i>Swipe left/right to navigate
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script src="{{ url_for('static', filename='js/profile-wizard.js') }}"></script>
+<script>
+$(document).ready(function() {
+    // Initialize wizard
+    if (typeof ProfileWizard !== 'undefined') {
+        ProfileWizard.init();
+    }
+
+    // Initialize Select2 for dropdowns
+    $('.form-select:not([multiple])').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        dropdownParent: $('.container-fluid')
+    });
+
+    $('.form-select[multiple]').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        closeOnSelect: false,
+        dropdownParent: $('.container-fluid')
+    });
+});
+</script>
+{% endblock %}

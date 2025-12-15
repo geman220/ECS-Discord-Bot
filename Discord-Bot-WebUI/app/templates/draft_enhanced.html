@@ -3,10 +3,9 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block custom_css %}
-<!-- Draft System Styles -->
+<!-- Draft System Styles (consolidated) -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/draft-system.css') }}?v={{ range(1, 1000000) | random }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/draft-highlighting.css') }}?v={{ range(1, 1000000) | random }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/draft-status.css') }}?v={{ range(1, 1000000) | random }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/features/draft.css') }}?v={{ range(1, 1000000) | random }}">
 
 <style>
 /* FIFA Player Card Styles */
@@ -28,24 +27,24 @@
 
 /* Simple background colors for experience levels */
 .player-card[data-experience="0"] .position-relative {
-    background: #74b9ff !important; /* New Player - Blue */
+    background: var(--ecs-info, #74b9ff) !important; /* New Player - Blue */
 }
 
 .player-card[data-experience="1"] .position-relative,
 .player-card[data-experience="2"] .position-relative {
-    background: #fdcb6e !important; /* Experienced - Orange */
+    background: var(--ecs-warning, #fdcb6e) !important; /* Experienced - Orange */
 }
 
 .player-card[data-experience="3"] .position-relative,
 .player-card[data-experience="4"] .position-relative,
 .player-card[data-experience="5"] .position-relative {
-    background: #fd79a8 !important; /* Veteran - Pink */
+    background: var(--ecs-danger-light, #fd79a8) !important; /* Veteran - Pink */
 }
 
 /* High attendance glow effect */
 .player-card[data-attendance^="9"] .position-relative,
 .player-card[data-attendance="100"] .position-relative {
-    background: linear-gradient(135deg, #00b894 0%, #00cec9 100%); /* High attendance - Green */
+    background: linear-gradient(135deg, var(--ecs-success, #00b894) 0%, var(--ecs-success-light, #00cec9) 100%); /* High attendance - Green */
     box-shadow: 0 0 20px rgba(0, 184, 148, 0.3);
 }
 

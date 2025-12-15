@@ -5,17 +5,17 @@
 
 /* Dark mode fixes from base.html */
 [data-style="dark"] .list-group-item-action {
-    color: #ffffff !important;
+    color: var(--ecs-dark-text-primary, #ffffff) !important;
     background-color: transparent !important;
 }
 
 [data-style="dark"] .list-group-item-action:hover {
-    color: #ffffff !important;
+    color: var(--ecs-dark-text-primary, #ffffff) !important;
     background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 [data-style="dark"] .list-group-item-action i {
-    color: #ffffff !important;
+    color: var(--ecs-dark-text-primary, #ffffff) !important;
 }
 
 /* Desktop button overrides from base.html */
@@ -53,8 +53,8 @@
 /* Login page styles */
 /* Force authentication page background - override everything */
 html.auth-page, body.auth-page {
-    background-color: #213e96 !important;
-    background: #213e96 !important;
+    background-color: var(--ecs-primary) !important;
+    background: var(--ecs-primary) !important;
     margin: 0 !important;
     padding: 0 !important;
     height: 100% !important;
@@ -62,8 +62,8 @@ html.auth-page, body.auth-page {
 }
 
 .authentication-wrapper {
-    background-color: #213e96 !important;
-    background: #213e96 !important;
+    background-color: var(--ecs-primary) !important;
+    background: var(--ecs-primary) !important;
     height: 100vh !important;
     width: 100% !important;
     display: flex !important;
@@ -102,9 +102,9 @@ html.auth-page, body.auth-page {
 .waiver-content {
     max-height: 300px;
     overflow-y: auto;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--ecs-neutral-20, #dee2e6);
     padding: 15px;
-    background-color: #f8f9fa;
+    background-color: var(--ecs-neutral-5, #f8f9fa);
     border-radius: 5px;
     margin-bottom: 15px;
 }
@@ -160,14 +160,14 @@ html.auth-page, body.auth-page {
     -webkit-appearance: none !important;
     -moz-appearance: none !important;
     appearance: none !important;
-    background-color: #fff !important;
-    border: 2px solid #dee2e6 !important;
+    background-color: var(--ecs-bg-card, #fff) !important;
+    border: 2px solid var(--ecs-neutral-20, #dee2e6) !important;
     border-radius: 0.25rem !important;
 }
 
 .notification-group .form-check .form-check-input[type="checkbox"]:checked {
-    background-color: #007bff !important;
-    border-color: #007bff !important;
+    background-color: var(--ecs-primary) !important;
+    border-color: var(--ecs-primary) !important;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
     background-repeat: no-repeat !important;
     background-position: center !important;
@@ -180,8 +180,8 @@ html.auth-page, body.auth-page {
 }
 
 .notification-group .form-check .form-check-input[type="checkbox"]:checked:active {
-    background-color: #007bff !important;
-    border-color: #007bff !important;
+    background-color: var(--ecs-primary) !important;
+    border-color: var(--ecs-primary) !important;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
     background-repeat: no-repeat !important;
     background-position: center !important;
@@ -191,13 +191,13 @@ html.auth-page, body.auth-page {
 
 /* Focus state styling */
 .notification-group .form-check .form-check-input[type="checkbox"]:focus {
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+    box-shadow: 0 0 0 0.2rem rgba(var(--ecs-primary-rgb), 0.25) !important;
     outline: none !important;
 }
 
 .notification-group .form-check .form-check-input[type="checkbox"]:checked:focus {
-    background-color: #007bff !important;
-    border-color: #007bff !important;
+    background-color: var(--ecs-primary) !important;
+    border-color: var(--ecs-primary) !important;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
     background-repeat: no-repeat !important;
     background-position: center !important;
@@ -422,7 +422,7 @@ table.dataTable thead th.sorting_asc::after {
     opacity: 0.8 !important;
     font-size: 10px !important;
     line-height: 1 !important;
-    color: var(--ecs-primary, #007bff) !important;
+    color: var(--ecs-primary) !important;
 }
 
 table.dataTable thead th.sorting_desc::after {
@@ -435,13 +435,13 @@ table.dataTable thead th.sorting_desc::after {
     opacity: 0.8 !important;
     font-size: 10px !important;
     line-height: 1 !important;
-    color: var(--ecs-primary, #007bff) !important;
+    color: var(--ecs-primary) !important;
 }
 
 /* Hover effects */
 table.dataTable thead th.sorting:hover::after {
     opacity: 0.6 !important;
-    color: var(--ecs-primary, #007bff) !important;
+    color: var(--ecs-primary) !important;
 }
 
 /* Dark mode compatibility */
@@ -456,19 +456,6 @@ table.dataTable thead th.sorting:hover::after {
 
 [data-style="dark"] table.dataTable thead th.sorting:hover::after {
     color: var(--ecs-accent, #4dabf7) !important;
-}
-
-/* BACK TO WORKING DEBUG STATE */
-table.dataTable thead th.sorting {
-    background: rgba(255, 0, 0, 0.2) !important; /* Light red for unsorted */
-}
-
-table.dataTable thead th.sorting_asc {
-    background: rgba(0, 255, 0, 0.3) !important; /* Light green for ascending */
-}
-
-table.dataTable thead th.sorting_desc {
-    background: rgba(0, 0, 255, 0.3) !important; /* Light blue for descending */
 }
 
 /* Force our arrows to show with maximum specificity */
@@ -510,7 +497,7 @@ html body table.dataTable thead th.sorting_asc::after {
     opacity: 0.8 !important;
     font-size: 10px !important;
     line-height: 1 !important;
-    color: var(--ecs-primary, #007bff) !important;
+    color: var(--ecs-primary) !important;
     visibility: visible !important;
     width: auto !important;
     height: auto !important;
@@ -533,10 +520,56 @@ html body table.dataTable thead th.sorting_desc::after {
     opacity: 0.8 !important;
     font-size: 10px !important;
     line-height: 1 !important;
-    color: var(--ecs-primary, #007bff) !important;
+    color: var(--ecs-primary) !important;
     visibility: visible !important;
     width: auto !important;
     height: auto !important;
     background: none !important;
     border: none !important;
+}
+
+/* ============================================================================
+   APP BRAND STYLES (Extracted from demo.css - essential only)
+   ============================================================================ */
+
+/* Sidebar brand container */
+.menu .app-brand {
+    height: 64px;
+}
+
+/* Brand logo container */
+.app-brand-logo {
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    width: 34px;
+    height: 24px;
+}
+
+.app-brand-logo svg {
+    width: 35px;
+    height: 24px;
+}
+
+/* Brand text */
+.app-brand-text {
+    font-size: 1.375rem;
+}
+
+/* ============================================================================
+   LAYOUT FIXES (Extracted from demo.css - critical)
+   ============================================================================ */
+
+/* Fix padding for fixed navbar layout */
+.layout-navbar-fixed .layout-wrapper:not(.layout-without-menu) .layout-page {
+    padding-top: 64px !important;
+}
+
+.layout-navbar-fixed .layout-wrapper:not(.layout-horizontal):not(.layout-without-menu) .layout-page {
+    padding-top: 72px !important;
+}
+
+/* Navbar z-index fix */
+.content-wrapper .navbar {
+    z-index: auto;
 }

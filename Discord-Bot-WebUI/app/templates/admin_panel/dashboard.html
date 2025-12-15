@@ -327,83 +327,8 @@
 {% endblock %}
 
 {% block custom_css %}
-<style>
-/* SUPER AGGRESSIVE dark mode fixes - override everything */
-[data-bs-theme="dark"] .list-group-item-action,
-[data-bs-theme="dark"] .list-group-item-action.waves-effect,
-[data-bs-theme="dark"] .list-group-item.list-group-item-action,
-[data-bs-theme="dark"] .list-group-item.list-group-item-action.waves-effect {
-    color: #ffffff !important;
-    background-color: transparent !important;
-}
-
-[data-bs-theme="dark"] .list-group-item-action:hover,
-[data-bs-theme="dark"] .list-group-item-action.waves-effect:hover {
-    color: #ffffff !important;
-    background-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-/* Target ALL icons specifically including ti classes */
-[data-bs-theme="dark"] .list-group-item-action i,
-[data-bs-theme="dark"] .list-group-item-action.waves-effect i,
-[data-bs-theme="dark"] .list-group-item-action i.ti,
-[data-bs-theme="dark"] .list-group-item-action i[class*="ti-"],
-[data-bs-theme="dark"] .list-group-item-action .ti,
-[data-bs-theme="dark"] .list-group-item-action [class*="ti-"] {
-    color: #ffffff !important;
-}
-
-/* Target ALL text content */
-[data-bs-theme="dark"] .list-group-item-action *,
-[data-bs-theme="dark"] .list-group-item-action.waves-effect * {
-    color: #ffffff !important;
-}
-
-/* Make sure description paragraphs are white in dark mode */
-[data-bs-theme="dark"] .card-body p,
-[data-bs-theme="dark"] .card-body .text-muted {
-    color: #ffffff !important;
-}
-
-/* Ensure no recent activity text is white in dark mode */
-[data-bs-theme="dark"] .text-center i,
-[data-bs-theme="dark"] .text-center h6,
-[data-bs-theme="dark"] .text-center p {
-    color: #ffffff !important;
-}
-
-/* Override any ECS theme variables that might be causing issues */
-[data-bs-theme="dark"] .admin-panel [class*="text-"],
-[data-bs-theme="dark"] .admin-panel .text-muted {
-    color: #ffffff !important;
-}
-
-/* ULTIMATE FIX: Override ECS CSS variables completely */
-html[data-bs-theme="dark"],
-[data-bs-theme="dark"] {
-    --ecs-neutral-30: #ffffff !important;
-    --ecs-neutral-100: var(--bs-dark) !important;
-    --ecs-neutral-10: #ffffff !important;
-}
-
-/* Override inline styles using attribute selectors */
-[data-bs-theme="dark"] [style*="color: var(--ecs-neutral-30)"],
-[data-bs-theme="dark"] [style*="color:var(--ecs-neutral-30)"] {
-    color: #ffffff !important;
-}
-
-/* Target all ECS classes specifically */
-[data-bs-theme="dark"] .ecs-card-title,
-[data-bs-theme="dark"] .ecs-card-header h5,
-[data-bs-theme="dark"] .ecs-card-body p {
-    color: #ffffff !important;
-}
-
-[data-bs-theme="dark"] .ecs-card.dark-mode-applied,
-[data-bs-theme="dark"] .ecs-card.dark-mode-applied *:not(.badge):not(.btn) {
-    color: #ffffff !important;
-}
-</style>
+{{ super() }}
+{# Dark mode styles are now centralized in foundation-overrides.css #}
 {% endblock %}
 
 {% block custom_js %}

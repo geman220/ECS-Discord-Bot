@@ -11,10 +11,11 @@ Routes for league management:
 import logging
 from datetime import datetime
 
-from flask import render_template, request, flash, redirect, url_for
+from flask import render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
 
 from app.admin_panel import admin_panel_bp
+from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.decorators import role_required
 
@@ -156,3 +157,173 @@ def league_standings():
         logger.error(f"Error loading league standings: {e}")
         flash('League standings unavailable. Check database connectivity and season data.', 'error')
         return redirect(url_for('admin_panel.match_operations'))
+
+
+@admin_panel_bp.route('/match-operations/leagues/create', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def create_league():
+    """Create a new league."""
+    try:
+        from app.models import League, Season
+
+        name = request.form.get('name')
+        season_id = request.form.get('season_id')
+
+        if not name:
+            return jsonify({'success': False, 'message': 'League name is required'}), 400
+
+        # Check if season exists
+        if season_id:
+            season = Season.query.get(season_id)
+            if not season:
+                return jsonify({'success': False, 'message': 'Selected season not found'}), 400
+
+        # Create new league
+        league = League(
+            name=name,
+            season_id=int(season_id) if season_id else None
+        )
+        db.session.add(league)
+        db.session.commit()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='create_league',
+            resource_type='league',
+            resource_id=str(league.id),
+            new_value=f'Created league: {name}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        logger.info(f"League '{name}' created by user {current_user.id}")
+        return jsonify({
+            'success': True,
+            'message': f'League "{name}" created successfully',
+            'league_id': league.id
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error creating league: {e}")
+        return jsonify({'success': False, 'message': 'Failed to create league'}), 500
+
+
+@admin_panel_bp.route('/match-operations/leagues/<int:league_id>/update', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def update_league(league_id):
+    """Update an existing league."""
+    try:
+        from app.models import League, Season
+
+        league = League.query.get_or_404(league_id)
+        old_name = league.name
+
+        name = request.form.get('name')
+        season_id = request.form.get('season_id')
+
+        if not name:
+            return jsonify({'success': False, 'message': 'League name is required'}), 400
+
+        # Update league
+        league.name = name
+        if season_id:
+            league.season_id = int(season_id)
+
+        db.session.commit()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='update_league',
+            resource_type='league',
+            resource_id=str(league_id),
+            old_value=old_name,
+            new_value=name,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        logger.info(f"League '{name}' updated by user {current_user.id}")
+        return jsonify({
+            'success': True,
+            'message': f'League "{name}" updated successfully'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error updating league {league_id}: {e}")
+        return jsonify({'success': False, 'message': 'Failed to update league'}), 500
+
+
+@admin_panel_bp.route('/match-operations/leagues/<int:league_id>/delete', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def delete_league(league_id):
+    """Delete a league."""
+    try:
+        from app.models import League, Team
+
+        league = League.query.get_or_404(league_id)
+
+        # Check if league has teams
+        team_count = Team.query.filter_by(league_id=league_id).count() if hasattr(Team, 'league_id') else 0
+        if team_count > 0:
+            return jsonify({
+                'success': False,
+                'message': f'Cannot delete league with {team_count} teams. Move or delete teams first.'
+            }), 400
+
+        league_name = league.name
+
+        # Log the action before deletion
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='delete_league',
+            resource_type='league',
+            resource_id=str(league_id),
+            old_value=league_name,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        db.session.delete(league)
+        db.session.commit()
+
+        logger.info(f"League '{league_name}' deleted by user {current_user.id}")
+        return jsonify({
+            'success': True,
+            'message': f'League "{league_name}" deleted successfully'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting league {league_id}: {e}")
+        return jsonify({'success': False, 'message': 'Failed to delete league'}), 500
+
+
+@admin_panel_bp.route('/match-operations/leagues/<int:league_id>/details')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def get_league_details(league_id):
+    """Get league details for editing modal."""
+    try:
+        from app.models import League
+
+        league = League.query.get_or_404(league_id)
+
+        return jsonify({
+            'success': True,
+            'league': {
+                'id': league.id,
+                'name': league.name,
+                'season_id': league.season_id
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting league details: {e}")
+        return jsonify({'success': False, 'message': 'Failed to get league details'}), 500

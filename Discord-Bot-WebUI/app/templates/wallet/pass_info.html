@@ -1,5 +1,9 @@
 {% extends "base_unauthenticated.html" %}
 
+{% block page_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/features/wallet.css') }}" />
+{% endblock %}
+
 {% block main_content %}
 <div class="container-xxl">
     <div class="authentication-wrapper authentication-basic container-p-y">
@@ -8,8 +12,8 @@
                 <div class="card-body text-center py-4">
                     <!-- Success Icon -->
                     <div class="mb-4">
-                        <span class="avatar-initial rounded-circle bg-label-success" style="width: 80px; height: 80px; display: inline-flex; align-items: center; justify-content: center;">
-                            <i class="ti ti-wallet" style="font-size: 2.5rem;"></i>
+                        <span class="avatar-initial rounded-circle bg-label-success wallet-success-icon">
+                            <i class="ti ti-wallet"></i>
                         </span>
                     </div>
 
@@ -158,7 +162,7 @@
             <div class="text-center mt-4">
                 <img src="{{ url_for('static', filename='assets/img/logos/logo.png') }}"
                      alt="ECS"
-                     style="height: 40px; opacity: 0.7;">
+                     class="wallet-branding-logo">
                 <p class="text-muted small mt-2">
                     Emerald City Supporters<br>
                     Digital Membership Cards

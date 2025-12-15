@@ -540,7 +540,7 @@ function deleteRole(roleId, roleName) {
         showCancelButton: true,
         confirmButtonText: 'Yes, Delete',
         cancelButtonText: 'Cancel',
-        confirmButtonColor: '#d33'
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
             fetch(`{{ url_for('admin_panel.delete_role_comprehensive', role_id=0) }}`.replace('0', roleId), {

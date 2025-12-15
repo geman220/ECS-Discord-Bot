@@ -294,11 +294,20 @@ const CalendarSubscription = (function() {
 
         // Fallback to Toastify
         if (typeof Toastify !== 'undefined') {
+            // Use ECSTheme colors with gradient variations for toast backgrounds
+            const successColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754';
+            const successLight = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success-light') : '#198754';
+            const dangerColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545';
+            const dangerLight = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger-light') : '#dc3545';
+            const warningColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107';
+            const warningLight = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning-light') : '#ffc107';
+            const infoColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : '#0dcaf0';
+            const infoLight = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info-light') : '#0dcaf0';
             const bgColors = {
-                success: 'linear-gradient(to right, #00b09b, #96c93d)',
-                error: 'linear-gradient(to right, #ff5f6d, #ffc371)',
-                warning: 'linear-gradient(to right, #f7b733, #fc4a1a)',
-                info: 'linear-gradient(to right, #2193b0, #6dd5ed)'
+                success: `linear-gradient(to right, ${successColor}, ${successLight})`,
+                error: `linear-gradient(to right, ${dangerColor}, ${dangerLight})`,
+                warning: `linear-gradient(to right, ${warningColor}, ${warningLight})`,
+                info: `linear-gradient(to right, ${infoColor}, ${infoLight})`
             };
 
             Toastify({

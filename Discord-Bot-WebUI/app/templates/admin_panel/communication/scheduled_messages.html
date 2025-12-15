@@ -340,32 +340,7 @@
 {% endblock %}
 
 {% block custom_css %}
-<style>
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.message-row {
-    transition: opacity 0.3s ease;
-}
-
-.message-row.filtered-out {
-    display: none;
-}
-
-@media (max-width: 768px) {
-    .btn-group-sm .btn {
-        padding: 0.25rem 0.4rem;
-        font-size: 0.75rem;
-    }
-    
-    .table-responsive {
-        font-size: 0.875rem;
-    }
-}
-</style>
+{{ super() }}
 {% endblock %}
 
 {% block custom_js %}
@@ -427,12 +402,12 @@ function previewMessage() {
 function viewScheduledMessage(messageId, messageTitle) {
     document.getElementById('message_details_title').textContent = `Details for "${messageTitle}"`;
     document.getElementById('message_details_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
-    
+
     const modal = new bootstrap.Modal(document.getElementById('messageDetailsModal'));
     modal.show();
-    
+
     // Load message details via AJAX
-    fetch(`{{ url_for('admin_panel.get_scheduled_message_details') }}?message_id=${messageId}`)
+    fetch(`/admin-panel/communication/scheduled-messages/${messageId}/details`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -447,7 +422,80 @@ function viewScheduledMessage(messageId, messageTitle) {
 }
 
 function editScheduledMessage(messageId) {
-    window.location.href = `{{ url_for('admin_panel.edit_scheduled_message') }}?message_id=${messageId}`;
+    // First fetch the message details
+    fetch(`/admin-panel/communication/scheduled-messages/${messageId}/details`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const message = data.message;
+                // Format the datetime for the input
+                const scheduledTime = message.scheduled_send_time ? message.scheduled_send_time.slice(0, 16) : '';
+
+                Swal.fire({
+                    title: 'Edit Scheduled Message',
+                    html: `
+                        <div class="text-start">
+                            <div class="mb-3">
+                                <label class="form-label">Message Type</label>
+                                <select id="editMessageType" class="form-select">
+                                    <option value="standard" ${message.message_type === 'standard' ? 'selected' : ''}>Standard</option>
+                                    <option value="announcement" ${message.message_type === 'announcement' ? 'selected' : ''}>Announcement</option>
+                                    <option value="reminder" ${message.message_type === 'reminder' ? 'selected' : ''}>Reminder</option>
+                                    <option value="notification" ${message.message_type === 'notification' ? 'selected' : ''}>Notification</option>
+                                    <option value="alert" ${message.message_type === 'alert' ? 'selected' : ''}>Alert</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Scheduled Time <span class="text-danger">*</span></label>
+                                <input type="datetime-local" id="editScheduledTime" class="form-control" value="${scheduledTime}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Match ID</label>
+                                <input type="text" class="form-control" value="${message.match_id || 'N/A'}" disabled>
+                                <small class="text-muted">Match ID cannot be changed</small>
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Save Changes',
+                    cancelButtonText: 'Cancel',
+                    preConfirm: () => {
+                        const scheduledTime = document.getElementById('editScheduledTime').value;
+                        if (!scheduledTime) {
+                            Swal.showValidationMessage('Scheduled time is required');
+                            return false;
+                        }
+                        return {
+                            message_type: document.getElementById('editMessageType').value,
+                            scheduled_time: scheduledTime
+                        };
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const formData = new FormData();
+                        formData.append('message_type', result.value.message_type);
+                        formData.append('scheduled_time', result.value.scheduled_time);
+
+                        fetch(`/admin-panel/communication/scheduled-messages/${messageId}/update`, {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                            } else {
+                                Swal.fire('Error', data.message, 'error');
+                            }
+                        })
+                        .catch(() => Swal.fire('Error', 'Failed to update message', 'error'));
+                    }
+                });
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        })
+        .catch(() => Swal.fire('Error', 'Failed to load message details', 'error'));
 }
 
 function cancelScheduledMessage(messageId, messageTitle) {
@@ -456,8 +504,8 @@ function cancelScheduledMessage(messageId, messageTitle) {
         text: `Cancel the scheduled message "${messageTitle}"? This action cannot be undone.`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        cancelButtonColor: '#6c757d',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : 'var(--ecs-danger)',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
         confirmButtonText: 'Yes, cancel it!'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -490,8 +538,8 @@ function retryScheduledMessage(messageId, messageTitle) {
         text: `Retry sending the failed message "${messageTitle}"?`,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#6c757d',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : 'var(--ecs-success)',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
         confirmButtonText: 'Yes, retry!'
     }).then((result) => {
         if (result.isConfirmed) {

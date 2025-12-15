@@ -3,332 +3,7 @@
 {% block title %}Discord Join Status{% endblock %}
 
 {% block custom_css %}
-<style>
-    /* Stats cards */
-    .stats-card {
-        border-radius: 0.5rem;
-        padding: 1rem;
-        color: white;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        text-decoration: none;
-        display: block;
-        cursor: pointer;
-    }
-    
-    .stats-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-        text-decoration: none;
-        color: white;
-    }
-    
-    .stats-card.total {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    
-    .stats-card.in-server {
-        background: linear-gradient(135deg, #28c76f 0%, #1fa65b 100%);
-    }
-    
-    .stats-card.not-in-server {
-        background: linear-gradient(135deg, #ea5455 0%, #e04142 100%);
-    }
-    
-    .stats-card.unknown {
-        background: linear-gradient(135deg, #ffab00 0%, #ff8a00 100%);
-    }
-    
-    .stats-card.active {
-        border: 3px solid white;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-    }
-    
-    .stats-number {
-        font-size: 2rem;
-        font-weight: bold;
-        margin-bottom: 0.25rem;
-    }
-    
-    .stats-label {
-        font-size: 0.75rem;
-        opacity: 0.9;
-    }
-    
-    /* Compact player rows */
-    .player-row {
-        border: 1px solid var(--bs-border-color);
-        border-radius: 0.375rem;
-        padding: 0.75rem;
-        margin-bottom: 0.5rem;
-        transition: all 0.2s ease;
-        background: var(--bs-body-bg);
-    }
-    
-    .player-row:hover {
-        border-color: var(--bs-primary);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-    
-    .player-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-    }
-    
-    .player-main-info {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        flex: 1;
-        min-width: 0;
-    }
-    
-    .player-avatar {
-        width: 35px;
-        height: 35px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: bold;
-        font-size: 0.875rem;
-        flex-shrink: 0;
-    }
-    
-    .player-details {
-        flex: 1;
-        min-width: 0;
-    }
-    
-    .player-name {
-        font-weight: 600;
-        margin: 0;
-        font-size: 0.95rem;
-        color: var(--bs-body-color);
-    }
-    
-    .player-meta {
-        font-size: 0.75rem;
-        color: var(--bs-secondary);
-        margin-top: 0.125rem;
-    }
-    
-    .discord-status {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.75rem;
-        margin-top: 0.25rem;
-    }
-    
-    .discord-status.not-in-server {
-        color: #ea5455;
-    }
-    
-    .discord-status.unknown {
-        color: #ffab00;
-    }
-    
-    .discord-status.in-server {
-        color: #28c76f;
-    }
-    
-    .player-actions {
-        display: flex;
-        gap: 0.25rem;
-        flex-shrink: 0;
-    }
-    
-    .btn-action {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-        transition: all 0.2s ease;
-        min-width: auto;
-        white-space: nowrap;
-    }
-    
-    .btn-action i {
-        font-size: 0.875rem;
-    }
-    
-    .btn-email {
-        background-color: #28c76f;
-        color: white;
-        border: 1px solid #28c76f;
-    }
-    
-    .btn-discord {
-        background-color: #7289da;
-        color: white;
-        border: 1px solid #7289da;
-    }
-    
-    .btn-profile {
-        background-color: #667eea;
-        color: white;
-        border: 1px solid #667eea;
-    }
-    
-    .btn-refresh {
-        background-color: transparent;
-        color: var(--bs-primary);
-        border: 1px solid var(--bs-primary);
-    }
-    
-    .team-badge {
-        background-color: var(--bs-primary-bg-subtle);
-        color: var(--bs-primary);
-        padding: 0.125rem 0.375rem;
-        border-radius: 0.25rem;
-        font-size: 0.625rem;
-        margin-right: 0.25rem;
-        display: inline-block;
-    }
-    
-    .last-checked {
-        font-size: 0.625rem;
-        color: var(--bs-secondary);
-        font-style: italic;
-    }
-    
-    /* Filter and pagination */
-    .filter-controls {
-        background: var(--bs-gray-50);
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin-bottom: 1rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 1rem;
-    }
-    
-    .pagination-info {
-        font-size: 0.875rem;
-        color: var(--bs-secondary);
-    }
-    
-    .per-page-selector {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.875rem;
-    }
-    
-    .per-page-selector select {
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        border: 1px solid var(--bs-border-color);
-        background: var(--bs-body-bg);
-    }
-    
-    /* Dark mode adjustments */
-    html[data-style="dark"] .player-row {
-        background: var(--bs-gray-900);
-        border-color: var(--bs-gray-700);
-    }
-    
-    html[data-style="dark"] .filter-controls {
-        background: var(--bs-gray-800);
-    }
-    
-    html[data-style="dark"] .player-row:hover {
-        border-color: var(--bs-primary);
-        background: var(--bs-gray-800);
-    }
-    
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        .player-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem;
-        }
-        
-        .player-actions {
-            width: 100%;
-            justify-content: flex-start;
-            flex-wrap: wrap;
-        }
-        
-        .stats-number {
-            font-size: 1.5rem;
-        }
-        
-        .filter-controls {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.5rem;
-        }
-    }
-    
-    @media (max-width: 576px) {
-        .btn-action span {
-            display: none;
-        }
-    }
-    
-    /* Contact information styling */
-    .contact-info {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-top: 0.5rem;
-    }
-    
-    .contact-item {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-        font-size: 0.75rem;
-        color: var(--bs-secondary);
-        background-color: var(--bs-gray-100);
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        border: 1px solid var(--bs-border-color);
-    }
-    
-    .contact-item i {
-        font-size: 0.875rem;
-        color: var(--bs-primary);
-    }
-    
-    .contact-item span {
-        color: var(--bs-body-color);
-        font-weight: 500;
-    }
-    
-    /* Dark mode contact styling */
-    html[data-style="dark"] .contact-item {
-        background-color: var(--bs-gray-800);
-        border-color: var(--bs-gray-700);
-    }
-    
-    /* Responsive contact info */
-    @media (max-width: 768px) {
-        .contact-info {
-            width: 100%;
-            margin-top: 0.25rem;
-        }
-        
-        .contact-item {
-            font-size: 0.7rem;
-            padding: 0.2rem 0.4rem;
-        }
-        
-        .contact-item i {
-            font-size: 0.8rem;
-        }
-    }
-</style>
+{{ super() }}
 {% endblock %}
 
 {% block main_content %}
@@ -590,19 +265,19 @@
     <div class="text-center py-5">
         {% if status_filter == 'not_in_server' and stats.not_in_server == 0 %}
             <div class="mb-3">
-                <i class="ti ti-check-circle text-success" style="font-size: 4rem;"></i>
+                <i class="ti ti-check-circle text-success empty-state-icon-lg"></i>
             </div>
             <h3 class="text-success">All Players Are In Discord!</h3>
             <p class="text-muted">All players with Discord accounts have successfully joined the server.</p>
         {% elif stats.total_players == 0 %}
             <div class="mb-3">
-                <i class="ti ti-users text-muted" style="font-size: 4rem;"></i>
+                <i class="ti ti-users text-muted empty-state-icon-lg"></i>
             </div>
             <h3 class="text-muted">No Discord Players Found</h3>
             <p class="text-muted">No players have linked Discord accounts yet.</p>
         {% else %}
             <div class="mb-3">
-                <i class="ti ti-search text-muted" style="font-size: 4rem;"></i>
+                <i class="ti ti-search text-muted empty-state-icon-lg"></i>
             </div>
             <h3 class="text-muted">No Players Found</h3>
             <p class="text-muted">No players match the current filter criteria.</p>
@@ -660,8 +335,8 @@ function refreshAllStatus() {
         showCancelButton: true,
         confirmButtonText: 'Yes, refresh all',
         cancelButtonText: 'Cancel',
-        confirmButtonColor: '#28c76f',
-        cancelButtonColor: '#ea5455'
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28c76f',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#ea5455'
     }).then((result) => {
         if (result.isConfirmed) {
             // Show loading state
@@ -697,7 +372,7 @@ function refreshAllStatus() {
                     icon: 'error',
                     title: 'Error',
                     text: 'Failed to refresh status: ' + error.message,
-                    confirmButtonColor: '#ea5455'
+                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#ea5455'
                 });
             }).finally(() => {
                 btn.innerHTML = originalText;
@@ -740,7 +415,7 @@ function refreshPlayerStatus(playerId, playerName) {
             icon: 'error',
             title: 'Error',
             text: 'Failed to refresh status: ' + error.message,
-            confirmButtonColor: '#ea5455'
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#ea5455'
         });
     }).finally(() => {
         btn.innerHTML = originalText;
@@ -782,7 +457,7 @@ function submitDM() {
             icon: 'warning',
             title: 'Message Required',
             text: 'Please enter a message before sending',
-            confirmButtonColor: '#ffab00'
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffab00'
         });
         return;
     }
@@ -821,7 +496,7 @@ function submitDM() {
             icon: 'error',
             title: 'Error',
             text: 'Failed to send Discord message: ' + error.message,
-            confirmButtonColor: '#ea5455'
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#ea5455'
         });
     }).finally(() => {
         submitBtn.innerHTML = originalText;
@@ -837,8 +512,8 @@ function refreshUnknownStatus() {
         showCancelButton: true,
         confirmButtonText: 'Yes, check unknown',
         cancelButtonText: 'Cancel',
-        confirmButtonColor: '#ffab00',
-        cancelButtonColor: '#ea5455'
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffab00',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#ea5455'
     }).then((result) => {
         if (result.isConfirmed) {
             // Show loading state
@@ -874,7 +549,7 @@ function refreshUnknownStatus() {
                     icon: 'error',
                     title: 'Error',
                     text: 'Failed to check unknown status: ' + error.message,
-                    confirmButtonColor: '#ea5455'
+                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#ea5455'
                 });
             }).finally(() => {
                 btn.innerHTML = originalText;

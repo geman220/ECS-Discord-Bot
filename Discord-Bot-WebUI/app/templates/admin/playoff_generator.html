@@ -223,19 +223,19 @@
 #matchesTableBody input,
 #matchesTableBody select {
     font-size: 0.875rem;
-    border: 1px solid #d9dee3;
+    border: 1px solid var(--ecs-neutral-20, #d9dee3);
     transition: all 0.2s;
 }
 
 #matchesTableBody input:focus,
 #matchesTableBody select:focus {
-    border-color: #696cff;
+    border-color: var(--ecs-primary, #696cff);
     box-shadow: 0 0 0 0.2rem rgba(105, 108, 255, 0.15);
 }
 
 #matchesTableBody input:hover,
 #matchesTableBody select:hover {
-    border-color: #b4b7ff;
+    border-color: var(--ecs-primary-light, #b4b7ff);
 }
 </style>
 
@@ -407,8 +407,8 @@ function confirmSchedule() {
         text: 'Are you sure you want to apply this playoff schedule? This will update your existing playoff matches.',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#3085d6',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#d33',
         confirmButtonText: 'Yes, apply it!'
     }).then((result) => {
         if (!result.isConfirmed) {
@@ -452,8 +452,8 @@ function confirmSchedule() {
                     showCancelButton: true,
                     confirmButtonText: '<i class="ti ti-send me-1"></i> Resend RSVPs Now',
                     cancelButtonText: 'Done (No Resend Needed)',
-                    confirmButtonColor: '#696cff',
-                    cancelButtonColor: '#28c76f'
+                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#696cff',
+                    cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28c76f'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         resendPlayoffRSVPs();

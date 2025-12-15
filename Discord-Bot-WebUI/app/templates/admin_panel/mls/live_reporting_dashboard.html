@@ -37,7 +37,7 @@
 <div class="row mb-4">
     <!-- Real-time Service Status -->
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card h-100" style="border-left: 4px solid {% if realtime_health.health == 'healthy' %}#28a745{% elif realtime_health.health == 'degraded' %}#ffc107{% else %}#dc3545{% endif %};">
+        <div class="card h-100" style="border-left: 4px solid {% if realtime_health.health == 'healthy' %}var(--ecs-success, #198754){% elif realtime_health.health == 'degraded' %}var(--ecs-warning, #ffc107){% else %}var(--ecs-danger, #dc3545){% endif %};">
             <div class="card-body">
                 <div class="d-flex align-items-center mb-2">
                     <i class="ti ti-server me-2 text-primary" style="font-size: 1.5rem;"></i>
@@ -68,7 +68,7 @@
 
     <!-- Active Sessions -->
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card h-100" style="border-left: 4px solid #007bff;">
+        <div class="card h-100" style="border-left: 4px solid var(--ecs-primary, #0d6efd);">
             <div class="card-body">
                 <div class="d-flex align-items-center mb-2">
                     <i class="ti ti-player-play me-2 text-info" style="font-size: 1.5rem;"></i>
@@ -87,7 +87,7 @@
 
     <!-- Coordination Status -->
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card h-100" style="border-left: 4px solid {% if coordination_status.coordination_status == 'healthy' %}#28a745{% else %}#ffc107{% endif %};">
+        <div class="card h-100" style="border-left: 4px solid {% if coordination_status.coordination_status == 'healthy' %}var(--ecs-success, #198754){% else %}var(--ecs-warning, #ffc107){% endif %};">
             <div class="card-body">
                 <div class="d-flex align-items-center mb-2">
                     <i class="ti ti-link me-2 text-warning" style="font-size: 1.5rem;"></i>
@@ -103,7 +103,7 @@
 
     <!-- Upcoming Matches -->
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card h-100" style="border-left: 4px solid #6c757d;">
+        <div class="card h-100" style="border-left: 4px solid var(--ecs-neutral-50, #6c757d);">
             <div class="card-body">
                 <div class="d-flex align-items-center mb-2">
                     <i class="ti ti-calendar me-2 text-secondary" style="font-size: 1.5rem;"></i>

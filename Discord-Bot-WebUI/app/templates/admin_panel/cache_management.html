@@ -248,8 +248,8 @@ async function clearCacheByType(cacheType, title) {
         text: 'This action cannot be undone. Continue?',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : '#3085d6',
         confirmButtonText: 'Yes, clear it!'
     });
 

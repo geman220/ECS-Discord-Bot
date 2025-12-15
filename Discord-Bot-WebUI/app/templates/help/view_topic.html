@@ -13,29 +13,29 @@
     width: 100%;
     border-collapse: collapse;
     margin: 1rem 0;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--ecs-neutral-20, #dee2e6);
 }
 
 .help-content th,
 .help-content td {
     padding: 0.75rem;
     text-align: left;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--ecs-neutral-20, #dee2e6);
 }
 
 .help-content th {
-    background-color: #f8f9fa;
+    background-color: var(--ecs-neutral-5, #f8f9fa);
     font-weight: 600;
 }
 
 .help-content tbody tr:nth-child(even) {
-    background-color: #f8f9fa;
+    background-color: var(--ecs-neutral-5, #f8f9fa);
 }
 
 /* Anchor link styling */
 .help-content .headerlink {
     opacity: 0;
-    color: #6c757d;
+    color: var(--ecs-secondary, #6c757d);
     text-decoration: none;
     margin-left: 0.5rem;
     font-size: 0.8em;
@@ -62,7 +62,7 @@ html {
 }
 
 @keyframes highlight {
-    0% { background-color: #fff3cd; }
+    0% { background-color: var(--ecs-warning-subtle, #fff3cd); }
     100% { background-color: transparent; }
 }
 
@@ -72,23 +72,23 @@ html {
 }
 
 .help-content blockquote {
-    border-left: 4px solid #007bff;
+    border-left: 4px solid var(--ecs-primary, #007bff);
     margin: 1rem 0;
     padding: 0.5rem 1rem;
-    background-color: #f8f9fa;
+    background-color: var(--ecs-neutral-5, #f8f9fa);
     font-style: italic;
 }
 
 /* Code styling */
 .help-content code {
-    background-color: #f8f9fa;
+    background-color: var(--ecs-neutral-5, #f8f9fa);
     padding: 0.2rem 0.4rem;
     border-radius: 0.25rem;
     font-size: 0.9em;
 }
 
 .help-content pre {
-    background-color: #f8f9fa;
+    background-color: var(--ecs-neutral-5, #f8f9fa);
     padding: 1rem;
     border-radius: 0.25rem;
     overflow-x: auto;
@@ -97,7 +97,7 @@ html {
 
 /* Details/summary styling for FAQ */
 .help-content details {
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--ecs-neutral-20, #dee2e6);
     border-radius: 0.25rem;
     padding: 0.5rem;
     margin: 0.5rem 0;
@@ -107,7 +107,7 @@ html {
     font-weight: 600;
     cursor: pointer;
     padding: 0.5rem;
-    background-color: #f8f9fa;
+    background-color: var(--ecs-neutral-5, #f8f9fa);
     border-radius: 0.25rem;
     margin: -0.5rem;
     margin-bottom: 0.5rem;

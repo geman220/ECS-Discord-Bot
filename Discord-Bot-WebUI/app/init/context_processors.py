@@ -25,6 +25,7 @@ def init_context_processors(app):
     _register_utility_processor(app)
     _register_season_processor(app)
     _register_file_versioning_processor(app)
+    _register_theme_colors_processor(app)
 
 
 def _register_utility_processor(app):
@@ -159,3 +160,18 @@ def _register_file_versioning_processor(app):
                 return f"{url_for('static', filename=filename)}?v={random.randint(1, 1000000)}"
 
         return {'asset_version': asset_version}
+
+
+def _register_theme_colors_processor(app):
+    """Register theme colors context processor for custom color palette."""
+
+    @app.context_processor
+    def inject_theme_colors():
+        """Inject custom theme colors into templates if configured."""
+        try:
+            from app.admin_panel.routes.appearance import load_custom_colors
+            custom_colors = load_custom_colors()
+            return {'site_settings': {'custom_colors': custom_colors} if custom_colors else None}
+        except Exception as e:
+            logger.debug(f"Theme colors not loaded: {e}")
+            return {'site_settings': None}

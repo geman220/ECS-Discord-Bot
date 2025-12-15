@@ -47,6 +47,11 @@ from .notifications import (
     UserFCMToken
 )
 
+from .push_campaigns import (
+    NotificationGroup, NotificationGroupMember, PushNotificationCampaign,
+    GroupType, CampaignStatus, CampaignPriority, TargetType
+)
+
 from .store import (
     StoreItem, StoreOrder
 )
@@ -100,6 +105,10 @@ from .ispy import (
 
 from .admin_config import (
     AdminConfig, AdminAuditLog
+)
+
+from .api_logs import (
+    APIRequestLog
 )
 
 from .security import (
@@ -160,6 +169,10 @@ __all__ = [
     
     # Push notification models
     'UserFCMToken',
+
+    # Push campaign models
+    'NotificationGroup', 'NotificationGroupMember', 'PushNotificationCampaign',
+    'GroupType', 'CampaignStatus', 'CampaignPriority', 'TargetType',
     
     # Store models
     'StoreItem', 'StoreOrder',
@@ -200,7 +213,10 @@ __all__ = [
     
     # Admin configuration models
     'AdminConfig', 'AdminAuditLog',
-    
+
+    # API logging models
+    'APIRequestLog',
+
     # Security models
     'IPBan', 'SecurityEvent',
 

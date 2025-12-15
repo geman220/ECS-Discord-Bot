@@ -297,13 +297,13 @@
    ======================================== */
 
 [data-style="dark"] .mobile-bottom-nav {
-    background: #1a1d23;
-    border-top-color: #2d3139;
+    background: var(--ecs-dark-bg-body, #1a1d23);
+    border-top-color: var(--ecs-dark-border, #2d3139);
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.4);
 }
 
 [data-style="dark"] .bottom-nav-item {
-    color: #9ca3af;
+    color: var(--ecs-neutral-50, #9ca3af);
 }
 
 [data-style="dark"] .bottom-nav-item:hover,
@@ -317,28 +317,28 @@
 }
 
 [data-style="dark"] .mobile-more-menu .offcanvas {
-    background: #1a1d23;
-    color: #e5e7eb;
+    background: var(--ecs-dark-bg-body, #1a1d23);
+    color: var(--ecs-neutral-10, #e5e7eb);
 }
 
 [data-style="dark"] .mobile-more-menu .offcanvas-header {
-    border-bottom-color: #2d3139;
+    border-bottom-color: var(--ecs-dark-border, #2d3139);
 }
 
 [data-style="dark"] .mobile-more-menu .list-group-item {
-    background: #1a1d23;
-    color: #e5e7eb;
-    border-bottom-color: #2d3139;
+    background: var(--ecs-dark-bg-body, #1a1d23);
+    color: var(--ecs-neutral-10, #e5e7eb);
+    border-bottom-color: var(--ecs-dark-border, #2d3139);
 }
 
 [data-style="dark"] .mobile-more-menu .list-group-item:hover,
 [data-style="dark"] .mobile-more-menu .list-group-item:focus {
-    background: #2d3139;
-    color: #fff;
+    background: var(--ecs-dark-bg-elevated, #2d3139);
+    color: var(--bs-white, #fff);
 }
 
 [data-style="dark"] .mobile-more-menu .offcanvas-title {
-    color: #e5e7eb;
+    color: var(--ecs-neutral-10, #e5e7eb);
 }
 
 [data-style="dark"] .mobile-more-menu .btn-close {
@@ -346,17 +346,17 @@
 }
 
 [data-style="dark"] .dropdown-divider {
-    border-top-color: #2d3139;
+    border-top-color: var(--ecs-dark-border, #2d3139);
 }
 
 /* Theme switcher in more menu */
 [data-style="dark"] .theme-option {
-    background: #2d3139;
-    border-color: #3d4148;
+    background: var(--ecs-dark-bg-elevated, #2d3139);
+    border-color: var(--ecs-dark-border-light, #3d4148);
 }
 
 [data-style="dark"] .theme-option:hover {
-    background: #3d4148;
+    background: var(--ecs-dark-bg-elevated-hover, #3d4148);
 }
 
 [data-style="dark"] .theme-option.active {

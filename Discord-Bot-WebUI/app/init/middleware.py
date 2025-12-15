@@ -89,6 +89,9 @@ def apply_middleware(app):
     # Add basic security headers
     _add_security_headers(app)
 
+    # Add API request logging for analytics
+    _init_api_logger(app)
+
     # Apply DebugMiddleware in debug mode
     if app.debug:
         app.wsgi_app = DebugMiddleware(app.wsgi_app, app)
@@ -160,3 +163,12 @@ def _add_security_headers(app):
                 response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
 
         return response
+
+
+def _init_api_logger(app):
+    """Initialize API request logging for analytics."""
+    try:
+        from app.middleware.api_logger import init_api_logger
+        init_api_logger(app)
+    except Exception as e:
+        logger.warning(f"API logger initialization failed: {e}")

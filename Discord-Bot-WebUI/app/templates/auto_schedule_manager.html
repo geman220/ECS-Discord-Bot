@@ -788,21 +788,21 @@
     right: -50%;
     width: 100%;
     height: 2px;
-    background: #e9ecef;
+    background: var(--ecs-neutral-20);
     z-index: 1;
 }
 
 .wizard-progress .step.active:not(:last-child)::after,
 .wizard-progress .step.completed:not(:last-child)::after {
-    background: #28a745;
+    background: var(--ecs-success);
 }
 
 .step-circle {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: #e9ecef;
-    color: #6c757d;
+    background: var(--ecs-neutral-20);
+    color: var(--ecs-neutral-50);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -813,12 +813,12 @@
 }
 
 .step.active .step-circle {
-    background: #007bff;
+    background: var(--ecs-primary);
     color: white;
 }
 
 .step.completed .step-circle {
-    background: #28a745;
+    background: var(--ecs-success);
     color: white;
 }
 
@@ -866,8 +866,8 @@
 
 /* Calendar week item styling */
 .week-item {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
+    background: var(--ecs-neutral-5);
+    border: 1px solid var(--ecs-neutral-20);
     border-radius: 5px;
     padding: 10px;
     margin-bottom: 8px;
@@ -877,8 +877,8 @@
 }
 
 .week-item:hover {
-    background: #e9ecef;
-    border-color: #007bff;
+    background: var(--ecs-neutral-20);
+    border-color: var(--ecs-primary);
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
 }
@@ -899,13 +899,13 @@
 
 /* Drop insertion indicators */
 .week-item[style*="border-top: 3px solid"] {
-    border-top: 3px solid #007bff !important;
+    border-top: 3px solid var(--ecs-primary) !important;
     border-top-left-radius: 0 !important;
     border-top-right-radius: 0 !important;
 }
 
 .week-item[style*="border-bottom: 3px solid"] {
-    border-bottom: 3px solid #007bff !important;
+    border-bottom: 3px solid var(--ecs-primary) !important;
     border-bottom-left-radius: 0 !important;
     border-bottom-right-radius: 0 !important;
 }
@@ -918,7 +918,7 @@
     left: 0;
     right: 0;
     height: 3px;
-    background: #007bff;
+    background: var(--ecs-primary);
     animation: pulse 0.8s ease-in-out infinite alternate;
 }
 
@@ -936,49 +936,49 @@
 }
 
 .week-item.regular-week {
-    border-left: 4px solid #6c757d;
+    border-left: 4px solid var(--ecs-secondary);
 }
 
 .week-item.fun-week {
-    border-left: 4px solid #ffc107;
+    border-left: 4px solid var(--ecs-warning);
 }
 
 .week-item.tst-week {
-    border-left: 4px solid #17a2b8;
+    border-left: 4px solid var(--ecs-info);
 }
 
 .week-item.playoff-week {
-    border-left: 4px solid #dc3545;
+    border-left: 4px solid var(--ecs-danger);
 }
 
 .week-item.bonus-week {
-    border-left: 4px solid #6f42c1;
+    border-left: 4px solid var(--ecs-purple);
 }
 
 .week-item.bye-week {
-    border-left: 4px solid #6c757d;
+    border-left: 4px solid var(--ecs-secondary);
 }
 
 .week-number {
     font-weight: bold;
     font-size: 0.9em;
-    color: #495057;
+    color: var(--ecs-neutral-60);
 }
 
 .week-date {
     font-size: 0.8em;
-    color: #6c757d;
+    color: var(--ecs-neutral-50);
 }
 
 .week-type {
     font-size: 0.8em;
-    color: #007bff;
+    color: var(--ecs-primary);
     font-weight: 500;
 }
 
 /* Add visual feedback for drag operations */
 .drop-zone {
-    border: 2px dashed #007bff;
+    border: 2px dashed var(--ecs-primary);
     background-color: rgba(0, 123, 255, 0.1);
 }
 
@@ -1010,80 +1010,80 @@
     align-items: center;
     padding: 8px 12px;
     border-radius: 6px;
-    border: 1px solid #e0e0e0;
-    background: #f9f9f9;
+    border: 1px solid var(--ecs-neutral-20);
+    background: var(--ecs-neutral-5);
 }
 
 .week-item.regular-week {
-    border-color: #28a745;
-    background: #f8fff9;
+    border-color: var(--ecs-success);
+    background: var(--ecs-success-subtle);
 }
 
 .week-item.fun-week {
-    border-color: #ffc107;
-    background: #fffef8;
+    border-color: var(--ecs-warning);
+    background: var(--ecs-warning-subtle);
 }
 
 .week-item.tst-week {
-    border-color: #17a2b8;
-    background: #f8feff;
+    border-color: var(--ecs-info);
+    background: var(--ecs-info-subtle);
 }
 
 .week-item.playoff-week {
-    border-color: #dc3545;
-    background: #fff8f8;
+    border-color: var(--ecs-danger);
+    background: var(--ecs-danger-subtle);
 }
 
 .week-item.bonus-week {
-    border-color: #6f42c1;
-    background: #fbf8ff;
+    border-color: var(--ecs-purple);
+    background: var(--ecs-purple-subtle);
 }
 
 .week-item.bye-week {
-    border-color: #6c757d;
-    background: #f8f9fa;
+    border-color: var(--ecs-secondary);
+    background: var(--ecs-neutral-5);
 }
 
 .week-number {
     font-weight: bold;
     min-width: 70px;
-    color: #333;
+    color: var(--ecs-neutral-80);
 }
 
 .week-date {
     flex: 1;
-    color: #666;
+    color: var(--ecs-neutral-60);
     font-size: 0.9em;
 }
 
 .week-type {
-    color: #333;
+    color: var(--ecs-neutral-80);
     font-size: 0.9em;
     font-weight: 500;
 }
 
 .regular-week .week-type {
-    color: #28a745;
+    color: var(--ecs-success);
 }
 
 .fun-week .week-type {
-    color: #ffc107;
+    color: var(--ecs-warning);
 }
 
 .tst-week .week-type {
-    color: #17a2b8;
+    color: var(--ecs-info);
 }
 
 .playoff-week .week-type {
-    color: #dc3545;
+    color: var(--ecs-danger);
 }
 
 .bonus-week .week-type {
-    color: #6f42c1;
+    color: var(--ecs-purple);
 }
 
 .bye-week .week-type {
-    color: #6c757d;
+    color: var(--ecs-secondary);
 }
 
 /* Shared weeks styling - draggable but synchronized */
@@ -1124,8 +1124,8 @@
             html: `You are about to <strong>COMPLETELY DELETE</strong> the season "<strong>${seasonName}</strong>".<br><br>This will remove:<br>• All teams<br>• All matches<br>• Discord channels<br>• Player assignments<br><br><strong>This action cannot be undone!</strong>`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : undefined,
+            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : undefined,
             confirmButtonText: 'Yes, delete it!',
             cancelButtonText: 'Cancel'
         }).then((result) => {
@@ -1141,8 +1141,8 @@
             html: `This will recreate all Discord resources for "<strong>${seasonName}</strong>":<br><br>• Discord roles for each team<br>• Discord channels for each team<br>• Proper permissions and channel access<br><br>This is safe to run and will not delete existing data.`,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: '#ffc107',
-            cancelButtonColor: '#6c757d',
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : undefined,
+            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : undefined,
             confirmButtonText: '<i class="fab fa-discord me-1"></i>Recreate Resources',
             cancelButtonText: 'Cancel'
         }).then((result) => {

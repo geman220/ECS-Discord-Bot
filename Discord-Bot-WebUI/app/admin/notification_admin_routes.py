@@ -1,6 +1,8 @@
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required
+from sqlalchemy import func
 from app.models import User, UserFCMToken
+from app.models.communication import Notification
 from app.services.notification_service import notification_service
 from app.core import db
 from app.decorators import role_required
@@ -26,15 +28,18 @@ def notification_status():
     try:
         # Check if Firebase is configured
         firebase_configured = notification_service._initialized
-        
+
         # Get FCM token statistics
         total_tokens = UserFCMToken.query.filter_by(is_active=True).count()
         ios_tokens = UserFCMToken.query.filter_by(is_active=True, platform='ios').count()
         android_tokens = UserFCMToken.query.filter_by(is_active=True, platform='android').count()
-        
-        # TODO: Add actual notification count from logs/database
-        notifications_sent_24h = 0
-        
+
+        # Count notifications sent in the last 24 hours
+        cutoff_24h = datetime.utcnow() - timedelta(hours=24)
+        notifications_sent_24h = Notification.query.filter(
+            Notification.created_at >= cutoff_24h
+        ).count()
+
         return jsonify({
             'firebase_configured': firebase_configured,
             'stats': {
@@ -44,7 +49,7 @@ def notification_status():
                 'notifications_sent_24h': notifications_sent_24h
             }
         })
-        
+
     except Exception as e:
         logger.error(f"Error getting notification status: {e}")
         return jsonify({
@@ -61,41 +66,52 @@ def notification_status():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def recent_activity():
-    """Get recent notification activity"""
+    """Get recent notification activity aggregated by type and time period"""
     try:
-        # TODO: Implement actual notification logging and retrieval
-        # For now, return sample data
-        sample_activities = [
-            {
-                'timestamp': (datetime.utcnow() - timedelta(hours=1)).isoformat(),
-                'type': 'broadcast',
-                'title': 'Season Update',
-                'recipients': 85,
-                'success_rate': 94,
+        # Get notification activity from the last 7 days
+        cutoff_date = datetime.utcnow() - timedelta(days=7)
+
+        # Query notifications grouped by type and approximate time period
+        recent_notifications = db.session.query(
+            Notification.notification_type,
+            func.min(Notification.created_at).label('first_sent'),
+            func.max(Notification.created_at).label('last_sent'),
+            func.count(Notification.id).label('recipient_count')
+        ).filter(
+            Notification.created_at >= cutoff_date
+        ).group_by(
+            Notification.notification_type
+        ).order_by(
+            func.max(Notification.created_at).desc()
+        ).limit(10).all()
+
+        activities = []
+        type_titles = {
+            'match_reminder': 'Match Reminder',
+            'rsvp_reminder': 'RSVP Reminder',
+            'system': 'System Notification',
+            'broadcast': 'Broadcast Message',
+            'info': 'Information',
+            'warning': 'Warning Alert',
+            'success': 'Success Notification',
+            'error': 'Error Alert'
+        }
+
+        for notif in recent_notifications:
+            activities.append({
+                'timestamp': notif.last_sent.isoformat() if notif.last_sent else None,
+                'type': notif.notification_type,
+                'title': type_titles.get(notif.notification_type, notif.notification_type.title()),
+                'recipients': notif.recipient_count,
+                'success_rate': 100,  # In-app notifications are always delivered
                 'status': 'success'
-            },
-            {
-                'timestamp': (datetime.utcnow() - timedelta(hours=3)).isoformat(),
-                'type': 'match_reminder',
-                'title': 'Match Reminder',
-                'recipients': 22,
-                'success_rate': 100,
-                'status': 'success'
-            },
-            {
-                'timestamp': (datetime.utcnow() - timedelta(hours=6)).isoformat(),
-                'type': 'rsvp_reminder',
-                'title': 'RSVP Reminder',
-                'recipients': 18,
-                'success_rate': 89,
-                'status': 'success'
-            }
-        ]
-        
+            })
+
+        # If no recent activity, return empty list (not mock data)
         return jsonify({
-            'activities': sample_activities
+            'activities': activities
         })
-        
+
     except Exception as e:
         logger.error(f"Error getting recent activity: {e}")
         return jsonify({

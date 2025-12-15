@@ -365,8 +365,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 text: `Are you sure you want to delete "${locationName}"?`,
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#6c757d',
+                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#d33',
+                cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
                 confirmButtonText: 'Yes, delete it'
             }).then((result) => {
                 if (result.isConfirmed) {
