@@ -26,21 +26,22 @@
  */
 
 /* ============================================================================
-   BUTTON TRANSFORM PREVENTION
-   Global fix for buttons to prevent scaling/transform on interaction
+   BUTTON TRANSFORM PREVENTION - MODAL CONTEXT ONLY
+   Scoped fix for buttons INSIDE modals to prevent scaling/transform
    ============================================================================ */
 
 /**
- * Force all buttons to never transform
- * Prevents waves/ripple effects from scaling buttons
+ * Force modal buttons to never transform
+ * Prevents waves/ripple effects from scaling buttons INSIDE MODALS
+ * SCOPED to .modal context only - does not affect global buttons
  */
-button,
-.btn,
-a.btn,
-.edit-match-btn,
-[class*="btn-"],
-.ecs-btn,
-[class*="ecs-btn-"] {
+.modal button,
+.modal .btn,
+.modal a.btn,
+.modal .edit-match-btn,
+.modal [class*="btn-"],
+.modal .ecs-btn,
+.modal [class*="ecs-btn-"] {
     transform: none !important;
     transition: background-color 0.15s ease-in-out,
                 color 0.15s ease-in-out,
@@ -49,30 +50,30 @@ a.btn,
 }
 
 /**
- * Prevent transform on button states
+ * Prevent transform on button states (modal context only)
  */
-button:hover,
-button:focus,
-button:active,
-.btn:hover,
-.btn:focus,
-.btn:active {
+.modal button:hover,
+.modal button:focus,
+.modal button:active,
+.modal .btn:hover,
+.modal .btn:focus,
+.modal .btn:active {
     transform: none !important;
 }
 
 /**
- * Fix for waves-effect ripples
+ * Fix for waves-effect ripples (modal context only)
  * Allows ripple animation but prevents parent button transform
  */
-.waves-ripple,
-.waves-effect,
-.ripple-effect {
+.modal .waves-ripple,
+.modal .waves-effect,
+.modal .ripple-effect {
     transform: none !important;
 }
 
-/* Remove box-shadow transforms */
-button:active,
-.btn:active {
+/* Remove box-shadow transforms (modal context only) */
+.modal button:active,
+.modal .btn:active {
     box-shadow: none !important;
 }
 

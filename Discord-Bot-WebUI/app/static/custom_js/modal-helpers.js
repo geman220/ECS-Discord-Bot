@@ -425,8 +425,9 @@
         // Initialize mobile viewport fix
         initMobileViewportFix();
 
-        // Initialize button transform fix
-        initButtonTransformFix();
+        // DISABLED: Button transform fix now handled entirely by CSS (scoped to .modal context)
+        // CSS in modal-helpers.css applies transform: none !important to .modal buttons only
+        // initButtonTransformFix();
 
         // Register Bootstrap modal event handlers
         document.addEventListener('show.bs.modal', handleModalShow);

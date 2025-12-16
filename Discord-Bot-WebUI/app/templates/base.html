@@ -550,8 +550,8 @@
     <script src="{{ url_for('static', filename='vendor/js/bootstrap.js') }}"></script>
     <!-- Waves library for ripple effects (logic only, styling via CSS) -->
     <script src="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.js') }}"></script>
-    <!-- Prevent waves from injecting inline styles -->
-    <script src="{{ url_for('static', filename='custom_js/waves-css-override.js') }}"></script>
+    <!-- DISABLED: waves-css-override.js - Waves.Effect is not exposed in node-waves API -->
+    {# <script src="{{ url_for('static', filename='custom_js/waves-css-override.js') }}"></script> #}
     <!-- SweetAlert2 for nice notifications -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
