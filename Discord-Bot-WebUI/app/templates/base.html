@@ -12,7 +12,7 @@
             const serverTheme = '{{ session.get('theme', 'light') }}';
             const finalTheme = storedTheme || serverTheme;
 
-            // Get theme variant (classic or modern) from localStorage or server
+            // Get theme variant (modern only) from localStorage or server
             const storedVariant = localStorage.getItem('theme-variant');
             const serverVariant = '{{ session.get('theme_variant', 'modern') }}';
             const finalVariant = storedVariant || serverVariant;
@@ -25,9 +25,9 @@
             document.documentElement.classList.remove('light-style', 'dark-style');
             document.documentElement.classList.add(finalTheme + '-style');
 
-            // Add variant class for CSS selectors
-            document.documentElement.classList.remove('theme-classic', 'theme-modern');
-            document.documentElement.classList.add('theme-' + finalVariant);
+            // Add variant class for CSS selectors (modern only)
+            document.documentElement.classList.remove('theme-modern');
+            document.documentElement.classList.add('theme-modern');
 
             // Sync server session if needed
             if (storedTheme && storedTheme !== serverTheme) {
@@ -62,87 +62,247 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" />
 
     <!-- ============================================
-         CSS ARCHITECTURE - Single Source of Truth
+         CSS ARCHITECTURE - Optimized Load Order (Phase 8 - Wave 2)
+         ============================================
+
+         CRITICAL: Order matters for the CSS cascade!
+         Each layer builds on the previous one:
+         1. Core Tokens - Design system variables (colors, spacing, typography)
+         2. Admin Custom Colors - Dynamic color injection (BEFORE foundation)
+         3. Foundation - Bootstrap 5 + vendor base styles
+         4. Components - Reusable UI components
+         5. Utilities - Helper classes and utility CSS
+         6. Layout - Responsive layout and mobile styles
+         7. Features - Feature-specific styles
+         8. Vendor CSS - Third-party library styles (bundled + CDN)
+         9. Theme Variant - Modern theme overrides (modern-v2 support coming soon)
+         10. Page CSS - Page-specific styles (via blocks)
          ============================================ -->
 
-    <!-- 1. Foundation Bundle: Bootstrap + ECS Core (vendor - unchanged) -->
+    <!-- 1. CORE TOKENS (CRITICAL - Load first)
+         Design system foundation: CSS variables for colors, spacing, typography
+         These variables are used by ALL subsequent CSS layers -->
+    {% assets "core_tokens" %}
+        <link rel="stylesheet" href="{{ ASSET_URL }}" />
+    {% endassets %}
+
+    <!-- 2. ADMIN CUSTOM COLORS (Dynamic injection)
+         Administrator-configured color overrides from Appearance Manager
+         Loaded EARLY so color variables are available to all subsequent CSS
+         Uses inline <style> for dynamic values that can't be in static CSS -->
+    {% if site_settings and site_settings.custom_colors %}
+    {% set light = site_settings.custom_colors.get('light', {}) %}
+    {% set dark = site_settings.custom_colors.get('dark', {}) %}
+    <style id="admin-custom-colors">
+        /* ===========================================
+           ADMIN CUSTOMIZED COLORS (HIGH PRIORITY)
+           These define custom color variables for the theme
+           Generated dynamically from Appearance Manager settings
+           =========================================== */
+
+        /* Light Mode - Root Variables */
+        :root {
+            {% for key, value in light.items() %}
+            --ecs-{{ key|replace('_', '-') }}: {{ value }};
+            {% endfor %}
+
+            /* Map to Bootstrap variables */
+            {% if light.primary %}--bs-primary: {{ light.primary }};{% endif %}
+            {% if light.secondary %}--bs-secondary: {{ light.secondary }};{% endif %}
+            {% if light.success %}--bs-success: {{ light.success }};{% endif %}
+            {% if light.warning %}--bs-warning: {{ light.warning }};{% endif %}
+            {% if light.danger %}--bs-danger: {{ light.danger }};{% endif %}
+            {% if light.info %}--bs-info: {{ light.info }};{% endif %}
+            {% if light.text_heading %}--bs-heading-color: {{ light.text_heading }};{% endif %}
+            {% if light.text_body %}--bs-body-color: {{ light.text_body }};{% endif %}
+            {% if light.bg_body %}--bs-body-bg: {{ light.bg_body }};{% endif %}
+        }
+
+        /* Light Mode - Card-level variables override */
+        :root .card,
+        html:not([data-style="dark"]) .card {
+            {% if light.text_heading %}--bs-card-title-color: {{ light.text_heading }};{% endif %}
+            {% if light.text_heading %}--bs-card-cap-color: {{ light.text_heading }};{% endif %}
+            {% if light.text_body %}--bs-card-color: {{ light.text_body }};{% endif %}
+        }
+
+        /* Light Mode - Direct element overrides with !important */
+        html:not([data-style="dark"]) h1,
+        html:not([data-style="dark"]) h2,
+        html:not([data-style="dark"]) h3,
+        html:not([data-style="dark"]) h4,
+        html:not([data-style="dark"]) h5,
+        html:not([data-style="dark"]) h6,
+        html:not([data-style="dark"]) .h1,
+        html:not([data-style="dark"]) .h2,
+        html:not([data-style="dark"]) .h3,
+        html:not([data-style="dark"]) .h4,
+        html:not([data-style="dark"]) .h5,
+        html:not([data-style="dark"]) .h6,
+        html:not([data-style="dark"]) .card-title,
+        html:not([data-style="dark"]) .ecs-card-title {
+            {% if light.text_heading %}color: {{ light.text_heading }} !important;{% endif %}
+        }
+
+        html:not([data-style="dark"]) .text-primary,
+        html:not([data-style="dark"]) .text-primary i,
+        html:not([data-style="dark"]) i.text-primary {
+            {% if light.primary %}color: {{ light.primary }} !important;{% endif %}
+        }
+
+        html:not([data-style="dark"]) .card-body,
+        html:not([data-style="dark"]) .card-body p,
+        html:not([data-style="dark"]) .table tbody td {
+            {% if light.text_body %}color: {{ light.text_body }} !important;{% endif %}
+        }
+
+        html:not([data-style="dark"]) .text-muted {
+            {% if light.text_muted %}color: {{ light.text_muted }} !important;{% endif %}
+        }
+
+        html:not([data-style="dark"]) .table thead th,
+        html:not([data-style="dark"]) .table-light th {
+            {% if light.text_heading %}color: {{ light.text_heading }} !important;{% endif %}
+        }
+
+        /* Dark Mode Variables */
+        [data-style="dark"] {
+            {% for key, value in dark.items() %}
+            --ecs-{{ key|replace('_', '-') }}: {{ value }};
+            {% endfor %}
+
+            /* Map to Bootstrap variables */
+            {% if dark.primary %}--bs-primary: {{ dark.primary }};{% endif %}
+            {% if dark.secondary %}--bs-secondary: {{ dark.secondary }};{% endif %}
+            {% if dark.success %}--bs-success: {{ dark.success }};{% endif %}
+            {% if dark.warning %}--bs-warning: {{ dark.warning }};{% endif %}
+            {% if dark.danger %}--bs-danger: {{ dark.danger }};{% endif %}
+            {% if dark.info %}--bs-info: {{ dark.info }};{% endif %}
+            {% if dark.text_heading %}--bs-heading-color: {{ dark.text_heading }};{% endif %}
+            {% if dark.text_body %}--bs-body-color: {{ dark.text_body }};{% endif %}
+            {% if dark.bg_body %}--bs-body-bg: {{ dark.bg_body }};{% endif %}
+        }
+
+        /* Dark Mode - Card-level variables override */
+        [data-style="dark"] .card,
+        html[data-style="dark"] .card {
+            {% if dark.text_heading %}--bs-card-title-color: {{ dark.text_heading }};{% endif %}
+            {% if dark.text_heading %}--bs-card-cap-color: {{ dark.text_heading }};{% endif %}
+            {% if dark.text_body %}--bs-card-color: {{ dark.text_body }};{% endif %}
+        }
+
+        /* Dark Mode - Direct element overrides */
+        html[data-style="dark"] h1,
+        html[data-style="dark"] h2,
+        html[data-style="dark"] h3,
+        html[data-style="dark"] h4,
+        html[data-style="dark"] h5,
+        html[data-style="dark"] h6,
+        html[data-style="dark"] .card-title,
+        html[data-style="dark"] .ecs-card-title {
+            {% if dark.text_heading %}color: {{ dark.text_heading }} !important;{% endif %}
+        }
+
+        html[data-style="dark"] .text-primary,
+        html[data-style="dark"] .text-primary i,
+        html[data-style="dark"] i.text-primary {
+            {% if dark.primary %}color: {{ dark.primary }} !important;{% endif %}
+        }
+
+        html[data-style="dark"] .card-body,
+        html[data-style="dark"] .table tbody td {
+            {% if dark.text_body %}color: {{ dark.text_body }} !important;{% endif %}
+        }
+
+        html[data-style="dark"] .text-muted {
+            {% if dark.text_muted %}color: {{ dark.text_muted }} !important;{% endif %}
+        }
+    </style>
+    {% endif %}
+
+    <!-- 3. FOUNDATION (Bootstrap + ECS Core)
+         Base framework styles: Bootstrap 5.3.3 + vendor overrides
+         Establishes grid, typography, form controls, and base components -->
     {% assets "foundation_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
 
-    <!-- 2. Core Variables - THE SINGLE SOURCE OF TRUTH FOR ALL COLORS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/core/variables.css') }}" />
-
-    <!-- 3. Foundation Overrides - Fix vendor hardcoded colors -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/core/foundation-overrides.css') }}" />
-
-    <!-- 4. Components Bundle: Theme + Layout + Components (now uses CSS variables) -->
+    <!-- 3. COMPONENTS (UI Building Blocks)
+         Reusable interface components: cards, buttons, modals, etc.
+         Built using core tokens for consistent theming -->
     {% assets "components_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
 
-    <!-- 5. Vendor Bundle: Third-party CSS + Icon fonts + Overrides -->
-    {% assets "vendor_css" %}
+    <!-- 4. UTILITIES (Helper Classes)
+         Utility classes: spacing helpers, text utilities, display utilities
+         Provides quick styling options without custom CSS -->
+    {% assets "utilities_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
 
-    <!-- Template styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/template-styles.css') }}" />
+    <!-- 4B. MODAL HELPERS (Component CSS)
+         CSS support for modal-helpers.js - replaces inline styles from fix scripts
+         Provides transform fixes, z-index management, and modal utilities -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/modal-helpers.css') }}" />
 
-    <!-- ============================================
-         VENDOR CDN CSS - Must load BEFORE theme CSS
-         so our theme overrides can take precedence
-         ============================================ -->
+    <!-- 5. LAYOUT & MOBILE (Responsive Structure)
+         Layout system: responsive grid, mobile optimizations, navigation
+         Ensures proper display across all device sizes -->
+    {% assets "layout_css" %}
+        <link rel="stylesheet" href="{{ ASSET_URL }}" />
+    {% endassets %}
 
-    <!-- Select2 CSS -->
+    <!-- 6. VENDOR CDN CSS (Third-party Libraries)
+         External library styles loaded via CDN
+         Placed here so our theme CSS can override their defaults -->
+
+    <!-- Select2 - Enhanced select dropdowns -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 
-    <!-- SweetAlert2 CSS -->
+    <!-- SweetAlert2 - Beautiful alert dialogs -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.0/sweetalert2.min.css" rel="stylesheet">
 
-    <!-- Flatpickr CSS -->
+    <!-- Flatpickr - Date picker -->
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
 
-    <!-- DataTables CSS -->
+    <!-- DataTables - Advanced table functionality -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
 
-    <!-- EasyMDE CSS (markdown editor) -->
+    <!-- EasyMDE - Markdown editor -->
     <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
 
-    <!-- Include Fancybox CSS -->
+    <!-- Fancybox - Image lightbox -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.5.7/jquery.fancybox.min.css">
 
-    <!-- jQuery UI CSS -->
+    <!-- jQuery UI - Legacy UI components -->
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 
-    <!-- Shepherd.js CSS -->
+    <!-- Shepherd.js - Guided tours -->
     <link rel="stylesheet" href="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.css') }}">
 
-    <!-- ============================================
-         6. LAYOUT - Mobile responsive styles
-         ============================================ -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/mobile.css') }}" />
+    <!-- 7. THEME VARIANT (Modern Theme Only)
+         Theme-specific styling with bold, contemporary design
+         Uses Archivo Black for display and Barlow for body text -->
 
-    <!-- ============================================
-         7. THEMES - Dark mode for each theme variant
-         ============================================ -->
+    <!-- Modern Theme - Bold, contemporary design with Archivo Black + Barlow -->
+    {% assets "theme_modern" %}
+        <link rel="stylesheet" href="{{ ASSET_URL }}" />
+    {% endassets %}
 
-    <!-- Classic Theme Dark Mode (scoped to NOT modern) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/classic/classic-dark.css') }}" />
-
-    <!-- Modern Theme (scoped with [data-theme-variant="modern"]) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/modern/modern-base.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes/modern/modern-dark.css') }}" />
-
-    <!-- Admin Custom Colors (if configured) - loads after theme for highest priority -->
+    <!-- 8. ADMIN CUSTOM COLORS (Dynamic Overrides)
+         Administrator-configured color overrides from Appearance Manager
+         Loaded AFTER all themes to ensure highest cascade priority
+         Uses inline <style> for dynamic values that can't be in static CSS -->
     {% if site_settings and site_settings.custom_colors %}
     {% set light = site_settings.custom_colors.get('light', {}) %}
     {% set dark = site_settings.custom_colors.get('dark', {}) %}
     <style id="admin-custom-colors">
     /* ===========================================
-       ADMIN CUSTOMIZED COLORS
+       ADMIN CUSTOMIZED COLORS (HIGHEST PRIORITY)
        These override ALL other CSS due to cascade position
+       Generated dynamically from Appearance Manager settings
        =========================================== */
 
     /* Light Mode - Root Variables */
@@ -265,10 +425,17 @@
     </style>
     {% endif %}
 
-    <!-- Page-specific CSS (conditional loading) -->
+    {# 9. PAGE-SPECIFIC CSS (Template Block)
+         Child templates can inject page-specific styles here
+         Example: {% block page_css %}<link rel="stylesheet" href="...">{% endblock %}
+         Use for CSS that's only needed on specific pages #}
     {% block page_css %}
     {% endblock %}
 
+    <!-- 10. CUSTOM CSS (Template Override Block)
+         Final cascade layer for template-specific custom styles
+         Child templates can add inline styles or additional links here
+         This has the highest specificity in the cascade -->
     {% block custom_css %}
     {% endblock %}
 
@@ -323,18 +490,19 @@
                 <div class="content-wrapper">
                     <!-- Role Impersonation Banner -->
                     {% if is_role_impersonation_active() %}
-                    <div class="alert alert-warning alert-dismissible m-3 mb-0" role="alert">
-                        <div class="d-flex align-items-center">
-                            <i class="ti ti-eye me-2"></i>
-                            <div class="flex-grow-1">
-                                <strong>Role Impersonation Active</strong>
-                                <span class="ms-2">You are viewing the application as: 
-                                    <strong>{{ ', '.join(user_roles) }}</strong>
-                                </span>
+                    <div class="role-impersonation-banner alert alert-dismissible" role="alert">
+                        <div class="role-banner-content">
+                            <i class="ti ti-eye role-banner-icon"></i>
+                            <div class="role-banner-text">
+                                <div class="role-banner-title">Role Impersonation Active</div>
+                                <div class="role-banner-description">
+                                    You are viewing the application as:
+                                    <span class="role-banner-roles">{{ ', '.join(user_roles) }}</span>
+                                </div>
                             </div>
-                            <form action="{{ url_for('role_impersonation.stop_impersonation_form') }}" method="post" class="d-inline">
+                            <form action="{{ url_for('role_impersonation.stop_impersonation_form') }}" method="post" class="role-banner-button">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-sm btn-outline-warning ms-3">
+                                <button type="submit" class="btn btn-sm btn-outline-warning">
                                     <i class="ti ti-x me-1"></i> Stop Viewing As
                                 </button>
                             </form>
@@ -380,12 +548,10 @@
     <script src="{{ url_for('static', filename='vendor/libs/jquery/jquery.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/libs/popper/popper.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/js/bootstrap.js') }}"></script>
-    <!-- Waves library is included but disabled -->
+    <!-- Waves library for ripple effects (logic only, styling via CSS) -->
     <script src="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.js') }}"></script>
-    <!-- Simple Waves disabler -->
-    <script src="{{ url_for('static', filename='custom_js/disable-waves.js') }}"></script>
-    <!-- Custom ripple effect disabler for any other ripple implementations -->
-    <script src="{{ url_for('static', filename='custom_js/custom-ripple-disabler.js') }}"></script>
+    <!-- Prevent waves from injecting inline styles -->
+    <script src="{{ url_for('static', filename='custom_js/waves-css-override.js') }}"></script>
     <!-- SweetAlert2 for nice notifications -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
@@ -452,18 +618,14 @@
     
     <!-- Report Match JS - Consolidated functionality -->
     <script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
-    
-    <!-- Simple Modal Fix -->
-    <script src="{{ url_for('static', filename='custom_js/simple-modal-fix.js') }}"></script>
-    
-    <!-- Modal Repair - fixes any issues with modals from button fixes -->
-    <script src="{{ url_for('static', filename='custom_js/modal-repair.js') }}"></script>
-    
-    <!-- Button Diagnostic - helps debug button size issues -->
-    <script src="{{ url_for('static', filename='custom_js/button-diagnostic.js') }}"></script>
-    
-    <!-- Button Mouseup Fix - prevents buttons from expanding on release -->
-    <script src="{{ url_for('static', filename='custom_js/button-mouseup-fix.js') }}"></script>
+
+    <!-- Modal Helpers - Consolidated modal utilities (replaces simple-modal-fix.js + simple-report-fix.js) -->
+    <script src="{{ url_for('static', filename='custom_js/modal-helpers.js') }}"></script>
+
+    <!-- DISABLED: These scripts inject inline styles that conflict with CSS refactoring -->
+    {# <script src="{{ url_for('static', filename='custom_js/modal-repair.js') }}"></script> #}
+    {# <script src="{{ url_for('static', filename='custom_js/button-diagnostic.js') }}"></script> #}
+    {# <script src="{{ url_for('static', filename='custom_js/button-mouseup-fix.js') }}"></script> #}
     
     <!-- SMS Verification functionality -->
     <script src="{{ url_for('static', filename='custom_js/sms-verification.js') }}"></script>
@@ -699,10 +861,7 @@
         }).autocomplete("instance")._renderItem = function(ul, item) {
             // Create a container for the image and name
             var $li = $("<li>");
-            var $div = $("<div>").css({
-                "display": "flex",
-                "align-items": "center"
-            });
+            var $div = $("<div>").addClass("ui-menu-item-wrapper");
             if(item.profile_picture_url) {
                 $div.append("<img src='" + item.profile_picture_url + "' class='autocomplete-profile-img' />");
             }
@@ -745,36 +904,7 @@
     <!-- Custom JS for specific pages -->
     {% block custom_js %}
     {% endblock %}
-    
-    <!-- Desktop-specific button fix -->
-    <style>
-        /* Desktop override for buttons */
-        @media (hover: hover) and (pointer: fine) {
-            /* Desktop devices with mouse */
-            button, .btn, .ecs-btn, [class*="btn-"] {
-                transform: none !important;
-                transition: background-color 0.15s ease-in-out, 
-                           color 0.15s ease-in-out,
-                           border-color 0.15s ease-in-out !important;
-            }
-            
-            button:active, .btn:active, .ecs-btn:active, [class*="btn-"]:active,
-            button:hover, .btn:hover, .ecs-btn:hover, [class*="btn-"]:hover,
-            button:focus, .btn:focus, .ecs-btn:focus, [class*="btn-"]:focus {
-                transform: none !important;
-            }
-            
-            /* Never apply scaling on desktop */
-            .touch-active {
-                transform: none !important;
-                opacity: 0.9;
-            }
-        }
-    </style>
-    
-    <!-- Simple report match modal fix -->
-    <script src="{{ url_for('static', filename='custom_js/simple-report-fix.js') }}"></script>
-    
+
     <!-- Mobile menu fix for iOS and other mobile devices -->
     <script src="{{ url_for('static', filename='custom_js/mobile-menu-fix.js') }}"></script>
 
@@ -787,18 +917,9 @@
     
     <!-- Toggle switch fix removed -->
     
-    <!-- Initialize buttons consistently -->
+    <!-- Initialize modal backdrop cleanup -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Apply to all devices
-            const buttons = document.querySelectorAll('button, .btn, .ecs-btn, [class*="btn-"], .edit-match-btn');
-            buttons.forEach(button => {
-                // Override transform property 
-                button.style.transform = 'none';
-                
-                // Note: Cursor is handled by CSS, not JavaScript
-            });
-            
             // Clean up any stray modal backdrops
             const cleanupBackdrops = function() {
                 const backdrops = document.querySelectorAll('.modal-backdrop');
@@ -809,11 +930,10 @@
                         }
                     });
                     document.body.classList.remove('modal-open');
-                    document.body.style.overflow = '';
-                    document.body.style.paddingRight = '';
+                    // Reset body styles (overflow and padding handled by CSS)
                 }
             };
-            
+
             // Run initial cleanup
             cleanupBackdrops();
         });

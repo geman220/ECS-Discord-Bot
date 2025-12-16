@@ -1,0 +1,347 @@
+/**
+ * ============================================================================
+ * MODAL HELPERS - CSS Support
+ * ============================================================================
+ *
+ * CSS classes used by modal-helpers.js to manage modal behavior
+ * WITHOUT inline styles.
+ *
+ * This file provides:
+ * - Button transform prevention classes
+ * - iOS modal scrolling fixes
+ * - Mobile viewport adjustments
+ * - Modal state management classes
+ *
+ * Works in conjunction with:
+ * - /js/modal-helpers.js
+ * - /css/components/modals.css
+ * - /css/utilities/transform-utils.css
+ * - /css/utilities/mobile-utils.css
+ *
+ * Replaces inline styles from:
+ * - simple-modal-fix.js
+ * - simple-report-fix.js
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   BUTTON TRANSFORM PREVENTION
+   Global fix for buttons to prevent scaling/transform on interaction
+   ============================================================================ */
+
+/**
+ * Force all buttons to never transform
+ * Prevents waves/ripple effects from scaling buttons
+ */
+button,
+.btn,
+a.btn,
+.edit-match-btn,
+[class*="btn-"],
+.ecs-btn,
+[class*="ecs-btn-"] {
+    transform: none !important;
+    transition: background-color 0.15s ease-in-out,
+                color 0.15s ease-in-out,
+                border-color 0.15s ease-in-out,
+                box-shadow 0.15s ease-in-out !important;
+}
+
+/**
+ * Prevent transform on button states
+ */
+button:hover,
+button:focus,
+button:active,
+.btn:hover,
+.btn:focus,
+.btn:active {
+    transform: none !important;
+}
+
+/**
+ * Fix for waves-effect ripples
+ * Allows ripple animation but prevents parent button transform
+ */
+.waves-ripple,
+.waves-effect,
+.ripple-effect {
+    transform: none !important;
+}
+
+/* Remove box-shadow transforms */
+button:active,
+.btn:active {
+    box-shadow: none !important;
+}
+
+/* ============================================================================
+   IOS MODAL SCROLLING FIXES
+   ============================================================================ */
+
+/**
+ * Fix iOS body scrolling when modal is open
+ */
+body.modal-open {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+/**
+ * Enable momentum scrolling for modal elements on iOS
+ */
+.modal {
+    -webkit-overflow-scrolling: touch;
+}
+
+/**
+ * Modal dialog spacing for safe areas on iOS
+ */
+.modal-dialog {
+    margin-top: env(safe-area-inset-top, 20px);
+    margin-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+/**
+ * iOS scroll fix class applied by JavaScript
+ */
+.ios-scroll {
+    -webkit-overflow-scrolling: touch !important;
+    overflow-y: auto;
+}
+
+/* ============================================================================
+   MOBILE VIEWPORT HEIGHT FIXES
+   Addresses mobile browser address bar issues
+   ============================================================================ */
+
+/**
+ * Modal dialog uses custom viewport height on mobile
+ * JavaScript sets --vh custom property
+ */
+@media (max-width: 767px) {
+    .modal-dialog {
+        max-height: calc(var(--vh, 1vh) * 90);
+        margin: calc(var(--vh, 1vh) * 5) auto;
+    }
+
+    .modal-content {
+        max-height: calc(var(--vh, 1vh) * 90);
+        overflow-y: auto;
+    }
+}
+
+/* ============================================================================
+   MODAL STATE MANAGEMENT
+   Classes applied by JavaScript for modal lifecycle
+   ============================================================================ */
+
+/**
+ * Modal active state (applied when modal is shown)
+ * Used for z-index management and state tracking
+ */
+.modal.modal-active {
+    /* Z-index handled by --z-modal CSS variable */
+    z-index: var(--z-modal);
+}
+
+.modal-backdrop.modal-active {
+    z-index: var(--z-modal-backdrop);
+}
+
+/* ============================================================================
+   BACKDROP IMPROVEMENTS
+   Enhanced backdrop behavior
+   ============================================================================ */
+
+/**
+ * Ensure backdrop always has correct z-index
+ */
+.modal-backdrop {
+    z-index: var(--z-modal-backdrop) !important;
+    position: fixed !important;
+}
+
+/**
+ * Backdrop fade transitions
+ */
+.modal-backdrop.hide {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* ============================================================================
+   MODAL Z-INDEX LAYERING
+   Ensures proper stacking order
+   ============================================================================ */
+
+/**
+ * Modal and its children use CSS variables for z-index
+ * No hardcoded values
+ */
+.modal,
+#backgroundImageModal,
+.ecs-modal {
+    z-index: var(--z-modal) !important;
+    position: fixed !important;
+}
+
+.modal-dialog {
+    z-index: calc(var(--z-modal) + 1) !important;
+    position: relative !important;
+}
+
+.modal-content {
+    z-index: calc(var(--z-modal) + 2) !important;
+    position: relative !important;
+}
+
+/**
+ * Special handling for background image modal (higher priority)
+ */
+#backgroundImageModal {
+    z-index: calc(var(--z-modal) + 10) !important;
+}
+
+#backgroundImageModal .modal-dialog {
+    z-index: calc(var(--z-modal) + 10) !important;
+}
+
+#backgroundImageModal .modal-content {
+    z-index: calc(var(--z-modal) + 10) !important;
+}
+
+/* ============================================================================
+   OVERSCROLL PREVENTION
+   Prevents rubber-band scrolling on iOS
+   ============================================================================ */
+
+.modal {
+    overscroll-behavior: contain;
+}
+
+.prevent-overscroll {
+    overscroll-behavior: none !important;
+}
+
+/* ============================================================================
+   MOBILE-SPECIFIC ADJUSTMENTS
+   ============================================================================ */
+
+@media (max-width: 767px) {
+    /**
+     * Larger touch targets for close buttons on mobile
+     */
+    .modal-header .btn-close {
+        min-width: 44px;
+        min-height: 44px;
+        padding: 0.75rem;
+    }
+
+    /**
+     * Full-width buttons in modal footer on mobile
+     */
+    .modal-footer {
+        flex-direction: column;
+    }
+
+    .modal-footer .btn {
+        width: 100%;
+    }
+}
+
+/* ============================================================================
+   ACCESSIBILITY IMPROVEMENTS
+   ============================================================================ */
+
+/**
+ * Focus trap for modals
+ */
+.modal[tabindex="-1"]:focus {
+    outline: 0;
+}
+
+/**
+ * Visible focus indicator
+ */
+.modal-content:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+}
+
+/* ============================================================================
+   PERFORMANCE OPTIMIZATIONS
+   ============================================================================ */
+
+/**
+ * Hardware acceleration for modal transitions
+ */
+.modal-dialog {
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+/* Remove will-change after transition completes (set by JS) */
+.modal.show .modal-dialog {
+    will-change: auto;
+}
+
+/* ============================================================================
+   REDUCED MOTION SUPPORT
+   Respect user preferences
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    .modal.fade .modal-dialog,
+    .modal-backdrop.fade {
+        transition: none;
+    }
+
+    .modal.fade .modal-dialog {
+        transform: none;
+    }
+
+    button,
+    .btn {
+        transition: none !important;
+    }
+}
+
+/* ============================================================================
+   COMPATIBILITY LAYER
+   Legacy class name support
+   ============================================================================ */
+
+/**
+ * Support for legacy ECS modal classes
+ */
+.ecs-modal .modal-content {
+    /* Already styled by base modal classes */
+}
+
+.dark-mode-applied .modal-content {
+    /* Already handled by [data-style="dark"] in modals.css */
+}
+
+/* ============================================================================
+   DEBUGGING UTILITIES (development only)
+   Remove or comment out in production
+   ============================================================================ */
+
+/*
+.modal[data-debug="true"]::before {
+    content: "Modal Active";
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    padding: 0.5rem 1rem;
+    background: red;
+    color: white;
+    z-index: 99999;
+    font-size: 12px;
+    border-radius: 4px;
+}
+*/
