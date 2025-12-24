@@ -4,7 +4,10 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block page_css %}
+
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/features/coach-dashboard.css') }}">
+{% endif %}
 {% endblock %}
 
 <!-- Match Card Macro -->

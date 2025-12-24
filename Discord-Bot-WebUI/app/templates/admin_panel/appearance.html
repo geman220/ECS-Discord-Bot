@@ -8,7 +8,9 @@
 
 {% block custom_css %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/appearance.css') }}">
+{% endif %}
 {% endblock %}
 
 {% block panel_content %}

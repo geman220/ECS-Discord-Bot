@@ -2,7 +2,10 @@
 {% block title %}Submit Feedback{% endblock %}
 
 {% block page_css %}
+
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/feedback.css') }}" />
+{% endif %}
 {% endblock %}
 
 {% block main_content %}

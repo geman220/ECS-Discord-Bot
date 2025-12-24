@@ -226,7 +226,9 @@
 
 {% block custom_css %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/teams-overview.css') }}">
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

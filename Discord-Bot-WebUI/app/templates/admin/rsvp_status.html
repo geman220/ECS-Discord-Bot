@@ -5,9 +5,11 @@
 {% block custom_css %}
 {{ super() }}
 <!-- RSVP Status Page Styles -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/rsvp-status.css') }}" />
 <!-- Toastr CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/rsvp-status.css') }}" />
+{% endif %}
 {% endblock %}
 
 {% block main_content %}

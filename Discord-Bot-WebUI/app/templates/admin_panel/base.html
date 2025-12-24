@@ -96,10 +96,12 @@
 {% block custom_css %}
 {{ super() }}
 <!-- Admin Panel Base Layout - BEM Classes -->
+<!-- Dropdowns: Handled by components/dropdowns.css (loaded globally) -->
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/base.css') }}?v={{ config.get('STATIC_VERSION', '3') }}" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/admin-navigation.css') }}?v={{ config.get('STATIC_VERSION', '3') }}" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/dashboard.css') }}?v={{ config.get('STATIC_VERSION', '3') }}" />
-<!-- Dropdowns: Handled by components/dropdowns.css (loaded globally) -->
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

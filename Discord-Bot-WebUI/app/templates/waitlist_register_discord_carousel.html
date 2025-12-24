@@ -27,7 +27,10 @@
 
 {% block main_content %}
 {% block page_css %}
+
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/waitlist-registration.css') }}" />
+{% endif %}
 {% endblock %}
 
 <div class="c-waitlist c-waitlist--carousel" data-component="waitlist-carousel">

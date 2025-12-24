@@ -3,9 +3,10 @@
 Production Asset Validation Script
 
 Run this script before deploying to verify:
-1. All vendor JS files are clean (no webpack dev builds)
-2. All files referenced in production bundles exist
-3. Templates have proper production mode conditionals
+1. Production bundles (CSS and JS) exist and have reasonable sizes
+2. All vendor JS files are clean (no webpack dev builds)
+3. All files referenced in production bundles exist
+4. Templates have proper production mode conditionals for both CSS and JS
 
 Usage:
     python validate_production_assets.py
@@ -28,6 +29,20 @@ RESET = '\033[0m'
 
 STATIC_DIR = Path(__file__).parent / "app" / "static"
 TEMPLATES_DIR = Path(__file__).parent / "app" / "templates"
+
+# Production bundle requirements
+PRODUCTION_BUNDLES = {
+    'gen/production.min.css': {
+        'min_size': 100000,   # 100 KB minimum
+        'max_size': 3000000,  # 3 MB maximum
+        'description': 'Production CSS bundle'
+    },
+    'gen/production.min.js': {
+        'min_size': 200000,   # 200 KB minimum
+        'max_size': 5000000,  # 5 MB maximum
+        'description': 'Production JS bundle'
+    }
+}
 
 # Files that should be in the production bundle
 PRODUCTION_JS_FILES = [
@@ -71,6 +86,42 @@ VENDOR_JS_CLEAN = [
 
 def check_mark(passed):
     return f"{GREEN}✓{RESET}" if passed else f"{RED}✗{RESET}"
+
+
+def check_production_bundles():
+    """Check that production bundles exist and have reasonable sizes."""
+    print(f"\n{YELLOW}Checking production bundles...{RESET}")
+
+    all_passed = True
+    for bundle_path, requirements in PRODUCTION_BUNDLES.items():
+        full_path = STATIC_DIR / bundle_path
+
+        if not full_path.exists():
+            print(f"  {RED}✗{RESET} {requirements['description']}: MISSING ({bundle_path})")
+            all_passed = False
+            continue
+
+        size = full_path.stat().st_size
+        size_kb = size / 1024
+        size_mb = size_kb / 1024
+
+        if size < requirements['min_size']:
+            print(f"  {RED}✗{RESET} {requirements['description']}: TOO SMALL ({size_kb:.1f} KB, min: {requirements['min_size']/1024:.1f} KB)")
+            all_passed = False
+        elif size > requirements['max_size']:
+            print(f"  {YELLOW}⚠{RESET} {requirements['description']}: LARGE ({size_mb:.2f} MB, max target: {requirements['max_size']/1024/1024:.1f} MB)")
+            # Don't fail for being too large, just warn
+            if size_mb >= 1:
+                print(f"  {GREEN}✓{RESET} {requirements['description']}: {size_mb:.2f} MB")
+            else:
+                print(f"  {GREEN}✓{RESET} {requirements['description']}: {size_kb:.1f} KB")
+        else:
+            if size_mb >= 1:
+                print(f"  {GREEN}✓{RESET} {requirements['description']}: {size_mb:.2f} MB")
+            else:
+                print(f"  {GREEN}✓{RESET} {requirements['description']}: {size_kb:.1f} KB")
+
+    return all_passed
 
 
 def check_vendor_files():
@@ -123,11 +174,13 @@ def check_production_files_exist():
 
 
 def check_templates():
-    """Check templates for proper production mode handling."""
+    """Check templates for proper production mode handling (both JS and CSS)."""
     print(f"\n{YELLOW}Checking templates for production mode issues...{RESET}")
 
-    issues = []
-    checked = 0
+    js_issues = []
+    css_issues = []
+    js_checked = 0
+    css_checked = 0
 
     for root, dirs, files in os.walk(TEMPLATES_DIR):
         dirs[:] = [d for d in dirs if not d.startswith('.') and d != '__pycache__']
@@ -138,43 +191,65 @@ def check_templates():
 
             filepath = Path(root) / filename
             content = filepath.read_text(encoding='utf-8', errors='ignore')
+            relative_path = str(filepath.relative_to(TEMPLATES_DIR))
 
-            # Skip if no custom_js block
-            if '{% block custom_js %}' not in content:
-                continue
+            # Check custom_js blocks
+            if '{% block custom_js %}' in content:
+                block_match = re.search(
+                    r'\{%\s*block\s+custom_js\s*%\}(.*?)\{%\s*endblock',
+                    content,
+                    re.DOTALL
+                )
+                if block_match:
+                    block_content = block_match.group(1)
+                    js_checked += 1
 
-            # Extract custom_js block content
-            block_match = re.search(
-                r'\{%\s*block\s+custom_js\s*%\}(.*?)\{%\s*endblock',
-                content,
-                re.DOTALL
-            )
-            if not block_match:
-                continue
+                    # Check if block has LOCAL scripts (url_for('static'))
+                    has_local = "url_for('static'" in block_content or 'url_for("static"' in block_content
+                    if has_local and 'ASSETS_PRODUCTION_MODE' not in block_content:
+                        js_issues.append(relative_path)
 
-            block_content = block_match.group(1)
-            checked += 1
+            # Check custom_css blocks
+            if '{% block custom_css %}' in content:
+                block_match = re.search(
+                    r'\{%\s*block\s+custom_css\s*%\}(.*?)\{%\s*endblock',
+                    content,
+                    re.DOTALL
+                )
+                if block_match:
+                    block_content = block_match.group(1)
+                    css_checked += 1
 
-            # Check if block has LOCAL scripts (url_for('static'))
-            has_local = "url_for('static'" in block_content or 'url_for("static"' in block_content
-            if not has_local:
-                continue  # Only CDN or inline scripts - OK
+                    # Check if block has LOCAL stylesheets (url_for('static'))
+                    has_local = "url_for('static'" in block_content or 'url_for("static"' in block_content
+                    if has_local and 'ASSETS_PRODUCTION_MODE' not in block_content:
+                        css_issues.append(relative_path)
 
-            # Check if block has production mode conditional
-            if 'ASSETS_PRODUCTION_MODE' not in block_content:
-                relative_path = filepath.relative_to(TEMPLATES_DIR)
-                issues.append(str(relative_path))
+    all_passed = True
 
-    if issues:
-        print(f"  {RED}✗{RESET} {len(issues)} templates with local scripts missing production mode check:")
-        for issue in issues[:10]:  # Show first 10
+    # Report JS issues
+    if js_issues:
+        print(f"  {RED}✗{RESET} {len(js_issues)} templates with local JS missing production mode check:")
+        for issue in js_issues[:5]:
             print(f"      - {issue}")
-        if len(issues) > 10:
-            print(f"      ... and {len(issues) - 10} more")
-        return False
+        if len(js_issues) > 5:
+            print(f"      ... and {len(js_issues) - 5} more")
+        all_passed = False
+    else:
+        print(f"  {GREEN}✓{RESET} All {js_checked} templates with custom_js blocks OK")
 
-    print(f"  {GREEN}✓{RESET} All {checked} templates with custom_js blocks have proper production mode handling")
-    return True
+    # Report CSS issues
+    if css_issues:
+        print(f"  {RED}✗{RESET} {len(css_issues)} templates with local CSS missing production mode check:")
+        for issue in css_issues[:5]:
+            print(f"      - {issue}")
+        if len(css_issues) > 5:
+            print(f"      ... and {len(css_issues) - 5} more")
+        all_passed = False
+    else:
+        print(f"  {GREEN}✓{RESET} All {css_checked} templates with custom_css blocks OK")
+
+    return all_passed
 
 
 def check_jquery_valid():
@@ -212,8 +287,10 @@ def main():
 
     results = []
 
+    # Critical check first - do production bundles exist?
+    results.append(("Production bundles exist", check_production_bundles()))
     results.append(("Vendor JS files clean", check_vendor_files()))
-    results.append(("Production files exist", check_production_files_exist()))
+    results.append(("Production source files exist", check_production_files_exist()))
     results.append(("jQuery valid", check_jquery_valid()))
     results.append(("Templates production mode", check_templates()))
 

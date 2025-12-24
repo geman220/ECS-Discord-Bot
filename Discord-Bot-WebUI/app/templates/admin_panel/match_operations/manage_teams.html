@@ -11,9 +11,11 @@
 
 {% block custom_css %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/c-tabs.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/match-operations/seasons.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/match-operations/manage-teams.css') }}">
+{% endif %}
 {% endblock %}
 
 {% block panel_content %}

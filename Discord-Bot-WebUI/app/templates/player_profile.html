@@ -1481,7 +1481,9 @@
 {% block custom_css %}
 {{ super() }}
 <!-- Cropper.css -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
 <!-- Player profile styles -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/features/player-profile.css') }}" />
+{% endif %}
 {% endblock %}
