@@ -1,18 +1,23 @@
 /**
  * Cache Clearing Utility
  * Handles force clearing of browser cache for mobile experience updates
+ *
+ * IMPORTANT: This should only run on a dedicated cache-clearing page, not globally.
+ * The function is exposed globally but NOT auto-executed.
  */
 
-document.addEventListener('DOMContentLoaded', function() {
-    clearCacheAndRedirect();
-});
+// Only auto-execute on the dedicated clear-cache page
+// Removed: document.addEventListener('DOMContentLoaded', function() { clearCacheAndRedirect(); });
 
+/**
+ * Call this function manually when cache clearing is needed.
+ * Example: <button onclick="clearCacheAndRedirect()">Clear Cache</button>
+ */
 function clearCacheAndRedirect() {
-    // Key files that need to be refreshed
+    // Files that exist in the production bundle
     const filesToClear = [
-        '/static/css/ecs-core.css',
-        '/static/css/ecs-components.css',
-        '/static/css/ecs-utilities.css'
+        '/static/gen/production.min.css',
+        '/static/gen/production.min.js'
     ];
 
     // Create a new cache version

@@ -187,8 +187,8 @@
     // ----------------------------------------------------------------------------
     // Prevents node-waves from injecting inline styles while keeping ripple functionality
     InitSystem.register('waves-css-override', function() {
-        if (!window.Waves) {
-            console.warn('[Waves Override] Waves library not loaded');
+        if (!window.Waves || !window.Waves.Effect) {
+            console.warn('[Waves Override] Waves library not fully loaded');
             return;
         }
 
