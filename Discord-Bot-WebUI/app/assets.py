@@ -642,8 +642,8 @@ def init_assets(app):
         'assets/vendor/libs/shepherd/shepherd.js',   # Shepherd.js 11.2.0 UMD
 
         # Application JavaScript
+        'js/config.js',                              # MUST come before main.js (defines templateName)
         'assets/js/main.js',
-        'js/config.js',
         'js/simple-theme-switcher.js',
         'js/sidebar-interactions.js',          # Modern BEM sidebar interactions
         'js/theme-colors.js',
