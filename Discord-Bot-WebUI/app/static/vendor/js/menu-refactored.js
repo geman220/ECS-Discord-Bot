@@ -939,4 +939,5 @@ class Menu {
 
 window.Menu = Menu;
 
-export { Menu };
+// NOTE: Removed "export { Menu };" - ES6 exports break when concatenated into non-module bundles
+// The window.Menu assignment above makes Menu globally available
