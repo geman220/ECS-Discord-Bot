@@ -9,6 +9,10 @@ application. The initialization has been modularized into the app/init/ package.
 To rollback to the monolithic version:
 1. Rename this file to __init__new.py
 2. Rename __init__legacy.py to __init__.py
+
+Build Mode:
+Set SKIP_REDIS=true, SKIP_CELERY=true, SKIP_SOCKETIO=true to create a minimal app
+for asset building without external service dependencies.
 """
 
 # Fix eventlet database connection handling
@@ -18,6 +22,7 @@ try:
 except ImportError:
     pass
 
+import os
 import logging
 from flask import Flask
 
@@ -71,16 +76,32 @@ def create_app(config_object='web_config.Config'):
         init_template_helpers,
     )
 
+    # Check for build mode (minimal initialization for asset building)
+    skip_redis = os.environ.get('SKIP_REDIS', '').lower() in ('true', '1', 'yes')
+    skip_socketio = os.environ.get('SKIP_SOCKETIO', '').lower() in ('true', '1', 'yes')
+    skip_celery = os.environ.get('SKIP_CELERY', '').lower() in ('true', '1', 'yes')
+    build_mode = skip_redis or skip_socketio or skip_celery
+
+    if build_mode:
+        logger.info("Running in BUILD MODE - skipping external service initialization")
+
     # Phase 1: Core setup
     init_logging(app)
-    redis_manager = init_redis(app)
+    redis_manager = None
+    if not skip_redis:
+        redis_manager = init_redis(app)
+    else:
+        logger.info("Skipping Redis initialization (SKIP_REDIS=true)")
     init_database(app, db)
 
     # Phase 2: Extensions
     login_manager, mail, csrf, migrate = init_extensions(app, db)
 
     # Phase 3: Real-time communication
-    init_socketio(app)
+    if not skip_socketio:
+        init_socketio(app)
+    else:
+        logger.info("Skipping SocketIO initialization (SKIP_SOCKETIO=true)")
 
     # Phase 4: Authentication & Security
     init_jwt(app)
@@ -94,10 +115,16 @@ def create_app(config_object='web_config.Config'):
 
     # Phase 6: Middleware and session
     apply_middleware(app)
-    init_session(app, redis_manager)
+    if not skip_redis and redis_manager:
+        init_session(app, redis_manager)
+    else:
+        logger.info("Skipping session initialization (requires Redis)")
 
     # Phase 7: Services and CLI
-    init_services(app)
+    if not skip_celery:
+        init_services(app)
+    else:
+        logger.info("Skipping services initialization (SKIP_CELERY=true)")
     init_cli_commands(app)
 
     return app

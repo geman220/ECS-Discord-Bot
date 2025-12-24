@@ -36,6 +36,10 @@ sys.path.insert(0, str(project_root))
 # Set production environment before importing app
 os.environ['FLASK_ENV'] = 'production'
 os.environ['FLASK_DEBUG'] = 'False'
+# Skip Redis and other external services during asset build
+os.environ['SKIP_REDIS'] = 'true'
+os.environ['SKIP_CELERY'] = 'true'
+os.environ['SKIP_SOCKETIO'] = 'true'
 
 from app import create_app
 from flask_assets import Environment
