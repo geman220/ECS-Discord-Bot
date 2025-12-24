@@ -771,7 +771,8 @@ def init_assets(app):
         'js/match-operations/match-reports.js',
         'js/match-operations/seasons.js',
 
-        filters='jsmin',
+        # NOTE: No jsmin filter - vendor files are already minified from CDN
+        # jsmin was corrupting jQuery's global export ($.fn undefined)
         output='gen/production.min.js'
     )
 
