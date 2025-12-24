@@ -62,11 +62,19 @@ def init_assets(app):
     has_production_bundle = os.path.exists(production_bundle_path)
 
     # Determine if we should use production mode for assets
-    # Use production assets if:
-    # - USE_PRODUCTION_ASSETS is explicitly set, OR
-    # - Production bundle exists (built by build_assets.py at container startup), OR
-    # - FLASK_ENV=production and not debugging
-    is_production = use_prod_assets or has_production_bundle or (flask_env == 'production' and not flask_debug)
+    # Priority order:
+    # 1. FLASK_DEBUG=1 → ALWAYS use dev mode (individual files) for testing
+    # 2. USE_PRODUCTION_ASSETS=true → force production mode
+    # 3. FLASK_ENV=production + bundle exists → production mode
+    # 4. Otherwise → dev mode
+    if flask_debug:
+        is_production = False  # Debug mode ALWAYS uses individual files
+    elif use_prod_assets:
+        is_production = True   # Explicit override
+    elif flask_env == 'production' and has_production_bundle:
+        is_production = True   # Production with bundle
+    else:
+        is_production = False  # Default to dev mode
 
     # Log production mode decision for debugging
     logger.info(f"[ASSETS] Production mode detection:")
@@ -647,6 +655,7 @@ def init_assets(app):
         'js/responsive-system.js',
         'js/responsive-tables.js',
         'js/design-system.js',
+        'js/swal-contextual.js',              # SweetAlert contextual helper
         'js/admin-utilities-init.js',
         'js/utils/visibility.js',             # Visibility utility functions
         'js/components/tabs-controller.js',   # BEM tabs controller (pure JS, no Bootstrap)

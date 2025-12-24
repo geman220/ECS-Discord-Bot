@@ -516,6 +516,7 @@
         });
     </script>
 
+    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
     <!-- Minimal Helpers (replaces Sneat helpers.js - NO layout manipulation) -->
     <script src="{{ url_for('static', filename='js/helpers-minimal.js') }}"></script>
     <!-- Simple theme switcher (replaces TemplateCustomizer) -->
@@ -523,6 +524,7 @@
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
     <!-- Theme Colors Utility - provides ECSTheme.getColor() for JS -->
     <script src="{{ url_for('static', filename='js/theme-colors.js') }}"></script>
+    {% endif %}
 
     <!-- CSRF Token for Forms -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -658,8 +660,10 @@
     <!-- SweetAlert2 for nice notifications (CDN - loaded in both modes) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
     <!-- SweetAlert Contextual Helper - Smart button text based on action type -->
     <script src="{{ url_for('static', filename='js/swal-contextual.js') }}"></script>
+    {% endif %}
 
     <!-- SweetAlert Notification Handler -->
     <script>
