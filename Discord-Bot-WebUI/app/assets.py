@@ -626,7 +626,8 @@ def init_assets(app):
         # Vendor CSS (local files)
         'assets/vendor/libs/shepherd/shepherd.css',  # Guided tours
 
-        filters='cssmin',
+        # NOTE: No filters - cssmin was breaking CSS rules
+        # Files are already optimized, concatenation is sufficient
         output='gen/production.min.css'
     )
 

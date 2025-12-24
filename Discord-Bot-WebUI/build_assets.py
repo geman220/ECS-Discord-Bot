@@ -69,10 +69,10 @@ def build_bundles(app, clean=False):
     print("=" * 70)
     print()
 
-    # Clean if requested
-    if clean:
-        print("Cleaning existing bundles...")
-        clean_generated_assets(app.static_folder)
+    # ALWAYS clean in production to ensure fresh builds
+    # This prevents stale cache issues when assets.py changes
+    print("Cleaning existing bundles (always clean for production)...")
+    clean_generated_assets(app.static_folder)
 
     # Get the assets environment
     assets = app.extensions.get('assets')
