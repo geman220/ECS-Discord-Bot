@@ -148,6 +148,9 @@
 {% block custom_js %}
 {{ super() }}
 <script>
+// CSRF token for all fetch requests
+const csrfToken = '{{ csrf_token() }}';
+
 document.addEventListener('DOMContentLoaded', function() {
     // Filter handlers
     document.getElementById('leagueTypeFilter').addEventListener('change', applyFilters);
@@ -242,7 +245,10 @@ function confirmSetCurrent() {
 
     fetch(`/admin-panel/league-management/seasons/api/${seasonId}/set-current`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
         body: JSON.stringify({ perform_rollover: performRollover })
     })
     .then(response => response.json())
@@ -264,7 +270,10 @@ function deleteSeason(seasonId, seasonName) {
         `Are you sure you want to delete "${seasonName}"? This will remove all associated leagues, teams, and matches. This cannot be undone.`,
         () => {
             fetch(`/admin-panel/league-management/seasons/api/${seasonId}/delete`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
             })
             .then(response => response.json())
             .then(result => {

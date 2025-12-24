@@ -851,13 +851,37 @@ html[data-style="dark"] .modal-dialog .modal-footer,
   background: #334155 !important;
 }
 
+/* ============================================================================
+   FORM SELECT DROPDOWN ARROW FIX
+   Prevents repeating chevron issue in modals
+   ============================================================================ */
+
+/* Global fix for form-select dropdown arrows in modals */
+.modal .form-select,
+.c-modal .form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 16px 12px !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  padding-right: 2.25rem !important;
+}
+
 /* Form elements inside modals in dark mode (slate palette) */
 [data-style="dark"] .modal .form-control,
 [data-style="dark"] .modal .form-select {
   background-color: #1E293B !important; /* Slate-900 */
-  background: #1E293B !important;
   border-color: #475569 !important; /* Slate-700 */
   color: #fafafa !important;
+}
+
+/* Dark mode dropdown arrow - white chevron */
+[data-style="dark"] .modal .form-select,
+[data-style="dark"] .c-modal .form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+  background-color: #1E293B !important; /* Slate-900 */
 }
 
 [data-style="dark"] .modal .form-control:focus,

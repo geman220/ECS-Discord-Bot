@@ -258,6 +258,9 @@
 {% block custom_js %}
 {{ super() }}
 <script>
+// CSRF token for all fetch requests
+const csrfToken = '{{ csrf_token() }}';
+
 document.addEventListener('DOMContentLoaded', function() {
     // Filter handlers
     document.getElementById('seasonFilter').addEventListener('change', applyFilters);
@@ -333,7 +336,10 @@ function createTeam() {
 
     fetch('{{ url_for("admin_panel.league_management_create_team") }}', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
         body: JSON.stringify({ name: name, league_id: parseInt(leagueId) })
     })
     .then(response => response.json())
@@ -367,7 +373,10 @@ function saveTeamEdit() {
 
     fetch(`/admin-panel/league-management/teams/api/${teamId}/update`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
         body: JSON.stringify({ name: newName })
     })
     .then(response => response.json())
@@ -387,7 +396,10 @@ function saveTeamEdit() {
 function syncTeamDiscord(teamId) {
     AdminPanel.confirmAction('This will sync Discord resources for this team. Continue?', () => {
         fetch(`/admin-panel/league-management/teams/api/${teamId}/sync-discord`, {
-            method: 'POST'
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
         })
         .then(response => response.json())
         .then(result => {
@@ -402,7 +414,10 @@ function syncTeamDiscord(teamId) {
 function deleteTeam(teamId, teamName) {
     AdminPanel.confirmAction(`Are you sure you want to delete "${teamName}"? This will also remove Discord resources.`, () => {
         fetch(`/admin-panel/league-management/teams/api/${teamId}/delete`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
         })
         .then(response => response.json())
         .then(result => {
