@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 // console.error('Failed to complete the tour');
                             }
                         })
-                        .catch(error => // console.error('Error:', error));
+                        .catch(() => { /* Error handled silently */ });
                 }
             }
         ]
@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 // console.error('Failed to complete the tour');
                             }
                         })
-                        .catch(error => // console.error('Error:', error));
+                        .catch(() => { /* Error handled silently */ });
                 }
             }
         ]
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 // console.error('Failed to complete the tour');
                             }
                         })
-                        .catch(error => // console.error('Error:', error));
+                        .catch(() => { /* Error handled silently */ });
                 }
             }
         ]
@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 // console.error('Failed to complete the tour');
                             }
                         })
-                        .catch(error => // console.error('Error:', error));
+                        .catch(() => { /* Error handled silently */ });
                 }
             }
         ]
@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 // console.error('Failed to complete the tour');
                             }
                         })
-                        .catch(error => // console.error('Error:', error));
+                        .catch(() => { /* Error handled silently */ });
                 }
             }
         ]
@@ -225,7 +225,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 // console.error('Failed to complete the tour');
                             }
                         })
-                        .catch(error => // console.error('Error:', error));
+                        .catch(() => { /* Error handled silently */ });
                 }
             }
         ]
@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 // console.error('Failed to complete the tour');
                             }
                         })
-                        .catch(error => // console.error('Error:', error));
+                        .catch(() => { /* Error handled silently */ });
                 }
             }
         ]
@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 // console.error('Failed to complete the tour');
                             }
                         })
-                        .catch(error => // console.error('Error:', error));
+                        .catch(() => { /* Error handled silently */ });
                 }
             }
         ]
