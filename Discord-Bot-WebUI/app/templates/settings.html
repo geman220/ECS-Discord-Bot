@@ -297,9 +297,11 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/settings-tabs.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/settings.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/handle_2fa.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/sms-verification.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/calendar-subscription.js') }}"></script>
+{% endif %}
 {% endblock %}

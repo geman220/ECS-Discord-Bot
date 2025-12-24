@@ -490,9 +490,14 @@
     window.showTour = {{ show_tour | tojson }};
     window.playerChoices = {{ player_choices | tojson }};
 </script>
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+<!-- Page-specific JS (only in development - bundled in production) -->
 <script src="{{ url_for('static', filename='custom_js/tour.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
+{% endif %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/home.js') }}"></script>
+{% endif %}
 {% if show_onboarding or session.get('force_onboarding') %}
 <script src="{{ url_for('static', filename='custom_js/onboarding.js') }}"></script>
 <script>

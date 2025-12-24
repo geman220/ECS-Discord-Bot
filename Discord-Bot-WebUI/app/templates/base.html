@@ -267,78 +267,38 @@
     {% endassets %}
     {% endif %}
 
-    <!-- 4B. MODAL HELPERS (Component CSS)
-         CSS support for modal-helpers.js - replaces inline styles from fix scripts
-         Provides transform fixes, z-index management, and modal utilities -->
+    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    <!-- DEVELOPMENT MODE: Load individual component CSS files
+         In production, these are all bundled in production.min.css -->
+
+    <!-- 4B. MODAL HELPERS (Component CSS) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/modal-helpers.css') }}" />
 
-    <!-- 4C. MODERN CORE COMPONENTS (Phase 2 Component Library)
-         Complete UI component system with athletic precision
-         Glass-morphism, smooth animations, responsive design, dark mode support -->
-
-    <!-- Cards - Glass-morphism cards with variants (stat, match, clickable) -->
+    <!-- 4C. MODERN CORE COMPONENTS (Phase 2 Component Library) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/cards-modern.css') }}" />
-
-    <!-- Buttons - Athletic buttons with ripple effects and loading states -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/buttons-modern.css') }}" />
-
-    <!-- Forms - Floating labels, glowing focus, validation states -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/forms-modern.css') }}" />
-
-    <!-- Tables - Responsive tables with card view for mobile -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tables-modern.css') }}" />
-
-    <!-- NOTE: modals-modern.css and dropdowns-modern.css were DELETED (0 template uses)
-         Modal styles are in css/components/modals.css and css/components/c-modal.css
-         Dropdown styles are in css/components/dropdowns.css and css/components/c-dropdown.css -->
-
-    <!-- Toasts - Slide-in notifications with auto-dismiss -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/toasts-modern.css') }}" />
-
-    <!-- Tooltips - Floating tooltips with arrow indicators -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tooltips-modern.css') }}" />
-
-    <!-- Loaders - Skeleton screens, spinners, progress bars -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/loaders-modern.css') }}" />
-
-    <!-- Empty States - Illustrated empty states with CTAs -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/empty-states-modern.css') }}" />
-
-    <!-- SweetAlert Integration - Custom SweetAlert2 styling -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/sweetalert-modern.css') }}" />
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
-    <!-- 6. LAYOUT & MOBILE (Responsive Structure)
-         Layout system: responsive grid, mobile optimizations, navigation
-         Ensures proper display across all device sizes -->
+    <!-- 6. LAYOUT & MOBILE (Responsive Structure) -->
     {% assets "layout_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
-
-    <!-- 6B. MOBILE BUNDLE (Critical for Responsive Navigation)
-         Mobile-responsive styles: navigation, forms, tables
-         Contains admin nav, mobile menu, and responsive components -->
     {% assets "mobile_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
-    {% endif %}
 
-    <!-- 7. MODERN NAVBAR (Loads LAST to Override Layout Defaults)
-         Modern navbar with glass-morphism, smooth animations, and responsive design
-         Refined Sports Tech aesthetic - must load after layout_css bundle -->
+    <!-- 7. MODERN NAVBAR & WIDGETS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/navbar-modern.css') }}" />
-
-    <!-- 7b. ONLINE STATUS INDICATOR
-         Shows user online/offline status with animated indicators -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/online-status.css') }}" />
-
-    <!-- 7c. ONLINE USERS WIDGET
-         Compact sidebar widget showing currently online users -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/online-users-widget.css') }}" />
-
-    <!-- 7d. CHAT WIDGET
-         Floating chat widget for direct messaging -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/c-chat-widget.css') }}" />
+    {% endif %}
 
     <!-- 8. VENDOR CDN CSS (Third-party Libraries)
          External library styles loaded via CDN
@@ -366,10 +326,10 @@
     <!-- jQuery UI - Legacy UI components -->
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 
-    <!-- Shepherd.js - Guided tours -->
+    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    <!-- Shepherd.js - Guided tours (bundled in production) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.css') }}">
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
     <!-- 7. FEATURES (Feature-Specific Styles)
          Feature-specific CSS: draft, pitch view, profiles, playoffs, etc.
          Commonly used features across the application -->
@@ -655,10 +615,6 @@
          JAVASCRIPT LOADING: Production vs Development
          ============================================ -->
 
-    <!-- CSRF Token Auto-Injection for Fetch Requests (loaded in both modes) -->
-    <!-- Patches window.fetch to automatically add X-CSRFToken header to POST/PUT/DELETE/PATCH -->
-    <script src="{{ url_for('static', filename='js/csrf-fetch.js') }}"></script>
-
     {% if config.get('ASSETS_PRODUCTION_MODE') %}
     <!-- PRODUCTION MODE: Single minified bundle -->
     {% assets "production_js" %}
@@ -666,6 +622,8 @@
     {% endassets %}
     {% else %}
     <!-- DEVELOPMENT MODE: Individual files -->
+    <!-- CSRF Token Auto-Injection for Fetch Requests -->
+    <script src="{{ url_for('static', filename='js/csrf-fetch.js') }}"></script>
     <!-- Core JS -->
     <script src="{{ url_for('static', filename='vendor/libs/jquery/jquery.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/libs/popper/popper.js') }}"></script>
@@ -795,9 +753,15 @@
     
     <!-- Load modals via AJAX (after jQuery is loaded) -->
     <script>
-        $(document).ready(function() {
-            // Only load modals if edit buttons exist on the page
-            if ($('.edit-match-btn').length > 0) {
+        // Wait for jQuery to be available (handles both bundled and separate loading)
+        (function waitForjQuery() {
+            if (typeof $ === 'undefined' || typeof jQuery === 'undefined') {
+                setTimeout(waitForjQuery, 50);
+                return;
+            }
+            $(document).ready(function() {
+                // Only load modals if edit buttons exist on the page
+                if ($('.edit-match-btn').length > 0) {
                 // First, collect all match IDs from all edit buttons
                 const matchIds = [];
                 $('.edit-match-btn').each(function() {
@@ -841,13 +805,16 @@
                     }
                 });
             }
-        });
+            });
+        })();
     </script>
-    
+
     <!-- No JavaScript needed for z-index - CSS handles it! -->
 
-    <!-- Other JS files -->
+    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    <!-- Other JS files (only in development - bundled in production) -->
     <script src="{{ url_for('static', filename='assets/js/main.js') }}"></script>
+    {% endif %}
 
     <!-- Select2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -865,8 +832,10 @@
     <!-- FullCalendar JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.15/index.global.min.js"></script>
 
-    <!-- Shepherd.js for guided tours -->
+    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    <!-- Shepherd.js for guided tours (bundled in production) -->
     <script src="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.js') }}"></script>
+    {% endif %}
 
     <!-- SweetAlert2 JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.0/sweetalert2.min.js"></script>
@@ -883,8 +852,14 @@
     <!-- Global Scripts -->
     <!-- Theme initialization moved to top of head to prevent FOUC -->
     <script>
-        $(document).ready(function () {
-            function initializeSelect2() {
+        // Wait for jQuery to be available
+        (function waitForjQuery2() {
+            if (typeof $ === 'undefined' || typeof jQuery === 'undefined') {
+                setTimeout(waitForjQuery2, 50);
+                return;
+            }
+            $(document).ready(function () {
+                function initializeSelect2() {
                 $('.select2-single').select2({
                     placeholder: 'Select an option',
                     allowClear: true,
@@ -923,7 +898,8 @@
             if (typeof feather !== 'undefined') {
                 feather.replace();
             }
-        });
+            });
+        })();
     </script>
     <!-- Initialize and Auto-Dismiss Toasts -->
     <script>
@@ -1040,15 +1016,13 @@
     {% block custom_js %}
     {% endblock %}
 
-    <!-- Mobile menu fix for iOS and other mobile devices -->
+    {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+    <!-- Mobile menu fix for iOS and other mobile devices (bundled in production) -->
     <script src="{{ url_for('static', filename='custom_js/mobile-menu-fix.js') }}"></script>
 
-    <!-- Mobile table enhancement for better display -->
-    <!-- DISABLED: Conflicts with responsive-tables.js (adds data-title instead of data-label) -->
-    <!-- <script src="{{ url_for('static', filename='js/mobile-table-enhancer.js') }}"></script> -->
-
-    <!-- Enhanced Mobile Functionality v3.0 -->
+    <!-- Enhanced Mobile Functionality v3.0 (bundled in production) -->
     <script src="{{ url_for('static', filename='custom_js/mobile-tables.js') }}" defer></script>
+    {% endif %}
     
     <!-- Toggle switch fix removed -->
     

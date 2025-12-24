@@ -463,6 +463,8 @@ def init_assets(app):
         'css/components/misc-components.css',       # Miscellaneous components
         'css/components/remaining-components.css',  # Final gap coverage
         'css/components/ui-fixes.css',              # UI bug fixes and compatibility
+        'css/components/c-schedule.css',            # Schedule component
+        'css/components/chat-widget.css',           # Chat widget (legacy)
 
         # Utilities
         'css/core/admin-utilities.css',        # Admin-specific utility classes
@@ -492,6 +494,8 @@ def init_assets(app):
         'css/layout/base-layout.css',
         'css/layout/sidebar-modern.css',       # Modern BEM sidebar (.c-sidebar__*)
         'css/layout/navbar.css',
+        'css/layout/navbar-modern.css',        # Modern navbar overrides
+        'css/layout/auth-layout.css',          # Auth page layout
         'css/layout/mobile.css',
         'css/layout/mobile-navigation.css',
         'css/layout/mobile-forms.css',
@@ -508,25 +512,91 @@ def init_assets(app):
         'css/features/store.css',
         'css/features/wallet.css',
         'css/features/profile-success-animations.css',
+        'css/features/coach-dashboard.css',         # Coach dashboard
 
-        # Pages
+        # Pages - Core
         'css/pages/match-view.css',
         'css/pages/profile-wizard.css',
         'css/pages/authentication.css',
         'css/pages/waitlist-registration.css',
+        'css/pages/waitlist-confirmation.css',
         'css/pages/admin.css',
         'css/pages/calendar.css',
         'css/pages/home.css',
+        'css/pages/home-modern.css',
         'css/pages/teams-overview.css',
         'css/pages/seasons.css',
         'css/pages/standings.css',
         'css/pages/seasonal-schedule.css',
         'css/pages/verify-2fa.css',
-        # NOTE: settings.css already included in Features section above
+        'css/pages/settings.css',
         'css/pages/user-management.css',
         'css/pages/players.css',
+        'css/pages/players-list.css',
         'css/pages/team-details.css',
+        'css/pages/team-detail.css',
         'css/pages/teams.css',
+        'css/pages/error-pages.css',
+        'css/pages/feedback.css',
+        'css/pages/matches-list.css',
+        'css/pages/messages-inbox.css',
+        'css/pages/mobile-wizard.css',
+        'css/pages/notifications.css',
+        'css/pages/onboarding.css',
+        'css/pages/privacy-policy.css',
+        'css/pages/profile-verify.css',
+        'css/pages/roles.css',
+        'css/pages/rsvp-pages.css',
+        'css/pages/schedule-wizard.css',
+        'css/pages/scheduled-messages.css',
+        'css/pages/store.css',
+        'css/pages/utilities.css',
+
+        # Pages - Admin (Flask-Assets doesn't follow @import, must list individually)
+        'css/pages/admin/admin-dashboard.css',
+        'css/pages/admin/discord-management.css',
+        'css/pages/admin/draft-history.css',
+        'css/pages/admin/league-management.css',
+        'css/pages/admin/league-substitute-pool.css',
+        'css/pages/admin/live-reporting-dashboard.css',
+        'css/pages/admin/manage-polls.css',
+        'css/pages/admin/manage-subs.css',
+        'css/pages/admin/match-detail.css',
+        'css/pages/admin/match-management.css',
+        'css/pages/admin/match-verification.css',
+        'css/pages/admin/mobile-analytics.css',
+        'css/pages/admin/pass-studio.css',
+        'css/pages/admin/playoff-generator.css',
+        'css/pages/admin/redis-stats.css',
+        'css/pages/admin/rsvp-status.css',
+        'css/pages/admin/season-wizard.css',
+        'css/pages/admin/security-dashboard.css',
+        'css/pages/admin/substitute-pool.css',
+        'css/pages/admin/sync-review.css',
+        'css/pages/admin/user-approvals.css',
+        'css/pages/admin/user-waitlist.css',
+
+        # Pages - Admin Panel
+        'css/pages/admin-panel/appearance.css',
+        'css/pages/admin-panel/base.css',
+        'css/pages/admin-panel/communication.css',
+        'css/pages/admin-panel/dashboard.css',
+        'css/pages/admin-panel/discord-bot-management.css',
+        'css/pages/admin-panel/feature-toggles.css',
+        'css/pages/admin-panel/match-operations.css',
+        'css/pages/admin-panel/message-template-management.css',
+        'css/pages/admin-panel/mobile-features.css',
+        'css/pages/admin-panel/performance.css',
+        'css/pages/admin-panel/quick-actions.css',
+        'css/pages/admin-panel/store-management.css',
+        'css/pages/admin-panel/substitute-management.css',
+
+        # Pages - Match Operations
+        'css/pages/match-operations/edit-match.css',
+        'css/pages/match-operations/live-matches.css',
+        'css/pages/match-operations/manage-teams.css',
+        'css/pages/match-operations/match-reports.css',
+        'css/pages/match-operations/seasons.css',
 
         # Theme
         'css/themes/modern/modern-light.css',
@@ -537,12 +607,18 @@ def init_assets(app):
         'custom_css/paginate-dark-fix.css',
         'custom_css/modal-helpers.css',
 
+        # Vendor CSS (local files)
+        'assets/vendor/libs/shepherd/shepherd.css',  # Guided tours
+
         filters='cssmin',
         output='gen/production.min.css'
     )
 
     # Production JS Bundle - All JavaScript in one file
     production_js = Bundle(
+        # CSRF protection (must load early to patch fetch before any API calls)
+        'js/csrf-fetch.js',
+
         # Vendor libraries first (essential)
         'vendor/libs/jquery/jquery.js',
         'vendor/libs/popper/popper.js',
@@ -555,6 +631,7 @@ def init_assets(app):
         'vendor/libs/hammer/hammer.js',
         'vendor/js/menu.js',
         'vendor/js/helpers.js',
+        'assets/vendor/libs/shepherd/shepherd.js',  # Guided tours
 
         # Application JavaScript
         'assets/js/main.js',
@@ -574,15 +651,116 @@ def init_assets(app):
         'js/utils/visibility.js',             # Visibility utility functions
         'js/components/tabs-controller.js',   # BEM tabs controller (pure JS, no Bootstrap)
 
-        # Custom JavaScript
+        # Custom JavaScript - Core
         'custom_js/tour.js',
         'custom_js/report_match.js',
         'custom_js/rsvp.js',
+        'custom_js/rsvp-unified.js',
         'custom_js/discord-membership-check.js',
         'custom_js/modal-helpers.js',
+        'custom_js/modals.js',
         'custom_js/sms-verification.js',
         'custom_js/mobile-menu-fix.js',
         'custom_js/mobile-tables.js',
+
+        # Custom JavaScript - Admin
+        'custom_js/admin_actions.js',
+        'custom_js/admin-discord-management.js',
+        'custom_js/admin-manage-subs.js',
+        'custom_js/admin-match-detail.js',
+        'custom_js/admin-panel-match-list.js',
+        'custom_js/cache-stats.js',
+        'custom_js/clear-cache.js',
+        'custom_js/create-poll.js',
+        'custom_js/manage-polls.js',
+        'custom_js/manage-roles.js',
+        'custom_js/manage-teams.js',
+        'custom_js/redis-stats.js',
+        'custom_js/user-approval-management.js',
+
+        # Custom JavaScript - Features
+        'custom_js/calendar-subscription.js',
+        'custom_js/check-duplicate.js',
+        'custom_js/coach-dashboard.js',
+        'custom_js/cropper.js',
+        'custom_js/design-system-override.js',
+        'custom_js/draft-enhanced.js',
+        'custom_js/draft-predictions.js',
+        'custom_js/ecs-fc-schedule.js',
+        'custom_js/ecsfc-schedule.js',
+        'custom_js/handle_2fa.js',
+        'custom_js/home.js',
+        'custom_js/live_reporting.js',
+        'custom_js/match-management.js',
+        'custom_js/match_stats.js',
+        'custom_js/matches-management.js',
+        'custom_js/merge-profiles.js',
+        'custom_js/onboarding.js',
+        'custom_js/player-profile.js',
+        'custom_js/players-list.js',
+        'custom_js/playoff_bracket.js',
+        'custom_js/profile-form-handler.js',
+        'custom_js/profile-success.js',
+        'custom_js/schedule-management.js',
+        'custom_js/scheduled-message-validation.js',
+        'custom_js/settings-tabs.js',
+        'custom_js/settings.js',
+        'custom_js/simple-cropper.js',
+        'custom_js/substitute-pool-management.js',
+        'custom_js/substitute-request-management.js',
+        'custom_js/team-detail.js',
+        'custom_js/teams-overview.js',
+        'custom_js/verify-2fa.js',
+        'custom_js/verify-merge.js',
+        'custom_js/view-standings.js',
+        'custom_js/waitlist-login-register.js',
+        'custom_js/waitlist-register-authenticated.js',
+        'custom_js/waitlist-register.js',
+
+        # Modern UI Components (CRITICAL - required for interactive features)
+        'js/navbar-modern.js',          # Navbar dropdowns, submenus, profile menu
+        'js/online-status.js',          # Online/offline status indicators
+        'js/chat-widget.js',            # Floating chat widget
+        'js/messenger-widget.js',       # Sidebar messenger widget
+        'js/components-modern.js',      # Modern component interactions (modals, tooltips, etc.)
+        'js/event-delegation.js',       # Centralized event handling (data-action attributes)
+        'js/ui-enhancements.js',        # Feather icons, collapsible sections, dropdowns
+
+        # Admin Panel JS
+        'js/admin-navigation.js',       # Admin nav dropdowns
+        'js/admin-panel-base.js',       # Admin panel base functionality
+        'js/admin-panel-dashboard.js',  # Admin dashboard
+        'js/admin-panel-discord-bot.js', # Discord bot management
+        'js/admin-panel-feature-toggles.js', # Feature toggles
+        'js/admin-panel-performance.js', # Performance monitoring
+
+        # Admin Feature JS
+        'js/admin/admin-dashboard.js',
+        'js/admin/announcement-form.js',
+        'js/admin/message-categories.js',
+        'js/admin/message-template-detail.js',
+        'js/admin/push-campaigns.js',
+        'js/admin/scheduled-messages.js',
+
+        # Feature JS
+        'js/init-system.js',            # Init system for components
+        'js/app-init-registration.js',  # App initialization
+        'js/auto_schedule_wizard.js',   # Auto schedule wizard
+        'js/draft-history.js',          # Draft history
+        'js/draft-system.js',           # Draft system
+        'js/mobile-draft.js',           # Mobile draft
+        'js/mobile-table-enhancer.js',  # Mobile table enhancements
+        'js/message-management.js',     # Message management
+        'js/messages-inbox.js',         # Messages inbox
+        'js/pass-studio.js',            # Pass studio
+        'js/pass-studio-cropper.js',    # Pass studio image cropper
+        'js/pitch-view.js',             # Pitch view
+        'js/profile-wizard.js',         # Profile wizard
+        'js/security-dashboard.js',     # Security dashboard
+
+        # Match Operations JS
+        'js/match-operations/match-reports.js',
+        'js/match-operations/seasons.js',
 
         filters='jsmin',
         output='gen/production.min.js'

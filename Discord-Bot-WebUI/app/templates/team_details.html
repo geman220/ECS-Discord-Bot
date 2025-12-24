@@ -532,5 +532,7 @@ window.TEAM_MATCH_DATA = {
 };
 </script>
 <script src="{{ url_for('static', filename='custom_js/team-detail.js') }}"></script>
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
+{% endif %}
 {% endblock %}
