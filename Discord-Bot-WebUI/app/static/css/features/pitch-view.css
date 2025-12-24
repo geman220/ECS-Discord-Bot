@@ -838,11 +838,21 @@ html[data-style="dark"] .c-pitch-stats {
     border-color: rgba(255, 255, 255, 0.5);
 }
 
-.position-zone.is-drag-over {
+.position-zone.is-drag-over,
+.position-zone.drag-over,
+.js-position-drop-zone.drag-over {
     background: rgba(37, 99, 235, 0.3);
     border-color: rgba(37, 99, 235, 0.7);
     border-style: solid;
     transform: scale(1.05);
+}
+
+/* Dragging state for player cards in pitch view */
+.pitch-player-card.dragging,
+.js-draggable-player.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+    cursor: grabbing;
 }
 
 /* Position Label */
@@ -1409,7 +1419,8 @@ html[data-style="dark"] .pitch-player-card:hover .pitch-player-card__drag-handle
     opacity: 0.5;
 }
 
-.positioned-player.newly-added {
+.positioned-player.newly-added,
+.pitch-player-card.newly-added {
     animation: player-appear 0.3s ease-out;
 }
 

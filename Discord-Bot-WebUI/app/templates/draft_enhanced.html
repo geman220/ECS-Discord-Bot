@@ -296,7 +296,7 @@
 
                                         <div id="teamPlayers{{ team.id }}" class="row g-2">
                                             {% for player in drafted_players_by_team[team.id] %}
-                                            <div class="col-md-6 col-lg-4" data-player-id="{{ player.id }}">
+                                            <div class="col-md-6 col-lg-4">
                                                 <div class="c-card border-0 shadow-sm draft-team-player-card js-draggable-player"
                                                      draggable="true"
                                                      data-player-id="{{ player.id }}">
@@ -482,7 +482,7 @@ Event delegation replaces inline handlers:
 - onerror/onload on images → .js-player-image error/load event listeners
 -->
 
-<script>
+<script data-league-name="{{ league_name }}">
 // Initialize draft with league name
 document.addEventListener('DOMContentLoaded', function() {
     const leagueName = '{{ league_name }}';

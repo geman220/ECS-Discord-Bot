@@ -128,6 +128,185 @@ function setupEventDelegation() {
             confirmRemovePlayer(playerId, teamId, playerName, teamName);
         }
     });
+
+    // Setup drag and drop event delegation
+    setupDragAndDrop();
+}
+
+/**
+ * Setup drag and drop functionality for player cards and drop zones
+ */
+function setupDragAndDrop() {
+    // Drag start on draggable player cards
+    document.addEventListener('dragstart', function(e) {
+        const playerCard = e.target.closest('.js-draggable-player');
+        if (playerCard) {
+            const playerId = playerCard.dataset.playerId;
+            e.dataTransfer.setData('text/plain', playerId);
+            e.dataTransfer.effectAllowed = 'move';
+            playerCard.classList.add('opacity-50', 'dragging');
+
+            // Store for fallback
+            window._draggedPlayerId = playerId;
+        }
+    });
+
+    // Drag end on draggable player cards
+    document.addEventListener('dragend', function(e) {
+        const playerCard = e.target.closest('.js-draggable-player');
+        if (playerCard) {
+            playerCard.classList.remove('opacity-50', 'dragging');
+            window._draggedPlayerId = null;
+        }
+    });
+
+    // Drag over on drop zones
+    document.addEventListener('dragover', function(e) {
+        const dropZone = e.target.closest('.js-draft-drop-zone');
+        if (dropZone) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            dropZone.classList.add('drag-over');
+
+            // Add specific styling based on drop target type
+            const dropTarget = dropZone.dataset.dropTarget;
+            if (dropTarget === 'available') {
+                dropZone.classList.add('drag-over-available');
+            } else if (dropTarget === 'team') {
+                dropZone.classList.add('drag-over-team');
+            }
+        }
+    });
+
+    // Drag leave on drop zones
+    document.addEventListener('dragleave', function(e) {
+        const dropZone = e.target.closest('.js-draft-drop-zone');
+        if (dropZone && !dropZone.contains(e.relatedTarget)) {
+            dropZone.classList.remove('drag-over', 'drag-over-available', 'drag-over-team');
+        }
+    });
+
+    // Drop on drop zones
+    document.addEventListener('drop', function(e) {
+        const dropZone = e.target.closest('.js-draft-drop-zone');
+        if (dropZone) {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over', 'drag-over-available', 'drag-over-team');
+
+            const playerId = e.dataTransfer.getData('text/plain') || window._draggedPlayerId;
+            if (!playerId) {
+                console.error('No player ID found in drop event');
+                return;
+            }
+
+            const dropTarget = dropZone.dataset.dropTarget;
+            const teamId = dropZone.dataset.teamId;
+
+            if (dropTarget === 'team' && teamId) {
+                // Dropping on a team - draft the player
+                handleDropOnTeam(playerId, teamId, dropZone);
+            } else if (dropTarget === 'available') {
+                // Dropping back to available pool - undraft the player
+                handleDropToAvailable(playerId);
+            }
+        }
+    });
+}
+
+/**
+ * Handle dropping a player onto a team
+ */
+function handleDropOnTeam(playerId, teamId, dropZone) {
+    // Check if player is already on this team
+    const teamSection = document.getElementById(`teamPlayers${teamId}`);
+    if (teamSection && teamSection.querySelector(`[data-player-id="${playerId}"]`)) {
+        console.log('Player already on this team');
+        return;
+    }
+
+    // Get player name for display
+    const playerCard = document.querySelector(`[data-player-id="${playerId}"]`);
+    const playerName = playerCard ?
+        (playerCard.querySelector('.fw-bold')?.textContent ||
+         playerCard.querySelector('.fw-semibold')?.textContent ||
+         'Player') : 'Player';
+
+    // Get team name
+    const teamAccordion = dropZone.closest('.accordion-item');
+    const teamName = teamAccordion ?
+        teamAccordion.querySelector('.fw-bold')?.textContent || `Team ${teamId}` :
+        `Team ${teamId}`;
+
+    // Get league name
+    const leagueNameScript = document.querySelector('script[data-league-name]');
+    const leagueName = leagueNameScript ? leagueNameScript.getAttribute('data-league-name') :
+                       (window.draftSystemInstance ? window.draftSystemInstance.leagueName : '');
+
+    // Emit draft event via socket
+    const socket = window.draftEnhancedSocket || window.socket;
+    if (socket && socket.connected) {
+        socket.emit('draft_player_enhanced', {
+            player_id: parseInt(playerId),
+            team_id: parseInt(teamId),
+            league_name: leagueName,
+            player_name: playerName
+        });
+        console.log(`Drafting player ${playerId} to team ${teamId} via drag and drop`);
+    } else {
+        console.error('Socket not connected - cannot draft via drag and drop');
+        alert('Connection error. Please refresh the page.');
+    }
+}
+
+/**
+ * Handle dropping a player back to the available pool (undraft)
+ */
+function handleDropToAvailable(playerId) {
+    // Find which team the player is currently on
+    const playerCard = document.querySelector(`[data-player-id="${playerId}"]`);
+    if (!playerCard) {
+        console.error('Player card not found');
+        return;
+    }
+
+    // Check if player is in a team section (not already in available pool)
+    const teamSection = playerCard.closest('[id^="teamPlayers"]');
+    if (!teamSection) {
+        console.log('Player is already in available pool');
+        return;
+    }
+
+    // Extract team ID from the section ID (format: teamPlayers123)
+    const teamId = teamSection.id.replace('teamPlayers', '');
+
+    // Get player and team names for confirmation
+    const playerName = playerCard.querySelector('.fw-bold')?.textContent ||
+                       playerCard.querySelector('.fw-semibold')?.textContent ||
+                       'Player';
+
+    const teamAccordion = teamSection.closest('.accordion-item');
+    const teamName = teamAccordion ?
+        teamAccordion.querySelector('.fw-bold')?.textContent || `Team ${teamId}` :
+        `Team ${teamId}`;
+
+    // Get league name
+    const leagueNameScript = document.querySelector('script[data-league-name]');
+    const leagueName = leagueNameScript ? leagueNameScript.getAttribute('data-league-name') :
+                       (window.draftSystemInstance ? window.draftSystemInstance.leagueName : '');
+
+    // Emit remove event via socket
+    const socket = window.draftEnhancedSocket || window.socket;
+    if (socket && socket.connected) {
+        socket.emit('remove_player_enhanced', {
+            player_id: parseInt(playerId),
+            team_id: parseInt(teamId),
+            league_name: leagueName
+        });
+        console.log(`Undrafting player ${playerId} from team ${teamId} via drag and drop`);
+    } else {
+        console.error('Socket not connected - cannot undraft via drag and drop');
+        alert('Connection error. Please refresh the page.');
+    }
 }
 
 /**
@@ -159,9 +338,15 @@ function confirmRemovePlayer(playerId, teamId, playerName, teamName) {
         // Execute removal via socket or API
         const socket = window.draftEnhancedSocket || window.socket;
         if (socket && socket.connected) {
+            // Get league name from the page (same way confirmDraftPlayer does)
+            const leagueNameScript = document.querySelector('script[data-league-name]');
+            const leagueName = leagueNameScript ? leagueNameScript.getAttribute('data-league-name') :
+                               (window.draftSystemInstance ? window.draftSystemInstance.leagueName : '');
+
             socket.emit('remove_player_enhanced', {
                 player_id: parseInt(playerId),
-                team_id: parseInt(teamId)
+                team_id: parseInt(teamId),
+                league_name: leagueName
             });
         }
         console.log(`Removing player ${playerId} from team ${teamId}`);

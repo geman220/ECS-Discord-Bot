@@ -349,7 +349,7 @@ services:
       - PYTHONDONTWRITEBYTECODE=1
       - EVENTLET_NO_GREENDNS=yes
       - PYTHONPATH=/app
-      - FLASK_DEBUG=1
+      - FLASK_DEBUG=${FLASK_DEBUG:-0}
       - REDIS_URL=redis://redis:6379/0
     env_file:
       - .env

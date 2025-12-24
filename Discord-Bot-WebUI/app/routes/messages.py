@@ -405,8 +405,9 @@ def mark_all_messages_read():
 @login_required
 def delete_message(message_id):
     """
-    Delete a message.
-    Users can only delete messages they sent.
+    Delete a message for everyone (unsend).
+    Only the sender can delete their own messages.
+    The message content is cleared but a placeholder remains.
     """
     try:
         # Only allow deleting own messages
@@ -421,11 +422,17 @@ def delete_message(message_id):
                 'error': 'Message not found or not authorized'
             }), 404
 
+        if message.is_deleted:
+            return jsonify({
+                'success': False,
+                'error': 'Message already deleted'
+            }), 400
+
         # Store recipient ID for WebSocket notification
         recipient_id = message.recipient_id
 
-        # Delete the message
-        db.session.delete(message)
+        # Soft delete for everyone
+        message.delete_for_everyone()
         db.session.commit()
 
         # Emit WebSocket event to notify recipient
@@ -434,14 +441,16 @@ def delete_message(message_id):
             socketio = current_app.extensions.get('socketio')
             if socketio:
                 socketio.emit('message_deleted', {
-                    'message_id': message_id
+                    'message_id': message_id,
+                    'deleted_for': 'everyone'
                 }, room=f'user_{recipient_id}')
         except Exception as e:
             logger.warning(f"Failed to emit message_deleted event: {e}")
 
         return jsonify({
             'success': True,
-            'message_id': message_id
+            'message_id': message_id,
+            'deleted_for': 'everyone'
         })
 
     except Exception as e:
@@ -450,6 +459,48 @@ def delete_message(message_id):
         return jsonify({
             'success': False,
             'error': 'Failed to delete message'
+        }), 500
+
+
+@messages_bp.route('/message/<int:message_id>/hide', methods=['POST'])
+@login_required
+def hide_message(message_id):
+    """
+    Hide a message for the current user only (delete for me).
+    Both sender and recipient can hide messages from their view.
+    """
+    try:
+        # Find message where current user is sender or recipient
+        message = DirectMessage.query.filter(
+            DirectMessage.id == message_id,
+            db.or_(
+                DirectMessage.sender_id == current_user.id,
+                DirectMessage.recipient_id == current_user.id
+            )
+        ).first()
+
+        if not message:
+            return jsonify({
+                'success': False,
+                'error': 'Message not found'
+            }), 404
+
+        # Hide for this user
+        message.hide_for_user(current_user.id)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message_id': message_id,
+            'deleted_for': 'me'
+        })
+
+    except Exception as e:
+        logger.error(f"Error hiding message: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Failed to hide message'
         }), 500
 
 

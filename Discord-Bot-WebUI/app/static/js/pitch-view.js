@@ -118,6 +118,69 @@ class PitchViewSystem {
                 this.onTeamTabSwitch(teamId);
             }
         });
+
+        // Setup drag and drop event delegation
+        this.setupDragAndDropEvents();
+    }
+
+    setupDragAndDropEvents() {
+        const self = this;
+
+        // Drag start on available player cards
+        document.addEventListener('dragstart', function(e) {
+            const playerCard = e.target.closest('.js-draggable-player');
+            if (playerCard) {
+                const playerId = playerCard.dataset.playerId;
+                e.dataTransfer.setData('text/plain', playerId);
+                e.dataTransfer.effectAllowed = 'move';
+                playerCard.classList.add('dragging');
+                self.currentDraggedPlayer = playerId;
+            }
+        });
+
+        // Drag end
+        document.addEventListener('dragend', function(e) {
+            const playerCard = e.target.closest('.js-draggable-player');
+            if (playerCard) {
+                playerCard.classList.remove('dragging');
+                self.currentDraggedPlayer = null;
+            }
+        });
+
+        // Drag over position zones
+        document.addEventListener('dragover', function(e) {
+            const dropZone = e.target.closest('.js-position-drop-zone');
+            if (dropZone) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                dropZone.classList.add('drag-over');
+            }
+        });
+
+        // Drag leave position zones
+        document.addEventListener('dragleave', function(e) {
+            const dropZone = e.target.closest('.js-position-drop-zone');
+            if (dropZone && !dropZone.contains(e.relatedTarget)) {
+                dropZone.classList.remove('drag-over');
+            }
+        });
+
+        // Drop on position zones
+        document.addEventListener('drop', function(e) {
+            const dropZone = e.target.closest('.js-position-drop-zone');
+            if (dropZone) {
+                e.preventDefault();
+                dropZone.classList.remove('drag-over');
+
+                const position = dropZone.dataset.position;
+                const teamId = dropZone.dataset.teamId;
+                const playerId = e.dataTransfer.getData('text/plain') || self.currentDraggedPlayer;
+
+                if (playerId && position && teamId) {
+                    self.handlePositionDrop(e, position, teamId);
+                }
+            }
+        });
     }
 
     setupSearch() {
@@ -560,14 +623,75 @@ class PitchViewSystem {
         // Remove from all positions in the team
         this.removePlayerFromAllPositions(data.player.id, data.team_id);
         this.updatePositionStats(data.team_id);
+        this.updateTeamCounts();
 
-        // Add back to available (this would need the full player data in real implementation)
+        // Add player back to available list (real-time, no reload)
+        this.addPlayerToAvailableList(data.player);
+
         this.showToast(`${data.player.name} removed from team`, 'info');
+    }
 
-        // For now, just reload to refresh available players
+    addPlayerToAvailableList(player) {
+        const availableList = document.getElementById('availablePlayersList');
+        if (!availableList) return;
+
+        // Check if player already exists in available list
+        if (availableList.querySelector(`[data-player-id="${player.id}"]`)) {
+            return;
+        }
+
+        // Create player card HTML matching the template structure
+        const playerCard = document.createElement('div');
+        playerCard.className = 'pitch-player-card js-draggable-player';
+        playerCard.setAttribute('data-player-id', player.id);
+        playerCard.setAttribute('data-player-name', (player.name || '').toLowerCase());
+        playerCard.setAttribute('data-position', (player.favorite_position || player.position || '').toLowerCase());
+        playerCard.setAttribute('draggable', 'true');
+
+        const profileUrl = player.profile_picture_url || '/static/img/default_player.png';
+        const position = player.favorite_position || player.position || 'Any';
+        const goals = player.career_goals || 0;
+        const assists = player.career_assists || 0;
+
+        playerCard.innerHTML = `
+            <div class="pitch-player-card__avatar">
+                <img src="${profileUrl}"
+                     alt="${player.name}" class="js-player-image"
+                     data-fallback="/static/img/default_player.png"
+                     onerror="this.src='/static/img/default_player.png'">
+            </div>
+            <div class="pitch-player-card__content">
+                <div class="pitch-player-card__header">
+                    <span class="pitch-player-card__name">${player.name}</span>
+                    <span class="pitch-player-card__position">${position}</span>
+                </div>
+                <div class="pitch-player-card__stats">
+                    <span class="pitch-player-card__stat pitch-player-card__stat--goals" title="Goals">
+                        <i class="ti ti-ball-football"></i> ${goals}
+                    </span>
+                    <span class="pitch-player-card__stat pitch-player-card__stat--assists" title="Assists">
+                        <i class="ti ti-shoe"></i> ${assists}
+                    </span>
+                </div>
+            </div>
+            <div class="pitch-player-card__drag-handle">
+                <i class="ti ti-grip-vertical"></i>
+            </div>
+        `;
+
+        // Add animation class for visual feedback
+        playerCard.classList.add('newly-added');
+
+        // Insert at beginning of list
+        availableList.insertBefore(playerCard, availableList.firstChild);
+
+        // Remove animation class after animation completes
         setTimeout(() => {
-            window.location.reload();
-        }, 1000);
+            playerCard.classList.remove('newly-added');
+        }, 500);
+
+        // Update count
+        this.updateAvailablePlayerCount();
     }
 
     handlePlayerPositionUpdated(data) {

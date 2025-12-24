@@ -510,8 +510,89 @@
 
         /**
          * Confirm action with mobile-optimized UX
+         * @param {string} message - The confirmation message
+         * @param {function} callback - Function to call if confirmed
+         * @param {object} options - Optional configuration
+         * @param {string} options.confirmText - Custom confirm button text
+         * @param {string} options.cancelText - Custom cancel button text
+         * @param {string} options.title - Custom title
+         * @param {string} options.icon - SweetAlert icon (warning, question, info, error)
+         * @param {string} options.confirmColor - Confirm button color (#hex or Bootstrap class)
          */
-        confirmAction: function(message, callback) {
+        confirmAction: function(message, callback, options) {
+            options = options || {};
+
+            // Smart defaults based on message content
+            const messageLower = message.toLowerCase();
+            let defaultConfirm = 'Confirm';
+            let defaultCancel = 'Cancel';
+            let defaultIcon = 'question';
+            let defaultTitle = 'Confirm Action';
+            let defaultColor = '#3085d6';
+
+            // Contextual button text based on action type
+            if (messageLower.includes('delete') || messageLower.includes('remove')) {
+                defaultConfirm = 'Delete';
+                defaultIcon = 'warning';
+                defaultTitle = 'Confirm Delete';
+                defaultColor = '#dc3545'; // danger red
+            } else if (messageLower.includes('sync')) {
+                defaultConfirm = 'Sync';
+                defaultIcon = 'question';
+                defaultTitle = 'Confirm Sync';
+            } else if (messageLower.includes('reset')) {
+                defaultConfirm = 'Reset';
+                defaultIcon = 'warning';
+                defaultTitle = 'Confirm Reset';
+                defaultColor = '#dc3545';
+            } else if (messageLower.includes('clear')) {
+                defaultConfirm = 'Clear';
+                defaultIcon = 'warning';
+                defaultTitle = 'Confirm Clear';
+                defaultColor = '#dc3545';
+            } else if (messageLower.includes('approve')) {
+                defaultConfirm = 'Approve';
+                defaultIcon = 'question';
+                defaultTitle = 'Confirm Approval';
+                defaultColor = '#28a745'; // success green
+            } else if (messageLower.includes('reject') || messageLower.includes('deny')) {
+                defaultConfirm = 'Reject';
+                defaultIcon = 'warning';
+                defaultTitle = 'Confirm Rejection';
+                defaultColor = '#dc3545';
+            } else if (messageLower.includes('send')) {
+                defaultConfirm = 'Send';
+                defaultIcon = 'question';
+                defaultTitle = 'Confirm Send';
+            } else if (messageLower.includes('save')) {
+                defaultConfirm = 'Save';
+                defaultIcon = 'question';
+                defaultTitle = 'Confirm Save';
+                defaultColor = '#28a745';
+            } else if (messageLower.includes('cancel')) {
+                defaultConfirm = 'Yes, Cancel';
+                defaultIcon = 'warning';
+                defaultTitle = 'Confirm Cancellation';
+            } else if (messageLower.includes('disable')) {
+                defaultConfirm = 'Disable';
+                defaultIcon = 'warning';
+                defaultTitle = 'Confirm Disable';
+                defaultColor = '#dc3545';
+            } else if (messageLower.includes('enable')) {
+                defaultConfirm = 'Enable';
+                defaultIcon = 'question';
+                defaultTitle = 'Confirm Enable';
+                defaultColor = '#28a745';
+            } else if (messageLower.includes('continue')) {
+                defaultConfirm = 'Continue';
+            }
+
+            const confirmText = options.confirmText || defaultConfirm;
+            const cancelText = options.cancelText || defaultCancel;
+            const title = options.title || defaultTitle;
+            const icon = options.icon || defaultIcon;
+            const confirmColor = options.confirmColor || defaultColor;
+
             if (this.isMobile()) {
                 // Use native confirm on mobile for better UX
                 if (confirm(message)) {
@@ -521,12 +602,15 @@
                 // Use SweetAlert2 on desktop if available
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
-                        title: 'Confirm Action',
+                        title: title,
                         text: message,
-                        icon: 'question',
+                        icon: icon,
                         showCancelButton: true,
-                        confirmButtonText: 'Yes',
-                        cancelButtonText: 'No'
+                        confirmButtonText: confirmText,
+                        cancelButtonText: cancelText,
+                        confirmButtonColor: confirmColor,
+                        cancelButtonColor: '#6c757d',
+                        reverseButtons: true // Cancel on left, Confirm on right
                     }).then((result) => {
                         if (result.isConfirmed) {
                             callback();

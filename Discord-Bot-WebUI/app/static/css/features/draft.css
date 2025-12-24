@@ -641,6 +641,28 @@
     box-shadow: inset 0 0 0 2px rgba(0, 102, 255, 0.2);
 }
 
+/* Drag-over states for JavaScript event delegation */
+.js-draft-drop-zone.drag-over,
+.js-draft-drop-zone.drag-over-team {
+    border-color: var(--draft-primary, #0066ff) !important;
+    background: rgba(0, 102, 255, 0.08) !important;
+    box-shadow: inset 0 0 0 3px rgba(0, 102, 255, 0.25) !important;
+}
+
+.js-draft-drop-zone.drag-over-available {
+    border-color: var(--draft-success, #28a745) !important;
+    background: rgba(40, 167, 69, 0.08) !important;
+    box-shadow: inset 0 0 0 3px rgba(40, 167, 69, 0.25) !important;
+}
+
+/* Dragging state for player cards */
+.js-draggable-player.dragging,
+.js-draggable-player.opacity-50 {
+    opacity: 0.5;
+    transform: scale(0.95);
+    cursor: grabbing;
+}
+
 .c-draft-team__empty {
     text-align: center;
     padding: var(--draft-space-xl);

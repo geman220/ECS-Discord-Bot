@@ -104,7 +104,7 @@
       // Header buttons
       newChatBtn: document.querySelector('[data-action="new-chat"]'),
       openInboxBtn: document.querySelector('[data-action="open-inbox"]'),
-      closeBtn: document.querySelector('[data-action="close-widget"]')
+      closeBtns: document.querySelectorAll('[data-action="close-widget"]')
     };
   }
 
@@ -316,12 +316,38 @@
 
     const html = state.messages.map(msg => {
       const isSent = msg.sender_id === currentUserId;
+      const isDeleted = msg.is_deleted;
+
+      // Deleted message placeholder
+      if (isDeleted) {
+        return `
+          <div class="c-chat-widget__message c-chat-widget__message--${isSent ? 'sent' : 'received'} c-chat-widget__message--deleted"
+               data-message-id="${msg.id}">
+            <div class="c-chat-widget__message-bubble c-chat-widget__message-bubble--deleted">
+              <i class="ti ti-message-off" style="margin-right: 6px; opacity: 0.7;"></i>
+              ${isSent ? 'You unsent a message' : 'This message was unsent'}
+            </div>
+            <span class="c-chat-widget__message-time">
+              ${formatMessageTime(msg.created_at)}
+            </span>
+          </div>
+        `;
+      }
+
+      // Convert emoji shortcodes
+      const contentWithEmojis = convertEmojiShortcodes(escapeHtml(msg.content));
 
       return `
         <div class="c-chat-widget__message c-chat-widget__message--${isSent ? 'sent' : 'received'}"
-             data-message-id="${msg.id}">
+             data-message-id="${msg.id}"
+             data-sender-id="${msg.sender_id}">
+          <div class="c-chat-widget__message-actions">
+            <button class="c-chat-widget__message-action-btn" data-action="delete-menu" title="Delete message">
+              <i class="ti ti-trash"></i>
+            </button>
+          </div>
           <div class="c-chat-widget__message-bubble">
-            ${escapeHtml(msg.content)}
+            ${contentWithEmojis}
           </div>
           <span class="c-chat-widget__message-time">
             ${formatMessageTime(msg.created_at)}
@@ -332,6 +358,150 @@
     }).join('');
 
     elements.messagesContainer.innerHTML = html;
+
+    // Bind delete action handlers
+    bindMessageActions();
+  }
+
+  function bindMessageActions() {
+    if (!elements.messagesContainer) return;
+
+    elements.messagesContainer.querySelectorAll('[data-action="delete-menu"]').forEach(btn => {
+      btn.addEventListener('click', handleDeleteMenuClick);
+    });
+  }
+
+  function handleDeleteMenuClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const messageEl = e.target.closest('.c-chat-widget__message');
+    if (!messageEl) return;
+
+    const messageId = parseInt(messageEl.dataset.messageId);
+    const senderId = parseInt(messageEl.dataset.senderId);
+    const currentUserId = getCurrentUserId();
+    const isSent = senderId === currentUserId;
+
+    showDeleteConfirmation(messageId, isSent);
+  }
+
+  function showDeleteConfirmation(messageId, isSent) {
+    // Use SweetAlert2 if available
+    if (typeof Swal !== 'undefined') {
+      const options = {
+        title: 'Delete message?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--cw-danger, #ef4444)',
+        cancelButtonColor: 'var(--cw-text-secondary, #6b7280)',
+        confirmButtonText: 'Delete for me',
+        cancelButtonText: 'Cancel',
+        customClass: {
+          popup: 'c-chat-widget-swal'
+        }
+      };
+
+      // Add "Unsend for everyone" option if user sent the message
+      if (isSent) {
+        options.showDenyButton = true;
+        options.denyButtonText = 'Unsend for everyone';
+        options.denyButtonColor = 'var(--cw-accent, #7c3aed)';
+      }
+
+      Swal.fire(options).then((result) => {
+        if (result.isConfirmed) {
+          // Delete for me only
+          deleteMessage(messageId, 'me');
+        } else if (result.isDenied) {
+          // Unsend for everyone
+          deleteMessage(messageId, 'everyone');
+        }
+      });
+    } else {
+      // Fallback to simple confirm
+      if (confirm('Delete this message for yourself?')) {
+        deleteMessage(messageId, 'me');
+      }
+    }
+  }
+
+  async function deleteMessage(messageId, deleteFor) {
+    try {
+      let url, method;
+
+      if (deleteFor === 'everyone') {
+        url = `/api/messages/message/${messageId}`;
+        method = 'DELETE';
+      } else {
+        url = `/api/messages/message/${messageId}/hide`;
+        method = 'POST';
+      }
+
+      const response = await fetchJSON(url, { method });
+
+      if (response.success) {
+        if (deleteFor === 'everyone') {
+          // Update message in local state to show as deleted
+          const msgIndex = state.messages.findIndex(m => m.id === messageId);
+          if (msgIndex !== -1) {
+            state.messages[msgIndex].is_deleted = true;
+            state.messages[msgIndex].content = null;
+          }
+        } else {
+          // Remove from local state (hidden for me)
+          state.messages = state.messages.filter(m => m.id !== messageId);
+        }
+
+        renderMessages();
+        scrollToBottom();
+        showToast(deleteFor === 'everyone' ? 'Message unsent' : 'Message deleted', 'success');
+      } else {
+        showToast(response.error || 'Failed to delete message', 'error');
+      }
+    } catch (error) {
+      console.error('[ChatWidget] Delete message error:', error);
+      showToast('Failed to delete message', 'error');
+    }
+  }
+
+  // Emoji shortcode conversion
+  const EMOJI_MAP = {
+    ':)': '😊', ':-)': '😊', '=)': '😊',
+    ':(': '😞', ':-(': '😞', '=(': '😞',
+    ':D': '😃', ':-D': '😃', '=D': '😃',
+    ';)': '😉', ';-)': '😉',
+    ':P': '😛', ':-P': '😛', ':p': '😛',
+    ':O': '😮', ':-O': '😮', ':o': '😮',
+    '<3': '❤️', '</3': '💔',
+    ':*': '😘', ':-*': '😘',
+    ":'(": '😢', ":')": '😂',
+    ':fire:': '🔥', ':heart:': '❤️', ':thumbsup:': '👍', ':thumbsdown:': '👎',
+    ':clap:': '👏', ':wave:': '👋', ':ok:': '👌', ':100:': '💯',
+    ':star:': '⭐', ':sun:': '☀️', ':moon:': '🌙', ':soccer:': '⚽',
+    ':trophy:': '🏆', ':medal:': '🏅', ':crown:': '👑',
+    ':check:': '✅', ':x:': '❌', ':warning:': '⚠️',
+    ':party:': '🎉', ':confetti:': '🎊',
+    'xD': '😆', 'XD': '😆',
+    'B)': '😎', 'B-)': '😎',
+    '-_-': '😑', ':|': '😐',
+    ':angry:': '😠', '>:(': '😠',
+    ':thinking:': '🤔', ':shrug:': '🤷',
+    ':pray:': '🙏', ':muscle:': '💪',
+    ':eyes:': '👀', ':sweat:': '😅',
+    ':cool:': '😎', ':lol:': '😂', ':rofl:': '🤣'
+  };
+
+  function convertEmojiShortcodes(text) {
+    if (!text) return text;
+
+    let result = text;
+    for (const [shortcode, emoji] of Object.entries(EMOJI_MAP)) {
+      // Escape special regex characters in the shortcode
+      const escaped = shortcode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      result = result.replace(new RegExp(escaped, 'g'), emoji);
+    }
+    return result;
   }
 
   function renderSearchResults() {
@@ -464,16 +634,12 @@
     state.isOpen = false;
     state.currentView = 'list';
     state.activeConversation = null;
+    state.messages = [];
     elements.widget.dataset.state = 'closed';
     elements.widget.dataset.view = 'list';
 
-    // Clear search
-    if (elements.searchInput) {
-      elements.searchInput.value = '';
-    }
-    if (elements.searchResults) {
-      elements.searchResults.classList.remove('is-visible');
-    }
+    // Clear search state
+    clearSearch();
   }
 
   function toggleWidget() {
@@ -548,6 +714,9 @@
       elements.widget.dataset.view = 'list';
     }
 
+    // Clear search state when going back
+    clearSearch();
+
     // Refresh conversations
     loadConversations();
   }
@@ -581,12 +750,19 @@
 
     openConversation(userId, userName, avatarUrl, isOnline);
 
-    // Clear search
+    // Clear search state completely
+    clearSearch();
+  }
+
+  function clearSearch() {
+    state.searchQuery = '';
+    state.searchResults = [];
     if (elements.searchInput) {
       elements.searchInput.value = '';
     }
     if (elements.searchResults) {
       elements.searchResults.classList.remove('is-visible');
+      elements.searchResults.innerHTML = '';
     }
   }
 
@@ -713,6 +889,7 @@
     socket.on('dm_sent', handleMessageSent);
     socket.on('dm_error', handleMessageError);
     socket.on('dm_unread_update', handleUnreadUpdate);
+    socket.on('message_deleted', handleMessageDeleted);
 
     // Typing events
     socket.on('user_typing', handleUserTyping);
@@ -726,6 +903,24 @@
     socket.on('online_users', handleOnlineUsers);
 
     console.log('[ChatWidget] Socket listeners attached');
+  }
+
+  function handleMessageDeleted(data) {
+    const messageId = data.message_id;
+    const deletedFor = data.deleted_for;
+
+    // Find message in local state
+    const msgIndex = state.messages.findIndex(m => m.id === messageId);
+
+    if (msgIndex !== -1) {
+      if (deletedFor === 'everyone') {
+        // Mark as unsent (show placeholder)
+        state.messages[msgIndex].is_deleted = true;
+        state.messages[msgIndex].content = null;
+        renderMessages();
+      }
+      // Note: 'delete for me' by the other user doesn't affect our view
+    }
   }
 
   function joinMessagingRoom() {
@@ -990,9 +1185,11 @@
       elements.trigger.addEventListener('click', handleTriggerClick);
     }
 
-    // Close button
-    if (elements.closeBtn) {
-      elements.closeBtn.addEventListener('click', closeWidget);
+    // Close buttons (both list view and chat view)
+    if (elements.closeBtns) {
+      elements.closeBtns.forEach(btn => {
+        btn.addEventListener('click', closeWidget);
+      });
     }
 
     // Conversation clicks (event delegation)

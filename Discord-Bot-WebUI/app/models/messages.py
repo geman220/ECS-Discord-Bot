@@ -33,6 +33,13 @@ class DirectMessage(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     read_at = db.Column(db.DateTime, nullable=True)
 
+    # Soft delete fields - for "delete for me" functionality
+    hidden_for_sender = db.Column(db.Boolean, default=False, index=True)
+    hidden_for_recipient = db.Column(db.Boolean, default=False, index=True)
+    # Hard delete tracking - for "delete for everyone" (unsend)
+    is_deleted = db.Column(db.Boolean, default=False, index=True)
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
     # Relationships
     sender = db.relationship(
         'User',
@@ -51,13 +58,36 @@ class DirectMessage(db.Model):
         db.Index('ix_dm_unread', 'recipient_id', 'is_read'),
     )
 
-    def to_dict(self):
-        """Serialize message for API/WebSocket responses."""
+    def to_dict(self, for_user_id=None):
+        """
+        Serialize message for API/WebSocket responses.
+
+        Args:
+            for_user_id: If provided, checks visibility for this user
+        """
+        # If message was deleted for everyone, show placeholder
+        if self.is_deleted:
+            return {
+                'id': self.id,
+                'sender_id': self.sender_id,
+                'recipient_id': self.recipient_id,
+                'content': None,
+                'is_deleted': True,
+                'is_read': self.is_read,
+                'created_at': self.created_at.isoformat() if self.created_at else None,
+                'read_at': self.read_at.isoformat() if self.read_at else None,
+                'sender_name': self.sender.player.name if self.sender and self.sender.player else (
+                    self.sender.username if self.sender else None
+                ),
+                'sender_avatar': self.sender.player.profile_picture_url if self.sender and self.sender.player else None
+            }
+
         return {
             'id': self.id,
             'sender_id': self.sender_id,
             'recipient_id': self.recipient_id,
             'content': self.content,
+            'is_deleted': False,
             'is_read': self.is_read,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'read_at': self.read_at.isoformat() if self.read_at else None,
@@ -73,19 +103,67 @@ class DirectMessage(db.Model):
             self.is_read = True
             self.read_at = datetime.utcnow()
 
+    def hide_for_user(self, user_id):
+        """
+        Hide message for a specific user (delete for me only).
+
+        Args:
+            user_id: The user hiding the message
+        """
+        if user_id == self.sender_id:
+            self.hidden_for_sender = True
+        elif user_id == self.recipient_id:
+            self.hidden_for_recipient = True
+
+    def delete_for_everyone(self):
+        """
+        Soft delete message for everyone (unsend).
+        Only the sender should be able to do this.
+        """
+        self.is_deleted = True
+        self.deleted_at = datetime.utcnow()
+        # Clear content for privacy
+        self.content = ''
+
+    def is_visible_to(self, user_id):
+        """Check if message is visible to a specific user."""
+        if self.is_deleted:
+            return True  # Show placeholder for deleted messages
+
+        if user_id == self.sender_id and self.hidden_for_sender:
+            return False
+        if user_id == self.recipient_id and self.hidden_for_recipient:
+            return False
+
+        return True
+
     @classmethod
     def get_conversation(cls, user_id_1, user_id_2, limit=50, offset=0):
         """
-        Get messages between two users.
+        Get messages between two users, respecting visibility settings.
 
         Returns messages ordered by created_at descending (newest first).
+        Filters out messages hidden for user_id_1 (the requesting user).
         """
-        return cls.query.filter(
+        # Get messages between the two users
+        query = cls.query.filter(
             db.or_(
                 db.and_(cls.sender_id == user_id_1, cls.recipient_id == user_id_2),
                 db.and_(cls.sender_id == user_id_2, cls.recipient_id == user_id_1)
             )
-        ).order_by(cls.created_at.desc()).offset(offset).limit(limit).all()
+        )
+
+        # Filter out messages hidden for the requesting user (user_id_1)
+        query = query.filter(
+            db.or_(
+                # Messages sent by user_id_1: exclude if hidden_for_sender
+                db.and_(cls.sender_id == user_id_1, cls.hidden_for_sender == False),
+                # Messages received by user_id_1: exclude if hidden_for_recipient
+                db.and_(cls.recipient_id == user_id_1, cls.hidden_for_recipient == False)
+            )
+        )
+
+        return query.order_by(cls.created_at.desc()).offset(offset).limit(limit).all()
 
     @classmethod
     def get_unread_count(cls, user_id):

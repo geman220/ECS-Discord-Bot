@@ -49,14 +49,32 @@ def init_assets(app):
     assets = Environment(app)
 
     # Determine environment mode
-    # Production mode: FLASK_ENV=production or FLASK_DEBUG=False
+    # Production mode is detected in order of priority:
+    # 1. USE_PRODUCTION_ASSETS=true (explicit override)
+    # 2. Pre-built production bundle exists at gen/production.min.css
+    # 3. FLASK_ENV=production (unless FLASK_DEBUG=true)
     flask_env = os.getenv('FLASK_ENV', 'development')
     flask_debug = os.getenv('FLASK_DEBUG', str(app.debug)).lower() in ('true', '1', 'yes')
-    is_production = (flask_env == 'production') and not flask_debug
+    use_prod_assets = os.getenv('USE_PRODUCTION_ASSETS', '').lower() in ('true', '1', 'yes')
+
+    # Check if pre-built production bundle exists
+    production_bundle_path = os.path.join(app.static_folder, 'gen', 'production.min.css')
+    has_production_bundle = os.path.exists(production_bundle_path)
+
+    # Determine if we should use production mode for assets
+    # Use production assets if:
+    # - USE_PRODUCTION_ASSETS is explicitly set, OR
+    # - Production bundle exists (built by build_assets.py at container startup), OR
+    # - FLASK_ENV=production and not debugging
+    is_production = use_prod_assets or has_production_bundle or (flask_env == 'production' and not flask_debug)
+
+    if has_production_bundle and not use_prod_assets:
+        logger.info(f"Production bundle found at {production_bundle_path}, using production mode for assets")
 
     # Configure assets environment based on mode
+    # In production: always use bundled, minified assets to prevent FOUC
     assets.debug = False if is_production else app.debug
-    assets.auto_build = True if is_production else app.debug
+    assets.auto_build = False if is_production else app.debug  # Don't auto-build in production
     assets.cache = not is_production  # Enable caching in development
     assets.manifest = 'file'  # Use file-based manifest for cache busting
 
