@@ -185,6 +185,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 // Event delegation for feedback actions
 document.addEventListener('DOMContentLoaded', function() {
@@ -254,4 +255,5 @@ function deleteFeedback(feedbackId) {
         });
 }
 </script>
+{% endif %}
 {% endblock %}

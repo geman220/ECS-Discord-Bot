@@ -117,5 +117,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/check-duplicate.js') }}"></script>
+{% endif %}
 {% endblock %}

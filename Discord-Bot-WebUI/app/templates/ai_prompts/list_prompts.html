@@ -206,6 +206,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
 <script src="https://cdn.datatables.net/plug-ins/1.10.25/sorting/datetime-moment.js"></script>
 <script>
@@ -265,4 +266,5 @@ function useTemplate(templateId) {
   {% endif %}
 {% endwith %}
 </script>
+{% endif %}
 {% endblock %}

@@ -365,6 +365,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 /**
  * Security Dashboard - Admin Panel
@@ -503,4 +504,5 @@ async function clearAllBans() {
 // Auto-refresh every 30 seconds
 setInterval(refreshStats, 30000);
 </script>
+{% endif %}
 {% endblock %}

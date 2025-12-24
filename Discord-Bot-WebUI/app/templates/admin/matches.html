@@ -256,6 +256,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 function scheduleMatch(matchId) {
     if (confirm('Schedule live reporting for this match?')) {
@@ -305,4 +306,5 @@ function stopSession(sessionId) {
     }
 }
 </script>
+{% endif %}
 {% endblock %}

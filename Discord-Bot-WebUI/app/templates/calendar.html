@@ -615,10 +615,14 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
+
 <!-- Calendar Module JS -->
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='assets/js/calendar/calendar-league-events.js') }}"></script>
 <script src="{{ url_for('static', filename='assets/js/calendar/calendar-filters.js') }}"></script>
 <script>
+{% endif %}
 document.addEventListener('DOMContentLoaded', () => {
     // State variables
     let isAssignmentMode = false;

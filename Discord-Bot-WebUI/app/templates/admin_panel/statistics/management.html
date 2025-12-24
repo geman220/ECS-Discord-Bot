@@ -379,6 +379,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 // Event delegation for statistics actions
 document.addEventListener('DOMContentLoaded', function() {
@@ -525,4 +526,5 @@ setInterval(() => {
     });
 }, 300000); // 5 minutes
 </script>
+{% endif %}
 {% endblock %}

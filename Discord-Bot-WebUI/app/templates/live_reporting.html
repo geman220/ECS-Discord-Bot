@@ -201,6 +201,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script src="{{ url_for('static', filename='custom_js/live_reporting.js') }}"></script>
 <script
@@ -234,4 +235,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+{% endif %}
 {% endblock %}

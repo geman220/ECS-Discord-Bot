@@ -707,6 +707,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 // Event delegation for appearance actions
 document.addEventListener('DOMContentLoaded', function() {
@@ -1129,4 +1130,5 @@ function importColors() {
     }
 }
 </script>
+{% endif %}
 {% endblock %}

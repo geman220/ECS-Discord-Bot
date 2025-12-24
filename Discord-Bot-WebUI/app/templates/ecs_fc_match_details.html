@@ -244,6 +244,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Event delegation for match actions
@@ -310,4 +311,5 @@ function sendReminder(matchId) {
     }
 }
 </script>
+{% endif %}
 {% endblock %}

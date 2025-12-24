@@ -220,6 +220,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Event delegation for player transfers
@@ -305,6 +306,7 @@ function exportTransferHistory() {
     });
 }
 </script>
+{% endif %}
 {% endblock %}
 
 {% block custom_css %}

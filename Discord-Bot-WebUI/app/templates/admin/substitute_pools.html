@@ -707,11 +707,15 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
+
 <!-- Substitute Pool Management Scripts -->
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/substitute-pool-management.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/substitute-request-management.js') }}"></script>
 
 <script>
+{% endif %}
 // Initialize pagination state for each league/section  
 {% for league_type in pools_data.keys() %}
 if (typeof paginationState === 'undefined') {

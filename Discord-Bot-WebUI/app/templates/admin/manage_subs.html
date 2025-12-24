@@ -229,6 +229,8 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
+
 <!-- External dependencies -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script>
@@ -238,5 +240,8 @@
         csrfToken: '{{ csrf_token() }}'
     };
 </script>
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/admin-manage-subs.js') }}"></script>
+
+{% endif %}
 {% endblock %}

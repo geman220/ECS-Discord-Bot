@@ -295,6 +295,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 let currentPlayerId = null;
 let currentResponse = null;
@@ -479,4 +480,5 @@ document.addEventListener('DOMContentLoaded', function() {
     filterResponses('all');
 });
 </script>
+{% endif %}
 {% endblock %}

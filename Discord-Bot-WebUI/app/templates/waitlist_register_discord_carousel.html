@@ -711,11 +711,15 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
+
 <!-- Include the simple cropper script -->
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/simple-cropper.js') }}"></script>
 
 <!-- Waitlist Registration Script -->
 <script>
+{% endif %}
 document.addEventListener('DOMContentLoaded', function() {
     // Core elements
     const modalElement = document.getElementById('waitlistRegistrationModal');

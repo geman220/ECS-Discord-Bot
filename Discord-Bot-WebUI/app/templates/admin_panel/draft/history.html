@@ -205,6 +205,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 let editModal;
 
@@ -326,4 +327,5 @@ function normalizePositions(seasonId, leagueId) {
     });
 }
 </script>
+{% endif %}
 {% endblock %}

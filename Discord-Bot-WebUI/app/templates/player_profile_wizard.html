@@ -402,8 +402,12 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
+
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='js/profile-wizard.js') }}"></script>
 <script>
+{% endif %}
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize wizard
     const wizard = new ProfileWizard({

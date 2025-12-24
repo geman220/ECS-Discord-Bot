@@ -387,6 +387,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/admin-api-management.js') }}"></script>
 <script>
 // Initialize API management handlers on page load
@@ -395,4 +396,5 @@ document.addEventListener('DOMContentLoaded', function() {
     apiManagement.init();
 });
 </script>
+{% endif %}
 {% endblock %}

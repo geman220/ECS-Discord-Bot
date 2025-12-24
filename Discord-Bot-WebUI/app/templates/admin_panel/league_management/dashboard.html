@@ -326,6 +326,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Auto-refresh stats every 5 minutes
@@ -348,4 +349,5 @@ function refreshDashboardStats() {
         });
 }
 </script>
+{% endif %}
 {% endblock %}

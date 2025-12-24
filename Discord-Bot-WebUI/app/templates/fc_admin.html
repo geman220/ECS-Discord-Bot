@@ -38,6 +38,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 // Auto-redirect after 3 seconds if user doesn't interact
 setTimeout(function() {
@@ -46,4 +47,5 @@ setTimeout(function() {
     }
 }, 3000);
 </script>
+{% endif %}
 {% endblock %}

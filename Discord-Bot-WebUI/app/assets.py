@@ -354,11 +354,11 @@ def init_assets(app):
     )
 
     vendor_js = Bundle(
-        'vendor/libs/node-waves/node-waves.js',
-        'vendor/libs/perfect-scrollbar/perfect-scrollbar.js',
-        'vendor/libs/hammer/hammer.js',
-        'vendor/js/menu.js',
-        'vendor/js/helpers.js',
+        'vendor/libs/node-waves/node-waves.js',      # Waves.js 0.7.6 UMD
+        'vendor/libs/perfect-scrollbar/perfect-scrollbar.js',  # 1.5.5 UMD
+        'vendor/libs/hammer/hammer.js',              # Hammer.js 2.0.8 UMD
+        'vendor/js/menu-refactored.js',              # Clean menu.js (no webpack/eval)
+        'js/helpers-minimal.js',                     # Clean helpers (no inline style injection)
         filters='jsmin',
         output='dist/vendor.js'
     )
@@ -625,13 +625,13 @@ def init_assets(app):
         'vendor/js/bootstrap.bundle.js',  # UMD Bootstrap (fixes "_element is not defined" error)
         'js/modal-manager.js',  # Centralized modal management (Best Practice 2025)
 
-        # Additional vendor libraries
-        'vendor/libs/node-waves/node-waves.js',
-        'vendor/libs/perfect-scrollbar/perfect-scrollbar.js',
-        'vendor/libs/hammer/hammer.js',
-        'vendor/js/menu.js',
-        'vendor/js/helpers.js',
-        'assets/vendor/libs/shepherd/shepherd.js',  # Guided tours
+        # Additional vendor libraries (using CDN production builds, NOT webpack dev builds)
+        'vendor/libs/node-waves/node-waves.js',      # Waves.js 0.7.6 UMD
+        'vendor/libs/perfect-scrollbar/perfect-scrollbar.js',  # 1.5.5 UMD
+        'vendor/libs/hammer/hammer.js',              # Hammer.js 2.0.8 UMD
+        'vendor/js/menu-refactored.js',              # Clean menu.js (no webpack/eval)
+        'js/helpers-minimal.js',                     # Clean helpers (no inline style injection)
+        'assets/vendor/libs/shepherd/shepherd.js',   # Shepherd.js 11.2.0 UMD
 
         # Application JavaScript
         'assets/js/main.js',

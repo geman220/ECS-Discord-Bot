@@ -364,6 +364,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // Attach event listeners to action buttons
@@ -588,4 +589,5 @@ setInterval(() => {
     featureUsageChart.update();
 }, 300000);
 </script>
+{% endif %}
 {% endblock %}

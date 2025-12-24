@@ -108,7 +108,12 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
+
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/manage-teams.js') }}"></script>
+
+{% endif %}
 {% endblock %}
 
 {% macro render_team_list(teams, league_name, season_id) %}

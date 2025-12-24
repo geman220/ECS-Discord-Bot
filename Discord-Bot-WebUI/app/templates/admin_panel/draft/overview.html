@@ -164,9 +164,11 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 document.getElementById('export-btn').addEventListener('click', function() {
     AdminPanel.showMobileToast('Export functionality coming soon', 'info');
 });
 </script>
+{% endif %}
 {% endblock %}

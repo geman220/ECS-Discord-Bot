@@ -446,10 +446,13 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
+
 <!-- Socket.IO -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 
 <!-- Draft System JavaScript -->
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='js/draft-system.js') }}?v={{ range(1, 1000000) | random }}"></script>
 
 <!-- Mobile Draft Enhancements -->
@@ -459,6 +462,7 @@
 <script src="{{ url_for('static', filename='custom_js/draft-enhanced.js') }}"></script>
 
 <!--
+{% endif %}
 MIGRATION NOTE: Inline JavaScript has been extracted to /app/static/custom_js/draft-enhanced.js
 All event handlers now use data-* attributes and .js-* classes for binding
 Functions migrated:

@@ -107,6 +107,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', function(e) {
@@ -141,4 +142,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+{% endif %}
 {% endblock %}

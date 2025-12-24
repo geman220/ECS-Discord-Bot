@@ -347,6 +347,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
     // Pass player data to JavaScript
     window.playerData = {
@@ -357,4 +358,5 @@
     };
 </script>
 <script src="{{ url_for('static', filename='custom_js/waitlist-register-authenticated.js') }}"></script>
+{% endif %}
 {% endblock %}

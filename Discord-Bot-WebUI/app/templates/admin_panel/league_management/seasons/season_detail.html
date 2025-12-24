@@ -240,6 +240,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Edit season button
@@ -340,4 +341,5 @@ function setCurrentSeason(seasonId) {
     });
 }
 </script>
+{% endif %}
 {% endblock %}

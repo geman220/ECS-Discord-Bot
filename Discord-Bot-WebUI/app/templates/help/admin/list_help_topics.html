@@ -56,6 +56,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
     // Delete confirmation handler using event delegation
     document.addEventListener('click', function(e) {
@@ -81,4 +82,5 @@
         }
     });
 </script>
+{% endif %}
 {% endblock %}

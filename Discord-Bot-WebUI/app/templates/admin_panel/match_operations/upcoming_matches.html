@@ -195,6 +195,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 // Event delegation for upcoming match actions
 document.addEventListener('DOMContentLoaded', function() {
@@ -243,4 +244,5 @@ function scheduleMatch(matchId) {
     });
 }
 </script>
+{% endif %}
 {% endblock %}

@@ -394,6 +394,8 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='js/match-operations/match-reports.js') }}"></script>
+{% endif %}
 {% endblock %}

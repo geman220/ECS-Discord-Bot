@@ -319,4 +319,6 @@
     }
 </script>
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
+{% endif %}
 {% endblock %}

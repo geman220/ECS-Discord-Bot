@@ -260,6 +260,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Event delegation for all task actions
@@ -355,4 +356,5 @@ function cleanupZombies() {
     });
 }
 </script>
+{% endif %}
 {% endblock %}

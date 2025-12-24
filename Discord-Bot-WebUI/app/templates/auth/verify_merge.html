@@ -136,6 +136,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
     // Pass data to JavaScript
     window.verifyMergeData = {
@@ -147,4 +148,5 @@
     };
 </script>
 <script src="{{ url_for('static', filename='custom_js/verify-merge.js') }}"></script>
+{% endif %}
 {% endblock %}

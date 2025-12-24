@@ -208,6 +208,8 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <!-- Admin Dashboard Module - Handles Docker containers, tasks, and permissions -->
 <script src="{{ url_for('static', filename='js/admin/admin-dashboard.js') }}"></script>
+{% endif %}
 {% endblock %}

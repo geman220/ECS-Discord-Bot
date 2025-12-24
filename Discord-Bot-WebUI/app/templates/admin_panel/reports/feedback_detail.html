@@ -12,6 +12,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 // Form submission confirmation delegation
 document.addEventListener('DOMContentLoaded', function() {
@@ -27,6 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+{% endif %}
 {% endblock %}
 
 {% block panel_content %}

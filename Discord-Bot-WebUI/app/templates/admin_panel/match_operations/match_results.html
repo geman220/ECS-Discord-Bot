@@ -144,6 +144,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 // Event delegation for match result actions
 document.addEventListener('DOMContentLoaded', function() {
@@ -170,4 +171,5 @@ function enterResult(matchId) {
     });
 }
 </script>
+{% endif %}
 {% endblock %}

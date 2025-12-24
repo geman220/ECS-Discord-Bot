@@ -29,6 +29,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
 <script>
     var easyMDE = new EasyMDE({
@@ -42,4 +43,5 @@
         toolbar: ["bold", "italic", "heading", "|", "quote", "code", "table", "image", "|", "preview", "side-by-side", "fullscreen"]
     });
 </script>
+{% endif %}
 {% endblock %}

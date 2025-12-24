@@ -252,6 +252,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 const matchId = '{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% elif match %}{{ match.id }}{% endif %}';
 
@@ -291,4 +292,5 @@ function updateRsvp(playerId, response) {
     });
 }
 </script>
+{% endif %}
 {% endblock %}

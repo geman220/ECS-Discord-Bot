@@ -157,5 +157,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='js/match-operations/manage-leagues.js') }}"></script>
+{% endif %}
 {% endblock %}

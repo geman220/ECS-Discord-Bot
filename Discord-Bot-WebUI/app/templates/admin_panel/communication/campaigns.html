@@ -488,6 +488,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <!-- Campaign Management Configuration -->
 <script>
 // Expose configuration to external JS
@@ -497,4 +498,5 @@ window.CAMPAIGNS_CSRF_TOKEN = '{{ csrf_token() }}';
 
 <!-- Campaign Management JavaScript -->
 <script src="{{ url_for('static', filename='js/admin/push-campaigns.js') }}"></script>
+{% endif %}
 {% endblock %}

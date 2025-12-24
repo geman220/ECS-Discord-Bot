@@ -218,6 +218,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
   // Pass initial data to JavaScript
   window.MessagesInboxConfig = {
@@ -228,4 +229,5 @@
   };
 </script>
 <script src="{{ url_for('static', filename='js/messages-inbox.js') }}?v=2"></script>
+{% endif %}
 {% endblock %}

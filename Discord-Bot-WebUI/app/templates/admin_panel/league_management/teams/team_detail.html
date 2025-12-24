@@ -281,6 +281,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Edit team button
@@ -361,4 +362,5 @@ function syncTeamDiscord(teamId) {
     });
 }
 </script>
+{% endif %}
 {% endblock %}

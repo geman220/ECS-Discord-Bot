@@ -267,6 +267,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 // Event delegation for announcement actions
 document.addEventListener('click', function(e) {
@@ -328,4 +329,5 @@ document.addEventListener('click', function(e) {
     }
 });
 </script>
+{% endif %}
 {% endblock %}

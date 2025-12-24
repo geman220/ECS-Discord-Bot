@@ -160,6 +160,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('playerSearch');
@@ -177,4 +178,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+{% endif %}
 {% endblock %}

@@ -304,6 +304,8 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
+
 <!-- 1) Provide your leagueTeams map from Jinja -->
 <script>
   window.leagueTeams = {};
@@ -402,5 +404,8 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <!-- 2) Include your main schedule-management.js AFTER that global -->
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/schedule-management.js') }}"></script>
+
+{% endif %}
 {% endblock %}

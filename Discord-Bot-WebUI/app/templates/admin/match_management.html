@@ -649,6 +649,11 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/match-management.js') }}?v={{ current_time.timestamp() }}"></script>
+
+{% endif %}
 {% endblock %}

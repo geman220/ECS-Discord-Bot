@@ -276,6 +276,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
     // Bootstrap data for JavaScript
     window.matchDetailData = {
@@ -285,4 +286,5 @@
     };
 </script>
 <script src="{{ url_for('static', filename='custom_js/admin-match-detail.js') }}"></script>
+{% endif %}
 {% endblock %}

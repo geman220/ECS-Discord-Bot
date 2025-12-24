@@ -757,8 +757,12 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
+
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='js/message-management.js') }}"></script>
 <script>
+{% endif %}
 // Add CSRF token to meta tag for AJAX requests
 if (!document.querySelector('meta[name="csrf-token"]')) {
     const meta = document.createElement('meta');

@@ -249,6 +249,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -336,4 +337,5 @@ new Chart(statusCtx, {
     }
 });
 </script>
+{% endif %}
 {% endblock %}

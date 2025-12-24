@@ -206,6 +206,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 function confirmDelete(feedbackId) {
     Swal.fire({
@@ -233,4 +234,5 @@ function confirmDelete(feedbackId) {
     });
 }
 </script>
+{% endif %}
 {% endblock %}

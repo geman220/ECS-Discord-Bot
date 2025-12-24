@@ -278,6 +278,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -434,4 +435,5 @@ setInterval(() => {
     historicalChart.update();
 }, 30000);
 </script>
+{% endif %}
 {% endblock %}

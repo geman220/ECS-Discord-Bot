@@ -157,5 +157,10 @@ TODO: Remove this template after new system is verified in production
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
+
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/matches-management.js') }}"></script>
+
+{% endif %}
 {% endblock %}

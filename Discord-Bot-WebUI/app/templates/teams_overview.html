@@ -230,5 +230,10 @@
 {% endblock %}
 
 {% block custom_js %}
+{{ super() }}
+
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/teams-overview.js') }}"></script>
+
+{% endif %}
 {% endblock %}

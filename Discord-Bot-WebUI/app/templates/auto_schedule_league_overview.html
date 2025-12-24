@@ -212,6 +212,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 // Event delegation for schedule conflict info button
 document.addEventListener('click', function(e) {
@@ -221,5 +222,6 @@ document.addEventListener('click', function(e) {
     }
 });
 </script>
+{% endif %}
 {% endblock %}
 {% endblock %}

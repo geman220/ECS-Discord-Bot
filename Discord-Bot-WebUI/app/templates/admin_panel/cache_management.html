@@ -240,6 +240,7 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script>
 // Event delegation for cache management actions
 document.addEventListener('DOMContentLoaded', function() {
@@ -377,4 +378,5 @@ document.addEventListener('keydown', function(e) {
     }
 });
 </script>
+{% endif %}
 {% endblock %}
