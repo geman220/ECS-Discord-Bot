@@ -382,6 +382,8 @@ services:
       - "traefik.http.services.webui.loadbalancer.sticky.cookie.name=webui_sticky"
       - "traefik.http.services.webui.loadbalancer.sticky.cookie.secure=true"
       - "traefik.http.services.webui.loadbalancer.sticky.cookie.httponly=true"
+      # Service port (required for WebSocket routing)
+      - "traefik.http.services.webui.loadbalancer.server.port=5000"
       # Apply middlewares
       - "traefik.http.routers.webui.middlewares=redirect-to-https,rate-limit"
       - "traefik.http.routers.webui-secure.middlewares=secure-headers,rate-limit"
