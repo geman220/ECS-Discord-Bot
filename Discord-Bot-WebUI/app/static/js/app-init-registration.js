@@ -15,23 +15,24 @@
  * - 29-10:  Enhancements (UI fixes, animations)
  *
  * Phase 2.4 - Centralized Init System Completion
- * Batch 1: 8 ultra-simple files migrated
+ * Batch 1: 7 components registered (waves-css-override removed - Waves.Effect not exposed)
  *
- * @version 1.0.0
+ * @version 1.0.1
  * @created 2025-12-16
+ * @updated 2025-12-23 - Removed waves-css-override (Waves.Effect is internal API)
  *
  * Migration Summary:
  * -----------------
  * ✅ page-loader.js (19 lines) → Priority 85
  * ✅ admin-utilities-init.js (25 lines) → Priority 70
- * ✅ waves-css-override.js (76 lines) → Priority 30
+ * ❌ waves-css-override.js - REMOVED (Waves.Effect is internal to node-waves, not exposed)
  * ✅ design-system-fix.js (54 lines) → Priority 30
  * ✅ design-system-override.js (49 lines) → Priority 30 (merged with design-system-fix)
  * ✅ dropdown-menu-fix.js (20 lines) → Priority 30
  * ✅ mobile-menu-fix.js (113 lines) → Priority 30
  * ✅ waitlist-register.js (24 lines) → Priority 20
  *
- * Total: 380 lines of scattered init code → 1 organized registration file
+ * Total: 7 active components
  *
  * Testing:
  * --------
@@ -183,76 +184,12 @@
     });
 
     // ----------------------------------------------------------------------------
-    // Waves CSS Override
+    // Waves CSS Override - REMOVED
     // ----------------------------------------------------------------------------
-    // Prevents node-waves from injecting inline styles while keeping ripple functionality
-    InitSystem.register('waves-css-override', function() {
-        if (!window.Waves || !window.Waves.Effect) {
-            console.warn('[Waves Override] Waves library not fully loaded');
-            return;
-        }
-
-        // Store original Waves methods
-        const originalShow = window.Waves.Effect.show;
-        const originalHide = window.Waves.Effect.hide;
-
-        // Override Waves.Effect.show to prevent inline style injection
-        window.Waves.Effect.show = function(e, element) {
-            // Call original show to create ripple elements
-            originalShow.call(this, e, element);
-
-            // Remove inline styles from parent element that Waves may have added
-            if (element && element.style) {
-                // Remove transform, transition, box-shadow that conflict with CSS
-                element.style.removeProperty('transform');
-                element.style.removeProperty('transition');
-                element.style.removeProperty('box-shadow');
-                element.style.removeProperty('transform-style');
-            }
-
-            // Clean up ripple elements - keep animation, remove conflicting styles
-            setTimeout(function() {
-                if (element) {
-                    const ripples = element.querySelectorAll('.waves-ripple');
-                    ripples.forEach(function(ripple) {
-                        // Keep the ripple element but ensure it uses CSS classes
-                        // Remove inline transform if it conflicts
-                        if (ripple.style.transform && ripple.style.transform !== 'scale(0)') {
-                            ripple.classList.add('waves-ripple-active');
-                        }
-                    });
-                }
-            }, 10);
-        };
-
-        // Override Waves.Effect.hide to clean up properly
-        window.Waves.Effect.hide = function(e, element) {
-            // Call original hide
-            originalHide.call(this, e, element);
-
-            // Remove any inline styles that were added
-            if (element && element.style) {
-                element.style.removeProperty('transform');
-                element.style.removeProperty('transition');
-                element.style.removeProperty('box-shadow');
-                element.style.removeProperty('transform-style');
-            }
-        };
-
-        // Initialize Waves with configuration to minimize inline styles
-        if (window.Waves.init) {
-            window.Waves.init({
-                duration: 300,
-                delay: 0
-            });
-        }
-
-        console.log('[Waves Override] Inline style injection prevented - using CSS classes');
-    }, {
-        priority: 30,
-        description: 'Wave animation CSS overrides (prevent inline styles)',
-        reinitializable: false // Only needs to run once
-    });
+    // Note: Waves.Effect is an internal API not exposed by node-waves.
+    // Ripple effects work via CSS classes applied by Waves.init() which is
+    // called in vendor/libs/node-waves/node-waves.js and assets/js/main.js.
+    // No override needed - just let the library work as designed.
 
     // ----------------------------------------------------------------------------
     // Dropdown Menu Fix
@@ -426,7 +363,7 @@
     // ============================================================================
     // REGISTRATION COMPLETE
     // ============================================================================
-    console.log('[App Init] ✅ 8 components registered successfully');
+    console.log('[App Init] ✅ 7 components registered successfully');
     console.log('[App Init] Run InitSystemDebug.printOrder() to view initialization order');
 
 })(window, document);

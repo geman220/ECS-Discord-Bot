@@ -124,11 +124,13 @@
 {% endblock %}
 
 {% block scripts %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 {# Asset Cropper Library #}
 <script src="{{ url_for('static', filename='js/pass-studio-cropper.js') }}"></script>
 
 {# Pass Studio Main JavaScript - Extracted from inline script #}
 <script src="{{ url_for('static', filename='js/pass-studio.js') }}"></script>
+{% endif %}
 
 <!--
 MIGRATION NOTE: Inline JavaScript has been extracted to /app/static/js/pass-studio.js

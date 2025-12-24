@@ -1469,15 +1469,15 @@
 <!-- External dependencies -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
-<!-- Custom scripts with proper asset versioning for cache busting -->
-<script src="{{ asset_version('custom_js/design-system-override.js') }}"></script>
-<script src="{{ asset_version('custom_js/rsvp-unified.js') }}"></script>
+<!-- Custom scripts (development mode only - bundled in production) -->
 {% if not config.get('ASSETS_PRODUCTION_MODE') %}
+<script src="{{ url_for('static', filename='custom_js/design-system-override.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/rsvp-unified.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/substitute-request-management.js') }}"></script>
+{% endif %}
 
 <!-- Match-specific initialization -->
 <script>
-{% endif %}
 // Global variables for match info
 const matchId = "{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}";
 const isEcsFcMatch = {{ 'true' if is_ecs_fc_match else 'false' }};

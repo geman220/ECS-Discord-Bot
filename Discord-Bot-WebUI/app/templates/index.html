@@ -499,7 +499,9 @@
 <script src="{{ url_for('static', filename='custom_js/home.js') }}"></script>
 {% endif %}
 {% if show_onboarding or session.get('force_onboarding') %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/onboarding.js') }}"></script>
+{% endif %}
 <script>
     // Auto-open the onboarding modal when the page loads
     document.addEventListener('DOMContentLoaded', function() {
@@ -518,7 +520,7 @@
     });
 </script>
 {% endif %}
-{% if player %}
+{% if player and not config.get('ASSETS_PRODUCTION_MODE') %}
 <script src="{{ url_for('static', filename='custom_js/rsvp.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/simple-cropper.js') }}"></script>
 {% endif %}
