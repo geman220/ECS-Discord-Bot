@@ -68,8 +68,13 @@ def init_assets(app):
     # - FLASK_ENV=production and not debugging
     is_production = use_prod_assets or has_production_bundle or (flask_env == 'production' and not flask_debug)
 
-    if has_production_bundle and not use_prod_assets:
-        logger.info(f"Production bundle found at {production_bundle_path}, using production mode for assets")
+    # Log production mode decision for debugging
+    logger.info(f"[ASSETS] Production mode detection:")
+    logger.info(f"  FLASK_ENV={flask_env}, FLASK_DEBUG={os.getenv('FLASK_DEBUG', 'not set')}, flask_debug={flask_debug}")
+    logger.info(f"  USE_PRODUCTION_ASSETS={use_prod_assets}")
+    logger.info(f"  Production bundle path: {production_bundle_path}")
+    logger.info(f"  Production bundle exists: {has_production_bundle}")
+    logger.info(f"  >>> ASSETS_PRODUCTION_MODE = {is_production}")
 
     # Configure assets environment based on mode
     # In production: always use bundled, minified assets to prevent FOUC

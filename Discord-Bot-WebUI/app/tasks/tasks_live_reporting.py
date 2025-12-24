@@ -785,13 +785,22 @@ def force_create_mls_thread_task(self, session, match_id: str, force: bool = Fal
             
             if not lock_acquired and redis_available:
                 logger.info(f"Another worker is creating thread for match {match_id}, checking status...")
-                
+
+                # Release database connection before sleeping to prevent pool exhaustion
+                session.expire_all()
+                session.commit()  # Release any held locks
+
                 # Wait a bit for the other worker
                 import time
                 time.sleep(2)
-                
-                # Re-check if thread was created
-                session.expire(match, ['thread_created', 'discord_thread_id'])
+
+                # Re-fetch match after sleep (previous reference is expired)
+                match = get_match(session, match_id)
+                if not match:
+                    return {'success': False, 'message': f'Match {match_id} not found after retry'}
+
+                # Check if thread was created by the other worker
+                session.refresh(match)
                 if match.thread_created and match.discord_thread_id:
                     logger.info(f"Thread was created by another worker for match {match_id}")
                     return {

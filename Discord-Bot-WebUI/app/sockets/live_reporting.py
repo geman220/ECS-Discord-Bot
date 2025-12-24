@@ -1298,6 +1298,11 @@ def create_player_events_from_match_events(session, match_id):
         
         except Exception as e:
             logger.error(f"Error creating player event from match event {event.id}: {str(e)}")
-    
-    session.commit()
-    logger.info(f"Created player events for match {match_id}")
+
+    try:
+        session.commit()
+        logger.info(f"Created player events for match {match_id}")
+    except Exception as e:
+        logger.error(f"Error committing player events for match {match_id}: {str(e)}")
+        session.rollback()
+        raise

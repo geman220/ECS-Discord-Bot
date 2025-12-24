@@ -263,7 +263,7 @@
       elements.emptyState.style.display = 'none';
     }
 
-    const defaultAvatar = '/static/images/default-avatar.png';
+    const defaultAvatar = '/static/img/default_player.png';
 
     const html = state.conversations.map(conv => {
       const isActive = state.activeConversation?.id === conv.user.id;
@@ -518,7 +518,7 @@
     }
 
     console.log('[ChatWidget] Rendering', state.searchResults.length, 'search results');
-    const defaultAvatar = '/static/images/default-avatar.png';
+    const defaultAvatar = '/static/img/default_player.png';
 
     const html = state.searchResults.map(user => {
       const avatarUrl = user.avatar_url || defaultAvatar;
@@ -555,7 +555,7 @@
 
     if (onlineSection) onlineSection.classList.remove('u-hidden');
 
-    const defaultAvatar = '/static/images/default-avatar.png';
+    const defaultAvatar = '/static/img/default_player.png';
 
     const html = users.slice(0, 8).map(user => {
       const avatarUrl = user.avatar_url || defaultAvatar;
@@ -664,7 +664,7 @@
     }
 
     // Update chat header
-    const defaultAvatar = '/static/images/default-avatar.png';
+    const defaultAvatar = '/static/img/default_player.png';
 
     if (elements.chatAvatar) {
       elements.chatAvatar.src = avatarUrl || defaultAvatar;

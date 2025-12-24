@@ -55,6 +55,7 @@ def register_fcm_token():
         
     except Exception as e:
         logger.error(f"Error registering FCM token: {e}")
+        db.session.rollback()
         return jsonify({'msg': 'Internal server error'}), 500
 
 @notifications_bp.route('/send-test', methods=['POST'])
