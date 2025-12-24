@@ -110,140 +110,6 @@
     {% endassets %}
     {% endif %}
 
-    <!-- 2. ADMIN CUSTOM COLORS (Dynamic injection)
-         Administrator-configured color overrides from Appearance Manager
-         Loaded EARLY so color variables are available to all subsequent CSS
-         Uses inline <style> for dynamic values that can't be in static CSS -->
-    {% if site_settings and site_settings.custom_colors %}
-    {% set light = site_settings.custom_colors.get('light', {}) %}
-    {% set dark = site_settings.custom_colors.get('dark', {}) %}
-    <style id="admin-custom-colors">
-        /* ===========================================
-           ADMIN CUSTOMIZED COLORS (HIGH PRIORITY)
-           These define custom color variables for the theme
-           Generated dynamically from Appearance Manager settings
-           =========================================== */
-
-        /* Light Mode - Root Variables */
-        :root {
-            {% for key, value in light.items() %}
-            --ecs-{{ key|replace('_', '-') }}: {{ value }};
-            {% endfor %}
-
-            /* Map to Bootstrap variables */
-            {% if light.primary %}--bs-primary: {{ light.primary }};{% endif %}
-            {% if light.secondary %}--bs-secondary: {{ light.secondary }};{% endif %}
-            {% if light.success %}--bs-success: {{ light.success }};{% endif %}
-            {% if light.warning %}--bs-warning: {{ light.warning }};{% endif %}
-            {% if light.danger %}--bs-danger: {{ light.danger }};{% endif %}
-            {% if light.info %}--bs-info: {{ light.info }};{% endif %}
-            {% if light.text_heading %}--bs-heading-color: {{ light.text_heading }};{% endif %}
-            {% if light.text_body %}--bs-body-color: {{ light.text_body }};{% endif %}
-            {% if light.bg_body %}--bs-body-bg: {{ light.bg_body }};{% endif %}
-        }
-
-        /* Light Mode - Card-level variables override */
-        :root .card,
-        html:not([data-style="dark"]) .card {
-            {% if light.text_heading %}--bs-card-title-color: {{ light.text_heading }};{% endif %}
-            {% if light.text_heading %}--bs-card-cap-color: {{ light.text_heading }};{% endif %}
-            {% if light.text_body %}--bs-card-color: {{ light.text_body }};{% endif %}
-        }
-
-        /* Light Mode - Direct element overrides with !important */
-        html:not([data-style="dark"]) h1,
-        html:not([data-style="dark"]) h2,
-        html:not([data-style="dark"]) h3,
-        html:not([data-style="dark"]) h4,
-        html:not([data-style="dark"]) h5,
-        html:not([data-style="dark"]) h6,
-        html:not([data-style="dark"]) .h1,
-        html:not([data-style="dark"]) .h2,
-        html:not([data-style="dark"]) .h3,
-        html:not([data-style="dark"]) .h4,
-        html:not([data-style="dark"]) .h5,
-        html:not([data-style="dark"]) .h6,
-        html:not([data-style="dark"]) .card-title,
-        html:not([data-style="dark"]) .ecs-card-title {
-            {% if light.text_heading %}color: {{ light.text_heading }} !important;{% endif %}
-        }
-
-        html:not([data-style="dark"]) .text-primary,
-        html:not([data-style="dark"]) .text-primary i,
-        html:not([data-style="dark"]) i.text-primary {
-            {% if light.primary %}color: {{ light.primary }} !important;{% endif %}
-        }
-
-        html:not([data-style="dark"]) .card-body,
-        html:not([data-style="dark"]) .card-body p,
-        html:not([data-style="dark"]) .table tbody td {
-            {% if light.text_body %}color: {{ light.text_body }} !important;{% endif %}
-        }
-
-        html:not([data-style="dark"]) .text-muted {
-            {% if light.text_muted %}color: {{ light.text_muted }} !important;{% endif %}
-        }
-
-        html:not([data-style="dark"]) .table thead th,
-        html:not([data-style="dark"]) .table-light th {
-            {% if light.text_heading %}color: {{ light.text_heading }} !important;{% endif %}
-        }
-
-        /* Dark Mode Variables */
-        [data-style="dark"] {
-            {% for key, value in dark.items() %}
-            --ecs-{{ key|replace('_', '-') }}: {{ value }};
-            {% endfor %}
-
-            /* Map to Bootstrap variables */
-            {% if dark.primary %}--bs-primary: {{ dark.primary }};{% endif %}
-            {% if dark.secondary %}--bs-secondary: {{ dark.secondary }};{% endif %}
-            {% if dark.success %}--bs-success: {{ dark.success }};{% endif %}
-            {% if dark.warning %}--bs-warning: {{ dark.warning }};{% endif %}
-            {% if dark.danger %}--bs-danger: {{ dark.danger }};{% endif %}
-            {% if dark.info %}--bs-info: {{ dark.info }};{% endif %}
-            {% if dark.text_heading %}--bs-heading-color: {{ dark.text_heading }};{% endif %}
-            {% if dark.text_body %}--bs-body-color: {{ dark.text_body }};{% endif %}
-            {% if dark.bg_body %}--bs-body-bg: {{ dark.bg_body }};{% endif %}
-        }
-
-        /* Dark Mode - Card-level variables override */
-        [data-style="dark"] .card,
-        html[data-style="dark"] .card {
-            {% if dark.text_heading %}--bs-card-title-color: {{ dark.text_heading }};{% endif %}
-            {% if dark.text_heading %}--bs-card-cap-color: {{ dark.text_heading }};{% endif %}
-            {% if dark.text_body %}--bs-card-color: {{ dark.text_body }};{% endif %}
-        }
-
-        /* Dark Mode - Direct element overrides */
-        html[data-style="dark"] h1,
-        html[data-style="dark"] h2,
-        html[data-style="dark"] h3,
-        html[data-style="dark"] h4,
-        html[data-style="dark"] h5,
-        html[data-style="dark"] h6,
-        html[data-style="dark"] .card-title,
-        html[data-style="dark"] .ecs-card-title {
-            {% if dark.text_heading %}color: {{ dark.text_heading }} !important;{% endif %}
-        }
-
-        html[data-style="dark"] .text-primary,
-        html[data-style="dark"] .text-primary i,
-        html[data-style="dark"] i.text-primary {
-            {% if dark.primary %}color: {{ dark.primary }} !important;{% endif %}
-        }
-
-        html[data-style="dark"] .card-body,
-        html[data-style="dark"] .table tbody td {
-            {% if dark.text_body %}color: {{ dark.text_body }} !important;{% endif %}
-        }
-
-        html[data-style="dark"] .text-muted {
-            {% if dark.text_muted %}color: {{ dark.text_muted }} !important;{% endif %}
-        }
-    </style>
-    {% endif %}
-
     {% if not config.get('ASSETS_PRODUCTION_MODE') %}
     <!-- 3. FOUNDATION (Bootstrap + ECS Core)
          Base framework styles: Bootstrap 5.3.3 + vendor overrides
@@ -268,23 +134,6 @@
     {% endif %}
 
     {% if not config.get('ASSETS_PRODUCTION_MODE') %}
-    <!-- DEVELOPMENT MODE: Load individual component CSS files
-         In production, these are all bundled in production.min.css -->
-
-    <!-- 4B. MODAL HELPERS (Component CSS) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/modal-helpers.css') }}" />
-
-    <!-- 4C. MODERN CORE COMPONENTS (Phase 2 Component Library) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/cards-modern.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/buttons-modern.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/forms-modern.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tables-modern.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/toasts-modern.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tooltips-modern.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/loaders-modern.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/empty-states-modern.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/sweetalert-modern.css') }}" />
-
     <!-- 6. LAYOUT & MOBILE (Responsive Structure) -->
     {% assets "layout_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
@@ -292,12 +141,6 @@
     {% assets "mobile_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
-
-    <!-- 7. MODERN NAVBAR & WIDGETS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/navbar-modern.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/online-status.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/online-users-widget.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/c-chat-widget.css') }}" />
     {% endif %}
 
     <!-- 8. VENDOR CDN CSS (Third-party Libraries)
@@ -840,9 +683,6 @@
     <!-- Shepherd.js for guided tours (bundled in production) -->
     <script src="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.js') }}"></script>
     {% endif %}
-
-    <!-- SweetAlert2 JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.0/sweetalert2.min.js"></script>
 
     <!-- Include Fancybox JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.5.7/jquery.fancybox.min.js"></script>
